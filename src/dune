@@ -1,0 +1,13 @@
+(executable
+ (name main)
+ (public_name ocaml-ci)
+ (libraries logs.fmt
+            fmt.tty
+            current
+            current_web
+            current_docker
+            current_git
+            current_github
+            dockerfile
+            nocrypto.lwt
+            prometheus))

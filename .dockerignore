@@ -1,0 +1,6 @@
+**/_build
+**/*.swp
+**/.git
+**/var
+**/*.orig
+**/*.merlin

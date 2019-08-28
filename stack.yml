@@ -1,0 +1,15 @@
+version: '3.1'
+volumes:
+  data:
+secrets:
+  ocaml-ci-github-key:
+    external: true
+services:
+  ci:
+    image: ocaml-ci
+    command: --github-app-id 39151 --github-private-key-file /run/secrets/ocaml-ci-github-key --github-account-whitelist "talex5,ocaml-ci,ocaml,mirage,avsm"
+    volumes:
+      - 'data:/var/lib/ocurrent'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+    secrets:
+      - 'ocaml-ci-github-key'
