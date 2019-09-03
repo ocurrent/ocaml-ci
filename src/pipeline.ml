@@ -5,7 +5,7 @@ module Github = Current_github
 module Docker = Current_docker.Default
 
 (* Limit number of concurrent builds. *)
-let pool = Lwt_pool.create 4 Lwt.return
+let pool = Lwt_pool.create 20 Lwt.return
 
 (* Link for GitHub statuses. *)
 let url = Uri.of_string "https://ci.ocamllabs.io:8100/"
