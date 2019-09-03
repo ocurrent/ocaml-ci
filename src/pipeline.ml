@@ -18,6 +18,7 @@ let dockerfile ~base =
   from (Docker.Image.hash base) @@
   workdir "/src" @@
   add ~src:["*.opam"] ~dst:"/src/" () @@
+  run {| find . -name '*.opam' | sed 's/\(.*\)\/\([^\/]*\).opam/opam pin add -yn \2.dev \1/' | sh - |} @@
   run "opam install . --show-actions --deps-only -t | awk '/- install/{print $3}' | xargs opam depext -iy" @@
   copy ~src:["."] ~dst:"/src/" () @@
   run "opam install -tv ."
