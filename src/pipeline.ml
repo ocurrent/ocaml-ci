@@ -29,7 +29,7 @@ let group_opam_files =
     )
 
 (* Generate Dockerfile instructions to copy all the files in [items] into the
-   image, creating the neccesary directories first, and then pin them all. *)
+   image, creating the necessary directories first, and then pin them all. *)
 let pin_opam_files groups =
   let open Dockerfile in
   let dirs = groups |> List.map (fun (dir, _) -> Printf.sprintf "%S" (Fpath.to_string dir)) |> String.concat " " in
