@@ -13,6 +13,7 @@ synopsis: "Test OCaml projects on GitHub"
 depends: [
   "dune" {>= "1.11"}
   "current_git"
+  "current_github"
   "current_docker"
   "current_web"
   "dockerfile"

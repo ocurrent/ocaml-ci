@@ -10,4 +10,5 @@
             current_github
             dockerfile
             nocrypto.lwt
-            prometheus))
+            prometheus)
+ (preprocess (pps ppx_deriving_yojson)))
