@@ -7,6 +7,9 @@ module Docker = Current_docker.Default
 (* Limit number of concurrent builds. *)
 let pool = Lwt_pool.create 20 Lwt.return
 
+(* Maximum time for one Docker build. *)
+let timeout = Duration.of_hour 1
+
 (* Link for GitHub statuses. *)
 let url = Uri.of_string "https://ci.ocamllabs.io:8100/"
 
@@ -78,7 +81,7 @@ let v ~app () =
     and+ opam_files = Opam.find_opam_files src in
     dockerfile ~base ~opam_files
   in
-  Docker.build ~pool ~pull:false ~dockerfile (`Git src)
+  Docker.build ~timeout ~pool ~pull:false ~dockerfile (`Git src)
   |> Current.state
   |> Current.map github_status_of_state
   |> Github.Api.Commit.set_status head "ocaml-ci"

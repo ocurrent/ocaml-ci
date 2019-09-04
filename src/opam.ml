@@ -24,8 +24,8 @@ module Find_opam = struct
 
   let id = "find-opam"
 
-  let build ~switch ~set_running No_context job src =
-    set_running ();
+  let build ~switch No_context job src =
+    Current.Job.start job ~level:Current.Level.Harmless >>= fun () ->
     Current_git.with_checkout ~switch ~job src @@ fun tmpdir ->
     let cmd = "", [| "find"; "-name"; "*.opam" |] in 
     Current.Process.check_output ~cwd:tmpdir ~switch ~job cmd >|= Stdlib.Result.map @@ fun output ->
@@ -36,8 +36,6 @@ module Find_opam = struct
   let pp f _ = Fmt.string f "**/*.opam"
 
   let auto_cancel = false
-
-  let level _ _ = Current.Level.Harmless
 end
 
 module Find_opam_cache = Current_cache.Make(Find_opam)
