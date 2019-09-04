@@ -81,4 +81,4 @@ let v ~app () =
   Docker.build ~pool ~pull:false ~dockerfile (`Git src)
   |> Current.state
   |> Current.map github_status_of_state
-  |> Github.Api.Commit.set_status head "ocurrent"
+  |> Github.Api.Commit.set_status head "ocaml-ci"
