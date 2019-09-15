@@ -79,6 +79,7 @@ let v ~app () =
   let dockerfile =
     let+ base = Docker.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
     and+ opam_files = Opam.find_opam_files src in
+    if opam_files = [] then failwith "No opam files found!";
     dockerfile ~base ~opam_files
   in
   Docker.build ~timeout ~pool ~pull:false ~dockerfile (`Git src)
