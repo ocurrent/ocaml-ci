@@ -16,5 +16,7 @@ depends: [
   "current_github"
   "current_docker"
   "current_web"
+  "current_rpc"
+  "capnp-rpc-unix"
   "dockerfile"
 ]

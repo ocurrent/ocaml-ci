@@ -8,6 +8,8 @@
             current_docker
             current_git
             current_github
+            current_rpc
+            capnp-rpc-unix
             dockerfile
             nocrypto.lwt
             prometheus)
