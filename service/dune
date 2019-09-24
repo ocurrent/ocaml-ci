@@ -12,5 +12,6 @@
             capnp-rpc-unix
             dockerfile
             nocrypto.lwt
+            ocaml_ci_api
             prometheus)
  (preprocess (pps ppx_deriving_yojson)))

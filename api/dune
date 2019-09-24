@@ -1,0 +1,9 @@
+(library
+  (name ocaml_ci_api)
+  (libraries capnp-rpc-lwt current_rpc)
+  (flags (:standard -w -53-55)))
+
+(rule
+ (targets schema.ml schema.mli ocurrent.ml ocurrent.mli)
+ (deps schema.capnp ocurrent.capnp)
+ (action (run capnpc -o %{bin:capnpc-ocaml} %{deps})))
