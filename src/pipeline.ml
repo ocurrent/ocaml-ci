@@ -87,7 +87,16 @@ let v ~app () =
     if opam_files = [] then failwith "No opam files found!";
     dockerfile ~base ~opam_files
   in
-  Docker.build ~timeout ~pool ~pull:false ~dockerfile (`Git src)
-  |> Current.state
-  |> Current.map github_status_of_state
-  |> Github.Api.Commit.set_status head "ocaml-ci"
+  let build = Docker.build ~timeout ~pool ~pull:false ~dockerfile (`Git src) in
+  let index =
+    let+ commit = head
+    and+ job_id = Current.Analysis.get build |> Current.(map Analysis.job_id) in
+    Option.iter (Index.record ~commit) job_id
+  in
+  let set_status =
+    build
+    |> Current.state
+    |> Current.map github_status_of_state
+    |> Github.Api.Commit.set_status head "ocaml-ci"
+  in
+  Current.all [index; set_status]
