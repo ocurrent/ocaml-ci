@@ -4,7 +4,10 @@ module Rpc = Current_rpc.Impl(Current)
 
 let () =
   Logging.init ();
-  Nocrypto_entropy_lwt.initialize () |> ignore
+  Nocrypto_entropy_lwt.initialize () |> ignore;
+  match Conf.profile with
+  | `Production -> Logs.info (fun f -> f "Using production configuration")
+  | `Dev -> Logs.info (fun f -> f "Using dev configuration")
 
 let webhooks = [
   "github", Current_github.input_webhook

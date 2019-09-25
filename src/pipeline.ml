@@ -4,8 +4,13 @@ module Git = Current_git
 module Github = Current_github
 module Docker = Current_docker.Default
 
+let pool_size =
+  match Conf.profile with
+  | `Production -> 20
+  | `Dev -> 1
+
 (* Limit number of concurrent builds. *)
-let pool = Lwt_pool.create 20 Lwt.return
+let pool = Lwt_pool.create pool_size Lwt.return
 
 (* Maximum time for one Docker build. *)
 let timeout = Duration.of_hour 1
