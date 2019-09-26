@@ -1,6 +1,6 @@
 (executable
  (name main)
- (public_name ocaml-ci)
+ (public_name ocaml-ci-service)
  (libraries logs.fmt
             fmt.tty
             current

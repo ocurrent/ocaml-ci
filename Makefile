@@ -1,10 +1,10 @@
 CONTEXT := ci.ocamllabs.io
 
 all:
-	dune build ./src/main.exe
+	dune build ./service/main.exe
 
 deploy:
-	docker --context $(CONTEXT) build -t ocaml-ci .
+	docker --context $(CONTEXT) build -t ocaml-ci-service .
 
 deploy-stack:
 	docker --context $(CONTEXT) stack deploy --prune -c stack.yml ocaml-ci
