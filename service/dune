@@ -1,6 +1,6 @@
 (executable
  (name main)
- (public_name ocaml-ci)
+ (public_name ocaml-ci-service)
  (libraries logs.fmt
             fmt.tty
             current
@@ -12,5 +12,6 @@
             capnp-rpc-unix
             dockerfile
             nocrypto.lwt
+            ocaml_ci_api
             prometheus)
  (preprocess (pps ppx_deriving_yojson)))

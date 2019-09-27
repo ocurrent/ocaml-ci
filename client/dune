@@ -1,0 +1,8 @@
+(executable
+ (public_name ocaml-ci)
+ (name main)
+ (libraries ocaml_ci_api
+  current_rpc
+  capnp-rpc-unix
+  logs.fmt
+  fmt.tty))

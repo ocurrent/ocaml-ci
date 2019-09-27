@@ -73,13 +73,25 @@ let github_status_of_state = function
   | Error (`Active _) -> Github.Api.Status.v ~url `Pending
   | Error (`Msg m)    -> Github.Api.Status.v ~url `Failure ~description:m
 
+let set_active_refs ~repo xs =
+  let+ repo = repo
+  and+ xs = xs in
+  Index.set_active_refs ~repo (
+    xs |> List.map @@ fun x ->
+    let commit = Github.Api.Commit.id x in
+    let gref = Git.Commit_id.gref commit in
+    let hash = Git.Commit_id.hash commit in
+    (gref, hash)
+  );
+  xs
+
 let v ~app () =
   Github.App.installations app |> Current.list_iter ~pp:Github.Installation.pp @@ fun installation ->
   let github = Current.map Github.Installation.api installation in
   let repos = Github.Installation.repositories installation in
   repos |> Current.list_iter ~pp:Github.Repo_id.pp @@ fun repo ->
-  Github.Api.ci_refs_dyn github repo
-  |> Current.list_iter ~pp:Github.Api.Commit.pp @@ fun head ->
+  let refs = Github.Api.ci_refs_dyn github repo |> set_active_refs ~repo in
+  refs |> Current.list_iter ~pp:Github.Api.Commit.pp @@ fun head ->
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
   let dockerfile =
     let+ base = Docker.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
@@ -87,7 +99,16 @@ let v ~app () =
     if opam_files = [] then failwith "No opam files found!";
     dockerfile ~base ~opam_files
   in
-  Docker.build ~timeout ~pool ~pull:false ~dockerfile (`Git src)
-  |> Current.state
-  |> Current.map github_status_of_state
-  |> Github.Api.Commit.set_status head "ocaml-ci"
+  let build = Docker.build ~timeout ~pool ~pull:false ~dockerfile (`Git src) in
+  let index =
+    let+ commit = head
+    and+ job_id = Current.Analysis.get build |> Current.(map Analysis.job_id) in
+    Option.iter (Index.record ~commit) job_id
+  in
+  let set_status =
+    build
+    |> Current.state
+    |> Current.map github_status_of_state
+    |> Github.Api.Commit.set_status head "ocaml-ci"
+  in
+  Current.all [index; set_status]

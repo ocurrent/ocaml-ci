@@ -22,5 +22,58 @@ To add the CI to your own project:
    repository adding yourself to `--github-account-whitelist` in `stack.yml`.
 4. Report bugs :-)
 
+## Remote API
+
+The service provides a [Cap'n Proto endpoint][capnp-api] and a command-line client that uses it.
+You will need to be given the `ocaml-ci.cap` file, which grants access to the API.
+The client can be built and run using `dune exec -- ocaml-ci --ci-cap=ocaml-ci.cap ...`, or
+installed as `ocaml-ci`.
+
+To see the branches and PRs that ocaml-ci is monitoring in a repository:
+
+```bash
+$ ocaml-ci mirage/irmin
+615364620f4233cb82a96144824eb6ad5d1104f0 refs/heads/1.4
+e0fcf0d336544650ca5237b356cfce4a48378245 refs/heads/master
+6c46d1de5e67a3f504fc55af1d644d852c946533 refs/heads/mirage-dev
+28421a152e8e19b3fb5048670629e7e01d0fbea6 refs/pull/523/head
+acfbee7e82fcaaa5a0dad900068dc67f22021f2e refs/pull/678/head
+3fc04e9f6e7574c0f61eacb3187b412b3bababe4 refs/pull/728/head
+32f6c9f303616880994998881ee75c8d1fe0df91 refs/pull/771/head
+b2d4b06f94d13384ae08eb06439ce9c6066419cd refs/pull/815/head
+d8161e6cbf06c3005a080d4df209f7de67d6fa5c refs/pull/851/head
+5e36237d7ce6279878578cf48d8b63937c499e5a refs/pull/858/head
+04a368ecd52ea436bfcd252ed94772f55b5159d5 refs/pull/866/head
+2e838b491a4c0b21750f7a2e6dee88eee1c7d94e refs/pull/867/head
+```
+
+You can pass either the reference (e.g. `refs/heads/master`) or the commit hash to choose one of them.
+To view the log (following it if incomplete):
+
+```bash
+$ ocaml-ci mirage/irmin refs/heads/master log
+[...]
+- Test Successful in 17.643s. 99 tests run.
+-> compiled  irmin-unix.dev
+-> installed irmin-unix.dev
+Done.
+# Run eval $(opam env) to update the current shell environment
+Removing intermediate container 4c85cdc76ddc
+ ---> c8e34c3b5eee
+Successfully built c8e34c3b5eee
+2019-09-25 14:55.57: Job succeeded
+```
+
+Instead of `log`, you can also use `cancel`, `rebuild` or `status`.
+
+For convenience, you can ommit the leading `refs/` when specifying a reference,
+and for PRs you can ommit the trailing `/head`. For commits, you must give at
+least the first 6 characters. e.g.
+
+```bash
+$ ocaml-ci mirage/irmin pull/867 cancel
+```
+
 [OCurrent]: https://github.com/talex5/ocurrent
-[pipeline.ml]: https://github.com/talex5/ocaml-ci/blob/master/src/pipeline.ml
+[pipeline.ml]: https://github.com/talex5/ocaml-ci/blob/master/service/pipeline.ml
+[capnp-api]: https://github.com/talex5/ocaml-ci/blob/master/api/schema.capnp

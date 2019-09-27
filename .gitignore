@@ -2,3 +2,4 @@
 .merlin
 _build
 var
+*.cap
