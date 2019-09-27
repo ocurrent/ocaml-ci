@@ -74,6 +74,6 @@ least the first 6 characters. e.g.
 $ ocaml-ci mirage/irmin pull/867 cancel
 ```
 
-[OCurrent]: https://github.com/talex5/ocurrent
-[pipeline.ml]: https://github.com/talex5/ocaml-ci/blob/master/service/pipeline.ml
-[capnp-api]: https://github.com/talex5/ocaml-ci/blob/master/api/schema.capnp
+[OCurrent]: https://github.com/ocaml-ci/current
+[pipeline.ml]: https://github.com/ocaml-ci/ocaml-ci/blob/master/service/pipeline.ml
+[capnp-api]: https://github.com/ocaml-ci/ocaml-ci/blob/master/api/schema.capnp
