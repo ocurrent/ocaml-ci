@@ -56,7 +56,7 @@ let import_ci_ref ~vat = function
     match Sys.getenv_opt "HOME" with
     | None -> errorf "$HOME not set! Can't get default cap file location."
     | Some home ->
-      let path = Filename.concat home "ocaml-ci.cap" in
+      let path = Filename.concat home ".ocaml-ci.cap" in
       if Sys.file_exists path then
         Capnp_rpc_unix.Cap_file.load vat path
       else
