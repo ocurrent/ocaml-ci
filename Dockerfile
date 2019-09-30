@@ -10,7 +10,7 @@ COPY --chown=opam \
 	ocurrent/current_rpc.opam \
 	/src/ocurrent/
 RUN opam pin -y add /src/ocurrent
-COPY --chown=opam ocaml-ci-service.opam /src/
+COPY --chown=opam ocaml-ci-service.opam ocaml-ci-api.opam /src/
 WORKDIR /src
 RUN opam install -y --deps-only .
 ADD --chown=opam . .

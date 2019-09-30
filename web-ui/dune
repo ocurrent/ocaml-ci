@@ -1,0 +1,12 @@
+(executable
+  (name main)
+  (public_name ocaml-ci-web)
+  (package ocaml-ci-web)
+  (libraries lwt.unix
+             logs.fmt
+             fmt.tty
+             cohttp-lwt-unix
+             tyxml
+             prometheus-app.unix
+             ocaml-ci-api
+             capnp-rpc-unix))
