@@ -1,7 +1,7 @@
 module Metrics = struct
   open Prometheus
 
-  let namespace = "ocurrent"
+  let namespace = "ocamlci"
 
   let subsystem = "logs"
 

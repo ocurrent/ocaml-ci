@@ -1,0 +1,23 @@
+opam-version: "2.0"
+build: [
+  ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+  ["dune" "build" "-p" name "@doc"] {with-doc}
+]
+maintainer: ["talex5@gmail.com"]
+authors: ["talex5@gmail.com"]
+bug-reports: "https://github.com/talex5/ocaml-ci/issues"
+homepage: "https://github.com/talex5/ocaml-ci"
+dev-repo: "git+https://github.com/talex5/ocaml-ci.git"
+synopsis: "Test OCaml projects on GitHub"
+depends: [
+  "dune" {>= "1.11"}
+  "current_git"
+  "current_github"
+  "current_docker"
+  "current_web"
+  "current_rpc"
+  "capnp-rpc-unix"
+  "ocaml-ci-api"
+  "dockerfile"
+]
