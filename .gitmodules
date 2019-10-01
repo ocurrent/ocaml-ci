@@ -4,6 +4,3 @@
 [submodule "capnp-rpc"]
 	path = capnp-rpc
 	url = https://github.com/mirage/capnp-rpc
-[submodule "capnp-ocaml"]
-	path = capnp-ocaml
-	url = https://github.com/capnproto/capnp-ocaml
