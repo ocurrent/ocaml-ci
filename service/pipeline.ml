@@ -16,7 +16,7 @@ let pool = Lwt_pool.create pool_size Lwt.return
 let timeout = Duration.of_hour 1
 
 (* Link for GitHub statuses. *)
-let url = Uri.of_string "https://ci.ocamllabs.io:8100/"
+let url ~owner ~name ~hash = Uri.of_string (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s" owner name hash)
 
 let weekly = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
 
@@ -68,7 +68,14 @@ let dockerfile ~base ~opam_files =
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
   run "opam install -tv ."
 
-let github_status_of_state = function
+let github_status_of_state ~repo ~head result =
+  let+ repo = repo
+  and+ head = head
+  and+ result = result in
+  let { Github.Repo_id.owner; name } = repo in
+  let hash = Github.Api.Commit.hash head in
+  let url = url ~owner ~name ~hash in
+  match result with
   | Ok _              -> Github.Api.Status.v ~url `Success ~description:"Passed"
   | Error (`Active _) -> Github.Api.Status.v ~url `Pending
   | Error (`Msg m)    -> Github.Api.Status.v ~url `Failure ~description:m
@@ -108,7 +115,7 @@ let v ~app () =
   let set_status =
     build
     |> Current.state
-    |> Current.map github_status_of_state
+    |> github_status_of_state ~repo ~head
     |> Github.Api.Commit.set_status head "ocaml-ci"
   in
   Current.all [index; set_status]

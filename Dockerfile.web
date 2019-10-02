@@ -1,0 +1,18 @@
+FROM ocurrent/opam:debian-10-ocaml-4.08 AS build
+RUN sudo apt-get update && sudo apt-get install capnproto m4 pkg-config libgmp-dev -y --no-install-recommends
+RUN cd ~/opam-repository && git pull origin master && git reset --hard 8bc187ff7168b47537d5bbd9b330a90ed90830ad && opam update
+COPY --chown=opam \
+	ocurrent/current_rpc.opam \
+	/src/ocurrent/
+RUN opam pin -yn add /src/ocurrent
+COPY --chown=opam ocaml-ci-api.opam ocaml-ci-web.opam /src/
+WORKDIR /src
+RUN opam install -y --deps-only .
+ADD --chown=opam . .
+RUN opam config exec -- dune build ./_build/install/default/bin/ocaml-ci-web
+
+FROM debian:10
+RUN apt-get update && apt-get install dumb-init -y --no-install-recommends
+WORKDIR /
+ENTRYPOINT ["dumb-init", "/usr/local/bin/ocaml-ci-web"]
+COPY --from=build /src/_build/install/default/bin/ocaml-ci-web /usr/local/bin/
