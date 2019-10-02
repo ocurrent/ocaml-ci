@@ -55,18 +55,21 @@ let pin_opam_files groups =
       )
   )
 
+let download_cache = "--mount=type=cache,target=/home/opam/.opam/download-cache,uid=1000"
+
 (* Generate a Dockerfile for building all the opam packages in the build context. *)
 let dockerfile ~base ~opam_files =
   let groups = group_opam_files opam_files in
   let dirs = groups |> List.map (fun (dir, _) -> Printf.sprintf "%S" (Fpath.to_string dir)) |> String.concat " " in
   let open Dockerfile in
+  comment "syntax = docker/dockerfile:experimental" @@
   from (Docker.Image.hash base) @@
   workdir "/src" @@
   run "sudo chown opam /src" @@
   pin_opam_files groups @@
-  run "opam install %s --show-actions --deps-only -t | awk '/- install/{print $3}' | xargs opam depext -iy" dirs @@
+  run "%s opam install %s --show-actions --deps-only -t | awk '/- install/{print $3}' | xargs opam depext -iy" download_cache dirs @@
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
-  run "opam install -tv ."
+  run "%s opam install -tv ." download_cache
 
 let github_status_of_state ~repo ~head result =
   let+ repo = repo
