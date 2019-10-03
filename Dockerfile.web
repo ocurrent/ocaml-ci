@@ -3,6 +3,7 @@ RUN sudo apt-get update && sudo apt-get install capnproto m4 pkg-config libgmp-d
 RUN cd ~/opam-repository && git pull origin master && git reset --hard 8bc187ff7168b47537d5bbd9b330a90ed90830ad && opam update
 COPY --chown=opam \
 	ocurrent/current_rpc.opam \
+	ocurrent/current_ansi.opam \
 	/src/ocurrent/
 RUN opam pin -yn add /src/ocurrent
 COPY --chown=opam ocaml-ci-api.opam ocaml-ci-web.opam /src/

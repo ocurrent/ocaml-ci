@@ -72,13 +72,14 @@ let stream_logs job ~owner ~name ~refs (data, next) writer =
       ] in
     Astring.String.cut ~sep:"@@@" body |> Option.get
   in
-  Transfer_IO.write writer (header ^ data) >>= fun () ->
+  let ansi = Current_ansi.create () in
+  Transfer_IO.write writer (header ^ (Current_ansi.process ansi data)) >>= fun () ->
   let rec aux next =
     Current_rpc.Job.log job ~start:next >>= function
     | Ok ("", _) ->
       Transfer_IO.write writer footer
     | Ok (data, next) ->
-      Transfer_IO.write writer data >>= fun () ->
+      Transfer_IO.write writer (Current_ansi.process ansi data) >>= fun () ->
       aux next
     | Error (`Capnp ex) ->
       Log.warn (fun f -> f "Error fetching logs: %a" Capnp_rpc.Error.pp ex);

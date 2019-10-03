@@ -5,6 +5,7 @@
   (libraries lwt.unix
              logs.fmt
              fmt.tty
+             current_ansi
              cohttp-lwt-unix
              tyxml
              prometheus-app.unix
