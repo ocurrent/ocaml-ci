@@ -1,7 +1,7 @@
 open Lwt.Infix
 open Current.Syntax
 
-module Find_opam = struct
+module Examine = struct
   type t = No_context
 
   module Key = struct
@@ -11,8 +11,10 @@ module Find_opam = struct
   end
 
   module Value = struct
-    type t = string list
-      [@@deriving yojson]
+    type t = {
+      opam_files : string list;
+    }
+    [@@deriving yojson]
 
     let marshal t = to_yojson t |> Yojson.Safe.to_string
 
@@ -20,27 +22,31 @@ module Find_opam = struct
       match Yojson.Safe.from_string s |> of_yojson with
       | Ok x -> x
       | Error e -> failwith e
+
+    let opam_files t = t.opam_files
   end
 
-  let id = "find-opam"
+  let id = "ci-analyse"
 
   let build ~switch No_context job src =
     Current.Job.start job ~level:Current.Level.Harmless >>= fun () ->
     Current_git.with_checkout ~switch ~job src @@ fun tmpdir ->
-    let cmd = "", [| "find"; "-name"; "*.opam" |] in 
+    let cmd = "", [| "find"; "-name"; "*.opam" |] in
     Current.Process.check_output ~cwd:tmpdir ~switch ~job cmd >|= Stdlib.Result.map @@ fun output ->
-    let files = String.split_on_char '\n' output |> List.filter ((<>) "") in
-    Current.Job.log job "Found: %a" Fmt.(Dump.list (quote string)) files;
-    files
+    let opam_files = String.split_on_char '\n' output |> List.filter ((<>) "") in
+    Current.Job.log job "Found: %a" Fmt.(Dump.list (quote string)) opam_files;
+    { Value.opam_files }
 
-  let pp f _ = Fmt.string f "**/*.opam"
+  let pp f _ = Fmt.string f "Analyse"
 
   let auto_cancel = false
 end
 
-module Find_opam_cache = Current_cache.Make(Find_opam)
+module Analysis = Examine.Value
 
-let find_opam_files src =
-  Current.component "**/*.opam" |>
+module Examine_cache = Current_cache.Make(Examine)
+
+let examine src =
+  Current.component "Analyse" |>
   let> src = src in
-  Find_opam_cache.get Find_opam.No_context src
+  Examine_cache.get Examine.No_context src
