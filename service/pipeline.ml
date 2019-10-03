@@ -58,7 +58,8 @@ let pin_opam_files groups =
 let download_cache = "--mount=type=cache,target=/home/opam/.opam/download-cache,uid=1000"
 
 (* Generate a Dockerfile for building all the opam packages in the build context. *)
-let dockerfile ~base ~opam_files =
+let dockerfile ~base ~info =
+  let opam_files = Analyse.Analysis.opam_files info in
   let groups = group_opam_files opam_files in
   let dirs = groups |> List.map (fun (dir, _) -> Printf.sprintf "%S" (Fpath.to_string dir)) |> String.concat " " in
   let open Dockerfile in
@@ -105,9 +106,10 @@ let v ~app () =
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
   let dockerfile =
     let+ base = Docker.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
-    and+ opam_files = Opam.find_opam_files src in
+    and+ info = Analyse.examine src in
+    let opam_files = Analyse.Analysis.opam_files info in
     if opam_files = [] then failwith "No opam files found!";
-    dockerfile ~base ~opam_files
+    dockerfile ~base ~info
   in
   let build = Docker.build ~timeout ~pool ~pull:false ~dockerfile (`Git src) in
   let index =
