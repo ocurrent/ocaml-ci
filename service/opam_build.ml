@@ -2,6 +2,22 @@ module Docker = Current_docker.Default
 
 let crunch_list items = Dockerfile.(crunch (empty @@@ items))
 
+let safe_char = function
+  | 'A'..'Z' | 'a'..'z' | '0'..'9' | '-' | '_' -> true
+  | _ -> false
+
+let check_safe s =
+  if not (Astring.String.for_all safe_char s) then
+    Fmt.failwith "Unsafe characters in %S" s
+
+let build_cache repo =
+  let { Current_github.Repo_id.owner; name } = repo in
+  check_safe owner;
+  check_safe name;
+  Printf.sprintf
+    "--mount=type=cache,target=/src/_build,uid=1000,sharing=private,id=dune:%s:%s"
+    owner name
+
 (* Group opam files by directory.
    e.g. ["a/a1.opam"; "a/a2.opam"; "b/b1.opam"] ->
         [("a", ["a/a1.opam"; "a/a2.opam"]);
@@ -37,9 +53,14 @@ let pin_opam_files groups =
 
 let download_cache = "--mount=type=cache,target=/home/opam/.opam/download-cache,uid=1000"
 
-let dockerfile ~base ~info =
+let dockerfile ~base ~info ~repo =
   let opam_files = Analyse.Analysis.opam_files info in
+  if opam_files = [] then failwith "No opam files found!";
   let groups = group_opam_files opam_files in
+  let caches =
+    if Analyse.Analysis.is_duniverse info then Printf.sprintf "%s %s" download_cache (build_cache repo)
+    else download_cache
+  in
   let dirs = groups |> List.map (fun (dir, _) -> Printf.sprintf "%S" (Fpath.to_string dir)) |> String.concat " " in
   let open Dockerfile in
   comment "syntax = docker/dockerfile:experimental" @@
@@ -49,4 +70,4 @@ let dockerfile ~base ~info =
   pin_opam_files groups @@
   run "%s opam install %s --show-actions --deps-only -t | awk '/- install/{print $3}' | xargs opam depext -iy" download_cache dirs @@
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
-  run "%s opam install -tv ." download_cache
+  run "%s opam install -tv ." caches

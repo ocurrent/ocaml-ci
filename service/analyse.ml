@@ -1,6 +1,17 @@
 open Lwt.Infix
 open Current.Syntax
 
+let is_directory x =
+  match Unix.lstat x with
+  | Unix.{ st_kind = S_DIR; _ } -> true
+  | _ -> false
+  | exception Unix.Unix_error (Unix.ENOENT, _, _) -> false
+
+let is_empty_file x =
+  match Unix.lstat x with
+  | Unix.{ st_kind = S_REG; st_size = 0; _ } -> true
+  | _ -> false
+
 module Examine = struct
   type t = No_context
 
@@ -12,6 +23,7 @@ module Examine = struct
 
   module Value = struct
     type t = {
+      is_duniverse : bool;
       opam_files : string list;
     }
     [@@deriving yojson]
@@ -24,6 +36,8 @@ module Examine = struct
       | Error e -> failwith e
 
     let opam_files t = t.opam_files
+
+    let is_duniverse t = t.is_duniverse
   end
 
   let id = "ci-analyse"
@@ -31,11 +45,25 @@ module Examine = struct
   let build ~switch No_context job src =
     Current.Job.start job ~level:Current.Level.Harmless >>= fun () ->
     Current_git.with_checkout ~switch ~job src @@ fun tmpdir ->
+    let is_duniverse = is_directory (Filename.concat (Fpath.to_string tmpdir) "duniverse") in
     let cmd = "", [| "find"; "-name"; "*.opam" |] in
     Current.Process.check_output ~cwd:tmpdir ~switch ~job cmd >|= Stdlib.Result.map @@ fun output ->
-    let opam_files = String.split_on_char '\n' output |> List.filter ((<>) "") in
-    Current.Job.log job "Found: %a" Fmt.(Dump.list (quote string)) opam_files;
-    { Value.opam_files }
+    let opam_files =
+      String.split_on_char '\n' output
+      |> List.filter (function
+          | "" -> false
+          | path ->
+            let full_path = Filename.concat (Fpath.to_string tmpdir) path in
+            if is_empty_file full_path then (
+              Current.Job.log job "WARNING: ignoring empty opam file %S" path;
+              false
+            ) else
+              true
+        )
+    in
+    let r = { Value.opam_files; is_duniverse } in
+    Current.Job.log job "@[<v2>Results:@,%a@]" Yojson.Safe.(pretty_print ~std:true) (Value.to_yojson r);
+    r
 
   let pp f _ = Fmt.string f "Analyse"
 
