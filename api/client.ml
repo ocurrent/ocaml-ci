@@ -45,6 +45,14 @@ module Repo = struct
       in
       Ok jobs
 
+  let refs_of_commit t hash =
+    let open Raw.Client.Repo.RefsOfCommit in
+    let request, params = Capability.Request.create Params.init_pointer in
+    Params.hash_set params hash;
+    Capability.call_for_value t method_id request >|= function
+    | Error e -> Error (`Capnp e)
+    | Ok refs -> Ok (Results.refs_get_list refs)
+
   let job_of_commit t hash =
     let open Raw.Client.Repo.JobOfCommit in
     let request, params = Capability.Request.create Params.init_pointer in

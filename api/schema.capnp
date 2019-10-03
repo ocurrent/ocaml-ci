@@ -16,6 +16,9 @@ interface Repo {
 
   jobOfRef     @2 (ref :Text) -> (job :OCurrent.Job);
   # ref should be of the form "refs/heads/..." or "refs/pull/4/head"
+
+  refsOfCommit @3 (hash :Text) -> (refs :List(Text));
+  # Get the set of branches and PRs with this hash at their head.
 }
 
 interface Org {

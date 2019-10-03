@@ -27,6 +27,18 @@ let make_repo ~engine ~owner ~name =
         );
       Service.return response
 
+    method refs_of_commit_impl params release_param_caps =
+      let open Repo.RefsOfCommit in
+      let hash = Params.hash_get params in
+      release_param_caps ();
+      let refs =
+        Index.get_active_refs { Current_github.Repo_id.owner; name }
+        |> List.filter_map (fun (name, h) -> if h = hash then Some name else None)
+      in
+      let response, results = Service.Response.create Results.init_pointer in
+      Results.refs_set_list results refs |> ignore;
+      Service.return response
+
     method job_of_commit_impl params release_param_caps =
       let open Repo.JobOfCommit in
       let hash = Params.hash_get params in

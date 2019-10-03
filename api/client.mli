@@ -15,6 +15,9 @@ module Repo : sig
   (** [refs t] returns the known Git references (branches and pull requests) that ocaml-ci
       is monitoring, along with the current head of each one. *)
 
+  val refs_of_commit : t -> git_hash -> (git_ref list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
+  (** [refs_of_commit t] is the list of Git references that have this commit as their head. *)
+
   val job_of_commit : t -> git_hash -> Current_rpc.Job.t
   (** [job_of_commit t hash] is the (most recent) OCurrent job for Git commit [hash]. *)
 
