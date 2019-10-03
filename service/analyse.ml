@@ -7,6 +7,11 @@ let is_directory x =
   | _ -> false
   | exception Unix.Unix_error (Unix.ENOENT, _, _) -> false
 
+let is_empty_file x =
+  match Unix.lstat (Fpath.to_string x) with
+  | Unix.{ st_kind = S_REG; st_size = 0; _ } -> true
+  | _ -> false
+
 module Examine = struct
   type t = No_context
 
@@ -43,7 +48,18 @@ module Examine = struct
     let is_duniverse = is_directory (Filename.concat (Fpath.to_string tmpdir) "duniverse") in
     let cmd = "", [| "find"; "-name"; "*.opam" |] in
     Current.Process.check_output ~cwd:tmpdir ~switch ~job cmd >|= Stdlib.Result.map @@ fun output ->
-    let opam_files = String.split_on_char '\n' output |> List.filter ((<>) "") in
+    let opam_files =
+      String.split_on_char '\n' output
+      |> List.filter (function
+          | "" -> false
+          | path ->
+            if is_empty_file Fpath.(tmpdir / path) then (
+              Current.Job.log job "WARNING: ignoring empty opam file %S" path;
+              false
+            ) else
+              true
+        )
+    in
     let r = { Value.opam_files; is_duniverse } in
     Current.Job.log job "@[<v2>Results:@,%a@]" Yojson.Safe.(pretty_print ~std:true) (Value.to_yojson r);
     r
