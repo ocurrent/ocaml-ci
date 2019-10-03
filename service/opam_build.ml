@@ -39,6 +39,7 @@ let download_cache = "--mount=type=cache,target=/home/opam/.opam/download-cache,
 
 let dockerfile ~base ~info =
   let opam_files = Analyse.Analysis.opam_files info in
+  if opam_files = [] then failwith "No opam files found!";
   let groups = group_opam_files opam_files in
   let dirs = groups |> List.map (fun (dir, _) -> Printf.sprintf "%S" (Fpath.to_string dir)) |> String.concat " " in
   let open Dockerfile in
