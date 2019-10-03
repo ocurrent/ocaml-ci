@@ -8,7 +8,7 @@ let is_directory x =
   | exception Unix.Unix_error (Unix.ENOENT, _, _) -> false
 
 let is_empty_file x =
-  match Unix.lstat (Fpath.to_string x) with
+  match Unix.lstat x with
   | Unix.{ st_kind = S_REG; st_size = 0; _ } -> true
   | _ -> false
 
@@ -53,7 +53,8 @@ module Examine = struct
       |> List.filter (function
           | "" -> false
           | path ->
-            if is_empty_file Fpath.(tmpdir / path) then (
+            let full_path = Filename.concat (Fpath.to_string tmpdir) path in
+            if is_empty_file full_path then (
               Current.Job.log job "WARNING: ignoring empty opam file %S" path;
               false
             ) else

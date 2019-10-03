@@ -54,8 +54,9 @@ let v ~app () =
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
   let dockerfile =
     let+ base = Docker.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
+    and+ repo = repo
     and+ info = Analyse.examine src in
-    Opam_build.dockerfile ~base ~info
+    Opam_build.dockerfile ~base ~info ~repo
   in
   let build = Docker.build ~timeout ~pool ~pull:false ~dockerfile (`Git src) in
   let index =
