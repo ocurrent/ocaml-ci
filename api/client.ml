@@ -1,4 +1,3 @@
-open Lwt.Infix
 open Capnp_rpc_lwt
 
 type git_ref = string
@@ -34,9 +33,8 @@ module CI = struct
   let orgs t =
     let open Raw.Client.CI.Orgs in
     let request = Capability.Request.create_no_args () in
-    Capability.call_for_value t method_id request >|= function
-    | Error e -> Error (`Capnp e)
-    | Ok x -> Ok (Results.orgs_get_list x)
+    Capability.call_for_value t method_id request
+    |> Lwt_result.map Results.orgs_get_list
 end
 
 module Org = struct
@@ -51,9 +49,8 @@ module Org = struct
   let repos t =
     let open Raw.Client.Org.Repos in
     let request = Capability.Request.create_no_args () in
-    Capability.call_for_value t method_id request >|= function
-    | Error e -> Error (`Capnp e)
-    | Ok x -> Ok (Results.repos_get_list x)
+    Capability.call_for_value t method_id request
+    |> Lwt_result.map Results.repos_get_list
 end
 
 module Repo = struct
@@ -62,18 +59,13 @@ module Repo = struct
   let refs t =
     let open Raw.Client.Repo.Refs in
     let request = Capability.Request.create_no_args () in
-    Capability.call_for_value t method_id request >|= function
-    | Error e -> Error (`Capnp e)
-    | Ok jobs ->
-      let jobs =
-        Results.refs_get_list jobs
-        |> List.fold_left (fun acc slot ->
-            let gref = Raw.Reader.RefInfo.ref_get slot in
-            let hash = Raw.Reader.RefInfo.hash_get slot in
-            Ref_map.add gref hash acc
-          ) Ref_map.empty
-      in
-      Ok jobs
+    Capability.call_for_value t method_id request |> Lwt_result.map @@ fun jobs ->
+    Results.refs_get_list jobs
+    |> List.fold_left (fun acc slot ->
+        let gref = Raw.Reader.RefInfo.ref_get slot in
+        let hash = Raw.Reader.RefInfo.hash_get slot in
+        Ref_map.add gref hash acc
+      ) Ref_map.empty
 
   let commit_of_hash t hash =
     let open Raw.Client.Repo.CommitOfHash in
@@ -100,22 +92,17 @@ module Commit = struct
   let jobs t =
     let open Raw.Client.Commit.Jobs in
     let request = Capability.Request.create_no_args () in
-    Capability.call_for_value t method_id request >|= function
-    | Error e -> Error (`Capnp e)
-    | Ok jobs ->
-      let jobs = Results.jobs_get_list jobs |> List.map (fun job ->
-          let variant = Raw.Reader.JobInfo.variant_get job in
-          let state = Raw.Reader.JobInfo.state_get job in
-          let outcome = Raw.Reader.JobInfo.State.get state in
-          { variant; outcome }
-        )
-      in
-      Ok jobs
+    Capability.call_for_value t method_id request
+    |> Lwt_result.map @@ fun jobs ->
+    Results.jobs_get_list jobs |> List.map (fun job ->
+        let variant = Raw.Reader.JobInfo.variant_get job in
+        let state = Raw.Reader.JobInfo.state_get job in
+        let outcome = Raw.Reader.JobInfo.State.get state in
+        { variant; outcome }
+      )
 
   let refs t =
     let open Raw.Client.Commit.Refs in
     let request = Capability.Request.create_no_args () in
-    Capability.call_for_value t method_id request >|= function
-    | Error e -> Error (`Capnp e)
-    | Ok refs -> Ok (Results.refs_get_list refs)
+    Capability.call_for_value t method_id request |> Lwt_result.map Results.refs_get_list
 end
