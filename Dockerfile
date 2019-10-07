@@ -1,9 +1,10 @@
 FROM ocurrent/opam:debian-10-ocaml-4.08 AS build
 RUN sudo apt-get update && sudo apt-get install capnproto m4 pkg-config libsqlite3-dev libgmp-dev -y --no-install-recommends
-RUN cd ~/opam-repository && git pull origin master && git reset --hard 8bc187ff7168b47537d5bbd9b330a90ed90830ad && opam update
+RUN cd ~/opam-repository && git pull origin master && git reset --hard f412620d14e52a588975517bf940aea115523f44 && opam update
 COPY --chown=opam \
 	ocurrent/current.opam \
 	ocurrent/current_web.opam \
+	ocurrent/current_ansi.opam \
 	ocurrent/current_docker.opam \
 	ocurrent/current_git.opam \
 	ocurrent/current_github.opam \
