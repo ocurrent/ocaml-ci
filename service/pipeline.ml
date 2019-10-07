@@ -10,7 +10,7 @@ let pool_size =
   | `Dev -> 1
 
 (* Limit number of concurrent builds. *)
-let pool = Lwt_pool.create pool_size Lwt.return
+let pool = Current.Pool.create ~label:"docker" pool_size
 
 (* Maximum time for one Docker build. *)
 let timeout = Duration.of_hour 1
