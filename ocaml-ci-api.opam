@@ -13,6 +13,7 @@ synopsis: "Cap'n Proto API for ocaml-ci"
 depends: [
   "dune" {>= "1.11"}
   "current_rpc"
+  "capnp" {>= "3.4.0"}
   "capnp-rpc-lwt"
   "dockerfile"
 ]
