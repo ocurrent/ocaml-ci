@@ -68,6 +68,6 @@ let dockerfile ~base ~info ~repo =
   workdir "/src" @@
   run "sudo chown opam /src" @@
   pin_opam_files groups @@
-  run "%s opam install %s --show-actions --deps-only -t | awk '/- install/{print $3}' | xargs opam depext -iy" download_cache dirs @@
+  run "%s opam install %s --dry-run --deps-only -ty | awk '/-> installed/{print $3}' | xargs opam depext -iy" download_cache dirs @@
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
   run "%s opam install -tv ." caches
