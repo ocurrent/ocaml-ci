@@ -22,6 +22,28 @@ To add the CI to your own project:
    repository adding yourself to `--github-account-whitelist` in `stack.yml`.
 4. Report bugs :-)
 
+## Installation
+
+Get the code with:
+
+```sh
+git clone --recursive https://github.com/ocaml-ci/ocaml-ci.git
+```
+
+Note: you need to clone with `--recursive` because this project uses submodules
+(it depends on some packages that aren't released yet).
+If you forget, `git submodule update` will fetch them.
+
+The easiest way to build the system is using Docker:
+
+```sh
+docker build -t ocaml-ci-service .
+docker build -f Dockerfile.web -t ocaml-ci-web .
+```
+
+The `stack.yml` contains the configuration used on the live system.
+For now, you'll have to register your own GitHub app to be able to test things locally.
+
 ## Remote API
 
 The service provides a [Cap'n Proto endpoint][capnp-api] and a command-line client that uses it.
