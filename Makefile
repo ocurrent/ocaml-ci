@@ -1,7 +1,7 @@
 CONTEXT := ci.ocamllabs.io
 
 all:
-	dune build ./service/main.exe ./client/main.exe ./web-ui/main.exe
+	dune build ./service/main.exe ./client/main.exe ./web-ui/main.exe ./service/local.exe
 
 deploy-backend:
 	docker --context $(CONTEXT) build -t ocaml-ci-service .

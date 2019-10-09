@@ -44,6 +44,21 @@ let set_active_refs ~repo xs =
   );
   xs
 
+let build_with_docker ~repo src =
+  let dockerfile =
+    let+ base = Docker.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
+    and+ repo = repo
+    and+ info = Analyse.examine src in
+    Opam_build.dockerfile ~base ~info ~repo
+  in
+  Docker.build ~timeout ~pool ~pull:false ~dockerfile (`Git src)
+
+let local_test repo () =
+  let src = Git.Local.head_commit repo in
+  let repo = Current.return { Github.Repo_id.owner = "local"; name = "test" } in
+  build_with_docker ~repo src
+  |> Current.ignore_value
+
 let v ~app () =
   Github.App.installations app |> Current.list_iter ~pp:Github.Installation.pp @@ fun installation ->
   let github = Current.map Github.Installation.api installation in
@@ -52,13 +67,7 @@ let v ~app () =
   let refs = Github.Api.ci_refs_dyn github repo |> set_active_refs ~repo in
   refs |> Current.list_iter ~pp:Github.Api.Commit.pp @@ fun head ->
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
-  let dockerfile =
-    let+ base = Docker.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
-    and+ repo = repo
-    and+ info = Analyse.examine src in
-    Opam_build.dockerfile ~base ~info ~repo
-  in
-  let build = Docker.build ~timeout ~pool ~pull:false ~dockerfile (`Git src) in
+  let build = build_with_docker ~repo src in
   let index =
     let+ commit = head
     and+ job_id = Current.Analysis.get build |> Current.(map Analysis.job_id) in
