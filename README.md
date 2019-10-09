@@ -34,7 +34,18 @@ Note: you need to clone with `--recursive` because this project uses submodules
 (it depends on some packages that aren't released yet).
 If you forget, `git submodule update` will fetch them.
 
-The easiest way to build the system is using Docker:
+To test the CI on a local Git clone, use:
+
+```sh
+dune exec -- ocaml-ci-local /path/to/project
+```
+
+This will build the project as the real CI would,
+but it only monitors the default branch and does not push the results anywhere.
+It runs a web interface at <http://localhost:8080>.
+This is useful if you want to try out changes to the pipeline.
+
+If you want to build the whole system, the easiest way is using Docker:
 
 ```sh
 docker build -t ocaml-ci-service .
@@ -42,7 +53,7 @@ docker build -f Dockerfile.web -t ocaml-ci-web .
 ```
 
 The `stack.yml` contains the configuration used on the live system.
-For now, you'll have to register your own GitHub app to be able to test things locally.
+You'll have to register your own GitHub app to be able to test the services locally.
 
 ## Remote API
 
