@@ -81,10 +81,16 @@ d8161e6cbf06c3005a080d4df209f7de67d6fa5c refs/pull/851/head
 ```
 
 You can pass either the reference (e.g. `refs/heads/master`) or the commit hash to choose one of them.
+
+```bash
+$ ocaml-ci mirage/irmin refs/heads/master
+alpine-3.10-ocaml-4.08
+```
+
 To view the log (following it if incomplete):
 
 ```bash
-$ ocaml-ci mirage/irmin refs/heads/master log
+$ ocaml-ci mirage/irmin refs/heads/master alpine-3.10-ocaml-4.08 log
 [...]
 - Test Successful in 17.643s. 99 tests run.
 -> compiled  irmin-unix.dev
@@ -104,7 +110,7 @@ and for PRs you can ommit the trailing `/head`. For commits, you must give at
 least the first 6 characters. e.g.
 
 ```bash
-$ ocaml-ci mirage/irmin pull/867 cancel
+$ ocaml-ci mirage/irmin pull/867 alpine-3.10-ocaml-4.08 cancel
 ```
 
 [OCurrent]: https://github.com/ocaml-ci/current

@@ -5,7 +5,26 @@ type git_ref = string
 
 type git_hash = string
 
+type variant = string
+
 module Ref_map : Map.S with type key = git_ref
+
+type job_info = {
+  variant : variant;
+}
+
+module Commit : sig
+  type t = Raw.Client.Commit.t Capability.t
+  (** A single commit being tested. *)
+
+  val jobs : t -> (job_info list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
+
+  val job_of_variant : t -> variant -> Current_rpc.Job.t
+  (** [job_of_variant t] is the (most recent) OCurrent job for this variant. *)
+
+  val refs : t -> (git_ref list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
+  (** [refs t] is the list of Git references that have this commit as their head. *)
+end
 
 module Repo : sig
   type t = Raw.Client.Repo.t Capability.t
@@ -15,14 +34,11 @@ module Repo : sig
   (** [refs t] returns the known Git references (branches and pull requests) that ocaml-ci
       is monitoring, along with the current head of each one. *)
 
-  val refs_of_commit : t -> git_hash -> (git_ref list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
-  (** [refs_of_commit t] is the list of Git references that have this commit as their head. *)
+  val commit_of_hash : t -> git_hash -> Commit.t
+  (** [commit_of_hash t hash] is the commit [hash] in this repository. *)
 
-  val job_of_commit : t -> git_hash -> Current_rpc.Job.t
-  (** [job_of_commit t hash] is the (most recent) OCurrent job for Git commit [hash]. *)
-
-  val job_of_ref : t -> git_ref -> Current_rpc.Job.t
-  (** [job_of_ref t gref] is the job for Git reference [gref]. *)
+  val commit_of_ref : t -> git_ref -> Commit.t
+  (** [commit_of_ref t gref] is the commit at the head of Git reference [gref]. *)
 end
 
 module Org : sig

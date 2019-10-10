@@ -2,8 +2,8 @@
     - A map from active Git references to the Git commit at their heads.
     - A (persisted) map from each Git commit hash to its last known OCurrent job ID. *)
 
-val record : commit:Current_github.Api.Commit.t -> Current.job_id -> unit
-(** [record ~commit job_id] updates the entry for [commit] to point at [job_id]. *)
+val record : commit:Current_github.Api.Commit.t -> (string * Current.job_id option) list -> unit
+(** [record ~commit jobs] updates the entry for [commit] to point at [jobs]. *)
 
 val is_known_owner : string -> bool
 (** [is_known_owner owner] is [true] iff there is an entry for a commit in organisation [owner]. *)
@@ -17,8 +17,14 @@ val list_owners : unit -> string list
 val list_repos : string -> string list
 (** [list_repos owner] lists all the tracked repos under [owner]. *)
 
-val get_job : owner:string -> name:string -> string -> (Current.job_id, [> `Unknown | `Ambiguous]) result
-(** [get_job ~owner ~name commit] is the last known OCurrent job for hash [commit] in repository [owner/name]. *)
+val get_jobs : owner:string -> name:string -> string -> (string * Current.job_id option) list
+(** [get_jobs ~owner ~name commit] is the last known set of OCurrent jobs for hash [commit] in repository [owner/name]. *)
+
+val get_job : owner:string -> name:string -> hash:string -> variant:string -> (string option, [> `No_such_variant]) result
+(** [get_job ~owner ~name ~variant] is the last known job ID for this combination. *)
+
+val get_full_hash : owner:string -> name:string -> string -> (string, [> `Ambiguous | `Unknown | `Invalid]) result
+(** [get_full_hash ~owner ~name short_hash] returns the full hash for [short_hash]. *)
 
 module Repo_map : Map.S with type key = Current_github.Repo_id.t
 

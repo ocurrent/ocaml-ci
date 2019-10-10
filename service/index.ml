@@ -3,12 +3,13 @@ module Db = Current.Db
 type t = {
   db : Sqlite3.db;
   record : Sqlite3.stmt;
-  lookup : Sqlite3.stmt;
   owner_exists : Sqlite3.stmt;
   repo_exists : Sqlite3.stmt;
+  get_jobs : Sqlite3.stmt;
   get_job : Sqlite3.stmt;
   list_owners : Sqlite3.stmt;
   list_repos : Sqlite3.stmt;
+  full_hash : Sqlite3.stmt;
 }
 
 let or_fail label x =
@@ -16,28 +17,35 @@ let or_fail label x =
   | Sqlite3.Rc.OK -> ()
   | err -> Fmt.failwith "Sqlite3 %s error: %s" label (Sqlite3.Rc.to_string err)
 
+let is_valid_hash hash =
+  let open Astring in
+  String.length hash >= 6 && String.for_all Char.Ascii.is_alphanum hash
+
 let db = lazy (
   let db = Lazy.force Current.Db.v in
-  Sqlite3.exec db "CREATE TABLE IF NOT EXISTS ci_index ( \
+  Sqlite3.exec db "CREATE TABLE IF NOT EXISTS ci_build_index ( \
                    owner     TEXT NOT NULL, \
                    name      TEXT NOT NULL, \
                    hash      TEXT NOT NULL, \
-                   job_id    TEXT NOT NULL, \
-                   PRIMARY KEY (owner, name, hash))" |> or_fail "create table";
-  let record = Sqlite3.prepare db "INSERT OR REPLACE INTO ci_index \
-                                     (owner, name, hash, job_id) \
-                                     VALUES (?, ?, ?, ?)" in
-  let lookup = Sqlite3.prepare db "SELECT job_id FROM ci_index \
-                                     WHERE owner = ? AND name = ? AND hash = ?" in
-  let list_owners = Sqlite3.prepare db "SELECT DISTINCT owner FROM ci_index" in
-  let list_repos = Sqlite3.prepare db "SELECT DISTINCT name FROM ci_index WHERE owner = ?" in
-  let owner_exists = Sqlite3.prepare db "SELECT EXISTS (SELECT 1 FROM ci_index \
+                   variant   TEXT NOT NULL, \
+                   job_id    TEXT, \
+                   PRIMARY KEY (owner, name, hash, variant))" |> or_fail "create table";
+  let record = Sqlite3.prepare db "INSERT OR REPLACE INTO ci_build_index \
+                                     (owner, name, hash, variant, job_id) \
+                                     VALUES (?, ?, ?, ?, ?)" in
+  let list_owners = Sqlite3.prepare db "SELECT DISTINCT owner FROM ci_build_index" in
+  let list_repos = Sqlite3.prepare db "SELECT DISTINCT name FROM ci_build_index WHERE owner = ?" in
+  let owner_exists = Sqlite3.prepare db "SELECT EXISTS (SELECT 1 FROM ci_build_index \
                                                         WHERE owner = ?)" in
-  let repo_exists = Sqlite3.prepare db "SELECT EXISTS (SELECT 1 FROM ci_index \
+  let repo_exists = Sqlite3.prepare db "SELECT EXISTS (SELECT 1 FROM ci_build_index \
                                                        WHERE owner = ? AND name = ?)" in
-  let get_job = Sqlite3.prepare db "SELECT job_id FROM ci_index \
-                                    WHERE owner = ? AND name = ? AND hash LIKE ?" in
-  { db; record; lookup; owner_exists; repo_exists; get_job; list_owners; list_repos }
+  let get_jobs = Sqlite3.prepare db "SELECT variant, job_id FROM ci_build_index \
+                                     WHERE owner = ? AND name = ? AND hash = ?" in
+  let get_job = Sqlite3.prepare db "SELECT job_id FROM ci_build_index \
+                                     WHERE owner = ? AND name = ? AND hash = ? AND variant = ?" in
+  let full_hash = Sqlite3.prepare db "SELECT hash FROM ci_build_index \
+                                      WHERE owner = ? AND name = ? AND hash LIKE ?" in
+  { db; record; owner_exists; repo_exists; get_jobs; get_job; list_owners; list_repos; full_hash }
 )
 
 let split_owner_name s =
@@ -45,13 +53,17 @@ let split_owner_name s =
   | [ owner; name ] -> owner, name
   | _ -> Fmt.failwith "GitHub owner name field should have form 'owner/name', not %S" s
 
-let record ~commit job_id =
+let record ~commit jobs =
   let t = Lazy.force db in
   let owner, name = split_owner_name (Current_github.Api.Commit.owner_name commit) in
   let hash = Current_github.Api.Commit.hash commit in
-  match Db.query_some t.lookup Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash ] with
-  | Some Sqlite3.Data.[TEXT old] when old = job_id -> ()
-  | _ -> Db.exec t.record Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash; TEXT job_id ]
+  jobs |> List.iter @@ fun (variant, job_id) ->
+  let job_id =
+    match job_id with
+    | None -> Sqlite3.Data.NULL
+    | Some job_id -> Sqlite3.Data.TEXT job_id
+  in
+  Db.exec t.record Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash; TEXT variant; job_id ]
 
 let is_known_owner owner =
   let t = Lazy.force db in
@@ -65,13 +77,31 @@ let is_known_repo ~owner ~name =
   | Sqlite3.Data.[ INT x ] -> x = 1L
   | _ -> failwith "repo_exists failed!"
 
-let get_job ~owner ~name hash =
+let get_full_hash ~owner ~name short_hash =
   let t = Lazy.force db in
-  match Db.query t.get_job Sqlite3.Data.[ TEXT owner; TEXT name; TEXT (hash ^ "%") ] with
-  | [] -> Error `Unknown
-  | [Sqlite3.Data.[ TEXT job_id ]] -> Ok job_id
-  | [_] -> failwith "get_job: invalid result!"
-  | _ :: _ :: _ -> Error `Ambiguous
+  if is_valid_hash short_hash then (
+    match Db.query t.full_hash Sqlite3.Data.[ TEXT owner; TEXT name; TEXT (short_hash ^ "%") ] with
+    | [] -> Error `Unknown
+    | [Sqlite3.Data.[ TEXT hash ]] -> Ok hash
+    | [_] -> failwith "full_hash: invalid result!"
+    | _ :: _ :: _ -> Error `Ambiguous
+  ) else Error `Invalid
+
+let get_jobs ~owner ~name hash =
+  let t = Lazy.force db in
+  Db.query t.get_jobs Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash ]
+  |> List.map @@ function
+  | Sqlite3.Data.[ TEXT variant; NULL] -> variant, None
+  | Sqlite3.Data.[ TEXT variant; TEXT job_id] -> variant, Some job_id
+  | _ -> failwith "get_job: invalid result!"
+
+let get_job ~owner ~name ~hash ~variant =
+  let t = Lazy.force db in
+  match Db.query_some t.get_job Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash; TEXT variant ] with
+  | None -> Error `No_such_variant
+  | Some Sqlite3.Data.[ TEXT id ] -> Ok (Some id)
+  | Some Sqlite3.Data.[ NULL ] -> Ok None
+  | _ -> failwith "get_job: invalid result!"
 
 let list_owners () =
   let t = Lazy.force db in
