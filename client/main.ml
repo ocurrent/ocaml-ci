@@ -84,7 +84,15 @@ let list_refs repo =
   else
     Client.Ref_map.iter (fun gref hash -> Fmt.pr "%s %s@." hash gref) refs
 
-let main ~ci_uri ~repo ~target ~job_op =
+let pp_job f { Client.variant } = Fmt.string f variant
+
+let list_variants commit =
+  Client.Commit.jobs commit |> Lwt_result.map @@ function
+  | [] -> Fmt.pr "No jobs found for this commit!"
+  | jobs ->
+    Fmt.pr "@[<v>%a@]@." Fmt.(list pp_job) jobs
+
+let main ~ci_uri ~repo ~target ~variant ~job_op =
   let vat = Capnp_rpc_unix.client_only_vat () in
   match import_ci_ref ~vat ci_uri with
   | Error _ as e -> Lwt.return e
@@ -102,10 +110,17 @@ let main ~ci_uri ~repo ~target ~job_op =
         with_ref (Client.Org.repo org name) @@ fun repo ->
         match target with
         | None -> list_refs repo
-        | Some (`Ref target) ->
-          with_ref (Client.Repo.job_of_ref repo target) job_op
-        | Some (`Commit hash) ->
-          with_ref (Client.Repo.job_of_commit repo hash) job_op
+        | Some r ->
+          let commit =
+            match r with
+            | `Ref target -> Client.Repo.commit_of_ref repo target
+            | `Commit hash -> Client.Repo.commit_of_hash repo hash
+          in
+          with_ref commit @@ fun commit ->
+          match variant with
+          | None -> list_variants commit
+          | Some variant ->
+            with_ref (Client.Commit.job_of_variant commit variant) job_op
 
 (* Command-line parsing *)
 
@@ -159,6 +174,14 @@ let target =
     ~docv:"TARGET"
     []
 
+let variant =
+  Arg.value @@
+  Arg.pos 2 Arg.(some string) None @@
+  Arg.info
+    ~doc:"The build matrix variant"
+    ~docv:"VARIANT"
+    []
+
 let job_op =
   let ops = [
     "log", `Show_log;
@@ -167,7 +190,7 @@ let job_op =
     "rebuild", `Rebuild;
   ] in
   Arg.value @@
-  Arg.pos 2 Arg.(enum ops) `Show_status @@
+  Arg.pos 3 Arg.(enum ops) `Show_status @@
   Arg.info
     ~doc:"The operation to perform (log, status, cancel or rebuild)."
     ~docv:"METHOD"
@@ -182,14 +205,14 @@ let to_fn = function
 
 let cmd =
   let doc = "Client for ocaml-ci" in
-  let main ci_uri repo target job_op =
+  let main ci_uri repo target variant job_op =
     let job_op = to_fn job_op in
-    match Lwt_main.run (main ~ci_uri ~repo ~target ~job_op) with
+    match Lwt_main.run (main ~ci_uri ~repo ~target ~variant ~job_op) with
     | Ok () -> ()
     | Error `Capnp ex -> Fmt.epr "%a@." Capnp_rpc.Error.pp ex; exit 1
     | Error `Msg m -> Fmt.epr "%s@." m; exit 1
   in
-  Term.(const main $ cap $ repo $ target $ job_op),
+  Term.(const main $ cap $ repo $ target $ variant $ job_op),
   Term.info "ocaml-ci" ~doc
 
 let () = Term.(exit @@ eval cmd)

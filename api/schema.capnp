@@ -7,18 +7,32 @@ struct RefInfo {
   hash @1 :Text;
 }
 
+struct JobInfo {
+  variant @0 :Text;
+}
+
+interface Commit {
+  jobs  @0 () -> (jobs :List(JobInfo));
+
+  jobOfVariant @1 (variant :Text) -> (job :OCurrent.Job);
+
+  refs @2 (hash :Text) -> (refs :List(Text));
+  # Get the set of branches and PRs with this commit at their head.
+}
+
 interface Repo {
   refs         @0 () -> (refs :List(RefInfo));
   # Get the set of branches and PRs being monitored.
 
-  jobOfCommit  @1 (hash :Text) -> (job :OCurrent.Job);
+  deprecatedJobOfCommit  @1 (hash :Text) -> (job :OCurrent.Job);
+  deprecatedJobOfRef     @2 (ref :Text) -> (job :OCurrent.Job);
+  deprecatedRefsOfCommit @3 (hash :Text) -> (refs :List(Text));
+
+  commitOfHash @4 (hash :Text) -> (commit :Commit);
   # The hash doesn't need to be the full hash, but must be at least 6 characters long.
 
-  jobOfRef     @2 (ref :Text) -> (job :OCurrent.Job);
+  commitOfRef @5 (ref :Text) -> (commit :Commit);
   # ref should be of the form "refs/heads/..." or "refs/pull/4/head"
-
-  refsOfCommit @3 (hash :Text) -> (refs :List(Text));
-  # Get the set of branches and PRs with this hash at their head.
 }
 
 interface Org {

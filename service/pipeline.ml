@@ -45,19 +45,23 @@ let set_active_refs ~repo xs =
   xs
 
 let build_with_docker ~repo src =
+  let variant = "alpine-3.10-ocaml-4.08" in
   let dockerfile =
-    let+ base = Docker.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
+    let+ base = Docker.pull ~schedule:weekly ("ocurrent/opam:" ^ variant)
     and+ repo = repo
     and+ info = Analyse.examine src in
     Opam_build.dockerfile ~base ~info ~repo
   in
-  Docker.build ~timeout ~pool ~pull:false ~dockerfile (`Git src)
+  [
+    variant, Docker.build ~timeout ~pool ~pull:false ~dockerfile (`Git src);
+  ]
 
 let local_test repo () =
   let src = Git.Local.head_commit repo in
   let repo = Current.return { Github.Repo_id.owner = "local"; name = "test" } in
   build_with_docker ~repo src
-  |> Current.ignore_value
+  |> List.map (fun (_variant, build) -> Current.ignore_value build)
+  |> Current.all
 
 let v ~app () =
   Github.App.installations app |> Current.list_iter ~pp:Github.Installation.pp @@ fun installation ->
@@ -67,14 +71,23 @@ let v ~app () =
   let refs = Github.Api.ci_refs_dyn github repo |> set_active_refs ~repo in
   refs |> Current.list_iter ~pp:Github.Api.Commit.pp @@ fun head ->
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
-  let build = build_with_docker ~repo src in
+  let builds = build_with_docker ~repo src in
+  let jobs = builds
+             |> List.map (fun (variant, build) ->
+                 let+ x = Current.Analysis.get build in
+                 (variant, Current.Analysis.job_id x)
+               )
+             |> Current.list_seq
+  in
   let index =
     let+ commit = head
-    and+ job_id = Current.Analysis.get build |> Current.(map Analysis.job_id) in
-    Option.iter (Index.record ~commit) job_id
+    and+ jobs = jobs in
+    Index.record ~commit jobs
   in
   let set_status =
-    build
+    builds
+    |> List.map (fun (_variant, build) -> Current.ignore_value build)
+    |> Current.all
     |> Current.state
     |> github_status_of_state ~repo ~head
     |> Github.Api.Commit.set_status head "ocaml-ci"
