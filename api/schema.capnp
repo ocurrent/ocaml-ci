@@ -23,8 +23,14 @@ interface Repo {
 
 interface Org {
   repo         @0 (name :Text) -> (repo :Repo);
+
+  repos        @1 () -> (repos :List(Text));
+  # Get the list of tracked repositories for this organisation.
 }
 
 interface CI {
   org          @0 (owner :Text) -> (org :Org);
+
+  orgs         @1 () -> (orgs :List(Text));
+  # Get the list of organisations for this CI capability.
 }

@@ -14,6 +14,13 @@ module CI = struct
     let request, params = Capability.Request.create Params.init_pointer in
     Params.owner_set params owner;
     Capability.call_for_caps t method_id request Results.org_get_pipelined
+
+  let orgs t =
+    let open Raw.Client.CI.Orgs in
+    let request = Capability.Request.create_no_args () in
+    Capability.call_for_value t method_id request >|= function
+    | Error e -> Error (`Capnp e)
+    | Ok x -> Ok (Results.orgs_get_list x)
 end
 
 module Org = struct
@@ -24,6 +31,13 @@ module Org = struct
     let request, params = Capability.Request.create Params.init_pointer in
     Params.name_set params name;
     Capability.call_for_caps t method_id request Results.repo_get_pipelined
+
+  let repos t =
+    let open Raw.Client.Org.Repos in
+    let request = Capability.Request.create_no_args () in
+    Capability.call_for_value t method_id request >|= function
+    | Error e -> Error (`Capnp e)
+    | Ok x -> Ok (Results.repos_get_list x)
 end
 
 module Repo = struct
