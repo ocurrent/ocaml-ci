@@ -7,6 +7,8 @@ type t = {
   owner_exists : Sqlite3.stmt;
   repo_exists : Sqlite3.stmt;
   get_job : Sqlite3.stmt;
+  list_owners : Sqlite3.stmt;
+  list_repos : Sqlite3.stmt;
 }
 
 let or_fail label x =
@@ -27,13 +29,15 @@ let db = lazy (
                                      VALUES (?, ?, ?, ?)" in
   let lookup = Sqlite3.prepare db "SELECT job_id FROM ci_index \
                                      WHERE owner = ? AND name = ? AND hash = ?" in
+  let list_owners = Sqlite3.prepare db "SELECT DISTINCT owner FROM ci_index" in
+  let list_repos = Sqlite3.prepare db "SELECT DISTINCT name FROM ci_index WHERE owner = ?" in
   let owner_exists = Sqlite3.prepare db "SELECT EXISTS (SELECT 1 FROM ci_index \
                                                         WHERE owner = ?)" in
   let repo_exists = Sqlite3.prepare db "SELECT EXISTS (SELECT 1 FROM ci_index \
                                                        WHERE owner = ? AND name = ?)" in
   let get_job = Sqlite3.prepare db "SELECT job_id FROM ci_index \
                                     WHERE owner = ? AND name = ? AND hash LIKE ?" in
-  { db; record; lookup; owner_exists; repo_exists; get_job }
+  { db; record; lookup; owner_exists; repo_exists; get_job; list_owners; list_repos }
 )
 
 let split_owner_name s =
@@ -68,6 +72,20 @@ let get_job ~owner ~name hash =
   | [Sqlite3.Data.[ TEXT job_id ]] -> Ok job_id
   | [_] -> failwith "get_job: invalid result!"
   | _ :: _ :: _ -> Error `Ambiguous
+
+let list_owners () =
+  let t = Lazy.force db in
+  Db.query t.list_owners []
+  |> List.map @@ function
+  | Sqlite3.Data.[ TEXT x ] -> x
+  | _ -> failwith "list_owners: invalid data returned!"
+
+let list_repos owner =
+  let t = Lazy.force db in
+  Db.query t.list_repos Sqlite3.Data.[ TEXT owner ]
+  |> List.map @@ function
+  | Sqlite3.Data.[ TEXT x ] -> x
+  | _ -> failwith "list_repos: invalid data returned!"
 
 module Repo_map = Map.Make(Current_github.Repo_id)
 

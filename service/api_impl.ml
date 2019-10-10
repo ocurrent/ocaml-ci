@@ -107,6 +107,13 @@ let make_org ~engine owner =
         let response, results = Service.Response.create Results.init_pointer in
         Results.repo_set results (Some repo);
         Service.return response
+
+    method repos_impl _params release_param_caps =
+      let open Org.Repos in
+      release_param_caps ();
+      let response, results = Service.Response.create Results.init_pointer in
+      Results.repos_set_list results (Index.list_repos owner) |> ignore;
+      Service.return response
   end
 
 let make_ci ~engine =
@@ -135,4 +142,11 @@ let make_ci ~engine =
         let response, results = Service.Response.create Results.init_pointer in
         Results.org_set results (Some org);
         Service.return response
+
+    method orgs_impl _params release_param_caps =
+      let open CI.Orgs in
+      release_param_caps ();
+      let response, results = Service.Response.create Results.init_pointer in
+      Results.orgs_set_list results (Index.list_owners ()) |> ignore;
+      Service.return response
   end

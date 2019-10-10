@@ -62,26 +62,50 @@ let import_ci_ref ~vat = function
       else
         errorf "Default cap file %S not found!" path
 
+let list_orgs ci =
+  Client.CI.orgs ci |> Lwt_result.map @@ function
+  | [] ->
+    Fmt.pr "@[<v>No owner (organisation) given and no suggestions available."
+  | orgs ->
+    Fmt.pr "@[<v>No owner (organisation) given. Try one of these:@,@,%a@]@." Fmt.(list string) orgs
+
+let list_repos ~owner org =
+  Client.Org.repos org |> Lwt_result.map @@ function
+  | [] ->
+    Fmt.pr "@[<v>No repository given and no suggestions available."
+  | repos ->
+    let full_name f r = Fmt.pf f "%s/%s" owner r in
+    Fmt.pr "@[<v>No repository given. Try one of these:@,@,%a@]@." Fmt.(list full_name) repos
+
+let list_refs repo =
+  Client.Repo.refs repo |> Lwt_result.map @@ fun refs ->
+  if Client.Ref_map.is_empty refs then
+    Fmt.pr "No branches or PRs are being tracked by the CI for this repository.@."
+  else
+    Client.Ref_map.iter (fun gref hash -> Fmt.pr "%s %s@." hash gref) refs
+
 let main ~ci_uri ~repo ~target ~job_op =
   let vat = Capnp_rpc_unix.client_only_vat () in
   match import_ci_ref ~vat ci_uri with
   | Error _ as e -> Lwt.return e
   | Ok sr ->
     Sturdy_ref.connect_exn sr >>= fun ci ->
-    match String.cut ~sep:"/" repo with
-    | None ->
-      Lwt_result.fail (`Msg (Fmt.strf "Repo should be in the form owner/name, not %S" repo))
-    | Some (owner, name) ->
-      with_ref (Client.CI.org ci owner) @@ fun org ->
-      with_ref (Client.Org.repo org name) @@ fun repo ->
-      match target with
+    match repo with
+    | None -> list_orgs ci
+    | Some repo ->
+      match String.cut ~sep:"/" repo with
       | None ->
-        Client.Repo.refs repo |> Lwt_result.map @@ fun refs ->
-        Client.Ref_map.iter (fun gref hash -> Fmt.pr "%s %s@." hash gref) refs
-      | Some (`Ref target) ->
-        with_ref (Client.Repo.job_of_ref repo target) job_op
-      | Some (`Commit hash) ->
-        with_ref (Client.Repo.job_of_commit repo hash) job_op
+        let owner = repo in
+        with_ref (Client.CI.org ci owner) (list_repos ~owner)
+      | Some (owner, name) ->
+        with_ref (Client.CI.org ci owner) @@ fun org ->
+        with_ref (Client.Org.repo org name) @@ fun repo ->
+        match target with
+        | None -> list_refs repo
+        | Some (`Ref target) ->
+          with_ref (Client.Repo.job_of_ref repo target) job_op
+        | Some (`Commit hash) ->
+          with_ref (Client.Repo.job_of_commit repo hash) job_op
 
 (* Command-line parsing *)
 
@@ -96,7 +120,7 @@ let cap =
     ["ci-cap"]
 
 let repo =
-  Arg.required @@
+  Arg.value @@
   Arg.pos 0 Arg.(some string) None @@
   Arg.info
     ~doc:"The GitHub repository to use (org/name)."

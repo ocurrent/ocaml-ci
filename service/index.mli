@@ -11,6 +11,12 @@ val is_known_owner : string -> bool
 val is_known_repo : owner:string -> name:string -> bool
 (** [is_known_repo ~owner ~name] is [true] iff there is an entry for a commit in repository [owner/name]. *)
 
+val list_owners : unit -> string list
+(** [list_owners ()] lists all the tracked owners. *)
+
+val list_repos : string -> string list
+(** [list_repos owner] lists all the tracked repos under [owner]. *)
+
 val get_job : owner:string -> name:string -> string -> (Current.job_id, [> `Unknown | `Ambiguous]) result
 (** [get_job ~owner ~name commit] is the last known OCurrent job for hash [commit] in repository [owner/name]. *)
 

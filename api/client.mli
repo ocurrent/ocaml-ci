@@ -32,6 +32,8 @@ module Org : sig
   val repo : t -> string -> Repo.t
   (** [repo t name] is the GitHub organisation at "https://github.com/$owner/$name".
       It returns an error if ocaml-ci doesn't know about this repository. *)
+
+  val repos : t -> (string list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
 end
 
 module CI : sig
@@ -41,4 +43,6 @@ module CI : sig
   val org : t -> string -> Org.t
   (** [org t owner] is the GitHub organisation at "https://github.com/$owner".
       It returns an error if ocaml-ci doesn't know about this organisation. *)
+
+  val orgs : t -> (string list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
 end
