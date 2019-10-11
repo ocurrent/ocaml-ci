@@ -11,7 +11,10 @@ module Ref_map : Map.S with type key = git_ref
 
 type job_info = {
   variant : variant;
+  outcome : Raw.Reader.JobInfo.State.unnamed_union_t;
 }
+
+val pp_state : Raw.Reader.JobInfo.State.unnamed_union_t Fmt.t
 
 module Commit : sig
   type t = Raw.Client.Commit.t Capability.t

@@ -9,7 +9,18 @@ module Ref_map = Map.Make(String)
 
 type job_info = {
   variant : variant;
+  outcome : Raw.Reader.JobInfo.State.unnamed_union_t;
 }
+
+let pp_state f =
+  let open Raw.Reader.JobInfo.State in
+  function
+  | NotStarted -> Fmt.string f "not yet started"
+  | Aborted -> Fmt.string f "aborted"
+  | Failed m -> Fmt.pf f "failed: %s" m
+  | Passed -> Fmt.string f "passed"
+  | Active -> Fmt.string f "active"
+  | Undefined x -> Fmt.pf f "unknown:%d" x
 
 module CI = struct
   type t = Raw.Client.CI.t Capability.t
@@ -94,7 +105,9 @@ module Commit = struct
     | Ok jobs ->
       let jobs = Results.jobs_get_list jobs |> List.map (fun job ->
           let variant = Raw.Reader.JobInfo.variant_get job in
-          { variant }
+          let state = Raw.Reader.JobInfo.state_get job in
+          let outcome = Raw.Reader.JobInfo.State.get state in
+          { variant; outcome }
         )
       in
       Ok jobs

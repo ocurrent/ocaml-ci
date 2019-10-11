@@ -2,6 +2,8 @@
     - A map from active Git references to the Git commit at their heads.
     - A (persisted) map from each Git commit hash to its last known OCurrent job ID. *)
 
+type job_state = [`Not_started | `Active | `Failed of string | `Passed | `Aborted ]
+
 val record : commit:Current_github.Api.Commit.t -> (string * Current.job_id option) list -> unit
 (** [record ~commit jobs] updates the entry for [commit] to point at [jobs]. *)
 
@@ -17,7 +19,7 @@ val list_owners : unit -> string list
 val list_repos : string -> string list
 (** [list_repos owner] lists all the tracked repos under [owner]. *)
 
-val get_jobs : owner:string -> name:string -> string -> (string * Current.job_id option) list
+val get_jobs : owner:string -> name:string -> string -> (string * job_state) list
 (** [get_jobs ~owner ~name commit] is the last known set of OCurrent jobs for hash [commit] in repository [owner/name]. *)
 
 val get_job : owner:string -> name:string -> hash:string -> variant:string -> (string option, [> `No_such_variant]) result

@@ -16,9 +16,17 @@ let make_commit ~engine ~owner ~name hash =
       let jobs = Index.get_jobs ~owner ~name hash in
       let response, results = Service.Response.create Results.init_pointer in
       let arr = Results.jobs_init results (List.length jobs) in
-      jobs |> List.iteri (fun i (variant, _job_id) ->
+      jobs |> List.iteri (fun i (variant, outcome) ->
           let slot = Capnp.Array.get arr i in
           Raw.Builder.JobInfo.variant_set slot variant;
+          let state = Raw.Builder.JobInfo.state_init slot in
+          let module S = Raw.Builder.JobInfo.State in
+          match outcome with
+          | `Not_started -> S.not_started_set state
+          | `Passed -> S.passed_set state
+          | `Aborted -> S.aborted_set state
+          | `Active -> S.active_set state
+          | `Failed msg -> S.failed_set state msg
         );
       Service.return response
 
