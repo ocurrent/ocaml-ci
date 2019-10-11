@@ -69,9 +69,9 @@ let link_github_refs ~owner ~name refs =
 
 let link_jobs ~owner ~name ~hash ?selected jobs =
   let open Tyxml.Html in
-  let render_job { Client.variant } =
+  let render_job { Client.variant; outcome } =
     let uri = job_url ~owner ~name ~hash variant in
-    let label = txt variant in
+    let label = txt (Fmt.strf "%s (%a)" variant Client.pp_state outcome) in
     let label = if selected = Some variant then b [label] else label in
     li [a ~a:[a_href uri] [label]]
   in

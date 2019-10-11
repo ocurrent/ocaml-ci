@@ -9,6 +9,22 @@ struct RefInfo {
 
 struct JobInfo {
   variant @0 :Text;
+  state :union {
+    notStarted @1 :Void;
+
+    passed     @2 :Void;
+
+    failed     @3 :Text;
+    # The text is the error message.
+
+    active     @4 :Void;
+    # The job is still running.
+
+    aborted    @5 :Void;
+    # This means we couldn't find any record of the job. It probably means
+    # that the server crashed while building, and when it came back up we
+    # no longer wanted to test that commit anyway.
+  }
 }
 
 interface Commit {

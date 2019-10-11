@@ -12,6 +12,8 @@ type t = {
   full_hash : Sqlite3.stmt;
 }
 
+type job_state = [`Not_started | `Active | `Failed of string | `Passed | `Aborted ]
+
 let or_fail label x =
   match x with
   | Sqlite3.Rc.OK -> ()
@@ -39,8 +41,10 @@ let db = lazy (
                                                         WHERE owner = ?)" in
   let repo_exists = Sqlite3.prepare db "SELECT EXISTS (SELECT 1 FROM ci_build_index \
                                                        WHERE owner = ? AND name = ?)" in
-  let get_jobs = Sqlite3.prepare db "SELECT variant, job_id FROM ci_build_index \
-                                     WHERE owner = ? AND name = ? AND hash = ?" in
+  let get_jobs = Sqlite3.prepare db "SELECT ci_build_index.variant, ci_build_index.job_id, cache.ok, cache.outcome \
+                                     FROM ci_build_index \
+                                     LEFT JOIN cache ON ci_build_index.job_id = cache.job_id \
+                                     WHERE ci_build_index.owner = ? AND ci_build_index.name = ? AND ci_build_index.hash = ?" in
   let get_job = Sqlite3.prepare db "SELECT job_id FROM ci_build_index \
                                      WHERE owner = ? AND name = ? AND hash = ? AND variant = ?" in
   let full_hash = Sqlite3.prepare db "SELECT DISTINCT hash FROM ci_build_index \
@@ -91,9 +95,18 @@ let get_jobs ~owner ~name hash =
   let t = Lazy.force db in
   Db.query t.get_jobs Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash ]
   |> List.map @@ function
-  | Sqlite3.Data.[ TEXT variant; NULL] -> variant, None
-  | Sqlite3.Data.[ TEXT variant; TEXT job_id] -> variant, Some job_id
-  | _ -> failwith "get_job: invalid result!"
+  | Sqlite3.Data.[ TEXT variant; TEXT job_id; NULL; NULL ] ->
+    let outcome = if Current.Job.lookup_running job_id = None then `Aborted else `Active in
+    variant, outcome
+  | Sqlite3.Data.[ TEXT variant; TEXT _; INT ok; BLOB outcome ] ->
+    let outcome =
+      if ok = 1L then `Passed else `Failed outcome
+    in
+    variant, outcome
+  | Sqlite3.Data.[ TEXT variant; NULL; NULL; NULL ] ->
+    variant, `Not_started
+  | row ->
+    Fmt.failwith "get_jobs: invalid result: %a" Db.dump_row row
 
 let get_job ~owner ~name ~hash ~variant =
   let t = Lazy.force db in

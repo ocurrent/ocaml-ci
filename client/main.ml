@@ -54,7 +54,7 @@ let import_ci_ref ~vat = function
   | Some url -> Capnp_rpc_unix.Vat.import vat url
   | None ->
     match Sys.getenv_opt "HOME" with
-    | None -> errorf "$HOME not set! Can't get default cap file location."
+    | None -> errorf "$HOME not set! Can't get default cap file location.@."
     | Some home ->
       let path = Filename.concat home ".ocaml-ci.cap" in
       if Sys.file_exists path then
@@ -72,7 +72,7 @@ let list_orgs ci =
 let list_repos ~owner org =
   Client.Org.repos org |> Lwt_result.map @@ function
   | [] ->
-    Fmt.pr "@[<v>No repository given and no suggestions available."
+    Fmt.pr "@[<v>No repository given and no suggestions available.@."
   | repos ->
     let full_name f r = Fmt.pf f "%s/%s" owner r in
     Fmt.pr "@[<v>No repository given. Try one of these:@,@,%a@]@." Fmt.(list full_name) repos
@@ -84,11 +84,12 @@ let list_refs repo =
   else
     Client.Ref_map.iter (fun gref hash -> Fmt.pr "%s %s@." hash gref) refs
 
-let pp_job f { Client.variant } = Fmt.string f variant
+let pp_job f { Client.variant; outcome } =
+  Fmt.pf f "%s (%a)" variant Client.pp_state outcome
 
 let list_variants commit =
   Client.Commit.jobs commit |> Lwt_result.map @@ function
-  | [] -> Fmt.pr "No jobs found for this commit!"
+  | [] -> Fmt.pr "No jobs found for this commit!@."
   | jobs ->
     Fmt.pr "@[<v>%a@]@." Fmt.(list pp_job) jobs
 
