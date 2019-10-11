@@ -45,15 +45,24 @@ let set_active_refs ~repo xs =
   xs
 
 let build_with_docker ~repo src =
-  let variant = "alpine-3.10-ocaml-4.08" in
-  let dockerfile =
-    let+ base = Docker.pull ~schedule:weekly ("ocurrent/opam:" ^ variant)
-    and+ repo = repo
-    and+ info = Analyse.examine src in
-    Opam_build.dockerfile ~base ~info ~repo
+  let info =
+    let+ info = Analyse.examine src in
+    let opam_files = Analyse.Analysis.opam_files info in
+    if opam_files = [] then failwith "No opam files found!";
+    info
+  in
+  let build variant =
+    let dockerfile =
+      let+ base = Docker.pull ~schedule:weekly ("ocurrent/opam:" ^ variant)
+      and+ repo = repo
+      and+ info = info in
+      Opam_build.dockerfile ~base ~info ~repo
+    in
+    variant, Docker.build ~timeout ~pool ~pull:false ~dockerfile (`Git src);
   in
   [
-    variant, Docker.build ~timeout ~pool ~pull:false ~dockerfile (`Git src);
+    build "alpine-3.10-ocaml-4.08";
+    build "debian-10-ocaml-4.08";
   ]
 
 let local_test repo () =
