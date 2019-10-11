@@ -43,7 +43,7 @@ let db = lazy (
                                      WHERE owner = ? AND name = ? AND hash = ?" in
   let get_job = Sqlite3.prepare db "SELECT job_id FROM ci_build_index \
                                      WHERE owner = ? AND name = ? AND hash = ? AND variant = ?" in
-  let full_hash = Sqlite3.prepare db "SELECT hash FROM ci_build_index \
+  let full_hash = Sqlite3.prepare db "SELECT DISTINCT hash FROM ci_build_index \
                                       WHERE owner = ? AND name = ? AND hash LIKE ?" in
   { db; record; owner_exists; repo_exists; get_jobs; get_job; list_owners; list_repos; full_hash }
 )
