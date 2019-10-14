@@ -64,14 +64,16 @@ let dockerfile ~base ~info ~repo =
     if Analyse.Analysis.is_duniverse info then Printf.sprintf "%s %s" download_cache (build_cache repo)
     else download_cache
   in
-  let pkgs = get_opam_packages groups |> String.concat " " in
+  let pkgs = get_opam_packages groups in
   let open Dockerfile in
   comment "syntax = docker/dockerfile:experimental" @@
   from (Docker.Image.hash base) @@
   workdir "/src" @@
   run "sudo chown opam /src" @@
   pin_opam_files groups @@
-  run "%s opam install %s --dry-run --deps-only -ty | awk '/-> installed/{print $3}' | xargs opam depext -iy" download_cache pkgs @@
-  run "opam depext -ty %s" pkgs @@
+  run "%s opam install %s --dry-run --deps-only -ty | awk '/-> installed/{print $3}' | xargs opam depext -iy" download_cache (pkgs |> String.concat " ") @@
+  crunch_list (List.map (fun pkg ->
+      run {|test "$(opam show -f depexts: %s)" = "$(printf "\n")" || opam depext -ty %s|} pkg pkg) pkgs
+    ) @@
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
   run "%s opam install -tv ." caches
