@@ -72,6 +72,8 @@ let dockerfile ~base ~info ~repo =
   run "sudo chown opam /src" @@
   pin_opam_files groups @@
   run "%s opam install %s --dry-run --deps-only -ty | awk '/-> installed/{print $3}' | xargs opam depext -iy" download_cache (pkgs |> String.concat " ") @@
-  List.fold_left (fun acc pkg -> acc @@ run {|test "$(opam show -f depexts: %s)" = "$(printf "\n")" || opam depext -ty %s|} pkg pkg) empty pkgs @@
+  crunch_list (List.map (fun pkg ->
+      run {|test "$(opam show -f depexts: %s)" = "$(printf "\n")" || opam depext -ty %s|} pkg pkg) pkgs
+    ) @@
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
   run "%s opam install -tv ." caches
