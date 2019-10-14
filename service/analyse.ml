@@ -50,6 +50,7 @@ module Examine = struct
     Current.Process.check_output ~cwd:tmpdir ~switch ~job cmd >|= Stdlib.Result.map @@ fun output ->
     let opam_files =
       String.split_on_char '\n' output
+      |> List.sort String.compare
       |> List.filter (function
           | "" -> false
           | path ->
