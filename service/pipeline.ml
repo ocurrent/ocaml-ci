@@ -24,7 +24,7 @@ let github_status_of_state ~repo ~head result =
   let+ repo = repo
   and+ head = head
   and+ result = result in
-  let { Github.Repo_id.owner; name } = repo in
+  let { Github.Repo_id.owner; name } = Github.Api.Repo.id repo in
   let hash = Github.Api.Commit.hash head in
   let url = url ~owner ~name ~hash in
   match result with
@@ -35,6 +35,7 @@ let github_status_of_state ~repo ~head result =
 let set_active_refs ~repo xs =
   let+ repo = repo
   and+ xs = xs in
+  let repo = Github.Api.Repo.id repo in
   Index.set_active_refs ~repo (
     xs |> List.map @@ fun x ->
     let commit = Github.Api.Commit.id x in
@@ -74,13 +75,14 @@ let local_test repo () =
 
 let v ~app () =
   Github.App.installations app |> Current.list_iter ~pp:Github.Installation.pp @@ fun installation ->
-  let github = Current.map Github.Installation.api installation in
   let repos = Github.Installation.repositories installation in
-  repos |> Current.list_iter ~pp:Github.Repo_id.pp @@ fun repo ->
-  let refs = Github.Api.ci_refs_dyn github repo |> set_active_refs ~repo in
+  repos |> Current.list_iter ~pp:Github.Api.Repo.pp @@ fun repo ->
+  let refs = Github.Api.Repo.ci_refs repo |> set_active_refs ~repo in
   refs |> Current.list_iter ~pp:Github.Api.Commit.pp @@ fun head ->
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
-  let builds = build_with_docker ~repo src in
+  let builds =
+    let repo = Current.map Github.Api.Repo.id repo in
+    build_with_docker ~repo src in
   let jobs = builds
              |> List.map (fun (variant, build) ->
                  let+ x = Current.Analysis.get build in
