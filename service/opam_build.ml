@@ -20,36 +20,39 @@ let build_cache repo =
 
 (* Group opam files by directory.
    e.g. ["a/a1.opam"; "a/a2.opam"; "b/b1.opam"] ->
-        [("a", ["a/a1.opam"; "a/a2.opam"]);
-         ("b", ["b/b1.opam"])
+        [("a", ["a/a1.opam"; "a/a2.opam"], ["a1.dev"; "a2.dev"]);
+         ("b", ["b/b1.opam"], ["b1.dev"])
         ] *)
 let group_opam_files =
   ListLabels.fold_left ~init:[] ~f:(fun acc x ->
       let item = Fpath.v x in
       let dir = Fpath.parent item in
+      let pkg = (Filename.basename x |> Filename.chop_extension) ^ ".dev" in
       match acc with
-      | (prev_dir, prev_items) :: rest when Fpath.equal dir prev_dir -> (prev_dir, x :: prev_items) :: rest
-      | _ -> (dir, [x]) :: acc
+      | (prev_dir, prev_items, pkgs) :: rest when Fpath.equal dir prev_dir -> (prev_dir, x :: prev_items, pkg :: pkgs) :: rest
+      | _ -> (dir, [x], [pkg]) :: acc
     )
 
 (* Generate Dockerfile instructions to copy all the files in [items] into the
    image, creating the necessary directories first, and then pin them all. *)
 let pin_opam_files groups =
   let open Dockerfile in
-  let dirs = groups |> List.map (fun (dir, _) -> Printf.sprintf "%S" (Fpath.to_string dir)) |> String.concat " " in
+  let dirs = groups |> List.map (fun (dir, _, _) -> Printf.sprintf "%S" (Fpath.to_string dir)) |> String.concat " " in
   (run "mkdir -p %s" dirs @@@ (
-    groups |> List.map (fun (dir, files) ->
+    groups |> List.map (fun (dir, files, _) ->
         copy ~src:files ~dst:(Fpath.to_string dir) ()
       )
   )) @@ crunch_list (
-    groups |> List.map (fun (dir, files) ->
-        files
-        |> List.map (fun file ->
-            run "opam pin add -yn %s.dev %S" (Filename.basename file |> Filename.chop_extension) (Fpath.to_string dir)
+    groups |> List.map (fun (dir, _, pkgs) ->
+        pkgs
+        |> List.map (fun pkg ->
+            run "opam pin add -yn %s %S" pkg (Fpath.to_string dir)
           )
         |> crunch_list
       )
   )
+
+let get_opam_packages = List.fold_left (fun acc (_, _, pkgs) -> pkgs @ acc) []
 
 let download_cache = "--mount=type=cache,target=/home/opam/.opam/download-cache,uid=1000"
 
@@ -61,13 +64,14 @@ let dockerfile ~base ~info ~repo =
     if Analyse.Analysis.is_duniverse info then Printf.sprintf "%s %s" download_cache (build_cache repo)
     else download_cache
   in
-  let dirs = groups |> List.map (fun (dir, _) -> Printf.sprintf "%S" (Fpath.to_string dir)) |> String.concat " " in
+  let pkgs = get_opam_packages groups |> String.concat " " in
   let open Dockerfile in
   comment "syntax = docker/dockerfile:experimental" @@
   from (Docker.Image.hash base) @@
   workdir "/src" @@
   run "sudo chown opam /src" @@
   pin_opam_files groups @@
-  run "%s opam install %s --dry-run --deps-only -ty | awk '/-> installed/{print $3}' | xargs opam depext -iy" download_cache dirs @@
+  run "%s opam install %s --dry-run --deps-only -ty | awk '/-> installed/{print $3}' | xargs opam depext -iy" download_cache pkgs @@
+  run "opam depext -y %s" pkgs @@
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
   run "%s opam install -tv ." caches
