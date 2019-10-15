@@ -16,6 +16,11 @@ let respond_error status body =
   let headers = Cohttp.Header.init_with "Content-Type" "text/plain" in
   Server.respond_error ~status ~headers ~body () |> normal_response
 
+let (>>!=) x f =
+  x >>= function
+  | Error `Capnp ex -> respond_error `Internal_server_error (Fmt.to_to_string Capnp_rpc.Error.pp ex)
+  | Ok y -> f y
+
 let job_url ~owner ~name ~hash variant =
   Printf.sprintf "/github/%s/%s/commit/%s/variant/%s" owner name hash variant
 
@@ -103,68 +108,50 @@ let stream_logs job ~owner ~name ~refs ~hash ~jobs ~variant (data, next) writer 
 
 let repo_get ~owner ~name ~repo = function
   | [] ->
-    begin
-      Client.Repo.refs repo >>= function
-      | Error `Capnp ex -> respond_error `Bad_request (Fmt.to_to_string Capnp_rpc.Error.pp ex)
-      | Ok refs ->
-        let body = Template.instance [
-            format_refs ~owner ~name refs
-          ] in
-        Server.respond_string ~status:`OK ~body () |> normal_response
-    end
+      Client.Repo.refs repo >>!= fun refs ->
+      let body = Template.instance [
+          format_refs ~owner ~name refs
+        ] in
+      Server.respond_string ~status:`OK ~body () |> normal_response
   | ["commit"; hash] ->
     with_ref (Client.Repo.commit_of_hash repo hash) @@ fun commit ->
     let refs = Client.Commit.refs commit in
-    begin
-      Client.Commit.jobs commit >>= function
-      | Error `Capnp ex -> respond_error `Bad_request (Fmt.to_to_string Capnp_rpc.Error.pp ex)
-      | Ok jobs ->
-        refs >>= function
-        | Error `Capnp ex -> respond_error `Internal_server_error (Fmt.to_to_string Capnp_rpc.Error.pp ex)
-        | Ok refs ->
-          let body = Template.instance [
-              link_github_refs ~owner ~name refs;
-              link_jobs ~owner ~name ~hash jobs;
-            ] in
-          Server.respond_string ~status:`OK ~body () |> normal_response
-    end
+    Client.Commit.jobs commit >>!= fun jobs ->
+    refs >>!= fun refs ->
+    let body = Template.instance [
+        link_github_refs ~owner ~name refs;
+        link_jobs ~owner ~name ~hash jobs;
+      ] in
+    Server.respond_string ~status:`OK ~body () |> normal_response
   | ["commit"; hash; "variant"; variant] ->
     with_ref (Client.Repo.commit_of_hash repo hash) @@ fun commit ->
     let refs = Client.Commit.refs commit in
     let jobs = Client.Commit.jobs commit in
     with_ref (Client.Commit.job_of_variant commit variant) @@ fun job ->
-    begin
-      Current_rpc.Job.log job ~start:0L >>= function
-      | Error `Capnp ex -> respond_error `Bad_request (Fmt.to_to_string Capnp_rpc.Error.pp ex)
-      | Ok chunk ->
-        (* (refs will have resolved by now) *)
-        refs >>= function
-        | Error `Capnp ex -> respond_error `Internal_server_error (Fmt.to_to_string Capnp_rpc.Error.pp ex)
-        | Ok refs ->
-          jobs >>= function
-          | Error `Capnp ex -> respond_error `Internal_server_error (Fmt.to_to_string Capnp_rpc.Error.pp ex)
-          | Ok jobs ->
-            let headers =
-              (* Otherwise, an nginx reverse proxy will wait for the whole log before sending anything. *)
-              Cohttp.Header.init_with "X-Accel-Buffering" "no"
-            in
-            let res = Cohttp.Response.make ~status:`OK ~flush:true ~encoding:Cohttp.Transfer.Chunked ~headers () in
-            let write _ic oc =
-              let flush = Cohttp.Response.flush res in
-              let writer = Transfer_IO.make_writer ~flush Cohttp.Transfer.Chunked oc in
-              Lwt.finalize
-                (fun () ->
-                   stream_logs job ~owner ~name ~refs ~hash ~jobs ~variant chunk writer >>= fun () ->
-                   Server.IO.write oc "0\r\n\r\n"
-                )
-                (fun () ->
-                   Capability.dec_ref job;
-                   Lwt.return_unit
-                )
-            in
-            Capability.inc_ref job;
-            Lwt.return (`Expert (res, write))
-    end
+    Current_rpc.Job.log job ~start:0L >>!= fun chunk ->
+    (* (refs will have resolved by now) *)
+    refs >>!= fun refs ->
+    jobs >>!= fun jobs ->
+    let headers =
+      (* Otherwise, an nginx reverse proxy will wait for the whole log before sending anything. *)
+      Cohttp.Header.init_with "X-Accel-Buffering" "no"
+    in
+    let res = Cohttp.Response.make ~status:`OK ~flush:true ~encoding:Cohttp.Transfer.Chunked ~headers () in
+    let write _ic oc =
+      let flush = Cohttp.Response.flush res in
+      let writer = Transfer_IO.make_writer ~flush Cohttp.Transfer.Chunked oc in
+      Lwt.finalize
+        (fun () ->
+           stream_logs job ~owner ~name ~refs ~hash ~jobs ~variant chunk writer >>= fun () ->
+           Server.IO.write oc "0\r\n\r\n"
+        )
+        (fun () ->
+           Capability.dec_ref job;
+           Lwt.return_unit
+        )
+    in
+    Capability.inc_ref job;
+    Lwt.return (`Expert (res, write))
   | _ ->
     Server.respond_not_found () |> normal_response
 
