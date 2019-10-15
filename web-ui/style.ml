@@ -63,6 +63,20 @@ let css = {|
   }
 
   pre { margin-bottom: 2em }
+
+  ol.breadcrumbs {
+    list-style: none;
+    padding: 0;
+  }
+
+  ol.breadcrumbs li {
+    display: inline;
+  }
+
+  ol.breadcrumbs li+li:before {
+    content: "\00a0›\00a0";
+  }
+
 |} ^ Current_ansi.css
 
 let get () =

@@ -9,4 +9,7 @@ let render () =
        ];
        txt " for details.";
       ];
+    ul [
+      li [a ~a:[a_href "/github"] [txt "Registered GitHub organisations"]];
+    ]
   ]

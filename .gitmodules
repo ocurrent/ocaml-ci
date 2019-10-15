@@ -1,3 +1,6 @@
 [submodule "ocurrent"]
 	path = ocurrent
 	url = https://github.com/ocaml-ci/current.git
+[submodule "capnp-rpc"]
+	path = capnp-rpc
+	url = https://github.com/mirage/capnp-rpc
