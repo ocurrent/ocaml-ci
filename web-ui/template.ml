@@ -6,6 +6,7 @@ let instance contents =
   html_to_string (
     html
       (head (title (txt "OCaml-CI")) [
+          meta ~a:[a_charset "UTF-8"] ();
           link ~rel:[ `Stylesheet ] ~href:"/css/style.css" ();
         ]
       )
