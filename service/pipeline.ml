@@ -20,11 +20,10 @@ let url ~owner ~name ~hash = Uri.of_string (Printf.sprintf "https://ci.ocamllabs
 
 let weekly = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
 
-let github_status_of_state ~repo ~head result =
-  let+ repo = repo
-  and+ head = head
+let github_status_of_state ~head result =
+  let+ head = head
   and+ result = result in
-  let { Github.Repo_id.owner; name } = Github.Api.Repo.id repo in
+  let { Github.Repo_id.owner; name } = Github.Api.Commit.repo_id head in
   let hash = Github.Api.Commit.hash head in
   let url = url ~owner ~name ~hash in
   match result with
@@ -100,7 +99,7 @@ let v ~app () =
     |> List.map (fun (_variant, build) -> Current.ignore_value build)
     |> Current.all
     |> Current.state
-    |> github_status_of_state ~repo ~head
+    |> github_status_of_state ~head
     |> Github.Api.Commit.set_status head "ocaml-ci"
   in
   Current.all [index; set_status]
