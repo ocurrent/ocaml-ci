@@ -25,7 +25,7 @@ let run_capnp ~engine = function
         (Capnp_rpc_unix.Network.Location.tcp ~host:"0.0.0.0" ~port:Conf.Capnp.internal_port)
     in
     let service_id = Capnp_rpc_unix.Vat_config.derived_id config "ci" in
-    let restore = Capnp_rpc_lwt.Restorer.single service_id (Api_impl.make_ci ~engine) in
+    let restore = Capnp_rpc_net.Restorer.single service_id (Api_impl.make_ci ~engine) in
     Capnp_rpc_unix.serve config ~restore >>= fun vat ->
     Capnp_rpc_unix.Cap_file.save_service vat service_id Conf.Capnp.cap_file |> or_die;
     Logs.app (fun f -> f "Wrote capability reference to %S" Conf.Capnp.cap_file);
