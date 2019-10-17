@@ -8,11 +8,16 @@ COPY --chown=opam \
 COPY --chown=opam \
 	capnp-rpc/capnp-rpc.opam \
 	capnp-rpc/capnp-rpc-lwt.opam \
+	capnp-rpc/capnp-rpc-net.opam \
 	capnp-rpc/capnp-rpc-unix.opam \
 	/src/capnp-rpc/
-RUN opam pin -yn add /src/ocurrent && opam pin -yn add /src/capnp-rpc
-COPY --chown=opam ocaml-ci-api.opam ocaml-ci-web.opam /src/
 WORKDIR /src
+RUN opam pin -yn add ./ocurrent && \
+    opam pin add -yn capnp-rpc.dev ./capnp-rpc && \
+    opam pin add -yn capnp-rpc-lwt.dev ./capnp-rpc && \
+    opam pin add -yn capnp-rpc-net.dev ./capnp-rpc && \
+    opam pin add -yn capnp-rpc-unix.dev ./capnp-rpc
+COPY --chown=opam ocaml-ci-api.opam ocaml-ci-web.opam /src/
 RUN opam install -y --deps-only .
 ADD --chown=opam . .
 RUN opam config exec -- dune build ./_build/install/default/bin/ocaml-ci-web
