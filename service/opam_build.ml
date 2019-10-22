@@ -1,5 +1,3 @@
-module Docker = Current_docker.Default
-
 let crunch_list items = Dockerfile.(crunch (empty @@@ items))
 
 let safe_char = function
@@ -67,7 +65,7 @@ let dockerfile ~base ~info ~repo =
   let pkgs = get_opam_packages groups in
   let open Dockerfile in
   comment "syntax = docker/dockerfile:experimental" @@
-  from (Docker.Image.hash base) @@
+  from base @@
   workdir "/src" @@
   run "sudo chown opam /src" @@
   pin_opam_files groups @@

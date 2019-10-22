@@ -5,6 +5,8 @@ volumes:
 secrets:
   ocaml-ci-github-key:
     external: true
+  ocaml-ci-ssh-key:
+    external: true
 services:
   ci:
     image: ocaml-ci-service
@@ -20,6 +22,8 @@ services:
       - 'capnp-secrets:/capnp-secrets'
     secrets:
       - 'ocaml-ci-github-key'
+      - source: 'ocaml-ci-ssh-key'
+        mode: 0400
     sysctls:
       - 'net.ipv4.tcp_keepalive_time=60'
   web:

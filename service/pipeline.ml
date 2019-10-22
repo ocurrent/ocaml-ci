@@ -4,14 +4,6 @@ module Git = Current_git
 module Github = Current_github
 module Docker = Current_docker.Default
 
-let pool_size =
-  match Conf.profile with
-  | `Production -> 20
-  | `Dev -> 1
-
-(* Limit number of concurrent builds. *)
-let pool = Current.Pool.create ~label:"docker" pool_size
-
 (* Maximum time for one Docker build. *)
 let timeout = Duration.of_hour 1
 
@@ -51,25 +43,28 @@ let build_with_docker ~repo src =
     if opam_files = [] then failwith "No opam files found!";
     info
   in
-  let build variant =
+  let build (module Docker : Conf.BUILDER) variant =
     let dockerfile =
       let+ base = Docker.pull ~schedule:weekly ("ocurrent/opam:" ^ variant)
       and+ repo = repo
       and+ info = info in
-      Opam_build.dockerfile ~base ~info ~repo
+      Opam_build.dockerfile ~base:(Docker.Image.hash base) ~info ~repo
     in
-    variant, Docker.build ~timeout ~pool ~pull:false ~dockerfile (`Git src);
+    let build = Docker.build ~timeout ~pool:Docker.pool ~pull:false ~dockerfile (`Git src) in
+    variant, Current.ignore_value build, Current.Analysis.get build
   in
   [
-    build "alpine-3.10-ocaml-4.08";
-    build "debian-10-ocaml-4.08";
+    build (module Conf.Builder_amd2) "alpine-3.10-ocaml-4.07";
+    build (module Conf.Builder_amd1) "alpine-3.10-ocaml-4.08";
+    build (module Conf.Builder_amd3) "alpine-3.10-ocaml-4.09";
+    build (module Conf.Builder_amd1) "debian-10-ocaml-4.08";
   ]
 
 let local_test repo () =
   let src = Git.Local.head_commit repo in
   let repo = Current.return { Github.Repo_id.owner = "local"; name = "test" } in
   build_with_docker ~repo src
-  |> List.map (fun (variant, build) -> variant, Current.ignore_value build)
+  |> List.map (fun (variant, build, _job) -> variant, build)
   |> Current.all_labelled
 
 let v ~app () =
@@ -83,8 +78,8 @@ let v ~app () =
     let repo = Current.map Github.Api.Repo.id repo in
     build_with_docker ~repo src in
   let jobs = builds
-             |> List.map (fun (variant, build) ->
-                 let+ x = Current.Analysis.get build in
+             |> List.map (fun (variant, _build, job) ->
+                 let+ x = job in
                  (variant, Current.Analysis.job_id x)
                )
              |> Current.list_seq
@@ -96,7 +91,7 @@ let v ~app () =
   in
   let set_status =
     builds
-    |> List.map (fun (variant, build) -> variant, Current.ignore_value build)
+    |> List.map (fun (variant, build, _job) -> variant, build)
     |> Current.all_labelled
     |> Current.state
     |> github_status_of_state ~head
