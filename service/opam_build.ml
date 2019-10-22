@@ -71,7 +71,8 @@ let dockerfile ~base ~info ~repo =
   workdir "/src" @@
   run "sudo chown opam /src" @@
   pin_opam_files groups @@
-  run "%s opam install %s --dry-run --deps-only -ty | awk '/-> installed/{print $3}' | xargs opam depext -iy" download_cache (pkgs |> String.concat " ") @@
+  run "(opam install %s --dry-run --deps-only -ty; echo $? > /tmp/exit-status) | tee /tmp/opam-plan; exit $(cat /tmp/exit-status)" (pkgs |> String.concat " ") @@
+  run "%s awk < /tmp/opam-plan '/-> installed/{print $3}' | xargs opam depext -iy" download_cache @@
   crunch_list (List.map (fun pkg ->
       run {|test "$(opam show -f depexts: %s)" = "$(printf "\n")" || opam depext -ty %s|} pkg pkg) pkgs
     ) @@
