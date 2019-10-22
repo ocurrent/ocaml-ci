@@ -69,8 +69,8 @@ let local_test repo () =
   let src = Git.Local.head_commit repo in
   let repo = Current.return { Github.Repo_id.owner = "local"; name = "test" } in
   build_with_docker ~repo src
-  |> List.map (fun (_variant, build) -> Current.ignore_value build)
-  |> Current.all
+  |> List.map (fun (variant, build) -> variant, Current.ignore_value build)
+  |> Current.all_labelled
 
 let v ~app () =
   Github.App.installations app |> Current.list_iter ~pp:Github.Installation.pp @@ fun installation ->
@@ -96,8 +96,8 @@ let v ~app () =
   in
   let set_status =
     builds
-    |> List.map (fun (_variant, build) -> Current.ignore_value build)
-    |> Current.all
+    |> List.map (fun (variant, build) -> variant, Current.ignore_value build)
+    |> Current.all_labelled
     |> Current.state
     |> github_status_of_state ~head
     |> Github.Api.Commit.set_status head "ocaml-ci"
