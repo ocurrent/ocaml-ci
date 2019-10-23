@@ -36,9 +36,9 @@ let set_active_refs ~repo xs =
   );
   xs
 
-let build_with_docker ~repo src =
+let build_with_docker ~repo ~analysis src =
   let info =
-    let+ info = Analyse.examine src in
+    let+ info = analysis in
     let opam_files = Analyse.Analysis.opam_files info in
     if opam_files = [] then failwith "No opam files found!";
     info
@@ -80,6 +80,16 @@ let list_errors errs =
         Fmt.strf "%a failed" Fmt.(list ~sep:(unit ", ") pp_label) errs
     ))
 
+let lint ~analysis ~src =
+  analysis
+  |> Current.map Analyse.Analysis.ocamlformat_version
+  |> Current.map (function Some v -> [ v ] | None -> [])
+  |> Current.list_iter ~pp:Fmt.string (fun ocamlformat_version ->
+      let base =
+        Docker.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
+      in
+      Lint.v_from_opam ~ocamlformat_version ~base ~src)
+
 let summarise results =
   results
   |> List.map (fun (label, build) ->
@@ -103,11 +113,13 @@ let summarise results =
 
 let local_test repo () =
   let src = Git.Local.head_commit repo in
-  let repo = Current.return { Github.Repo_id.owner = "local"; name = "test" } in
+  let repo = Current.return { Github.Repo_id.owner = "local"; name = "test" }
+  and analysis = Analyse.examine src in
   Current.component "summarise" |>
   let** result =
-    build_with_docker ~repo src
+    build_with_docker ~repo ~analysis src
     |> List.map (fun (variant, build, _job) -> variant, build)
+    |> List.cons ("lint", lint ~analysis ~src)
     |> summarise
   in
   Current.of_output result
@@ -119,9 +131,10 @@ let v ~app () =
   let refs = Github.Api.Repo.ci_refs repo |> set_active_refs ~repo in
   refs |> Current.list_iter ~pp:Github.Api.Commit.pp @@ fun head ->
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
+  let analysis = Analyse.examine src in
   let builds =
     let repo = Current.map Github.Api.Repo.id repo in
-    build_with_docker ~repo src in
+    build_with_docker ~repo ~analysis src in
   let jobs = builds
              |> List.map (fun (variant, _build, job) ->
                  let+ x = job in
