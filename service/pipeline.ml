@@ -60,12 +60,52 @@ let build_with_docker ~repo src =
     build (module Conf.Builder_amd1) "debian-10-ocaml-4.08";
   ]
 
+let list_errors errs =
+  let groups =  (* Group by error message *)
+    List.sort compare errs |> List.fold_left (fun acc (msg, l) ->
+        match acc with
+        | (m2, ls) :: acc' when m2 = msg -> (m2, l :: ls) :: acc'
+        | _ -> (msg, [l]) :: acc
+      ) []
+  in
+  Error (`Msg (
+      match groups with
+      | [] -> assert false
+      | [ msg, ls ] -> Fmt.strf "%a failed: %s" Fmt.(list ~sep:(unit ", ") string) ls msg
+      | _ ->
+        (* Multiple error messages; just list everything that failed. *)
+        let pp_label f (_, l) = Fmt.string f l in
+        Fmt.strf "%a failed" Fmt.(list ~sep:(unit ", ") pp_label) errs
+    ))
+
+let summarise results =
+  results
+  |> List.map (fun (label, build) ->
+      let+ result = Current.catch build ~hidden:true in
+      (label, result)
+    )
+  |> Current.list_seq
+  |> Current.map @@ fun results ->
+  results |> List.fold_left (fun (ok, err, skip) -> function
+      | _, Ok _ -> (ok + 1, err, skip)
+      | l, Error `Msg m when Astring.String.is_prefix ~affix:"[SKIP]" m -> (ok, err, (m, l) :: skip)
+      | l, Error `Msg m -> (ok, (m, l) :: err, skip)
+    ) (0, [], [])
+  |> function
+  | 0, [], skip -> list_errors skip (* Everything was skipped - treat skips as errors *)
+  | _, [], _ -> Ok ()               (* No errors and at least one success *)
+  | _, err, _ -> list_errors err    (* Some errors found - report *)
+
 let local_test repo () =
   let src = Git.Local.head_commit repo in
   let repo = Current.return { Github.Repo_id.owner = "local"; name = "test" } in
-  build_with_docker ~repo src
-  |> List.map (fun (variant, build, _job) -> variant, build)
-  |> Current.all_labelled
+  Current.component "summarise" |>
+  let** result =
+    build_with_docker ~repo src
+    |> List.map (fun (variant, build, _job) -> variant, build)
+    |> summarise
+  in
+  Current.of_output result
 
 let v ~app () =
   Github.App.installations app |> Current.list_iter ~pp:Github.Installation.pp @@ fun installation ->
@@ -92,8 +132,7 @@ let v ~app () =
   let set_status =
     builds
     |> List.map (fun (variant, build, _job) -> variant, build)
-    |> Current.all_labelled
-    |> Current.state
+    |> summarise
     |> github_status_of_state ~head
     |> Github.Api.Commit.set_status head "ocaml-ci"
   in
