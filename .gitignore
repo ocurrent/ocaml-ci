@@ -1,5 +1,6 @@
 *.install
 .merlin
 _build
+_opam
 var
 *.cap
