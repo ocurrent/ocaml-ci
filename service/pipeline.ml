@@ -83,20 +83,23 @@ let list_errors errs =
 let summarise results =
   results
   |> List.map (fun (label, build) ->
-      let+ result = Current.catch build ~hidden:true in
+      let+ result = Current.state build ~hidden:true in
       (label, result)
     )
   |> Current.list_seq
   |> Current.map @@ fun results ->
-  results |> List.fold_left (fun (ok, err, skip) -> function
-      | _, Ok _ -> (ok + 1, err, skip)
-      | l, Error `Msg m when Astring.String.is_prefix ~affix:"[SKIP]" m -> (ok, err, (m, l) :: skip)
-      | l, Error `Msg m -> (ok, (m, l) :: err, skip)
-    ) (0, [], [])
-  |> function
-  | 0, [], skip -> list_errors skip (* Everything was skipped - treat skips as errors *)
-  | _, [], _ -> Ok ()               (* No errors and at least one success *)
-  | _, err, _ -> list_errors err    (* Some errors found - report *)
+  results |> List.fold_left (fun (ok, pending, err, skip) -> function
+      | _, Ok _ -> (ok + 1, pending, err, skip)
+      | l, Error `Msg m when Astring.String.is_prefix ~affix:"[SKIP]" m -> (ok, pending, err, (m, l) :: skip)
+      | l, Error `Msg m -> (ok, pending, (m, l) :: err, skip)
+      | _, Error `Active _ -> (ok, pending + 1, err, skip)
+    ) (0, 0, [], [])
+  |> fun (ok, pending, err, skip) ->
+  if pending > 0 then Error (`Active `Running)
+  else match ok, err, skip with
+    | 0, [], skip -> list_errors skip (* Everything was skipped - treat skips as errors *)
+    | _, [], _ -> Ok ()               (* No errors and at least one success *)
+    | _, err, _ -> list_errors err    (* Some errors found - report *)
 
 let local_test repo () =
   let src = Git.Local.head_commit repo in
