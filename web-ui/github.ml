@@ -6,9 +6,6 @@ module Server = Cohttp_lwt_unix.Server
 module Response = Cohttp.Response.Make(Server.IO)
 module Transfer_IO = Cohttp__Transfer_io.Make(Server.IO)
 
-let errorf fmt =
-  fmt |> Fmt.kstrf @@ fun msg -> Error (`Msg msg)
-
 let normal_response x =
   x >|= fun x -> `Response x
 
@@ -32,9 +29,6 @@ let job_url ~owner ~name ~hash variant =
 
 let commit_url ~owner ~name hash =
   Printf.sprintf "/github/%s/%s/commit/%s" owner name hash
-
-let project_url ~owner ~name =
-  Printf.sprintf "/github/%s/%s" owner name
 
 let github_branch_url ~owner ~name ref =
   Printf.sprintf "https://github.com/%s/%s/tree/%s" owner name ref
@@ -61,11 +55,6 @@ let format_refs ~owner ~name refs =
     Client.Ref_map.to_seq refs |> List.of_seq |> List.map @@ fun (branch, commit) ->
     li [a ~a:[a_href (commit_url ~owner ~name commit)] [txt branch]]
   )
-
-let with_ref r fn =
-  Lwt.finalize
-    (fun () -> fn r)
-    (fun () -> Capnp_rpc_lwt.Capability.dec_ref r; Lwt.return_unit)
 
 let rec intersperse ~sep = function
   | [] -> []
@@ -106,8 +95,16 @@ let link_jobs ~owner ~name ~hash ?selected jobs =
 
 let short_hash = Astring.String.with_range ~len:6
 
-let stream_logs job ~owner ~name ~refs ~hash ~jobs ~variant (data, next) writer =
+let stream_logs job ~owner ~name ~refs ~hash ~jobs ~variant ~status (data, next) writer =
   let header, footer =
+    let can_rebuild = status.Current_rpc.Job.can_rebuild in
+    let buttons =
+      if can_rebuild then Tyxml.Html.[
+          form ~a:[a_action (variant ^ "/rebuild"); a_method `Post] [
+            input ~a:[a_input_type `Submit; a_value "Rebuild"] ()
+          ]
+      ] else []
+    in
     let body = Template.instance Tyxml.Html.[
         breadcrumbs ["github", "github";
                      owner, owner;
@@ -116,6 +113,7 @@ let stream_logs job ~owner ~name ~refs ~hash ~jobs ~variant (data, next) writer 
                     ] variant;
         link_github_refs ~owner ~name refs;
         link_jobs ~owner ~name ~hash ~selected:variant jobs;
+        div buttons;
         pre [txt "@@@"]
       ] in
     Astring.String.cut ~sep:"@@@" body |> Option.get
@@ -135,8 +133,9 @@ let stream_logs job ~owner ~name ~refs ~hash ~jobs ~variant (data, next) writer 
   in
   aux next
 
-let repo_get ~owner ~name ~repo = function
-  | [] ->
+let repo_handle ~meth ~owner ~name ~repo path =
+  match meth, path with
+  | `GET, [] ->
       Client.Repo.refs repo >>!= fun refs ->
       let body = Template.instance [
           breadcrumbs ["github", "github";
@@ -144,8 +143,8 @@ let repo_get ~owner ~name ~repo = function
           format_refs ~owner ~name refs
         ] in
       Server.respond_string ~status:`OK ~body () |> normal_response
-  | ["commit"; hash] ->
-    with_ref (Client.Repo.commit_of_hash repo hash) @@ fun commit ->
+  | `GET, ["commit"; hash] ->
+    Capability.with_ref (Client.Repo.commit_of_hash repo hash) @@ fun commit ->
     let refs = Client.Commit.refs commit in
     Client.Commit.jobs commit >>!= fun jobs ->
     refs >>!= fun refs ->
@@ -157,15 +156,17 @@ let repo_get ~owner ~name ~repo = function
         link_jobs ~owner ~name ~hash jobs;
       ] in
     Server.respond_string ~status:`OK ~body () |> normal_response
-  | ["commit"; hash; "variant"; variant] ->
-    with_ref (Client.Repo.commit_of_hash repo hash) @@ fun commit ->
+  | `GET, ["commit"; hash; "variant"; variant] ->
+    Capability.with_ref (Client.Repo.commit_of_hash repo hash) @@ fun commit ->
     let refs = Client.Commit.refs commit in
     let jobs = Client.Commit.jobs commit in
-    with_ref (Client.Commit.job_of_variant commit variant) @@ fun job ->
+    Capability.with_ref (Client.Commit.job_of_variant commit variant) @@ fun job ->
+    let status = Current_rpc.Job.status job in
     Current_rpc.Job.log job ~start:0L >>!= fun chunk ->
-    (* (refs will have resolved by now) *)
+    (* (these will have resolved by now) *)
     refs >>!= fun refs ->
     jobs >>!= fun jobs ->
+    status >>!= fun status ->
     let headers =
       (* Otherwise, an nginx reverse proxy will wait for the whole log before sending anything. *)
       Cohttp.Header.init_with "X-Accel-Buffering" "no"
@@ -176,7 +177,7 @@ let repo_get ~owner ~name ~repo = function
       let writer = Transfer_IO.make_writer ~flush Cohttp.Transfer.Chunked oc in
       Lwt.finalize
         (fun () ->
-           stream_logs job ~owner ~name ~refs ~hash ~jobs ~variant chunk writer >>= fun () ->
+           stream_logs job ~owner ~name ~refs ~hash ~jobs ~variant ~status chunk writer >>= fun () ->
            Server.IO.write oc "0\r\n\r\n"
         )
         (fun () ->
@@ -186,6 +187,18 @@ let repo_get ~owner ~name ~repo = function
     in
     Capability.inc_ref job;
     Lwt.return (`Expert (res, write))
+  | `POST, ["commit"; hash; "variant"; variant; "rebuild"] ->
+    Capability.with_ref (Client.Repo.commit_of_hash repo hash) @@ fun commit ->
+    Capability.with_ref (Client.Commit.job_of_variant commit variant) @@ fun job ->
+    Capability.with_ref (Current_rpc.Job.rebuild job) @@ fun new_job ->
+    Capability.wait_until_settled new_job >>= fun () ->
+    begin match Capability.problem new_job with
+      | None ->
+        let uri = job_url ~owner ~name ~hash variant |> Uri.of_string in
+        Server.respond_redirect ~uri () |> normal_response
+      | Some { Capnp_rpc.Exception.reason; _ } ->
+        Server.respond_error ~body:reason () |> normal_response
+    end
   | _ ->
     Server.respond_not_found () |> normal_response
 
@@ -213,12 +226,14 @@ let list_repos ~owner org =
     ] in
   Server.respond_string ~status:`OK ~body () |> normal_response
 
-let get ~backend path =
+let handle ~backend ~meth path =
   Backend.ci backend >>= fun ci ->
-  match path with
-  | [] -> list_orgs ci
-  | [owner] -> with_ref (Client.CI.org ci owner) @@ list_repos ~owner
-  | owner :: name :: path ->
-    with_ref (Client.CI.org ci owner) @@ fun org ->
-    with_ref (Client.Org.repo org name) @@ fun repo ->
-    repo_get ~owner ~name ~repo path
+  match meth, path with
+  | `GET, [] -> list_orgs ci
+  | `GET, [owner] -> Capability.with_ref (Client.CI.org ci owner) @@ list_repos ~owner
+  | meth, (owner :: name :: path) ->
+    Capability.with_ref (Client.CI.org ci owner) @@ fun org ->
+    Capability.with_ref (Client.Org.repo org name) @@ fun repo ->
+    repo_handle ~meth ~owner ~name ~repo path
+  | _ ->
+    Server.respond_not_found () |> normal_response
