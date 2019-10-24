@@ -23,8 +23,8 @@ let handle_request ~backend _conn request _body =
     Server.respond_string ~status:`OK ~body () |> normal_response
   | `GET, ["css"; "style.css"] ->
     Style.get () |> normal_response
-  | `GET, ("github" :: path) ->
-    Github.get ~backend path
+  | meth, ("github" :: path) ->
+    Github.handle ~backend ~meth path
   | _ ->
     Server.respond_not_found () |> normal_response
 
