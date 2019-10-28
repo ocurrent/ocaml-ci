@@ -17,4 +17,4 @@ let v_from_opam ~ocamlformat_version ~base ~src =
   let img =
     Docker.build ~label:"OCamlformat" ~pull:false ~dockerfile (`Git src)
   in
-  Docker.run ~label:"lint" img ~args:[ "dune"; "build"; "@fmt" ]
+  Docker.run ~label:"lint" img ~args:[ "sh"; "-c"; "dune build @fmt || (echo \"dune build @fmt failed\"; exit 2)" ]
