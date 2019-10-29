@@ -36,6 +36,20 @@ let set_active_refs ~repo xs =
   );
   xs
 
+let lint ~analysis ~src =
+  analysis
+  |> Current.map Analyse.Analysis.ocamlformat_version
+  |> Current.option_map (fun ocamlformat_version ->
+      let base =
+        Docker.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
+      in
+      Lint.v_from_opam ~ocamlformat_version ~base ~src
+    )
+  |> Current.map (function
+      | Some () -> ()
+      | None -> ()
+    )
+
 let build_with_docker ~repo ~analysis src =
   let info =
     let+ info = analysis in
@@ -53,6 +67,7 @@ let build_with_docker ~repo ~analysis src =
     let build = Docker.build ~timeout ~pool:Docker.pool ~pull:false ~dockerfile (`Git src) in
     variant, Current.ignore_value build, Current.Analysis.get build
   in
+  let lint_result = lint ~analysis ~src in
   [
     build (module Conf.Builder_amd3) "alpine-3.10-ocaml-4.05";
     build (module Conf.Builder_amd2) "alpine-3.10-ocaml-4.06";
@@ -60,6 +75,7 @@ let build_with_docker ~repo ~analysis src =
     build (module Conf.Builder_amd1) "alpine-3.10-ocaml-4.08";
     build (module Conf.Builder_amd3) "alpine-3.10-ocaml-4.09";
     build (module Conf.Builder_amd1) "debian-10-ocaml-4.08";
+    "lint", lint_result, Current.Analysis.get lint_result;
   ]
 
 let list_errors errs =
@@ -80,16 +96,6 @@ let list_errors errs =
         Fmt.strf "%a failed" Fmt.(list ~sep:(unit ", ") pp_label) errs
     ))
 
-let lint ~analysis ~src =
-  analysis
-  |> Current.map Analyse.Analysis.ocamlformat_version
-  |> Current.map (function Some v -> [ v ] | None -> [])
-  |> Current.list_iter ~pp:Fmt.string (fun ocamlformat_version ->
-      let base =
-        Docker.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
-      in
-      Lint.v_from_opam ~ocamlformat_version ~base ~src)
-
 let summarise results =
   results
   |> List.map (fun (label, build) ->
@@ -99,6 +105,7 @@ let summarise results =
   |> Current.list_seq
   |> Current.map @@ fun results ->
   results |> List.fold_left (fun (ok, pending, err, skip) -> function
+      | "lint", Ok _ -> (ok, pending, err, skip)  (* Don't count lint as a build success *)
       | _, Ok _ -> (ok + 1, pending, err, skip)
       | l, Error `Msg m when Astring.String.is_prefix ~affix:"[SKIP]" m -> (ok, pending, err, (m, l) :: skip)
       | l, Error `Msg m -> (ok, pending, (m, l) :: err, skip)
@@ -119,7 +126,6 @@ let local_test repo () =
   let** result =
     build_with_docker ~repo ~analysis src
     |> List.map (fun (variant, build, _job) -> variant, build)
-    |> List.cons ("lint", lint ~analysis ~src)
     |> summarise
   in
   Current.of_output result
