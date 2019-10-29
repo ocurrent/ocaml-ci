@@ -36,9 +36,23 @@ let set_active_refs ~repo xs =
   );
   xs
 
-let build_with_docker ~repo src =
+let lint ~analysis ~src =
+  analysis
+  |> Current.map Analyse.Analysis.ocamlformat_version
+  |> Current.option_map (fun ocamlformat_version ->
+      let base =
+        Docker.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
+      in
+      Lint.v_from_opam ~ocamlformat_version ~base ~src
+    )
+  |> Current.map (function
+      | Some () -> ()
+      | None -> ()
+    )
+
+let build_with_docker ~repo ~analysis src =
   let info =
-    let+ info = Analyse.examine src in
+    let+ info = analysis in
     let opam_files = Analyse.Analysis.opam_files info in
     if opam_files = [] then failwith "No opam files found!";
     info
@@ -53,6 +67,7 @@ let build_with_docker ~repo src =
     let build = Docker.build ~timeout ~pool:Docker.pool ~pull:false ~dockerfile (`Git src) in
     variant, Current.ignore_value build, Current.Analysis.get build
   in
+  let lint_result = lint ~analysis ~src in
   [
     build (module Conf.Builder_amd3) "alpine-3.10-ocaml-4.05";
     build (module Conf.Builder_amd2) "alpine-3.10-ocaml-4.06";
@@ -60,6 +75,7 @@ let build_with_docker ~repo src =
     build (module Conf.Builder_amd1) "alpine-3.10-ocaml-4.08";
     build (module Conf.Builder_amd3) "alpine-3.10-ocaml-4.09";
     build (module Conf.Builder_amd1) "debian-10-ocaml-4.08";
+    "lint", lint_result, Current.Analysis.get lint_result;
   ]
 
 let list_errors errs =
@@ -89,6 +105,7 @@ let summarise results =
   |> Current.list_seq
   |> Current.map @@ fun results ->
   results |> List.fold_left (fun (ok, pending, err, skip) -> function
+      | "lint", Ok _ -> (ok, pending, err, skip)  (* Don't count lint as a build success *)
       | _, Ok _ -> (ok + 1, pending, err, skip)
       | l, Error `Msg m when Astring.String.is_prefix ~affix:"[SKIP]" m -> (ok, pending, err, (m, l) :: skip)
       | l, Error `Msg m -> (ok, pending, (m, l) :: err, skip)
@@ -103,10 +120,11 @@ let summarise results =
 
 let local_test repo () =
   let src = Git.Local.head_commit repo in
-  let repo = Current.return { Github.Repo_id.owner = "local"; name = "test" } in
+  let repo = Current.return { Github.Repo_id.owner = "local"; name = "test" }
+  and analysis = Analyse.examine src in
   Current.component "summarise" |>
   let** result =
-    build_with_docker ~repo src
+    build_with_docker ~repo ~analysis src
     |> List.map (fun (variant, build, _job) -> variant, build)
     |> summarise
   in
@@ -119,9 +137,10 @@ let v ~app () =
   let refs = Github.Api.Repo.ci_refs repo |> set_active_refs ~repo in
   refs |> Current.list_iter ~pp:Github.Api.Commit.pp @@ fun head ->
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
+  let analysis = Analyse.examine src in
   let builds =
     let repo = Current.map Github.Api.Repo.id repo in
-    build_with_docker ~repo src in
+    build_with_docker ~repo ~analysis src in
   let jobs = builds
              |> List.map (fun (variant, _build, job) ->
                  let+ x = job in
