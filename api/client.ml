@@ -14,7 +14,7 @@ type job_info = {
 let pp_state f =
   let open Raw.Reader.JobInfo.State in
   function
-  | NotStarted -> Fmt.string f "not yet started"
+  | NotStarted -> Fmt.string f "not started"
   | Aborted -> Fmt.string f "aborted"
   | Failed m -> Fmt.pf f "failed: %s" m
   | Passed -> Fmt.string f "passed"
