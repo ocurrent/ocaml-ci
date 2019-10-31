@@ -1,6 +1,6 @@
 FROM ocurrent/opam:debian-10-ocaml-4.08 AS build
 RUN sudo apt-get update && sudo apt-get install capnproto m4 pkg-config libsqlite3-dev libgmp-dev -y --no-install-recommends
-RUN cd ~/opam-repository && git pull origin master && git reset --hard ca18b54339548dc814304558e87517e776016293 && opam update
+RUN cd ~/opam-repository && git pull origin master && git reset --hard c20fd2e06a93a123d4fe407a611c35a05670af83 && opam update
 COPY --chown=opam \
 	ocurrent/current.opam \
 	ocurrent/current_web.opam \
@@ -10,18 +10,8 @@ COPY --chown=opam \
 	ocurrent/current_github.opam \
 	ocurrent/current_rpc.opam \
 	/src/ocurrent/
-COPY --chown=opam \
-	capnp-rpc/capnp-rpc.opam \
-	capnp-rpc/capnp-rpc-lwt.opam \
-	capnp-rpc/capnp-rpc-net.opam \
-	capnp-rpc/capnp-rpc-unix.opam \
-	/src/capnp-rpc/
 WORKDIR /src
-RUN opam pin -yn add ./ocurrent && \
-    opam pin add -yn capnp-rpc.dev ./capnp-rpc && \
-    opam pin add -yn capnp-rpc-lwt.dev ./capnp-rpc && \
-    opam pin add -yn capnp-rpc-net.dev ./capnp-rpc && \
-    opam pin add -yn capnp-rpc-unix.dev ./capnp-rpc
+RUN opam pin -yn add ./ocurrent
 COPY --chown=opam ocaml-ci-service.opam ocaml-ci-api.opam /src/
 RUN opam install -y --deps-only .
 ADD --chown=opam . .
