@@ -12,6 +12,8 @@ let is_empty_file x =
   | Unix.{ st_kind = S_REG; st_size = 0; _ } -> true
   | _ -> false
 
+let ( >>!= ) = Lwt_result.bind
+
 module Examine = struct
   type t = No_context
 
@@ -93,30 +95,39 @@ module Examine = struct
     | Ok result -> result
     | Error (`Msg e) -> failwith e
 
+  let is_toplevel path = not (String.contains path '/')
+
   let build ~switch No_context job src =
     Current.Job.start job ~level:Current.Level.Harmless >>= fun () ->
     Current_git.with_checkout ~switch ~job src @@ fun tmpdir ->
     let is_duniverse = is_directory (Filename.concat (Fpath.to_string tmpdir) "duniverse") in
     get_ocamlformat_version job tmpdir >>= fun ocamlformat_version ->
     let cmd = "", [| "find"; "-name"; "*.opam" |] in
-    Current.Process.check_output ~cwd:tmpdir ~switch ~job cmd >|= Stdlib.Result.map @@ fun output ->
+    Current.Process.check_output ~cwd:tmpdir ~switch ~job cmd >>!= fun output ->
     let opam_files =
       String.split_on_char '\n' output
       |> List.sort String.compare
-      |> List.filter (function
-          | "" -> false
+      |> List.filter_map (function
+          | "" -> None
           | path ->
+            let path =
+              if Astring.String.is_prefix ~affix:"./" path then
+                Astring.String.with_range ~first:2 path
+              else path
+            in
             let full_path = Filename.concat (Fpath.to_string tmpdir) path in
             if is_empty_file full_path then (
               Current.Job.log job "WARNING: ignoring empty opam file %S" path;
-              false
+              None
             ) else
-              true
+              Some path
         )
     in
     let r = { Value.opam_files; is_duniverse; ocamlformat_version } in
     Current.Job.log job "@[<v2>Results:@,%a@]" Yojson.Safe.(pretty_print ~std:true) (Value.to_yojson r);
-    r
+    if opam_files = [] then Lwt_result.fail (`Msg "No opam files found!")
+    else if List.filter is_toplevel opam_files = [] then Lwt_result.fail (`Msg "No top-level opam files found!")
+    else Lwt_result.return r
 
   let pp f _ = Fmt.string f "Analyse"
 

@@ -56,7 +56,6 @@ let download_cache = "--mount=type=cache,target=/home/opam/.opam/download-cache,
 
 let dockerfile ~base ~info ~repo =
   let opam_files = Analyse.Analysis.opam_files info in
-  if opam_files = [] then failwith "No opam files found!";
   let groups = group_opam_files opam_files in
   let caches =
     if Analyse.Analysis.is_duniverse info then Printf.sprintf "%s %s" download_cache (build_cache repo)
