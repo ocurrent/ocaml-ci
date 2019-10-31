@@ -81,7 +81,7 @@ let build_with_docker ~repo ~analysis src =
     "lint", lint_result, Current.Analysis.get lint_result;
   ]
 
-let list_errors errs =
+let list_errors ~ok errs =
   let groups =  (* Group by error message *)
     List.sort compare errs |> List.fold_left (fun acc (msg, l) ->
         match acc with
@@ -92,6 +92,7 @@ let list_errors errs =
   Error (`Msg (
       match groups with
       | [] -> assert false
+      | [ msg, _ ] when ok = 0 -> msg (* Everything failed with the same error *)
       | [ msg, ls ] -> Fmt.strf "%a failed: %s" Fmt.(list ~sep:(unit ", ") string) ls msg
       | _ ->
         (* Multiple error messages; just list everything that failed. *)
@@ -117,9 +118,9 @@ let summarise results =
   |> fun (ok, pending, err, skip) ->
   if pending > 0 then Error (`Active `Running)
   else match ok, err, skip with
-    | 0, [], skip -> list_errors skip (* Everything was skipped - treat skips as errors *)
-    | _, [], _ -> Ok ()               (* No errors and at least one success *)
-    | _, err, _ -> list_errors err    (* Some errors found - report *)
+    | 0, [], skip -> list_errors ~ok:0 skip (* Everything was skipped - treat skips as errors *)
+    | _, [], _ -> Ok ()                     (* No errors and at least one success *)
+    | ok, err, _ -> list_errors ~ok err     (* Some errors found - report *)
 
 let local_test repo () =
   let src = Git.Local.head_commit repo in
