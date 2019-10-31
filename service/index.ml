@@ -1,3 +1,6 @@
+let src = Logs.Src.create "ocaml_ci.index" ~doc:"ocaml-ci indexer"
+module Log = (val Logs.src_log src : Logs.LOG)
+
 module Db = Current.Db
 
 type t = {
@@ -57,17 +60,26 @@ let split_owner_name s =
   | [ owner; name ] -> owner, name
   | _ -> Fmt.failwith "GitHub owner name field should have form 'owner/name', not %S" s
 
+let has_changed t ~owner ~name ~hash (variant, job_id) =
+  match job_id, Db.query_some t.get_job Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash; TEXT variant ] with
+  | None, Some [ Sqlite3.Data.NULL ] -> false
+  | Some j1, Some [ Sqlite3.Data.TEXT j2 ] -> j1 <> j2
+  | _ -> true
+
 let record ~commit jobs =
   let t = Lazy.force db in
   let owner, name = split_owner_name (Current_github.Api.Commit.owner_name commit) in
   let hash = Current_github.Api.Commit.hash commit in
-  jobs |> List.iter @@ fun (variant, job_id) ->
-  let job_id =
-    match job_id with
-    | None -> Sqlite3.Data.NULL
-    | Some job_id -> Sqlite3.Data.TEXT job_id
-  in
-  Db.exec t.record Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash; TEXT variant; job_id ]
+  jobs |> List.filter (has_changed t ~owner ~name ~hash) |> List.iter (fun (variant, job_id) ->
+      Log.info (fun f -> f "@[<h>Index.record %s/%s %s %s -> %a@]"
+                   owner name (Astring.String.with_range ~len:6 hash) variant Fmt.(option ~none:(unit "-") string) job_id);
+      let job_id =
+        match job_id with
+        | None -> Sqlite3.Data.NULL
+        | Some job_id -> Sqlite3.Data.TEXT job_id
+      in
+      Db.exec t.record Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash; TEXT variant; job_id ]
+    )
 
 let is_known_owner owner =
   let t = Lazy.force db in
