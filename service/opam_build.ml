@@ -63,7 +63,7 @@ let dockerfile ~base ~info ~repo =
   in
   let pkgs = get_opam_packages groups in
   let open Dockerfile in
-  comment "syntax = docker/dockerfile:experimental" @@
+  comment "syntax = docker/dockerfile:experimental@sha256:ee85655c57140bd20a5ebc3bb802e7410ee9ac47ca92b193ed0ab17485024fe5" @@
   from base @@
   workdir "/src" @@
   run "sudo chown opam /src" @@
