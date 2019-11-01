@@ -19,5 +19,6 @@ depends: [
   "current_rpc"
   "capnp-rpc-unix" {>= "0.5.0"}
   "ocaml-ci-api"
+  "conf-libev"
   "dockerfile"
 ]
