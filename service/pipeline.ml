@@ -36,6 +36,10 @@ let set_active_refs ~repo xs =
   );
   xs
 
+let job_id x =
+  let+ job = Current.Analysis.get x in
+  Current.Analysis.job_id job
+
 let lint ~analysis ~src =
   analysis
   |> Current.map Analyse.Analysis.ocamlformat_version
@@ -46,8 +50,8 @@ let lint ~analysis ~src =
       Lint.v_from_opam ~ocamlformat_version ~base ~src
     )
   |> Current.map (function
-      | Some () -> ()
-      | None -> ()
+      | Some () -> `Checked
+      | None -> `Check_skipped
     )
 
 let build_with_docker ~repo ~analysis src =
@@ -65,7 +69,8 @@ let build_with_docker ~repo ~analysis src =
       Opam_build.dockerfile ~base:(Docker.Image.hash base) ~info ~repo
     in
     let build = Docker.build ~timeout ~pool:Docker.pool ~pull:false ~dockerfile (`Git src) in
-    variant, Current.ignore_value build, Current.Analysis.get build
+    let result = Current.map (fun _ -> `Built) build in
+    variant, result, job_id build
   in
   let lint_result = lint ~analysis ~src in
   [
@@ -78,7 +83,7 @@ let build_with_docker ~repo ~analysis src =
     build (module Conf.Builder_amd1) "alpine-3.10-ocaml-4.08";
     build (module Conf.Builder_amd3) "alpine-3.10-ocaml-4.09";
     build (module Conf.Builder_amd1) "debian-10-ocaml-4.08";
-    "lint", lint_result, Current.Analysis.get lint_result;
+    "lint", lint_result, job_id lint_result;
   ]
 
 let list_errors ~ok errs =
@@ -109,8 +114,8 @@ let summarise results =
   |> Current.list_seq
   |> Current.map @@ fun results ->
   results |> List.fold_left (fun (ok, pending, err, skip) -> function
-      | "lint", Ok _ -> (ok, pending, err, skip)  (* Don't count lint as a build success *)
-      | _, Ok _ -> (ok + 1, pending, err, skip)
+      | _, Ok (`Checked | `Check_skipped) -> (ok, pending, err, skip)  (* Don't count lint checks *)
+      | _, Ok `Built -> (ok + 1, pending, err, skip)
       | l, Error `Msg m when Astring.String.is_prefix ~affix:"[SKIP]" m -> (ok, pending, err, (m, l) :: skip)
       | l, Error `Msg m -> (ok, pending, (m, l) :: err, skip)
       | _, Error `Active _ -> (ok, pending + 1, err, skip)
@@ -148,14 +153,15 @@ let v ~app () =
   let jobs = builds
              |> List.map (fun (variant, _build, job) ->
                  let+ x = job in
-                 (variant, Current.Analysis.job_id x)
+                 (variant, x)
                )
              |> Current.list_seq
   in
   let index =
     let+ commit = head
+    and+ analysis = job_id analysis
     and+ jobs = jobs in
-    Index.record ~commit jobs
+    Index.record ~commit @@ ("ANALYSIS", analysis) :: jobs
   in
   let set_status =
     builds
