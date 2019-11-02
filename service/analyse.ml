@@ -1,6 +1,8 @@
 open Lwt.Infix
 open Current.Syntax
 
+let pool = Current.Pool.create ~label:"analyse" 2
+
 let is_directory x =
   match Unix.lstat x with
   | Unix.{ st_kind = S_DIR; _ } -> true
@@ -98,7 +100,7 @@ module Examine = struct
   let is_toplevel path = not (String.contains path '/')
 
   let build ~switch No_context job src =
-    Current.Job.start job ~level:Current.Level.Harmless >>= fun () ->
+    Current.Job.start job ~pool ~level:Current.Level.Harmless >>= fun () ->
     Current_git.with_checkout ~switch ~job src @@ fun tmpdir ->
     let is_duniverse = is_directory (Filename.concat (Fpath.to_string tmpdir) "duniverse") in
     get_ocamlformat_version job tmpdir >>= fun ocamlformat_version ->
