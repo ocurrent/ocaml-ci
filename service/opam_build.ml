@@ -54,7 +54,7 @@ let get_opam_packages = List.fold_left (fun acc (_, _, pkgs) -> pkgs @ acc) []
 
 let download_cache = "--mount=type=cache,target=/home/opam/.opam/download-cache,uid=1000"
 
-let dockerfile ~base ~info ~repo =
+let dockerfile ~base ~info ~repo ~variant =
   let opam_files = Analyse.Analysis.opam_files info in
   let groups = group_opam_files opam_files in
   let caches =
@@ -63,8 +63,16 @@ let dockerfile ~base ~info ~repo =
   in
   let pkgs = get_opam_packages groups in
   let open Dockerfile in
+  let distro_extras =
+    if Astring.String.is_prefix ~affix:"fedora" variant then
+      run "sudo dnf install -y findutils" (* (we need xargs) *)
+    else
+      empty
+  in
   comment "syntax = docker/dockerfile:experimental@sha256:ee85655c57140bd20a5ebc3bb802e7410ee9ac47ca92b193ed0ab17485024fe5" @@
   from base @@
+  comment "%s" variant @@
+  distro_extras @@
   workdir "/src" @@
   run "sudo chown opam /src" @@
   pin_opam_files groups @@
