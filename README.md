@@ -32,7 +32,7 @@ git clone --recursive https://github.com/ocaml-ci/ocaml-ci.git
 
 Note: you need to clone with `--recursive` because this project uses submodules
 (it depends on some packages that aren't released yet).
-If you forget, `git submodule update` will fetch them.
+If you forget, `git submodule update --init` will fetch them.
 
 To test the CI on a local Git clone, use:
 
@@ -105,8 +105,8 @@ Successfully built c8e34c3b5eee
 
 Instead of `log`, you can also use `cancel`, `rebuild` or `status`.
 
-For convenience, you can ommit the leading `refs/` when specifying a reference,
-and for PRs you can ommit the trailing `/head`. For commits, you must give at
+For convenience, you can omit the leading `refs/` when specifying a reference,
+and for PRs you can omit the trailing `/head`. For commits, you must give at
 least the first 6 characters. e.g.
 
 ```bash
