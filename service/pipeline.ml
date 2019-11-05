@@ -7,6 +7,8 @@ module Docker = Current_docker.Default
 (* Maximum time for one Docker build. *)
 let timeout = Duration.of_hour 1
 
+let default_compiler = "4.09"
+
 (* Link for GitHub statuses. *)
 let url ~owner ~name ~hash = Uri.of_string (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s" owner name hash)
 
@@ -74,6 +76,7 @@ let build_with_docker ~repo ~analysis src =
   in
   let lint_result = lint ~analysis ~src in
   [
+    (* Compiler versions:*)
     build (module Conf.Builder_amd2) "debian-10-ocaml-4.02";
     build (module Conf.Builder_amd2) "debian-10-ocaml-4.03";
     build (module Conf.Builder_amd3) "debian-10-ocaml-4.04";
@@ -82,12 +85,14 @@ let build_with_docker ~repo ~analysis src =
     build (module Conf.Builder_amd2) "debian-10-ocaml-4.07";
     build (module Conf.Builder_amd1) "debian-10-ocaml-4.08";
     build (module Conf.Builder_amd3) "debian-10-ocaml-4.09";
-    build (module Conf.Builder_amd1) "alpine-3.10-ocaml-4.08";
-    build (module Conf.Builder_amd2) "ubuntu-19.04-ocaml-4.08";
-    build (module Conf.Builder_amd2) "opensuse-15.1-ocaml-4.08";
-    build (module Conf.Builder_amd3) "centos-7-ocaml-4.08";
-    build (module Conf.Builder_amd3) "fedora-30-ocaml-4.08";
-    (* build (module Conf.Builder_amd3) "oraclelinux-7-ocaml-4.08"; -- doesn't work in opam 2 yet *)
+    (* Distributions: *)
+    build (module Conf.Builder_amd1) @@ "alpine-3.10-ocaml-" ^ default_compiler;
+    build (module Conf.Builder_amd2) @@ "ubuntu-19.04-ocaml-" ^ default_compiler;
+    build (module Conf.Builder_amd2) @@ "opensuse-15.1-ocaml-" ^ default_compiler;
+    build (module Conf.Builder_amd3) @@ "centos-7-ocaml-" ^ default_compiler;
+    build (module Conf.Builder_amd3) @@ "fedora-30-ocaml-" ^ default_compiler;
+    (* oraclelinux doesn't work in opam 2 yet: *)
+    (* build (module Conf.Builder_amd3) @@ "oraclelinux-7-ocaml-" ^ default_compiler; *)
     "lint", lint_result, job_id lint_result;
   ]
 
