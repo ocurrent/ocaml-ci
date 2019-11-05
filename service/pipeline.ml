@@ -74,15 +74,15 @@ let build_with_docker ~repo ~analysis src =
   in
   let lint_result = lint ~analysis ~src in
   [
-    build (module Conf.Builder_amd2) "alpine-3.10-ocaml-4.02";
-    build (module Conf.Builder_amd2) "alpine-3.10-ocaml-4.03";
-    build (module Conf.Builder_amd3) "alpine-3.10-ocaml-4.04";
-    build (module Conf.Builder_amd3) "alpine-3.10-ocaml-4.05";
-    build (module Conf.Builder_amd2) "alpine-3.10-ocaml-4.06";
-    build (module Conf.Builder_amd2) "alpine-3.10-ocaml-4.07";
-    build (module Conf.Builder_amd1) "alpine-3.10-ocaml-4.08";
-    build (module Conf.Builder_amd3) "alpine-3.10-ocaml-4.09";
+    build (module Conf.Builder_amd2) "debian-10-ocaml-4.02";
+    build (module Conf.Builder_amd2) "debian-10-ocaml-4.03";
+    build (module Conf.Builder_amd3) "debian-10-ocaml-4.04";
+    build (module Conf.Builder_amd3) "debian-10-ocaml-4.05";
+    build (module Conf.Builder_amd2) "debian-10-ocaml-4.06";
+    build (module Conf.Builder_amd2) "debian-10-ocaml-4.07";
     build (module Conf.Builder_amd1) "debian-10-ocaml-4.08";
+    build (module Conf.Builder_amd3) "debian-10-ocaml-4.09";
+    build (module Conf.Builder_amd1) "alpine-3.10-ocaml-4.08";
     build (module Conf.Builder_amd2) "ubuntu-19.04-ocaml-4.08";
     build (module Conf.Builder_amd2) "opensuse-15.1-ocaml-4.08";
     build (module Conf.Builder_amd3) "centos-7-ocaml-4.08";
