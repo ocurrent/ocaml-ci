@@ -104,7 +104,7 @@ module Examine = struct
     Current_git.with_checkout ~switch ~job src @@ fun tmpdir ->
     let is_duniverse = is_directory (Filename.concat (Fpath.to_string tmpdir) "duniverse") in
     get_ocamlformat_version job tmpdir >>= fun ocamlformat_version ->
-    let cmd = "", [| "find"; "-name"; "*.opam" |] in
+    let cmd = "", [| "find"; "."; "-name"; "*.opam" |] in
     Current.Process.check_output ~cwd:tmpdir ~switch ~job cmd >>!= fun output ->
     let opam_files =
       String.split_on_char '\n' output
