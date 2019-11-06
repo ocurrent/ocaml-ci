@@ -99,13 +99,13 @@ module Examine = struct
 
   let is_toplevel path = not (String.contains path '/')
 
-  let build ~switch No_context job src =
+  let build No_context job src =
     Current.Job.start job ~pool ~level:Current.Level.Harmless >>= fun () ->
-    Current_git.with_checkout ~switch ~job src @@ fun tmpdir ->
+    Current_git.with_checkout ~job src @@ fun tmpdir ->
     let is_duniverse = is_directory (Filename.concat (Fpath.to_string tmpdir) "duniverse") in
     get_ocamlformat_version job tmpdir >>= fun ocamlformat_version ->
     let cmd = "", [| "find"; "."; "-name"; "*.opam" |] in
-    Current.Process.check_output ~cwd:tmpdir ~switch ~job cmd >>!= fun output ->
+    Current.Process.check_output ~cwd:tmpdir ~cancellable:true ~job cmd >>!= fun output ->
     let opam_files =
       String.split_on_char '\n' output
       |> List.sort String.compare
