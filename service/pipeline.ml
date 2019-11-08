@@ -72,28 +72,28 @@ let build_with_docker ~repo ~analysis src =
     in
     let build = Docker.build ~timeout ~pool:Docker.pool ~pull:false ~dockerfile (`Git src) in
     let result = Current.map (fun _ -> `Built) build in
-    variant, result, job_id build
+    result, job_id build
   in
   let lint_result = lint ~analysis ~src in
   [
     (* Compiler versions:*)
-    build (module Conf.Builder_amd2) "debian-10-ocaml-4.02";
-    build (module Conf.Builder_amd2) "debian-10-ocaml-4.03";
-    build (module Conf.Builder_amd3) "debian-10-ocaml-4.04";
-    build (module Conf.Builder_amd3) "debian-10-ocaml-4.05";
-    build (module Conf.Builder_amd2) "debian-10-ocaml-4.06";
-    build (module Conf.Builder_amd2) "debian-10-ocaml-4.07";
-    build (module Conf.Builder_amd1) "debian-10-ocaml-4.08";
-    build (module Conf.Builder_amd3) "debian-10-ocaml-4.09";
+    "4.02", build (module Conf.Builder_amd2) "debian-10-ocaml-4.02";
+    "4.03", build (module Conf.Builder_amd2) "debian-10-ocaml-4.03";
+    "4.04", build (module Conf.Builder_amd3) "debian-10-ocaml-4.04";
+    "4.05", build (module Conf.Builder_amd3) "debian-10-ocaml-4.05";
+    "4.06", build (module Conf.Builder_amd2) "debian-10-ocaml-4.06";
+    "4.07", build (module Conf.Builder_amd2) "debian-10-ocaml-4.07";
+    "4.08", build (module Conf.Builder_amd1) "debian-10-ocaml-4.08";
+    "4.09", build (module Conf.Builder_amd3) "debian-10-ocaml-4.09";
     (* Distributions: *)
-    build (module Conf.Builder_amd1) @@ "alpine-3.10-ocaml-" ^ default_compiler;
-    build (module Conf.Builder_amd2) @@ "ubuntu-19.04-ocaml-" ^ default_compiler;
-    build (module Conf.Builder_amd2) @@ "opensuse-15.1-ocaml-" ^ default_compiler;
-    build (module Conf.Builder_amd3) @@ "centos-7-ocaml-" ^ default_compiler;
-    build (module Conf.Builder_amd3) @@ "fedora-30-ocaml-" ^ default_compiler;
+    "alpine", build (module Conf.Builder_amd1) @@ "alpine-3.10-ocaml-" ^ default_compiler;
+    "ubuntu", build (module Conf.Builder_amd2) @@ "ubuntu-19.04-ocaml-" ^ default_compiler;
+    "opensuse", build (module Conf.Builder_amd2) @@ "opensuse-15.1-ocaml-" ^ default_compiler;
+    "centos", build (module Conf.Builder_amd3) @@ "centos-7-ocaml-" ^ default_compiler;
+    "fedora", build (module Conf.Builder_amd3) @@ "fedora-30-ocaml-" ^ default_compiler;
     (* oraclelinux doesn't work in opam 2 yet: *)
     (* build (module Conf.Builder_amd3) @@ "oraclelinux-7-ocaml-" ^ default_compiler; *)
-    "lint", lint_result, job_id lint_result;
+    "lint", (lint_result, job_id lint_result);
   ]
 
 let list_errors ~ok errs =
@@ -144,7 +144,7 @@ let local_test repo () =
   Current.component "summarise" |>
   let** result =
     build_with_docker ~repo ~analysis src
-    |> List.map (fun (variant, build, _job) -> variant, build)
+    |> List.map (fun (variant, (build, _job)) -> variant, build)
     |> summarise
   in
   Current.of_output result
@@ -161,7 +161,7 @@ let v ~app () =
     let repo = Current.map Github.Api.Repo.id repo in
     build_with_docker ~repo ~analysis src in
   let jobs = builds
-             |> List.map (fun (variant, _build, job) ->
+             |> List.map (fun (variant, (_build, job)) ->
                  let+ x = job in
                  (variant, x)
                )
@@ -175,7 +175,7 @@ let v ~app () =
   in
   let set_status =
     builds
-    |> List.map (fun (variant, build, _job) -> variant, build)
+    |> List.map (fun (variant, (build, _job)) -> variant, build)
     |> summarise
     |> github_status_of_state ~head
     |> Github.Api.Commit.set_status head "ocaml-ci"
