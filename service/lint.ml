@@ -1,5 +1,5 @@
 open Current.Syntax
-module Docker = Current_docker.Default
+module Docker = Conf.Builder_amd1
 
 let format_dockerfile ~base ~ocamlformat_version =
   let open Dockerfile in
@@ -15,6 +15,6 @@ let v_from_opam ~ocamlformat_version ~base ~src =
     format_dockerfile ~base ~ocamlformat_version
   in
   let img =
-    Docker.build ~label:"OCamlformat" ~pull:false ~dockerfile (`Git src)
+    Docker.build ~label:"OCamlformat" ~pool:Docker.pool ~pull:false ~dockerfile (`Git src)
   in
   Docker.run ~label:"lint" img ~args:[ "sh"; "-c"; "dune build @fmt || (echo \"dune build @fmt failed\"; exit 2)" ]

@@ -1,4 +1,4 @@
-module Docker = Current_docker.Default
+module Docker = Conf.Builder_amd1
 
 val v_from_opam :
   ocamlformat_version:string Current.t ->

@@ -47,7 +47,7 @@ let lint ~analysis ~src =
   |> Current.map Analyse.Analysis.ocamlformat_version
   |> Current.option_map (fun ocamlformat_version ->
       let base =
-        Docker.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
+        Conf.Builder_amd1.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
       in
       Lint.v_from_opam ~ocamlformat_version ~base ~src
     )
