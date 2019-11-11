@@ -15,7 +15,7 @@ type t = {
   full_hash : Sqlite3.stmt;
 }
 
-type job_state = [`Not_started | `Active | `Failed of string | `Passed | `Aborted ]
+type job_state = [`Not_started | `Active | `Failed of string | `Passed | `Aborted ] [@@deriving show]
 
 let or_fail label x =
   match x with
@@ -28,6 +28,7 @@ let is_valid_hash hash =
 
 let db = lazy (
   let db = Lazy.force Current.Db.v in
+  Current_cache.Db.init ();
   Sqlite3.exec db "CREATE TABLE IF NOT EXISTS ci_build_index ( \
                    owner     TEXT NOT NULL, \
                    name      TEXT NOT NULL, \
@@ -55,21 +56,15 @@ let db = lazy (
   { db; record; owner_exists; repo_exists; get_jobs; get_job; list_owners; list_repos; full_hash }
 )
 
-let split_owner_name s =
-  match String.split_on_char '/' s with
-  | [ owner; name ] -> owner, name
-  | _ -> Fmt.failwith "GitHub owner name field should have form 'owner/name', not %S" s
-
 let has_changed t ~owner ~name ~hash (variant, job_id) =
   match job_id, Db.query_some t.get_job Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash; TEXT variant ] with
   | None, Some [ Sqlite3.Data.NULL ] -> false
   | Some j1, Some [ Sqlite3.Data.TEXT j2 ] -> j1 <> j2
   | _ -> true
 
-let record ~commit jobs =
+let record ~repo ~hash jobs =
+  let { Current_github.Repo_id.owner; name } = repo in
   let t = Lazy.force db in
-  let owner, name = split_owner_name (Current_github.Api.Commit.owner_name commit) in
-  let hash = Current_github.Api.Commit.hash commit in
   jobs |> List.filter (has_changed t ~owner ~name ~hash) |> List.iter (fun (variant, job_id) ->
       Log.info (fun f -> f "@[<h>Index.record %s/%s %s %s -> %a@]"
                    owner name (Astring.String.with_range ~len:6 hash) variant Fmt.(option ~none:(unit "-") string) job_id);
