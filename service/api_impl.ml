@@ -2,6 +2,7 @@ module Rpc = Current_rpc.Impl(Current)
 module Raw = Ocaml_ci_api.Raw
 
 module String_map = Map.Make(String)
+module Index = Ocaml_ci.Index
 
 open Capnp_rpc_lwt
 

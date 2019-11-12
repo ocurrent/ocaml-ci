@@ -1,0 +1,4 @@
+(library
+  (name ocaml_ci)
+  (preprocess (pps ppx_deriving.std))
+  (libraries logs current current_github current.cache))

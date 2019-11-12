@@ -1,7 +1,7 @@
 CONTEXT := ci.ocamllabs.io
 
 all:
-	dune build ./service/main.exe ./client/main.exe ./web-ui/main.exe ./service/local.exe
+	dune build ./service/main.exe ./client/main.exe ./web-ui/main.exe ./service/local.exe @runtest
 
 deploy-backend:
 	env DOCKER_BUILDKIT=1 docker --context $(CONTEXT) build -t ocaml-ci-service .

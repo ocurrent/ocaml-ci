@@ -3,6 +3,7 @@ open Current.Syntax
 module Git = Current_git
 module Github = Current_github
 module Docker = Current_docker.Default
+module Index = Ocaml_ci.Index
 
 (* Maximum time for one Docker build. *)
 let timeout = Duration.of_hour 1
@@ -171,7 +172,9 @@ let v ~app () =
     let+ commit = head
     and+ analysis = job_id analysis
     and+ jobs = jobs in
-    Index.record ~commit @@ ("ANALYSIS", analysis) :: jobs
+    let repo = Current_github.Api.Commit.repo_id commit in
+    let hash = Current_github.Api.Commit.hash commit in
+    Index.record ~repo ~hash @@ ("ANALYSIS", analysis) :: jobs
   in
   let set_status =
     builds
