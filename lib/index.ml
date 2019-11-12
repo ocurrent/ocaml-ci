@@ -3,13 +3,17 @@ module Log = (val Logs.src_log src : Logs.LOG)
 
 module Db = Current.Db
 
+module Job_map = Astring.String.Map
+
 type t = {
   db : Sqlite3.db;
   record : Sqlite3.stmt;
+  remove : Sqlite3.stmt;
   owner_exists : Sqlite3.stmt;
   repo_exists : Sqlite3.stmt;
   get_jobs : Sqlite3.stmt;
   get_job : Sqlite3.stmt;
+  get_job_ids : Sqlite3.stmt;
   list_owners : Sqlite3.stmt;
   list_repos : Sqlite3.stmt;
   full_hash : Sqlite3.stmt;
@@ -39,6 +43,8 @@ let db = lazy (
   let record = Sqlite3.prepare db "INSERT OR REPLACE INTO ci_build_index \
                                      (owner, name, hash, variant, job_id) \
                                      VALUES (?, ?, ?, ?, ?)" in
+  let remove = Sqlite3.prepare db "DELETE FROM ci_build_index \
+                                     WHERE owner = ? AND name = ? AND hash = ? AND variant = ?" in
   let list_owners = Sqlite3.prepare db "SELECT DISTINCT owner FROM ci_build_index" in
   let list_repos = Sqlite3.prepare db "SELECT DISTINCT name FROM ci_build_index WHERE owner = ?" in
   let owner_exists = Sqlite3.prepare db "SELECT EXISTS (SELECT 1 FROM ci_build_index \
@@ -51,30 +57,54 @@ let db = lazy (
                                      WHERE ci_build_index.owner = ? AND ci_build_index.name = ? AND ci_build_index.hash = ?" in
   let get_job = Sqlite3.prepare db "SELECT job_id FROM ci_build_index \
                                      WHERE owner = ? AND name = ? AND hash = ? AND variant = ?" in
+  let get_job_ids = Sqlite3.prepare db "SELECT variant, job_id FROM ci_build_index \
+                                     WHERE owner = ? AND name = ? AND hash = ?" in
   let full_hash = Sqlite3.prepare db "SELECT DISTINCT hash FROM ci_build_index \
                                       WHERE owner = ? AND name = ? AND hash LIKE ?" in
-  { db; record; owner_exists; repo_exists; get_jobs; get_job; list_owners; list_repos; full_hash }
+  { db; record; remove; owner_exists; repo_exists; get_jobs; get_job; get_job_ids; list_owners; list_repos; full_hash }
 )
 
-let has_changed t ~owner ~name ~hash (variant, job_id) =
-  match job_id, Db.query_some t.get_job Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash; TEXT variant ] with
-  | None, Some [ Sqlite3.Data.NULL ] -> false
-  | Some j1, Some [ Sqlite3.Data.TEXT j2 ] -> j1 <> j2
-  | _ -> true
+let get_job_ids t ~owner ~name ~hash =
+  Db.query t.get_job_ids Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash ]
+  |> List.map @@ function
+  | Sqlite3.Data.[ TEXT variant; NULL ] -> variant, None
+  | Sqlite3.Data.[ TEXT variant; TEXT id ] -> variant, Some id
+  | row -> Fmt.failwith "get_job_ids: invalid row %a" Db.dump_row row
 
 let record ~repo ~hash jobs =
   let { Current_github.Repo_id.owner; name } = repo in
   let t = Lazy.force db in
-  jobs |> List.filter (has_changed t ~owner ~name ~hash) |> List.iter (fun (variant, job_id) ->
+  let jobs = Job_map.of_list jobs in
+  let previous = get_job_ids t ~owner ~name ~hash |> Job_map.of_list in
+  let merge variant prev job =
+    let set job_id =
       Log.info (fun f -> f "@[<h>Index.record %s/%s %s %s -> %a@]"
                    owner name (Astring.String.with_range ~len:6 hash) variant Fmt.(option ~none:(unit "-") string) job_id);
-      let job_id =
-        match job_id with
-        | None -> Sqlite3.Data.NULL
-        | Some job_id -> Sqlite3.Data.TEXT job_id
-      in
-      Db.exec t.record Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash; TEXT variant; job_id ]
-    )
+      match job_id with
+      | None -> Db.exec t.record Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash; TEXT variant; NULL ]
+      | Some id -> Db.exec t.record Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash; TEXT variant; TEXT id ]
+    in
+    let update j1 j2 =
+      match j1, j2 with
+      | Some j1, Some j2 when j1 = j2 -> ()
+      | None, None -> ()
+      | _, j2 -> set j2
+    in
+    let remove () =
+      Log.info (fun f -> f "@[<h>Index.record %s/%s %s %s REMOVED@]"
+                   owner name (Astring.String.with_range ~len:6 hash) variant);
+      Db.exec t.remove Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash; TEXT variant ]
+    in
+    begin match prev, job with
+      | Some j1, Some j2 -> update j1 j2
+      | None, Some j2 -> set j2
+      | Some _, None -> remove ()
+      | None, None -> assert false
+    end;
+    None
+  in
+  let _ : [`Empty] Job_map.t = Job_map.merge merge previous jobs in
+  ()
 
 let is_known_owner owner =
   let t = Lazy.force db in

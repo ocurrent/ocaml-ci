@@ -24,7 +24,9 @@ let test_simple () =
                                      VALUES ('test', x'01', 'job2', x'01', 0, x'21', '2019-11-01 9:03', '2019-11-01 9:04', '2019-11-01 9:05', 0)";
   Index.record ~repo ~hash [ "analysis", Some "job1";
                              "alpine", Some "job2" ];
-  Alcotest.(check jobs) "Jobs" ["alpine", `Failed "!"; "analysis", `Passed] @@ Index.get_jobs ~owner ~name hash
+  Alcotest.(check jobs) "Jobs" ["alpine", `Failed "!"; "analysis", `Passed] @@ Index.get_jobs ~owner ~name hash;
+  Index.record ~repo ~hash [ "analysis", Some "job1" ];
+  Alcotest.(check jobs) "Jobs" ["analysis", `Passed] @@ Index.get_jobs ~owner ~name hash
 
 let () =
   Alcotest.run "ocaml-ci" [
