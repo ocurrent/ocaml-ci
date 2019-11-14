@@ -6,9 +6,9 @@ build: [
 ]
 maintainer: ["talex5@gmail.com"]
 authors: ["talex5@gmail.com"]
-bug-reports: "https://github.com/talex5/ocaml-ci/issues"
-homepage: "https://github.com/talex5/ocaml-ci"
-dev-repo: "git+https://github.com/talex5/ocaml-ci.git"
+bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
+homepage: "https://github.com/ocurrent/ocaml-ci"
+dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
 synopsis: "Web-server frontend for ocaml-ci"
 depends: [
   "dune" {>= "1.11"}
