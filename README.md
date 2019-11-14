@@ -27,7 +27,7 @@ To add the CI to your own project:
 Get the code with:
 
 ```sh
-git clone --recursive https://github.com/ocaml-ci/ocaml-ci.git
+git clone --recursive https://github.com/ocurrent/ocaml-ci.git
 ```
 
 Note: you need to clone with `--recursive` because this project uses submodules
@@ -113,6 +113,6 @@ least the first 6 characters. e.g.
 $ ocaml-ci mirage/irmin pull/867 alpine-3.10-ocaml-4.08 cancel
 ```
 
-[OCurrent]: https://github.com/ocaml-ci/current
-[pipeline.ml]: https://github.com/ocaml-ci/ocaml-ci/blob/master/service/pipeline.ml
-[capnp-api]: https://github.com/ocaml-ci/ocaml-ci/blob/master/api/schema.capnp
+[OCurrent]: https://github.com/ocurrent/ocurrent
+[pipeline.ml]: https://github.com/ocurrent/ocaml-ci/blob/master/service/pipeline.ml
+[capnp-api]: https://github.com/ocurrent/ocaml-ci/blob/master/api/schema.capnp
