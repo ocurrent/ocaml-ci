@@ -174,7 +174,7 @@ let v ~app () =
     and+ jobs = jobs in
     let repo = Current_github.Api.Commit.repo_id commit in
     let hash = Current_github.Api.Commit.hash commit in
-    Index.record ~repo ~hash @@ ("ANALYSIS", analysis) :: jobs
+    Index.record ~repo ~hash @@ ("(analysis)", analysis) :: jobs
   in
   let set_status =
     builds
