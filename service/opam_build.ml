@@ -54,7 +54,14 @@ let get_opam_packages = List.fold_left (fun acc (_, _, pkgs) -> pkgs @ acc) []
 
 let download_cache = "--mount=type=cache,target=/home/opam/.opam/download-cache,uid=1000"
 
-let dockerfile ~base ~info ~repo ~variant =
+type key =  {
+  base : string;
+  info : Analyse.Analysis.t;
+  repo : Current_github.Repo_id.t;
+  variant : string;
+}
+
+let dockerfile { base; info; repo; variant} =
   let opam_files = Analyse.Analysis.opam_files info in
   let groups = group_opam_files opam_files in
   let caches =
@@ -83,3 +90,16 @@ let dockerfile ~base ~info ~repo ~variant =
     ) @@
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
   run "%s opam install -tv ." caches
+
+let cache = Hashtbl.create 10000
+let cache_max_size = 1000000
+
+let dockerfile ~base ~info ~repo ~variant =
+  let key = { base; info; repo; variant } in
+  match Hashtbl.find_opt cache key with
+  | Some x -> x
+  | None ->
+    let x = dockerfile key in
+    if Hashtbl.length cache > cache_max_size then Hashtbl.clear cache;
+    Hashtbl.add cache key x;
+    x
