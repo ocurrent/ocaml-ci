@@ -1,5 +1,7 @@
 open Lwt.Infix
 
+type version = Version of string | Vendored
+
 let ocamlformat_version_from_string =
     let re =
       Re.(
@@ -42,8 +44,13 @@ let ocamlformat_version_from_file job path =
         Ok (Some v)
     | _ -> Error (`Msg "Unable to parse .ocamlformat file")
 
-let get_ocamlformat_version job root =
-  Fpath.(to_string (root / ".ocamlformat")) |> ocamlformat_version_from_file job
-  >|= function
-  | Ok result -> result
-  | Error (`Msg e) -> failwith e
+let get_ocamlformat_version ~opam_files job root =
+  let proj_is_ocamlformat p = Filename.basename p = "ocamlformat.opam" in
+  if List.exists proj_is_ocamlformat opam_files then
+    Lwt.return (Some Vendored)
+  else
+    Fpath.(to_string (root / ".ocamlformat")) |> ocamlformat_version_from_file job
+    >|= function
+    | Ok (Some v) -> Some (Version v)
+    | Ok None -> None
+    | Error (`Msg e) -> failwith e

@@ -1,18 +1,28 @@
 open Current.Syntax
 module Docker = Conf.Builder_amd1
 
-let format_dockerfile ~base ~ocamlformat_version =
-  let open Dockerfile in
-  from (Docker.Image.hash base)
-  @@ run "opam depext ocamlformat=%s" ocamlformat_version
-  @@ run "opam install ocamlformat=%s" ocamlformat_version
-  @@ copy ~chown:"opam" ~src:["./"] ~dst:"./src" ()
-  @@ workdir "src"
+type ocamlformat_version = [
+  | `Vendored
+  | `Version of string
+]
 
-let v_from_opam ~ocamlformat_version ~base ~src =
+let ocamlformat ~ocamlformat_version ~base ~src =
   let dockerfile =
-    let+ base = base and+ ocamlformat_version = ocamlformat_version in
-    format_dockerfile ~base ~ocamlformat_version
+    let open Dockerfile in
+    let+ base = base
+    and+ install_ocamlformat =
+      let+ ocamlformat_version = ocamlformat_version in
+      match ocamlformat_version with
+      | `Vendored -> empty
+      | `Version v ->
+        run "opam depext ocamlformat=%s" v
+        @@ run "opam install ocamlformat=%s" v
+    in
+    from (Docker.Image.hash base)
+    @@ run "opam install dune" (* Not the dune version the project use *)
+    @@ install_ocamlformat
+    @@ copy ~chown:"opam" ~src:["./"] ~dst:"./src" ()
+    @@ workdir "src"
   in
   let img =
     Docker.build ~label:"OCamlformat" ~pool:Docker.pool ~pull:false ~dockerfile (`Git src)
