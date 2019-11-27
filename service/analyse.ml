@@ -26,10 +26,13 @@ module Examine = struct
   end
 
   module Value = struct
+    type ocamlformat_version = Version of string | Vendored
+    [@@deriving yojson]
+
     type t = {
       is_duniverse : bool;
       opam_files : string list;
-      ocamlformat_version : string option;
+      ocamlformat_version : ocamlformat_version option;
     }
     [@@deriving yojson]
 
@@ -91,11 +94,16 @@ module Examine = struct
           Ok (Some v)
       | _ -> Error (`Msg "Unable to parse .ocamlformat file")
 
-  let get_ocamlformat_version job root =
-    Fpath.(to_string (root / ".ocamlformat")) |> ocamlformat_version_from_file job
-    >|= function
-    | Ok result -> result
-    | Error (`Msg e) -> failwith e
+  let get_ocamlformat_version ~opam_files job root =
+    let proj_is_ocamlformat p = Filename.basename p = "ocamlformat.opam" in
+    if List.exists proj_is_ocamlformat opam_files then
+      Lwt.return (Some Value.Vendored)
+    else
+      Fpath.(to_string (root / ".ocamlformat")) |> ocamlformat_version_from_file job
+      >|= function
+      | Ok (Some v) -> Some (Value.Version v)
+      | Ok None -> None
+      | Error (`Msg e) -> failwith e
 
   let is_toplevel path = not (String.contains path '/')
 
@@ -103,7 +111,6 @@ module Examine = struct
     Current.Job.start job ~pool ~level:Current.Level.Harmless >>= fun () ->
     Current_git.with_checkout ~job src @@ fun tmpdir ->
     let is_duniverse = is_directory (Filename.concat (Fpath.to_string tmpdir) "duniverse") in
-    get_ocamlformat_version job tmpdir >>= fun ocamlformat_version ->
     let cmd = "", [| "find"; "."; "-name"; "*.opam" |] in
     Current.Process.check_output ~cwd:tmpdir ~cancellable:true ~job cmd >>!= fun output ->
     let opam_files =
@@ -125,6 +132,7 @@ module Examine = struct
               Some path
         )
     in
+    get_ocamlformat_version ~opam_files job tmpdir >>= fun ocamlformat_version ->
     let r = { Value.opam_files; is_duniverse; ocamlformat_version } in
     Current.Job.log job "@[<v2>Results:@,%a@]" Yojson.Safe.(pretty_print ~std:true) (Value.to_yojson r);
     if opam_files = [] then Lwt_result.fail (`Msg "No opam files found!")
