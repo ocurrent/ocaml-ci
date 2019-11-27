@@ -29,10 +29,17 @@ module Examine = struct
     type ocamlformat_version = Version of string | Vendored
     [@@deriving yojson]
 
+    type project = {
+      project_path : string;
+      project_name : string option;
+    }
+    [@@deriving yojson]
+
     type t = {
       is_duniverse : bool;
       opam_files : string list;
       ocamlformat_version : ocamlformat_version option;
+      projects : project list;
     }
     [@@deriving yojson]
 
@@ -48,6 +55,8 @@ module Examine = struct
     let is_duniverse t = t.is_duniverse
 
     let ocamlformat_version t = t.ocamlformat_version
+
+    let projects t = t.projects
   end
 
   let id = "ci-analyse"
@@ -107,10 +116,48 @@ module Examine = struct
 
   let is_toplevel path = not (String.contains path '/')
 
+  let dune_project_from_file ~project_path file_path =
+    let open Value in
+    let rec find_name acc = function
+      | Sexplib.Sexp.List [ Atom "name"; Atom name ] :: tl ->
+        find_name { acc with project_name = Some name } tl
+      | _ :: tl -> find_name acc tl
+      | [] -> acc
+    in
+    let project = {
+      project_path;
+      project_name = None
+    } in
+    match Sexplib.Sexp.load_sexps file_path with
+    | exception Failure msg
+    | exception Sexplib.Sexp.Parse_error { err_msg = msg; _ }
+    | exception Sys_error msg -> Error (`Msg msg)
+    | sexps -> Ok (find_name project sexps)
+
+  let get_projects job root =
+    let cmd = "", [| "find"; "."; "-name"; "dune-project"; "-type"; "f" |] in
+    Current.Process.check_output ~cwd:root ~cancellable:true ~job cmd >>!= fun output ->
+    String.split_on_char '\n' output
+    |> List.sort String.compare
+    |> List.filter_map (fun path ->
+        let project_path = Filename.dirname path
+        and file_path = Filename.concat (Fpath.to_string root) path in
+        match dune_project_from_file ~project_path file_path with
+        | Error (`Msg msg) ->
+          Current.Job.log job "Failed to parse %s: %S" path msg;
+          None
+        | Ok project ->
+          Current.Job.log job "Detected project in %s: %a" project_path
+            Yojson.Safe.(pretty_print ~std:true) (Value.project_to_yojson project);
+          Some project
+      )
+    |> Lwt_result.return
+
   let build No_context job src =
     Current.Job.start job ~pool ~level:Current.Level.Harmless >>= fun () ->
     Current_git.with_checkout ~job src @@ fun tmpdir ->
     let is_duniverse = is_directory (Filename.concat (Fpath.to_string tmpdir) "duniverse") in
+    get_projects job tmpdir >>!= fun projects ->
     let cmd = "", [| "find"; "."; "-name"; "*.opam" |] in
     Current.Process.check_output ~cwd:tmpdir ~cancellable:true ~job cmd >>!= fun output ->
     let opam_files =
@@ -133,7 +180,7 @@ module Examine = struct
         )
     in
     get_ocamlformat_version ~opam_files job tmpdir >>= fun ocamlformat_version ->
-    let r = { Value.opam_files; is_duniverse; ocamlformat_version } in
+    let r = { Value.opam_files; is_duniverse; ocamlformat_version; projects } in
     Current.Job.log job "@[<v2>Results:@,%a@]" Yojson.Safe.(pretty_print ~std:true) (Value.to_yojson r);
     if opam_files = [] then Lwt_result.fail (`Msg "No opam files found!")
     else if List.filter is_toplevel opam_files = [] then Lwt_result.fail (`Msg "No top-level opam files found!")
