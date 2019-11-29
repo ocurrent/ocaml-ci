@@ -15,5 +15,6 @@
             nocrypto.lwt
             ocaml_ci
             ocaml-ci-api
-            prometheus)
+            prometheus
+            sexplib)
  (preprocess (pps ppx_deriving_yojson)))

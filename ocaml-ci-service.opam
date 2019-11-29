@@ -21,4 +21,5 @@ depends: [
   "ocaml-ci-api"
   "conf-libev"
   "dockerfile" {>= "6.3.0"}
+  "sexplib"
 ]
