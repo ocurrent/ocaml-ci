@@ -104,7 +104,7 @@ module Examine = struct
     Current_git.with_checkout ~job src @@ fun tmpdir ->
     let is_duniverse = is_directory (Filename.concat (Fpath.to_string tmpdir) "duniverse") in
     get_ocamlformat_version job tmpdir >>= fun ocamlformat_version ->
-    let cmd = "", [| "find"; "."; "-name"; "*.opam" |] in
+    let cmd = "", [| "find"; "."; "-maxdepth"; "3"; "-name"; "*.opam" |] in
     Current.Process.check_output ~cwd:tmpdir ~cancellable:true ~job cmd >>!= fun output ->
     let opam_files =
       String.split_on_char '\n' output
@@ -117,12 +117,19 @@ module Examine = struct
                 Astring.String.with_range ~first:2 path
               else path
             in
+            let check_whitelist_path path =
+              match Fpath.v path |> Fpath.segs with
+              | [_file] -> true
+              | ["duniverse"; _pkg; _file] -> true
+              | _ -> Current.Job.log job "WARNING: ignoring opam file %S as not in root or duniverse subdir" path; false
+            in
             let full_path = Filename.concat (Fpath.to_string tmpdir) path in
             if is_empty_file full_path then (
               Current.Job.log job "WARNING: ignoring empty opam file %S" path;
               None
-            ) else
+            ) else if check_whitelist_path path then
               Some path
+           else None
         )
     in
     let r = { Value.opam_files; is_duniverse; ocamlformat_version } in
