@@ -25,7 +25,7 @@ let group_opam_files =
   ListLabels.fold_left ~init:[] ~f:(fun acc x ->
       let item = Fpath.v x in
       let dir = Fpath.parent item in
-      let pkg = (Filename.basename x |> Filename.chop_extension) ^ ".dev" in
+      let pkg = Filename.basename x |> Filename.chop_extension in
       match acc with
       | (prev_dir, prev_items, pkgs) :: rest when Fpath.equal dir prev_dir -> (prev_dir, x :: prev_items, pkg :: pkgs) :: rest
       | _ -> (dir, [x], [pkg]) :: acc
