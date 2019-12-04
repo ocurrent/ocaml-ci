@@ -103,9 +103,9 @@ module Examine = struct
           Ok (Some v)
       | _ -> Error (`Msg "Unable to parse .ocamlformat file")
 
-  let get_ocamlformat_version ~opam_files job root =
-    let proj_is_ocamlformat p = Filename.basename p = "ocamlformat.opam" in
-    if List.exists proj_is_ocamlformat opam_files then
+  let get_ocamlformat_version ~projects job root =
+    let proj_is_ocamlformat p = p.Value.project_name = Some "ocamlformat" in
+    if List.exists proj_is_ocamlformat projects then
       Lwt.return (Some Value.Vendored)
     else
       Fpath.(to_string (root / ".ocamlformat")) |> ocamlformat_version_from_file job
@@ -179,7 +179,7 @@ module Examine = struct
               Some path
         )
     in
-    get_ocamlformat_version ~opam_files job tmpdir >>= fun ocamlformat_version ->
+    get_ocamlformat_version ~projects job tmpdir >>= fun ocamlformat_version ->
     let r = { Value.opam_files; is_duniverse; ocamlformat_version; projects } in
     Current.Job.log job "@[<v2>Results:@,%a@]" Yojson.Safe.(pretty_print ~std:true) (Value.to_yojson r);
     if opam_files = [] then Lwt_result.fail (`Msg "No opam files found!")
