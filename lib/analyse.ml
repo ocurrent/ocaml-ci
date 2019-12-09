@@ -14,6 +14,8 @@ let is_empty_file x =
   | Unix.{ st_kind = S_REG; st_size = 0; _ } -> true
   | _ -> false
 
+let is_toplevel path = not (String.contains path '/')
+
 let ( >>!= ) = Lwt_result.bind
 
 module Analysis = struct
@@ -36,24 +38,8 @@ module Analysis = struct
   let is_duniverse t = t.is_duniverse
 
   let ocamlformat_version t = t.ocamlformat_version
-end
 
-module Examine = struct
-  type t = No_context
-
-  module Key = struct
-    type t = Current_git.Commit.t
-
-    let digest t = Current_git.Commit.id t
-  end
-
-  module Value = Analysis
-
-  let id = "ci-analyse"
-
-  let is_toplevel path = not (String.contains path '/')
-
-  let analyse_dir ~job dir =
+  let of_dir ~job dir =
     let is_duniverse = is_directory (Filename.concat (Fpath.to_string dir) "duniverse") in
     Analyse_ocamlformat.get_ocamlformat_version job dir >>= fun ocamlformat_version ->
     let cmd = "", [| "find"; "."; "-maxdepth"; "3"; "-name"; "*.opam" |] in
@@ -81,18 +67,32 @@ module Examine = struct
               None
             ) else if check_whitelist_path path then
               Some path
-           else None
+            else None
         )
     in
-    let r = { Value.opam_files; is_duniverse; ocamlformat_version } in
-    Current.Job.log job "@[<v2>Results:@,%a@]" Yojson.Safe.(pretty_print ~std:true) (Value.to_yojson r);
+    let r = { opam_files; is_duniverse; ocamlformat_version } in
+    Current.Job.log job "@[<v2>Results:@,%a@]" Yojson.Safe.(pretty_print ~std:true) (to_yojson r);
     if opam_files = [] then Lwt_result.fail (`Msg "No opam files found!")
     else if List.filter is_toplevel opam_files = [] then Lwt_result.fail (`Msg "No top-level opam files found!")
     else Lwt_result.return r
+end
+
+module Examine = struct
+  type t = No_context
+
+  module Key = struct
+    type t = Current_git.Commit.t
+
+    let digest t = Current_git.Commit.id t
+  end
+
+  module Value = Analysis
+
+  let id = "ci-analyse"
 
   let build No_context job src =
     Current.Job.start job ~pool ~level:Current.Level.Harmless >>= fun () ->
-    Current_git.with_checkout ~job src (analyse_dir ~job)
+    Current_git.with_checkout ~job src (Analysis.of_dir ~job)
 
   let pp f _ = Fmt.string f "Analyse"
 
