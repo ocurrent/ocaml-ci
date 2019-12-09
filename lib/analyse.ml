@@ -101,13 +101,11 @@ module Examine = struct
 
   let is_toplevel path = not (String.contains path '/')
 
-  let build No_context job src =
-    Current.Job.start job ~pool ~level:Current.Level.Harmless >>= fun () ->
-    Current_git.with_checkout ~job src @@ fun tmpdir ->
-    let is_duniverse = is_directory (Filename.concat (Fpath.to_string tmpdir) "duniverse") in
-    get_ocamlformat_version job tmpdir >>= fun ocamlformat_version ->
+  let analyse_dir ~job dir =
+    let is_duniverse = is_directory (Filename.concat (Fpath.to_string dir) "duniverse") in
+    get_ocamlformat_version job dir >>= fun ocamlformat_version ->
     let cmd = "", [| "find"; "."; "-maxdepth"; "3"; "-name"; "*.opam" |] in
-    Current.Process.check_output ~cwd:tmpdir ~cancellable:true ~job cmd >>!= fun output ->
+    Current.Process.check_output ~cwd:dir ~cancellable:true ~job cmd >>!= fun output ->
     let opam_files =
       String.split_on_char '\n' output
       |> List.sort String.compare
@@ -125,7 +123,7 @@ module Examine = struct
               | ["duniverse"; _pkg; _file] -> true
               | _ -> Current.Job.log job "WARNING: ignoring opam file %S as not in root or duniverse subdir" path; false
             in
-            let full_path = Filename.concat (Fpath.to_string tmpdir) path in
+            let full_path = Filename.concat (Fpath.to_string dir) path in
             if is_empty_file full_path then (
               Current.Job.log job "WARNING: ignoring empty opam file %S" path;
               None
@@ -139,6 +137,10 @@ module Examine = struct
     if opam_files = [] then Lwt_result.fail (`Msg "No opam files found!")
     else if List.filter is_toplevel opam_files = [] then Lwt_result.fail (`Msg "No top-level opam files found!")
     else Lwt_result.return r
+
+  let build No_context job src =
+    Current.Job.start job ~pool ~level:Current.Level.Harmless >>= fun () ->
+    Current_git.with_checkout ~job src (analyse_dir ~job)
 
   let pp f _ = Fmt.string f "Analyse"
 
