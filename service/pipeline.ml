@@ -78,14 +78,14 @@ let build_with_docker ~repo ~analysis src =
   let lint_result = lint ~analysis ~src in
   [
     (* Compiler versions:*)
-    "4.02", build (module Conf.Builder_amd2) "debian-10-ocaml-4.02";
-    "4.03", build (module Conf.Builder_amd2) "debian-10-ocaml-4.03";
-    "4.04", build (module Conf.Builder_amd3) "debian-10-ocaml-4.04";
-    "4.05", build (module Conf.Builder_amd3) "debian-10-ocaml-4.05";
-    "4.06", build (module Conf.Builder_amd2) "debian-10-ocaml-4.06";
-    "4.07", build (module Conf.Builder_amd2) "debian-10-ocaml-4.07";
-    "4.08", build (module Conf.Builder_amd1) "debian-10-ocaml-4.08";
     "4.09", build (module Conf.Builder_amd3) "debian-10-ocaml-4.09";
+    "4.08", build (module Conf.Builder_amd1) "debian-10-ocaml-4.08";
+    "4.07", build (module Conf.Builder_amd2) "debian-10-ocaml-4.07";
+    "4.06", build (module Conf.Builder_amd2) "debian-10-ocaml-4.06";
+    "4.05", build (module Conf.Builder_amd3) "debian-10-ocaml-4.05";
+    "4.04", build (module Conf.Builder_amd3) "debian-10-ocaml-4.04";
+    "4.03", build (module Conf.Builder_amd2) "debian-10-ocaml-4.03";
+    "4.02", build (module Conf.Builder_amd2) "debian-10-ocaml-4.02";
     (* Distributions: *)
     "alpine", build (module Conf.Builder_amd1) @@ "alpine-3.10-ocaml-" ^ default_compiler;
     "ubuntu", build (module Conf.Builder_amd2) @@ "ubuntu-19.04-ocaml-" ^ default_compiler;

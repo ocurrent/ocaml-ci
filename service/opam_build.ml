@@ -25,7 +25,7 @@ let group_opam_files =
   ListLabels.fold_left ~init:[] ~f:(fun acc x ->
       let item = Fpath.v x in
       let dir = Fpath.parent item in
-      let pkg = (Filename.basename x |> Filename.chop_extension) ^ ".dev" in
+      let pkg = Filename.basename x |> Filename.chop_extension in
       match acc with
       | (prev_dir, prev_items, pkgs) :: rest when Fpath.equal dir prev_dir -> (prev_dir, x :: prev_items, pkg :: pkgs) :: rest
       | _ -> (dir, [x], [pkg]) :: acc
@@ -76,6 +76,17 @@ let dockerfile { base; info; repo; variant} =
     else
       empty
   in
+  let build_cmd =
+    if Analyse.Analysis.is_duniverse info then
+      run "%s opam depext -iy dune dune-configurator odoc" caches @@
+      copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
+      run "%s opam exec -- dune build @install" caches @@
+      run "%s opam exec -- dune runtest" caches @@
+      run "%s opam exec -- dune build @doc" caches
+    else
+      copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
+      run "%s opam install -tv ." caches
+  in
   comment "syntax = docker/dockerfile:experimental@sha256:ee85655c57140bd20a5ebc3bb802e7410ee9ac47ca92b193ed0ab17485024fe5" @@
   from base @@
   comment "%s" variant @@
@@ -88,8 +99,8 @@ let dockerfile { base; info; repo; variant} =
   crunch_list (List.map (fun pkg ->
       run {|test "$(opam show -f depexts: %s)" = "$(printf "\n")" || opam depext -ty %s|} pkg pkg) pkgs
     ) @@
-  copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
-  run "%s opam install -tv ." caches
+  run "opam pin remove $(opam pin -s) -n" @@
+  build_cmd
 
 let cache = Hashtbl.create 10000
 let cache_max_size = 1000000
