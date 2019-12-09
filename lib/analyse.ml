@@ -16,6 +16,28 @@ let is_empty_file x =
 
 let ( >>!= ) = Lwt_result.bind
 
+module Analysis = struct
+  type t = {
+    is_duniverse : bool;
+    opam_files : string list;
+    ocamlformat_version : string option;
+  }
+  [@@deriving yojson]
+
+  let marshal t = to_yojson t |> Yojson.Safe.to_string
+
+  let unmarshal s =
+    match Yojson.Safe.from_string s |> of_yojson with
+    | Ok x -> x
+    | Error e -> failwith e
+
+  let opam_files t = t.opam_files
+
+  let is_duniverse t = t.is_duniverse
+
+  let ocamlformat_version t = t.ocamlformat_version
+end
+
 module Examine = struct
   type t = No_context
 
@@ -25,27 +47,7 @@ module Examine = struct
     let digest t = Current_git.Commit.id t
   end
 
-  module Value = struct
-    type t = {
-      is_duniverse : bool;
-      opam_files : string list;
-      ocamlformat_version : string option;
-    }
-    [@@deriving yojson]
-
-    let marshal t = to_yojson t |> Yojson.Safe.to_string
-
-    let unmarshal s =
-      match Yojson.Safe.from_string s |> of_yojson with
-      | Ok x -> x
-      | Error e -> failwith e
-
-    let opam_files t = t.opam_files
-
-    let is_duniverse t = t.is_duniverse
-
-    let ocamlformat_version t = t.ocamlformat_version
-  end
+  module Value = Analysis
 
   let id = "ci-analyse"
 
@@ -142,8 +144,6 @@ module Examine = struct
 
   let auto_cancel = false
 end
-
-module Analysis = Examine.Value
 
 module Examine_cache = Current_cache.Make(Examine)
 
