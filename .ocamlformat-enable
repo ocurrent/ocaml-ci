@@ -1,0 +1,3 @@
+test/test.ml*
+test/test_analyse.ml*
+test/gen_project.ml*
