@@ -28,9 +28,6 @@ let test_simple () =
   Index.record ~repo ~hash [ "analysis", Some "job1" ];
   Alcotest.(check jobs) "Jobs" ["analysis", `Passed] @@ Index.get_jobs ~owner ~name hash
 
-let () =
-  Alcotest.run "ocaml-ci" [
-    "index", [
-      Alcotest.test_case "simple" `Quick test_simple;
-    ]
+let tests = [
+    Alcotest.test_case "simple" `Quick test_simple;
   ]

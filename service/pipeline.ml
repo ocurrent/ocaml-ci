@@ -1,9 +1,9 @@
 open Current.Syntax
+open Ocaml_ci
 
 module Git = Current_git
 module Github = Current_github
 module Docker = Current_docker.Default
-module Index = Ocaml_ci.Index
 
 (* Maximum time for one Docker build. *)
 let timeout = Duration.of_hour 1
