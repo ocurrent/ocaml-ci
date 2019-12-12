@@ -9,7 +9,7 @@ module Analysis = struct
   type t = {
     opam_files : string list; [@equal set_equality]
     is_duniverse : bool;
-    ocamlformat_version : string option;
+    ocamlformat_version : ocamlformat_version option;
   }
   [@@deriving eq, yojson]
 
@@ -63,7 +63,7 @@ let test_simple =
     {
       opam_files = [ "example.opam" ];
       is_duniverse = false;
-      ocamlformat_version = Some "0.12";
+      ocamlformat_version = Some (Version "0.12");
     }
   in
   expect_test "simple" ~project ~expected
@@ -111,4 +111,48 @@ let test_duniverse =
   in
   expect_test "duniverse" ~project ~expected
 
-let tests = [ test_simple; test_multiple_opam; test_duniverse ]
+let test_ocamlformat_vendored =
+  let project =
+    let open Gen_project in
+    [
+      File ("example.opam", opam);
+      (* This file is not parsed if ocamlformat is vendored *)
+      File (".ocamlformat", empty_file);
+      Folder
+        ( "duniverse",
+          [ Folder ("ocamlformat", [ File ("ocamlformat.opam", opam) ]) ] );
+    ]
+  in
+  let expected =
+    let open Analysis in
+    {
+      opam_files = [ "example.opam"; "duniverse/ocamlformat/ocamlformat.opam" ];
+      is_duniverse = true;
+      ocamlformat_version = Some Vendored;
+    }
+  in
+  expect_test "ocamlformat_vendored" ~project ~expected
+
+let test_ocamlformat_self =
+  let project =
+    let open Gen_project in
+    [ File ("ocamlformat.opam", opam); File (".ocamlformat", empty_file) ]
+  in
+  let expected =
+    let open Analysis in
+    {
+      opam_files = [ "ocamlformat.opam" ];
+      is_duniverse = false;
+      ocamlformat_version = Some Vendored;
+    }
+  in
+  expect_test "ocamlformat_self" ~project ~expected
+
+let tests =
+  [
+    test_simple;
+    test_multiple_opam;
+    test_duniverse;
+    test_ocamlformat_vendored;
+    test_ocamlformat_self;
+  ]

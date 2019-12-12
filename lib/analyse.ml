@@ -20,7 +20,7 @@ let ( >>!= ) = Lwt_result.bind
 
 module Analysis = struct
   type ocamlformat_version = Analyse_ocamlformat.version = Version of string | Vendored
-  [@@deriving yojson]
+  [@@deriving yojson,eq]
 
   type t = {
     is_duniverse : bool;

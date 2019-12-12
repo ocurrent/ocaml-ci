@@ -10,5 +10,8 @@ val opam : contents
 val ocamlformat : version:string -> contents
 (** Contents of a [.ocamlformat] file with a particular version *)
 
+val empty_file : contents
+(** An empty file *)
+
 val instantiate : root:string -> file list -> unit
 (** Take a directory specification and persist it to disk *)

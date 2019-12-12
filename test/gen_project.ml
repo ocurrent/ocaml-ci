@@ -32,6 +32,8 @@ let ocamlformat ~version ppf =
 profile = conventional
   |} version
 
+let empty_file _ppf = ()
+
 (* Project generation logic *)
 
 type file = Folder of string * file list | File of string * contents
