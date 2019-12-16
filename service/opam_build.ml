@@ -80,7 +80,7 @@ let dockerfile { base; info; repo; variant} =
   in
   let build_cmd =
     if Analyse.Analysis.is_duniverse info then
-      run "%s opam depext -iy dune dune-configurator odoc" caches @@
+      run "%s opam depext --update -iy dune dune-configurator odoc" caches @@
       copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
       run "%s opam exec -- dune build @install" caches @@
       run "%s opam exec -- dune runtest" caches @@
@@ -97,7 +97,7 @@ let dockerfile { base; info; repo; variant} =
   run "sudo chown opam /src" @@
   pin_opam_files groups @@
   run "(opam install %s --dry-run --deps-only -ty; echo $? > /tmp/exit-status) | tee /tmp/opam-plan; exit $(cat /tmp/exit-status)" (pkgs |> String.concat " ") @@
-  run "%s awk < /tmp/opam-plan '/-> installed/{print $3}' | xargs opam depext -iy" download_cache @@
+  run "%s awk < /tmp/opam-plan '/-> installed/{print $3}' | xargs opam depext --update -iy" download_cache @@
   crunch_list (List.map (fun pkg ->
       run {|test "$(opam show -f depexts: %s)" = "$(printf "\n")" || opam depext -ty %s|} pkg pkg) pkgs
     ) @@
