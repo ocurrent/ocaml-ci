@@ -25,7 +25,7 @@ let ocamlformat ~ocamlformat_version ~base ~src =
     @@ run "opam install dune" (* Not the dune version the project use *)
     @@ workdir "src"
     @@ install_ocamlformat
-    @@ copy ~chown:"opam" ~src:["./"] ~dst:"./src" ()
+    @@ copy ~chown:"opam" ~src:["./"] ~dst:"./" ()
   in
   let img =
     Docker.build ~label:"OCamlformat" ~pool:Docker.pool ~pull:false ~dockerfile (`Git src)
