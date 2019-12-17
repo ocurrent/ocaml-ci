@@ -53,7 +53,7 @@ let lint ~analysis ~src =
       let ocamlformat_version =
         let+ v = ocamlformat_version in
         match v with
-        | Analyse.Analysis.Vendored -> `Vendored
+        | Analyse.Analysis.Vendored path -> `Vendored path
         | Version v -> `Version v
       in
       Lint.ocamlformat ~ocamlformat_version ~base ~src

@@ -1,7 +1,7 @@
 module Docker = Conf.Builder_amd1
 
 type ocamlformat_version = [
-  | `Vendored (** OCamlformat is vendored, don't install it via opam *)
+  | `Vendored of string (** OCamlformat is vendored, don't install it via opam *)
   | `Version of string (** Which version of OCamlformat to use *)
 ]
 

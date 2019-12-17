@@ -1,5 +1,5 @@
 module Analysis : sig
-  type ocamlformat_version = Version of string | Vendored
+  type ocamlformat_version = Version of string | Vendored of string
   [@@deriving yojson, eq]
 
   type t

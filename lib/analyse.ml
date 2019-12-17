@@ -19,7 +19,9 @@ let is_toplevel path = not (String.contains path '/')
 let ( >>!= ) = Lwt_result.bind
 
 module Analysis = struct
-  type ocamlformat_version = Analyse_ocamlformat.version = Version of string | Vendored
+  type ocamlformat_version = Analyse_ocamlformat.version =
+    | Version of string
+    | Vendored of string
   [@@deriving yojson,eq]
 
   type t = {
