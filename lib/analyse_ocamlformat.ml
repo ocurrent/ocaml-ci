@@ -1,6 +1,9 @@
 open Lwt.Infix
 
-type version = Version of string | Vendored of string
+type source =
+  | Opam of { version : string }
+  | Vendored of { path : string }
+[@@deriving yojson,eq]
 
 let ocamlformat_version_from_string =
     let re =
@@ -44,15 +47,15 @@ let ocamlformat_version_from_file job path =
         Ok (Some v)
     | _ -> Error (`Msg "Unable to parse .ocamlformat file")
 
-let get_ocamlformat_version ~opam_files job root =
+let get_ocamlformat_source job ~opam_files root =
   let proj_is_ocamlformat p = Filename.basename p = "ocamlformat.opam" in
   match List.find_opt proj_is_ocamlformat opam_files with
   | Some opam_file ->
     let path = Filename.dirname opam_file in
-    Lwt.return (Some (Vendored path))
+    Lwt.return (Some (Vendored { path }))
   | None ->
     Fpath.(to_string (root / ".ocamlformat")) |> ocamlformat_version_from_file job
     >|= function
-    | Ok (Some v) -> Some (Version v)
+    | Ok (Some version) -> Some (Opam { version })
     | Ok None -> None
     | Error (`Msg e) -> failwith e

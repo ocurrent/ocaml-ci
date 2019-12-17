@@ -48,15 +48,9 @@ let lint ~analysis ~src =
     Conf.Builder_amd1.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
   in
   analysis
-  |> Current.map Analyse.Analysis.ocamlformat_version
-  |> Current.option_map (fun ocamlformat_version ->
-      let ocamlformat_version =
-        let+ v = ocamlformat_version in
-        match v with
-        | Analyse.Analysis.Vendored path -> `Vendored path
-        | Version v -> `Version v
-      in
-      Lint.ocamlformat ~ocamlformat_version ~base ~src
+  |> Current.map Analyse.Analysis.ocamlformat_source
+  |> Current.option_map (fun ocamlformat_source ->
+      Lint.ocamlformat ~ocamlformat_source ~base ~src
     )
   |> Current.map (function
       | Some () -> `Checked

@@ -3,13 +3,18 @@ open Lwt.Infix
 module Analysis = struct
   include Ocaml_ci.Analyse.Analysis
 
+  type ocamlformat_source = Ocaml_ci.Analyse_ocamlformat.source =
+    | Opam of { version : string }
+    | Vendored of { path : string }
+  [@@deriving yojson,eq]
+
   let set_equality = Alcotest.(equal (slist string String.compare))
 
   (* Make the [t] type concrete from the observable fields for easier testing *)
   type t = {
     opam_files : string list; [@equal set_equality]
     is_duniverse : bool;
-    ocamlformat_version : ocamlformat_version option;
+    ocamlformat_source : ocamlformat_source option;
   }
   [@@deriving eq, yojson]
 
@@ -19,7 +24,7 @@ module Analysis = struct
            {
              opam_files = opam_files t;
              is_duniverse = is_duniverse t;
-             ocamlformat_version = ocamlformat_version t;
+             ocamlformat_source = ocamlformat_source t;
            })
 
   let t : t Alcotest.testable =
@@ -63,7 +68,7 @@ let test_simple =
     {
       opam_files = [ "example.opam" ];
       is_duniverse = false;
-      ocamlformat_version = Some (Version "0.12");
+      ocamlformat_source = Some (Opam { version = "0.12" });
     }
   in
   expect_test "simple" ~project ~expected
@@ -91,7 +96,7 @@ let test_multiple_opam =
     {
       opam_files = [ "example.opam"; "example-foo.opam"; "example-bar.opam" ];
       is_duniverse = false;
-      ocamlformat_version = None;
+      ocamlformat_source = None;
     }
   in
   expect_test "multiple_opam" ~project ~expected
@@ -106,7 +111,7 @@ let test_duniverse =
     {
       opam_files = [ "example.opam"; "duniverse/alcotest.0.8.5/alcotest.opam" ];
       is_duniverse = true;
-      ocamlformat_version = None;
+      ocamlformat_source = None;
     }
   in
   expect_test "duniverse" ~project ~expected
@@ -128,7 +133,7 @@ let test_ocamlformat_vendored =
     {
       opam_files = [ "example.opam"; "duniverse/ocamlformat/ocamlformat.opam" ];
       is_duniverse = true;
-      ocamlformat_version = Some Vendored;
+      ocamlformat_source = Some (Vendored { path = "duniverse/ocamlformat" });
     }
   in
   expect_test "ocamlformat_vendored" ~project ~expected
@@ -143,7 +148,7 @@ let test_ocamlformat_self =
     {
       opam_files = [ "ocamlformat.opam" ];
       is_duniverse = false;
-      ocamlformat_version = Some Vendored;
+      ocamlformat_source = Some (Vendored { path = "." });
     }
   in
   expect_test "ocamlformat_self" ~project ~expected

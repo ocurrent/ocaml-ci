@@ -1,3 +1,7 @@
-type version = Version of string | Vendored of string
+type source =
+  | Opam of { version : string } (** Should install OCamlformat from Opam. *)
+  | Vendored of { path : string } (** OCamlformat is vendored. [path] is relative from the project's root. *)
+[@@deriving yojson,eq]
 
-val get_ocamlformat_version : opam_files:string list -> Current.Job.t -> Fpath.t -> version option Lwt.t
+val get_ocamlformat_source : Current.Job.t -> opam_files:string list -> Fpath.t -> source option Lwt.t
+(** Detect the required version of ocamlformat or if it's vendored. *)
