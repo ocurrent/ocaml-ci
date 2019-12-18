@@ -48,7 +48,7 @@ let ocamlformat_version_from_file job path =
     | _ -> Error (`Msg "Unable to parse .ocamlformat file")
 
 let get_ocamlformat_source job ~opam_files root =
-  let proj_is_ocamlformat p = Filename.basename p = "ocamlformat.opam" in
+  let proj_is_ocamlformat p = String.equal (Filename.basename p) "ocamlformat.opam" in
   match List.find_opt proj_is_ocamlformat opam_files with
   | Some opam_file ->
     let path = Filename.dirname opam_file in
