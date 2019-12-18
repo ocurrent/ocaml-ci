@@ -69,6 +69,8 @@ module Analysis = struct
             else None
         )
     in
+    (* [opam_files] are used to detect vendored OCamlformat but this only works
+       with duniverse, as other opam files are filtered above. *)
     Analyse_ocamlformat.get_ocamlformat_source job ~opam_files dir >>= fun ocamlformat_source ->
     let r = { opam_files; is_duniverse; ocamlformat_source } in
     Current.Job.log job "@[<v2>Results:@,%a@]" Yojson.Safe.(pretty_print ~std:true) (to_yojson r);
