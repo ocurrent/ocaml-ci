@@ -50,7 +50,7 @@ let lint ~analysis ~src =
   analysis
   |> Current.map Analyse.Analysis.ocamlformat_source
   |> Current.option_map (fun ocamlformat_source ->
-      Lint.ocamlformat ~ocamlformat_source ~base ~src
+      Lint.v_fmt ~ocamlformat_source ~base ~src
     )
   |> Current.map (function
       | Some () -> `Checked

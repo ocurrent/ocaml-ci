@@ -1,7 +1,7 @@
 open Current.Syntax
 module Docker = Conf.Builder_amd1
 
-let ocamlformat ~ocamlformat_source ~base ~src =
+let v_fmt ~ocamlformat_source ~base ~src =
   let dockerfile =
     let open Dockerfile in
     let+ base = base
