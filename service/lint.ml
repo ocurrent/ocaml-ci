@@ -17,7 +17,7 @@ let ocamlformat ~ocamlformat_source ~base ~src =
         @@ run "opam install ocamlformat=%s" version
     in
     from (Docker.Image.hash base)
-    @@ run "opam install dune" (* Not the dune version the project use *)
+    @@ run "opam install dune" (* Not necessarily the dune version used by the project *)
     @@ workdir "src"
     @@ install_ocamlformat
     @@ copy ~chown:"opam" ~src:["./"] ~dst:"./" ()
