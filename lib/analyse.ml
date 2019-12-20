@@ -22,7 +22,7 @@ module Analysis = struct
   type t = {
     is_duniverse : bool;
     opam_files : string list;
-    ocamlformat_version : string option;
+    ocamlformat_source : Analyse_ocamlformat.source option;
   }
   [@@deriving yojson]
 
@@ -37,11 +37,10 @@ module Analysis = struct
 
   let is_duniverse t = t.is_duniverse
 
-  let ocamlformat_version t = t.ocamlformat_version
+  let ocamlformat_source t = t.ocamlformat_source
 
   let of_dir ~job dir =
     let is_duniverse = is_directory (Filename.concat (Fpath.to_string dir) "duniverse") in
-    Analyse_ocamlformat.get_ocamlformat_version job dir >>= fun ocamlformat_version ->
     let cmd = "", [| "find"; "."; "-maxdepth"; "3"; "-name"; "*.opam" |] in
     Current.Process.check_output ~cwd:dir ~cancellable:true ~job cmd >>!= fun output ->
     let opam_files =
@@ -70,7 +69,10 @@ module Analysis = struct
             else None
         )
     in
-    let r = { opam_files; is_duniverse; ocamlformat_version } in
+    (* [opam_files] are used to detect vendored OCamlformat but this only works
+       with duniverse, as other opam files are filtered above. *)
+    Analyse_ocamlformat.get_ocamlformat_source job ~opam_files ~root:dir >>= fun ocamlformat_source ->
+    let r = { opam_files; is_duniverse; ocamlformat_source } in
     Current.Job.log job "@[<v2>Results:@,%a@]" Yojson.Safe.(pretty_print ~std:true) (to_yojson r);
     if opam_files = [] then Lwt_result.fail (`Msg "No opam files found!")
     else if List.filter is_toplevel opam_files = [] then Lwt_result.fail (`Msg "No top-level opam files found!")

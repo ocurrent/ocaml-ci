@@ -44,13 +44,13 @@ let job_id x =
   Current.Analysis.job_id job
 
 let lint ~analysis ~src =
+  let base =
+    Conf.Builder_amd1.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
+  in
   analysis
-  |> Current.map Analyse.Analysis.ocamlformat_version
-  |> Current.option_map (fun ocamlformat_version ->
-      let base =
-        Conf.Builder_amd1.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
-      in
-      Lint.v_from_opam ~ocamlformat_version ~base ~src
+  |> Current.map Analyse.Analysis.ocamlformat_source
+  |> Current.option_map (fun ocamlformat_source ->
+      Lint.v_fmt ~ocamlformat_source ~base ~src
     )
   |> Current.map (function
       | Some () -> `Checked
