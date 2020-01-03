@@ -43,9 +43,28 @@ let job_id x =
   let+ job = Current.Analysis.get x in
   Current.Analysis.job_id job
 
+module Docker_of_builder (Builder : Conf.BUILDER) : Ocaml_ci.S.DOCKER_CONTEXT = struct
+
+  type image = Builder.Image.t
+
+  let image_hash = Builder.Image.hash
+
+  let pull ~schedule name =
+    Builder.pull ~schedule name
+
+  let build ~label ~dockerfile source =
+    Builder.build ~label ~pool:Builder.pool ~pull:false ~dockerfile source
+
+  let run ~label image ~args =
+    Builder.run ~label ~pool:Builder.pool image ~args
+
+end
+
 let lint ~analysis ~src =
+  let module Docker = Docker_of_builder (Conf.Builder_amd1) in
+  let module Lint = Lint.Make (Docker) in
   let base =
-    Conf.Builder_amd1.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
+    Docker.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
   in
   analysis
   |> Current.map Analyse.Analysis.ocamlformat_source
