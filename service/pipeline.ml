@@ -49,8 +49,8 @@ module Docker_of_builder (Builder : Conf.BUILDER) : Ocaml_ci.S.DOCKER_CONTEXT = 
 
   let image_hash = Builder.Image.hash
 
-  let pull ~schedule name =
-    Builder.pull ~schedule name
+  let pull name =
+    Builder.pull ~schedule:weekly name
 
   let build ~label ~dockerfile source =
     Builder.build ~label ~pool:Builder.pool ~pull:false ~dockerfile source
@@ -60,21 +60,7 @@ module Docker_of_builder (Builder : Conf.BUILDER) : Ocaml_ci.S.DOCKER_CONTEXT = 
 
 end
 
-let lint ~analysis ~src =
-  let module Docker = Docker_of_builder (Conf.Builder_amd1) in
-  let module Lint = Lint.Make (Docker) in
-  let base =
-    Docker.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
-  in
-  analysis
-  |> Current.map Analyse.Analysis.ocamlformat_source
-  |> Current.option_map (fun ocamlformat_source ->
-      Lint.v_fmt ~ocamlformat_source ~base ~src
-    )
-  |> Current.map (function
-      | Some () -> `Checked
-      | None -> `Check_skipped
-    )
+module Lint = Ocaml_ci.Lint.Make (Docker_of_builder (Conf.Builder_amd1))
 
 let build_with_docker ~repo ~analysis src =
   let info =
@@ -94,7 +80,7 @@ let build_with_docker ~repo ~analysis src =
     let result = Current.map (fun _ -> `Built) build in
     result, job_id build
   in
-  let lint_result = lint ~analysis ~src in
+  let lint_result = Lint.v ~analysis ~src in
   [
     (* Compiler versions:*)
     "4.10", build (module Conf.Builder_amd1) "debian-10-ocaml-4.10";
