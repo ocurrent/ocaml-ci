@@ -114,3 +114,20 @@ let dockerfile ~base ~info ~repo ~variant =
     if Hashtbl.length cache > cache_max_size then Hashtbl.clear cache;
     Hashtbl.add cache key x;
     x
+
+let v ~docker:(module Docker : S.DOCKER_CONTEXT) ~variant ~repo ~analysis src =
+  let open Current.Syntax in
+  let info =
+    let+ info = analysis in
+    let opam_files = Analyse.Analysis.opam_files info in
+    if opam_files = [] then failwith "No opam files found!";
+    info
+  in
+  let dockerfile =
+    let+ base = Docker.pull ("ocurrent/opam:" ^ variant)
+    and+ repo = repo
+    and+ info = info in
+    dockerfile ~base:(Docker.image_hash base) ~info ~repo ~variant
+  in
+  let build = Docker.build ~label:"" ~dockerfile (`Git src) in
+  Current.map (fun _ -> `Built) build

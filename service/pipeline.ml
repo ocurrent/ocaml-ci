@@ -5,15 +5,10 @@ module Git = Current_git
 module Github = Current_github
 module Docker = Current_docker.Default
 
-(* Maximum time for one Docker build. *)
-let timeout = Duration.of_hour 1
-
 let default_compiler = "4.09"
 
 (* Link for GitHub statuses. *)
 let url ~owner ~name ~hash = Uri.of_string (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s" owner name hash)
-
-let weekly = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
 
 let github_status_of_state ~head result =
   let+ head = head
@@ -45,6 +40,11 @@ let job_id x =
 
 module Docker_of_builder (Builder : Conf.BUILDER) : Ocaml_ci.S.DOCKER_CONTEXT = struct
 
+  (* Maximum time for one Docker build. *)
+  let timeout = Duration.of_hour 1
+
+  let weekly = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
+
   type image = Builder.Image.t
 
   let image_hash = Builder.Image.hash
@@ -53,7 +53,7 @@ module Docker_of_builder (Builder : Conf.BUILDER) : Ocaml_ci.S.DOCKER_CONTEXT = 
     Builder.pull ~schedule:weekly name
 
   let build ~label ~dockerfile source =
-    Builder.build ~label ~pool:Builder.pool ~pull:false ~dockerfile source
+    Builder.build ~timeout ~label ~pool:Builder.pool ~pull:false ~dockerfile source
 
   let run ~label image ~args =
     Builder.run ~label ~pool:Builder.pool image ~args
@@ -63,22 +63,10 @@ end
 module Lint = Ocaml_ci.Lint.Make (Docker_of_builder (Conf.Builder_amd1))
 
 let build_with_docker ~repo ~analysis src =
-  let info =
-    let+ info = analysis in
-    let opam_files = Analyse.Analysis.opam_files info in
-    if opam_files = [] then failwith "No opam files found!";
-    info
-  in
-  let build (module Docker : Conf.BUILDER) variant =
-    let dockerfile =
-      let+ base = Docker.pull ~schedule:weekly ("ocurrent/opam:" ^ variant)
-      and+ repo = repo
-      and+ info = info in
-      Opam_build.dockerfile ~base:(Docker.Image.hash base) ~info ~repo ~variant
-    in
-    let build = Docker.build ~timeout ~pool:Docker.pool ~pull:false ~dockerfile (`Git src) in
-    let result = Current.map (fun _ -> `Built) build in
-    result, job_id build
+  let build (module Builder : Conf.BUILDER) variant =
+    let module Docker = Docker_of_builder (Builder) in
+    let build_result = Opam_build.v ~docker:(module Docker) ~variant ~repo ~analysis src in
+    build_result, job_id build_result
   in
   let lint_result = Lint.v ~analysis ~src in
   [
