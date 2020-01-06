@@ -1,5 +1,3 @@
-module Analyse = Ocaml_ci.Analyse
-
 let crunch_list items = Dockerfile.(crunch (empty @@@ items))
 
 let safe_char = function
