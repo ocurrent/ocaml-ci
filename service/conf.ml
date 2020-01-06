@@ -18,27 +18,42 @@ module Capnp = struct
   let internal_port = 9000
 end
 
-module type BUILDER = sig
-  include Current_docker.S.DOCKER
-
-  val pool : Current.Pool.t
-end
-
 let dev_pool = Current.Pool.create ~label:"docker" 1
 
-module Builder(C : sig val docker_context : string end) : BUILDER = struct
-  include Current_docker.Make(struct
+module Builder(C : sig val docker_context : string end) : Ocaml_ci.S.DOCKER_CONTEXT = struct
+
+  module Docker = Current_docker.Make(struct
       let docker_context =
         match profile with
         | `Production -> Some C.docker_context
         | `Dev -> None
     end)
 
-  (* Limit number of concurrent builds. *)
+  (** Limit number of concurrent builds. *)
   let pool =
     match profile with
     | `Production -> Current.Pool.create ~label:("docker-" ^ C.docker_context) 20
     | `Dev -> dev_pool
+
+  (** Maximum time for one Docker build. *)
+  let build_timeout = Duration.of_hour 1
+
+  (** Cache duration for pulled images. *)
+  let pull_schedule = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
+
+  type image = Docker.Image.t
+
+  let image_hash = Docker.Image.hash
+
+  let pull name =
+    Docker.pull ~schedule:pull_schedule name
+
+  let build ~label ~dockerfile source =
+    Docker.build ~timeout:build_timeout ~pool ~label ~pull:false ~dockerfile source
+
+  let run ~label image ~args =
+    Docker.run ~label ~pool image ~args
+
 end
 
 module Builder_amd1 = Builder(struct let docker_context = "default" end)

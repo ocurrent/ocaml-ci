@@ -38,33 +38,10 @@ let job_id x =
   let+ job = Current.Analysis.get x in
   Current.Analysis.job_id job
 
-module Docker_of_builder (Builder : Conf.BUILDER) : Ocaml_ci.S.DOCKER_CONTEXT = struct
-
-  (* Maximum time for one Docker build. *)
-  let timeout = Duration.of_hour 1
-
-  let weekly = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
-
-  type image = Builder.Image.t
-
-  let image_hash = Builder.Image.hash
-
-  let pull name =
-    Builder.pull ~schedule:weekly name
-
-  let build ~label ~dockerfile source =
-    Builder.build ~timeout ~label ~pool:Builder.pool ~pull:false ~dockerfile source
-
-  let run ~label image ~args =
-    Builder.run ~label ~pool:Builder.pool image ~args
-
-end
-
-module Lint = Ocaml_ci.Lint.Make (Docker_of_builder (Conf.Builder_amd1))
+module Lint = Ocaml_ci.Lint.Make (Conf.Builder_amd1)
 
 let build_with_docker ~repo ~analysis src =
-  let build (module Builder : Conf.BUILDER) variant =
-    let module Docker = Docker_of_builder (Builder) in
+  let build (module Docker : S.DOCKER_CONTEXT) variant =
     let build_result = Opam_build.v ~docker:(module Docker) ~variant ~repo ~analysis src in
     build_result, job_id build_result
   in
