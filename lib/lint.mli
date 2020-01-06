@@ -2,7 +2,7 @@ module Make (Docker : S.DOCKER_CONTEXT) : sig
 
   val v :
     analysis:Analyse.Analysis.t Current.t ->
-    src:Current_git.Commit.t Current.t ->
+    source:Docker.source ->
     [> `Checked | `Check_skipped ] Current.t
   (** [v ~analysis ~src] runs the linting step:
       - Checks formatting using "dune build @fmt".

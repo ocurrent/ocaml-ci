@@ -115,7 +115,8 @@ let dockerfile ~base ~info ~repo ~variant =
     Hashtbl.add cache key x;
     x
 
-let v ~docker:(module Docker : S.DOCKER_CONTEXT) ~variant ~repo ~analysis src =
+let v (type s) ~docker:(module Docker : S.DOCKER_CONTEXT with type source = s)
+    ~variant ~repo ~analysis (source : s) =
   let open Current.Syntax in
   let info =
     let+ info = analysis in
@@ -129,5 +130,5 @@ let v ~docker:(module Docker : S.DOCKER_CONTEXT) ~variant ~repo ~analysis src =
     and+ info = info in
     dockerfile ~base:(Docker.image_hash base) ~info ~repo ~variant
   in
-  let build = Docker.build ~label:"" ~dockerfile (`Git src) in
+  let build = Docker.build ~label:"" ~dockerfile source in
   Current.map (fun _ -> `Built) build

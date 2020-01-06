@@ -20,7 +20,9 @@ end
 
 let dev_pool = Current.Pool.create ~label:"docker" 1
 
-module Builder(C : sig val docker_context : string end) : Ocaml_ci.S.DOCKER_CONTEXT = struct
+module Builder(C : sig val docker_context : string end) :
+  Ocaml_ci.S.DOCKER_CONTEXT with type source = Current_docker.S.source =
+struct
 
   module Docker = Current_docker.Make(struct
       let docker_context =
@@ -40,6 +42,8 @@ module Builder(C : sig val docker_context : string end) : Ocaml_ci.S.DOCKER_CONT
 
   (** Cache duration for pulled images. *)
   let pull_schedule = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
+
+  type source = Current_docker.S.source
 
   type image = Docker.Image.t
 

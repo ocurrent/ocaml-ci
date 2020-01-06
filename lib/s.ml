@@ -1,5 +1,6 @@
 module type DOCKER_CONTEXT = sig
 
+  type source
   type image
 
   val image_hash : image -> string
@@ -9,7 +10,7 @@ module type DOCKER_CONTEXT = sig
   val build :
     label:string ->
     dockerfile:Dockerfile.t Current.t ->
-    Current_docker.S.source ->
+    source ->
     image Current.t
 
   val run :

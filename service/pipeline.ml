@@ -40,12 +40,12 @@ let job_id x =
 
 module Lint = Ocaml_ci.Lint.Make (Conf.Builder_amd1)
 
-let build_with_docker ~repo ~analysis src =
-  let build (module Docker : S.DOCKER_CONTEXT) variant =
-    let build_result = Opam_build.v ~docker:(module Docker) ~variant ~repo ~analysis src in
+let build_with_docker ~repo ~analysis source =
+  let build docker variant =
+    let build_result = Opam_build.v ~docker ~variant ~repo ~analysis source in
     build_result, job_id build_result
   in
-  let lint_result = Lint.v ~analysis ~src in
+  let lint_result = Lint.v ~analysis ~source in
   [
     (* Compiler versions:*)
     "4.10", build (module Conf.Builder_amd1) "debian-10-ocaml-4.10";
@@ -115,7 +115,7 @@ let local_test repo () =
   and analysis = Analyse.examine src in
   Current.component "summarise" |>
   let** result =
-    build_with_docker ~repo ~analysis src
+    build_with_docker ~repo ~analysis (`Git src)
     |> List.map (fun (variant, (build, _job)) -> variant, build)
     |> summarise
   in
@@ -131,7 +131,7 @@ let v ~app () =
   let analysis = Analyse.examine src in
   let builds =
     let repo = Current.map Github.Api.Repo.id repo in
-    build_with_docker ~repo ~analysis src in
+    build_with_docker ~repo ~analysis (`Git src) in
   let jobs = builds
              |> List.map (fun (variant, (_build, job)) ->
                  let+ x = job in
