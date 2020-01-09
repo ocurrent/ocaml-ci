@@ -78,6 +78,7 @@ let build_with_docker ~repo ~analysis src =
   let lint_result = lint ~analysis ~src in
   [
     (* Compiler versions:*)
+    "4.10", build (module Conf.Builder_amd1) "debian-10-ocaml-4.10";
     "4.09", build (module Conf.Builder_amd3) "debian-10-ocaml-4.09";
     "4.08", build (module Conf.Builder_amd1) "debian-10-ocaml-4.08";
     "4.07", build (module Conf.Builder_amd2) "debian-10-ocaml-4.07";
