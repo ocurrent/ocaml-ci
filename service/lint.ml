@@ -6,7 +6,11 @@ let ocamlformat_dockerfile ~base ~ocamlformat_source =
   let install_ocamlformat =
     match ocamlformat_source with
     | Ocaml_ci.Analyse_ocamlformat.Vendored { path } ->
-      run "opam pin add -yn ocamlformat %S" path
+      let opam_file = Filename.concat path "ocamlformat.opam" in
+      copy ~chown:"opam" ~src:[ opam_file ] ~dst:opam_file ()
+      @@ run "opam pin add -k none -yn ocamlformat %S" path
+      (* Only the opam file is necessary to install the deps
+         [-k none] above ensures that opam doesn't try to make an installable package *)
       @@ run "opam depext ocamlformat"
       @@ run "opam install --deps-only -y ocamlformat"
     | Opam { version } ->
