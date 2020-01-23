@@ -24,11 +24,15 @@ module Make (Docker : S.DOCKER_CONTEXT) = struct
     @@ install_ocamlformat
     @@ copy ~chown:"opam" ~src:["./"] ~dst:"./" ()
 
-  let ocamlformat_run ~ocamlformat_source ~base ~source =
+  (** An image with OCamlformat installed and the project ready to be formatted *)
+  let ocamlformat_base_image ~base ~ocamlformat_source ~source =
     let dockerfile =
       let+ base = base and+ ocamlformat_source = ocamlformat_source in
-      ocamlformat_dockerfile ~base ~ocamlformat_source in
-    let img = Docker.build ~label:"OCamlformat" ~dockerfile source in
+      ocamlformat_dockerfile ~base ~ocamlformat_source
+    in
+    Docker.build ~label:"OCamlformat" ~dockerfile source
+
+  let run_fmt ~img =
     Docker.run ~label:"lint" img ~args:[ "sh"; "-c"; "dune build @fmt || (echo \"dune build @fmt failed\"; exit 2)" ]
 
   let v ~analysis ~source =
@@ -36,7 +40,8 @@ module Make (Docker : S.DOCKER_CONTEXT) = struct
     analysis
     |> Current.map Analyse.Analysis.ocamlformat_source
     |> Current.option_map (fun ocamlformat_source ->
-        ocamlformat_run ~ocamlformat_source ~base ~source
+        let img = ocamlformat_base_image ~base ~ocamlformat_source ~source in
+        run_fmt ~img
       )
     |> Current.map (function
         | Some () -> `Checked
