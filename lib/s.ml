@@ -8,13 +8,13 @@ module type DOCKER_CONTEXT = sig
   val pull : string -> image Current.t
 
   val build :
-    label:string ->
+    ?label:string ->
     dockerfile:Dockerfile.t Current.t ->
     source ->
     image Current.t
 
   val run :
-    label:string ->
+    ?label:string ->
     image Current.t ->
     args:string list ->
     unit Current.t

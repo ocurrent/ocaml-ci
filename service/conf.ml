@@ -52,11 +52,11 @@ struct
   let pull name =
     Docker.pull ~schedule:pull_schedule name
 
-  let build ~label ~dockerfile source =
-    Docker.build ~timeout:build_timeout ~pool ~label ~pull:false ~dockerfile source
+  let build ?label ~dockerfile source =
+    Docker.build ~timeout:build_timeout ~pool ?label ~pull:false ~dockerfile source
 
-  let run ~label image ~args =
-    Docker.run ~label ~pool image ~args
+  let run ?label image ~args =
+    Docker.run ?label ~pool image ~args
 
 end
 

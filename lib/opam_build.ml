@@ -130,5 +130,5 @@ let v (type s) ~docker:(module Docker : S.DOCKER_CONTEXT with type source = s)
     and+ info = info in
     dockerfile ~base:(Docker.image_hash base) ~info ~repo ~variant
   in
-  let build = Docker.build ~label:"" ~dockerfile source in
+  let build = Docker.build ~dockerfile source in
   Current.map (fun _ -> `Built) build
