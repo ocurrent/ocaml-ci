@@ -1,4 +1,4 @@
-(** Build and test all the opam packages.
+(** Build and test all the opam packages in a given build context.
     [~variant] is the variant of the "ocurrent/opam" image.
     [~repo] is used to identify a build cache for duniverse projects. *)
 val v :
