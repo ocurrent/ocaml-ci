@@ -1,5 +1,3 @@
-module Analyse = Ocaml_ci.Analyse
-
 let crunch_list items = Dockerfile.(crunch (empty @@@ items))
 
 let safe_char = function
@@ -116,3 +114,21 @@ let dockerfile ~base ~info ~repo ~variant =
     if Hashtbl.length cache > cache_max_size then Hashtbl.clear cache;
     Hashtbl.add cache key x;
     x
+
+let v (type s) ~docker:(module Docker : S.DOCKER_CONTEXT with type source = s)
+    ~schedule ~variant ~repo ~analysis (source : s) =
+  let open Current.Syntax in
+  let info =
+    let+ info = analysis in
+    let opam_files = Analyse.Analysis.opam_files info in
+    if opam_files = [] then failwith "No opam files found!";
+    info
+  in
+  let dockerfile =
+    let+ base = Docker.pull ~schedule ("ocurrent/opam:" ^ variant)
+    and+ repo = repo
+    and+ info = info in
+    dockerfile ~base:(Docker.image_hash base) ~info ~repo ~variant
+  in
+  let build = Docker.build ~dockerfile source in
+  Current.map (fun _ -> `Built) build

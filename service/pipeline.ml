@@ -5,15 +5,12 @@ module Git = Current_git
 module Github = Current_github
 module Docker = Current_docker.Default
 
-(* Maximum time for one Docker build. *)
-let timeout = Duration.of_hour 1
-
 let default_compiler = "4.09"
+
+let weekly = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
 
 (* Link for GitHub statuses. *)
 let url ~owner ~name ~hash = Uri.of_string (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s" owner name hash)
-
-let weekly = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
 
 let github_status_of_state ~head result =
   let+ head = head
@@ -43,39 +40,16 @@ let job_id x =
   let+ job = Current.Analysis.get x in
   Current.Analysis.job_id job
 
-let lint ~analysis ~src =
-  let base =
-    Conf.Builder_amd1.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
-  in
-  analysis
-  |> Current.map Analyse.Analysis.ocamlformat_source
-  |> Current.option_map (fun ocamlformat_source ->
-      Lint.v_fmt ~ocamlformat_source ~base ~src
-    )
-  |> Current.map (function
-      | Some () -> `Checked
-      | None -> `Check_skipped
-    )
+module Lint = Ocaml_ci.Lint.Make (Conf.Builder_amd1)
 
-let build_with_docker ~repo ~analysis src =
-  let info =
-    let+ info = analysis in
-    let opam_files = Analyse.Analysis.opam_files info in
-    if opam_files = [] then failwith "No opam files found!";
-    info
-  in
-  let build (module Docker : Conf.BUILDER) variant =
-    let dockerfile =
-      let+ base = Docker.pull ~schedule:weekly ("ocurrent/opam:" ^ variant)
-      and+ repo = repo
-      and+ info = info in
-      Opam_build.dockerfile ~base:(Docker.Image.hash base) ~info ~repo ~variant
+let build_with_docker ~repo ~analysis source =
+  let build docker variant =
+    let build_result =
+      Opam_build.v ~docker ~schedule:weekly ~variant ~repo ~analysis source
     in
-    let build = Docker.build ~timeout ~pool:Docker.pool ~pull:false ~dockerfile (`Git src) in
-    let result = Current.map (fun _ -> `Built) build in
-    result, job_id build
+    build_result, job_id build_result
   in
-  let lint_result = lint ~analysis ~src in
+  let lint_result = Lint.v ~schedule:weekly ~analysis ~source in
   [
     (* Compiler versions:*)
     "4.10", build (module Conf.Builder_amd1) "debian-10-ocaml-4.10";
@@ -145,7 +119,7 @@ let local_test repo () =
   and analysis = Analyse.examine src in
   Current.component "summarise" |>
   let** result =
-    build_with_docker ~repo ~analysis src
+    build_with_docker ~repo ~analysis (`Git src)
     |> List.map (fun (variant, (build, _job)) -> variant, build)
     |> summarise
   in
@@ -161,7 +135,7 @@ let v ~app () =
   let analysis = Analyse.examine src in
   let builds =
     let repo = Current.map Github.Api.Repo.id repo in
-    build_with_docker ~repo ~analysis src in
+    build_with_docker ~repo ~analysis (`Git src) in
   let jobs = builds
              |> List.map (fun (variant, (_build, job)) ->
                  let+ x = job in
