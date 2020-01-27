@@ -34,6 +34,8 @@ interface Commit {
 
   refs @2 (hash :Text) -> (refs :List(Text));
   # Get the set of branches and PRs with this commit at their head.
+
+  status @3 () -> (status :JobInfo);
 }
 
 interface Repo {
