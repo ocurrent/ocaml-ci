@@ -7,6 +7,8 @@ module Docker = Current_docker.Default
 
 let default_compiler = "4.09"
 
+let weekly = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
+
 (* Link for GitHub statuses. *)
 let url ~owner ~name ~hash = Uri.of_string (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s" owner name hash)
 
@@ -42,10 +44,12 @@ module Lint = Ocaml_ci.Lint.Make (Conf.Builder_amd1)
 
 let build_with_docker ~repo ~analysis source =
   let build docker variant =
-    let build_result = Opam_build.v ~docker ~variant ~repo ~analysis source in
+    let build_result =
+      Opam_build.v ~docker ~pull_schedule:weekly ~variant ~repo ~analysis source
+    in
     build_result, job_id build_result
   in
-  let lint_result = Lint.v ~analysis ~source in
+  let lint_result = Lint.v ~pull_schedule:weekly ~analysis ~source in
   [
     (* Compiler versions:*)
     "4.10", build (module Conf.Builder_amd1) "debian-10-ocaml-4.10";

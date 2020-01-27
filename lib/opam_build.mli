@@ -3,6 +3,7 @@
     [~repo] is the ID of the repository-under-test on GitHub. *)
 val v :
   docker:(module S.DOCKER_CONTEXT with type source = 'source) ->
+  pull_schedule:Current_cache.Schedule.t ->
   variant:string ->
   repo:Current_github.Repo_id.t Current.t ->
   analysis:Analyse.Analysis.t Current.t ->

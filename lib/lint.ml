@@ -35,8 +35,10 @@ module Make (Docker : S.DOCKER_CONTEXT) = struct
   let run_fmt ~img =
     Docker.run ~label:"lint" img ~args:[ "sh"; "-c"; "dune build @fmt || (echo \"dune build @fmt failed\"; exit 2)" ]
 
-  let v ~analysis ~source =
-    let base = Docker.pull "ocurrent/opam:alpine-3.10-ocaml-4.08" in
+  let v ~pull_schedule ~analysis ~source =
+    let base =
+      Docker.pull ~schedule:pull_schedule "ocurrent/opam:alpine-3.10-ocaml-4.08"
+    in
     analysis
     |> Current.map Analyse.Analysis.ocamlformat_source
     |> Current.option_map (fun ocamlformat_source ->

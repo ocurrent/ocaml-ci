@@ -5,7 +5,7 @@ module type DOCKER_CONTEXT = sig
 
   val image_hash : image -> string
 
-  val pull : string -> image Current.t
+  val pull : schedule:Current_cache.Schedule.t -> string -> image Current.t
 
   val build :
     ?label:string ->

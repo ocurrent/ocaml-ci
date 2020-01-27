@@ -1,6 +1,7 @@
 module Make (Docker : S.DOCKER_CONTEXT) : sig
 
   val v :
+    pull_schedule:Current_cache.Schedule.t ->
     analysis:Analyse.Analysis.t Current.t ->
     source:Docker.source ->
     [> `Checked | `Check_skipped ] Current.t

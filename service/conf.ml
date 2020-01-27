@@ -40,17 +40,14 @@ struct
   (** Maximum time for one Docker build. *)
   let build_timeout = Duration.of_hour 1
 
-  (** Cache duration for pulled images. *)
-  let pull_schedule = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
-
   type source = Current_docker.S.source
 
   type image = Docker.Image.t
 
   let image_hash = Docker.Image.hash
 
-  let pull name =
-    Docker.pull ~schedule:pull_schedule name
+  let pull ~schedule name =
+    Docker.pull ~schedule name
 
   let build ?label ~dockerfile source =
     Docker.build ~timeout:build_timeout ~pool ?label ~pull:false ~dockerfile source
