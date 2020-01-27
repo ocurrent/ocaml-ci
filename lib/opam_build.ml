@@ -116,7 +116,7 @@ let dockerfile ~base ~info ~repo ~variant =
     x
 
 let v (type s) ~docker:(module Docker : S.DOCKER_CONTEXT with type source = s)
-    ~pull_schedule ~variant ~repo ~analysis (source : s) =
+    ~schedule ~variant ~repo ~analysis (source : s) =
   let open Current.Syntax in
   let info =
     let+ info = analysis in
@@ -125,7 +125,7 @@ let v (type s) ~docker:(module Docker : S.DOCKER_CONTEXT with type source = s)
     info
   in
   let dockerfile =
-    let+ base = Docker.pull ~schedule:pull_schedule ("ocurrent/opam:" ^ variant)
+    let+ base = Docker.pull ~schedule ("ocurrent/opam:" ^ variant)
     and+ repo = repo
     and+ info = info in
     dockerfile ~base:(Docker.image_hash base) ~info ~repo ~variant

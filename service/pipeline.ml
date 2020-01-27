@@ -45,11 +45,11 @@ module Lint = Ocaml_ci.Lint.Make (Conf.Builder_amd1)
 let build_with_docker ~repo ~analysis source =
   let build docker variant =
     let build_result =
-      Opam_build.v ~docker ~pull_schedule:weekly ~variant ~repo ~analysis source
+      Opam_build.v ~docker ~schedule:weekly ~variant ~repo ~analysis source
     in
     build_result, job_id build_result
   in
-  let lint_result = Lint.v ~pull_schedule:weekly ~analysis ~source in
+  let lint_result = Lint.v ~schedule:weekly ~analysis ~source in
   [
     (* Compiler versions:*)
     "4.10", build (module Conf.Builder_amd1) "debian-10-ocaml-4.10";
