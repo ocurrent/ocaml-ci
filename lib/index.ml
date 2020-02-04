@@ -8,20 +8,20 @@ module Job_map = Astring.String.Map
 type t = {
   db : Sqlite3.db;
   record_job : Sqlite3.stmt;
-  record_status : Sqlite3.stmt;
   remove : Sqlite3.stmt;
   owner_exists : Sqlite3.stmt;
   repo_exists : Sqlite3.stmt;
   get_jobs : Sqlite3.stmt;
   get_job : Sqlite3.stmt;
   get_job_ids : Sqlite3.stmt;
-  get_status : Sqlite3.stmt;
   list_owners : Sqlite3.stmt;
   list_repos : Sqlite3.stmt;
   full_hash : Sqlite3.stmt;
 }
 
 type job_state = [`Not_started | `Active | `Failed of string | `Passed | `Aborted ] [@@deriving show]
+
+type build_status = [ `Not_started | `Pending | `Failed | `Passed ]
 
 let or_fail label x =
   match x with
@@ -43,23 +43,10 @@ CREATE TABLE IF NOT EXISTS ci_build_index (
   variant   TEXT NOT NULL,
   job_id    TEXT,
   PRIMARY KEY (owner, name, hash, variant)
-);
-
-CREATE TABLE IF NOT EXISTS ci_status_index (
-  owner  TEXT NOT NULL,
-  name   TEXT NOT NULL,
-  hash   TEXT NOT NULL,
-  status INTEGER NOT NULL,
-  PRIMARY KEY (owner, name, hash)
 )|} |> or_fail "create table";
   let record_job = Sqlite3.prepare db "INSERT OR REPLACE INTO ci_build_index \
                                      (owner, name, hash, variant, job_id) \
                                      VALUES (?, ?, ?, ?, ?)" in
-  let record_status =
-    Sqlite3.prepare db "INSERT OR REPLACE INTO ci_status_index \
-                        (owner, name, hash, status) \
-                        VALUES (?, ?, ?, ?)"
-  in
   let remove = Sqlite3.prepare db "DELETE FROM ci_build_index \
                                      WHERE owner = ? AND name = ? AND hash = ? AND variant = ?" in
   let list_owners = Sqlite3.prepare db "SELECT DISTINCT owner FROM ci_build_index" in
@@ -76,21 +63,17 @@ CREATE TABLE IF NOT EXISTS ci_status_index (
                                      WHERE owner = ? AND name = ? AND hash = ? AND variant = ?" in
   let get_job_ids = Sqlite3.prepare db "SELECT variant, job_id FROM ci_build_index \
                                      WHERE owner = ? AND name = ? AND hash = ?" in
-  let get_status = Sqlite3.prepare db "SELECT status FROM ci_status_index \
-                                       WHERE owner = ? AND name = ? AND hash = ?" in
   let full_hash = Sqlite3.prepare db "SELECT DISTINCT hash FROM ci_build_index \
                                       WHERE owner = ? AND name = ? AND hash LIKE ?" in
       {
         db;
         record_job;
-        record_status;
         remove;
         owner_exists;
         repo_exists;
         get_jobs;
         get_job;
         get_job_ids;
-        get_status;
         list_owners;
         list_repos;
         full_hash
@@ -104,30 +87,29 @@ let get_job_ids t ~owner ~name ~hash =
   | Sqlite3.Data.[ TEXT variant; TEXT id ] -> variant, Some id
   | row -> Fmt.failwith "get_job_ids: invalid row %a" Db.dump_row row
 
-let get_status ~owner ~name ~hash =
-  let t = Lazy.force db in
-  let open Sqlite3.Data in
-  Db.query_some t.get_status [ TEXT owner; TEXT name; TEXT hash ]
-  |> function
-    | Some [ INT 0L ] -> `Pending
-    | Some [ INT 1L ] -> `Failed
-    | Some [ INT 2L ] -> `Passed
-    | None -> `Not_started
-    | Some row -> Fmt.failwith "get_status: invalid rows %a" Db.dump_row row
+module Status_cache = struct
+  let cache = Hashtbl.create 1_000
+  let cache_max_size = 1_000_000
+
+  type elt = [ `Not_started | `Pending | `Failed | `Passed ]
+
+  let add ~owner ~name ~hash (status : elt) =
+    if Hashtbl.length cache > cache_max_size then Hashtbl.clear cache;
+    Hashtbl.add cache (owner, name, hash) status
+
+  let find ~owner ~name ~hash : elt =
+    Hashtbl.find_opt cache (owner, name, hash)
+    |> function
+      | Some s -> s
+      | None -> `Not_started
+end
+
+let get_status = Status_cache.find
 
 let record ~repo ~hash ~status jobs =
   let { Current_github.Repo_id.owner; name } = repo in
   let t = Lazy.force db in
-  let () =
-    let open Sqlite3.Data in
-    let status =
-      match status with
-      | `Pending -> INT 0L
-      | `Failed -> INT 1L
-      | `Passed -> INT 2L
-    in
-    Db.exec t.record_status [ TEXT owner; TEXT name; TEXT hash; status ];
-  in
+  let () = Status_cache.add ~owner ~name ~hash status in
   let jobs = Job_map.of_list jobs in
   let previous = get_job_ids t ~owner ~name ~hash |> Job_map.of_list in
   let merge variant prev job =
