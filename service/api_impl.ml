@@ -60,15 +60,12 @@ let make_commit ~engine ~owner ~name hash =
       let open Commit.Status in
       release_param_caps ();
       let response, results = Service.Response.create Results.init_pointer in
-      let status = Results.status_init results in
-      let state = Raw.Builder.JobInfo.state_init status in
-      let module S = Raw.Builder.JobInfo.State in
       Index.get_status ~owner ~name ~hash
       |> (function
-          | `Not_started -> S.not_started_set state
-          | `Pending -> S.active_set state
-          | `Failed -> S.failed_set state "Summarise job failed"
-          | `Passed -> S.passed_set state
+          | `Not_started -> Results.status_set results NotStarted
+          | `Pending -> Results.status_set results Pending
+          | `Failed -> Results.status_set results Failed
+          | `Passed -> Results.status_set results  Passed
          );
       Service.return response
   end

@@ -115,13 +115,11 @@ module Commit = struct
     let request = Capability.Request.create_no_args () in
     Capability.call_for_value t method_id request
     >>= (Results.status_get
-         >> Raw.Reader.JobInfo.state_get
-         >> Raw.Reader.JobInfo.State.get
          >> function
            | NotStarted -> Ok (`Not_started)
            | Passed -> Ok (`Passed)
-           | Failed _ | Aborted -> Ok (`Failed)
-           | Active -> Ok (`Pending)
+           | Failed -> Ok (`Failed)
+           | Pending -> Ok (`Pending)
            | Undefined i -> Error (`Msg (Fmt.strf "client.states: undefined state %d" i))
         )
 end
