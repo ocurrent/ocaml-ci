@@ -107,13 +107,13 @@ let get_job_ids t ~owner ~name ~hash =
 let get_status ~owner ~name ~hash =
   let t = Lazy.force db in
   let open Sqlite3.Data in
-  Db.query t.get_status [ TEXT owner; TEXT name; TEXT hash ]
+  Db.query_some t.get_status [ TEXT owner; TEXT name; TEXT hash ]
   |> function
-    | [ [ INT 0L ] ] -> `Pending
-    | [ [ INT 1L ] ] -> `Failed
-    | [ [ INT 2L ] ] -> `Passed
-    | [ [] ] -> `Not_started
-    | rows -> Fmt.failwith "get_status: invalid rows %a" Fmt.(list ~sep:cut Db.dump_row) rows
+    | Some [ INT 0L ] -> `Pending
+    | Some [ INT 1L ] -> `Failed
+    | Some [ INT 2L ] -> `Passed
+    | None -> `Not_started
+    | Some row -> Fmt.failwith "get_status: invalid rows %a" Db.dump_row row
 
 let record ~repo ~hash ~status jobs =
   let { Current_github.Repo_id.owner; name } = repo in
