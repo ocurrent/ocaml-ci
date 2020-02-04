@@ -56,11 +56,14 @@ let respond_error status body =
   Server.respond_error ~status ~headers ~body () |> normal_response
 
 let ( let*! ) x f =
+  let respond_error msg =
+    Logs.warn (fun m -> m "Failed to retrieve badge state: %s" msg);
+    respond_error `Internal_server_error
+      "ocaml-ci error: failed to retrieve badge state."
+  in
   x >>= function
-  | Error (`Capnp ex) ->
-      respond_error `Internal_server_error
-        (Fmt.to_to_string Capnp_rpc.Error.pp ex)
-  | Error (`Msg msg) -> respond_error `Internal_server_error msg
+  | Error (`Capnp ex) -> respond_error (Fmt.strf "%a" Capnp_rpc.Error.pp ex)
+  | Error (`Msg msg) -> respond_error msg
   | Ok y -> f y
 
 let handle ~backend ~path =
