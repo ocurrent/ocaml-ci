@@ -1,5 +1,4 @@
 open Current.Syntax
-open Ocaml_ci
 
 module Git = Current_git
 module Github = Current_github
@@ -8,16 +7,13 @@ module Docker = Current_docker.Default
 (* Maximum time for one Docker build. *)
 let timeout = Duration.of_hour 1
 
-let default_compiler = "4.09"
-
 (* Link for GitHub statuses. *)
-let url ~owner ~name ~hash = Uri.of_string (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s" owner name hash)
+let url ~owner ~name ~hash = Uri.of_string (Printf.sprintf "http://check.ocamllabs.io:8080/github/%s/%s/commit/%s" owner name hash)
 
 let weekly = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
 
 let github_status_of_state ~head result =
-  let+ head = head
-  and+ result = result in
+  let+ result = result in
   let { Github.Repo_id.owner; name } = Github.Api.Commit.repo_id head in
   let hash = Github.Api.Commit.hash head in
   let url = url ~owner ~name ~hash in
@@ -26,76 +22,33 @@ let github_status_of_state ~head result =
   | Error (`Active _) -> Github.Api.Status.v ~url `Pending
   | Error (`Msg m)    -> Github.Api.Status.v ~url `Failure ~description:m
 
-let set_active_refs ~repo xs =
-  let+ repo = repo
-  and+ xs = xs in
-  let repo = Github.Api.Repo.id repo in
-  Index.set_active_refs ~repo (
-    xs |> List.map @@ fun x ->
-    let commit = Github.Api.Commit.id x in
-    let gref = Git.Commit_id.gref commit in
-    let hash = Git.Commit_id.hash commit in
-    (gref, hash)
-  );
-  xs
-
 let job_id x =
   let+ job = Current.Analysis.get x in
   Current.Analysis.job_id job
 
-let lint ~analysis ~src =
-  let base =
-    Conf.Builder_amd1.pull ~schedule:weekly "ocurrent/opam:alpine-3.10-ocaml-4.08"
+let build_with_docker ~analysis src =
+  let+ analysis = analysis in
+  let pkgs = Analyse.Analysis.opam_files analysis in
+  let build (module Docker : Conf.BUILDER) (name, variant) =
+    List.map begin fun pkg ->
+      let dockerfile =
+        let+ base = Docker.pull ~schedule:weekly ("ocurrent/opam:" ^ variant) in
+        Opam_build.dockerfile ~base:(Docker.Image.hash base) ~pkg ~variant
+      in
+      let build = Docker.build ~timeout ~pool:Docker.pool ~pull:false ~dockerfile (`Git src) in
+      let result = Current.map (fun _ -> `Built) build in
+      (pkg^" on "^name, (result, job_id build))
+    end pkgs
   in
-  analysis
-  |> Current.map Analyse.Analysis.ocamlformat_source
-  |> Current.option_map (fun ocamlformat_source ->
-      Lint.v_fmt ~ocamlformat_source ~base ~src
-    )
-  |> Current.map (function
-      | Some () -> `Checked
-      | None -> `Check_skipped
-    )
-
-let build_with_docker ~repo ~analysis src =
-  let info =
-    let+ info = analysis in
-    let opam_files = Analyse.Analysis.opam_files info in
-    if opam_files = [] then failwith "No opam files found!";
-    info
-  in
-  let build (module Docker : Conf.BUILDER) variant =
-    let dockerfile =
-      let+ base = Docker.pull ~schedule:weekly ("ocurrent/opam:" ^ variant)
-      and+ repo = repo
-      and+ info = info in
-      Opam_build.dockerfile ~base:(Docker.Image.hash base) ~info ~repo ~variant
-    in
-    let build = Docker.build ~timeout ~pool:Docker.pool ~pull:false ~dockerfile (`Git src) in
-    let result = Current.map (fun _ -> `Built) build in
-    result, job_id build
-  in
-  let lint_result = lint ~analysis ~src in
-  [
-    (* Compiler versions:*)
-    "4.09", build (module Conf.Builder_amd3) "debian-10-ocaml-4.09";
-    "4.08", build (module Conf.Builder_amd1) "debian-10-ocaml-4.08";
-    "4.07", build (module Conf.Builder_amd2) "debian-10-ocaml-4.07";
-    "4.06", build (module Conf.Builder_amd2) "debian-10-ocaml-4.06";
-    "4.05", build (module Conf.Builder_amd3) "debian-10-ocaml-4.05";
-    "4.04", build (module Conf.Builder_amd3) "debian-10-ocaml-4.04";
-    "4.03", build (module Conf.Builder_amd2) "debian-10-ocaml-4.03";
-    "4.02", build (module Conf.Builder_amd2) "debian-10-ocaml-4.02";
-    (* Distributions: *)
-    "alpine", build (module Conf.Builder_amd1) @@ "alpine-3.10-ocaml-" ^ default_compiler;
-    "ubuntu", build (module Conf.Builder_amd2) @@ "ubuntu-19.04-ocaml-" ^ default_compiler;
-    "opensuse", build (module Conf.Builder_amd2) @@ "opensuse-15.1-ocaml-" ^ default_compiler;
-    "centos", build (module Conf.Builder_amd3) @@ "centos-7-ocaml-" ^ default_compiler;
-    "fedora", build (module Conf.Builder_amd3) @@ "fedora-30-ocaml-" ^ default_compiler;
-    (* oraclelinux doesn't work in opam 2 yet: *)
-    (* build (module Conf.Builder_amd3) @@ "oraclelinux-7-ocaml-" ^ default_compiler; *)
-    "lint", (lint_result, job_id lint_result);
-  ]
+  build (module Conf.Builder_amd1) ("4.10", "debian-10-ocaml-4.10") @
+  build (module Conf.Builder_amd3) ("4.09", "debian-10-ocaml-4.09") @
+  build (module Conf.Builder_amd1) ("4.08", "debian-10-ocaml-4.08") @
+  build (module Conf.Builder_amd2) ("4.07", "debian-10-ocaml-4.07") @
+  build (module Conf.Builder_amd2) ("4.06", "debian-10-ocaml-4.06") @
+  build (module Conf.Builder_amd3) ("4.05", "debian-10-ocaml-4.05") @
+  build (module Conf.Builder_amd3) ("4.04", "debian-10-ocaml-4.04") @
+  build (module Conf.Builder_amd2) ("4.03", "debian-10-ocaml-4.03") @
+  build (module Conf.Builder_amd2) ("4.02", "debian-10-ocaml-4.02")
 
 let list_errors ~ok errs =
   let groups =  (* Group by error message *)
@@ -138,49 +91,40 @@ let summarise results =
     | _, [], _ -> Ok ()                     (* No errors and at least one success *)
     | ok, err, _ -> list_errors ~ok err     (* Some errors found - report *)
 
-let local_test repo () =
-  let src = Git.Local.head_commit repo in
-  let repo = Current.return { Github.Repo_id.owner = "local"; name = "test" }
-  and analysis = Analyse.examine src in
-  Current.component "summarise" |>
-  let** result =
-    build_with_docker ~repo ~analysis src
-    |> List.map (fun (variant, (build, _job)) -> variant, build)
-    |> summarise
-  in
-  Current.of_output result
-
 let v ~app () =
   Github.App.installations app |> Current.list_iter ~pp:Github.Installation.pp @@ fun installation ->
   let repos = Github.Installation.repositories installation in
   repos |> Current.list_iter ~pp:Github.Api.Repo.pp @@ fun repo ->
-  let refs = Github.Api.Repo.ci_refs repo |> set_active_refs ~repo in
+  let refs = Github.Api.Repo.ci_refs repo in
   refs |> Current.list_iter ~pp:Github.Api.Commit.pp @@ fun head ->
-  let src = Git.fetch (Current.map Github.Api.Commit.id head) in
-  let analysis = Analyse.examine src in
-  let builds =
-    let repo = Current.map Github.Api.Repo.id repo in
-    build_with_docker ~repo ~analysis src in
-  let jobs = builds
-             |> List.map (fun (variant, (_build, job)) ->
-                 let+ x = job in
-                 (variant, x)
-               )
-             |> Current.list_seq
-  in
-  let index =
-    let+ commit = head
-    and+ analysis = job_id analysis
-    and+ jobs = jobs in
-    let repo = Current_github.Api.Commit.repo_id commit in
-    let hash = Current_github.Api.Commit.hash commit in
-    Index.record ~repo ~hash @@ ("(analysis)", analysis) :: jobs
-  in
-  let set_status =
-    builds
-    |> List.map (fun (variant, (build, _job)) -> variant, build)
-    |> summarise
-    |> github_status_of_state ~head
-    |> Github.Api.Commit.set_status head "ocaml-ci"
-  in
-  Current.all [index; set_status]
+  let* head = head in
+  begin match Github.Api.Commit.kind head with
+  | `Ref _ -> Current.return () (* Skip branches, only check PRs *)
+  | `PR _ ->
+    let src = Git.fetch (Current.return (Github.Api.Commit.id head)) in
+    let analysis = Analyse.examine src in
+    let builds =
+      build_with_docker ~analysis src in
+    let jobs =
+      let* builds = builds in
+      builds
+      |> List.map (fun (variant, (_build, job)) ->
+          let+ x = job in
+          (variant, x)
+        )
+      |> Current.list_seq
+    in
+    let jobs =
+      let+ _ = jobs in
+      ()
+    in
+    let set_status =
+      let* builds = builds in
+      builds
+      |> List.map (fun (variant, (build, _job)) -> variant, build)
+      |> summarise
+      |> github_status_of_state ~head
+      |> Github.Api.Commit.set_status (Current.return head) "opam-ci"
+    in
+    Current.all [jobs; set_status]
+  end

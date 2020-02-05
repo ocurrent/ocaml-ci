@@ -1,7 +1,7 @@
 (executables
- (names main local)
- (package ocaml-ci-service)
- (public_names ocaml-ci-service ocaml-ci-local)
+ (names main)
+ (package opam-ci)
+ (public_names opam-ci)
  (libraries logs.fmt
             fmt.tty
             current
