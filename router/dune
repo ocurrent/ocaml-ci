@@ -1,4 +1,0 @@
-(executable
-  (name main)
-  (libraries
-    cohttp-lwt-unix))
