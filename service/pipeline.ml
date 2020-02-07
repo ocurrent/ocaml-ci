@@ -1,4 +1,5 @@
 open Current.Syntax
+open Ocaml_ci
 
 module Git = Current_git
 module Github = Current_github
@@ -21,6 +22,19 @@ let github_status_of_state ~head result =
   | Ok _              -> Github.Api.Status.v ~url `Success ~description:"Passed"
   | Error (`Active _) -> Github.Api.Status.v ~url `Pending
   | Error (`Msg m)    -> Github.Api.Status.v ~url `Failure ~description:m
+
+let set_active_refs ~repo xs =
+  let+ repo = repo
+  and+ xs = xs in
+  let repo = Github.Api.Repo.id repo in
+  Index.set_active_refs ~repo (
+    xs |> List.map @@ fun x ->
+    let commit = Github.Api.Commit.id x in
+    let gref = Git.Commit_id.gref commit in
+    let hash = Git.Commit_id.hash commit in
+    (gref, hash)
+  );
+  xs
 
 let job_id x =
   let+ job = Current.Analysis.get x in
@@ -95,7 +109,7 @@ let v ~app () =
   Github.App.installations app |> Current.list_iter ~pp:Github.Installation.pp @@ fun installation ->
   let repos = Github.Installation.repositories installation in
   repos |> Current.list_iter ~pp:Github.Api.Repo.pp @@ fun repo ->
-  let refs = Github.Api.Repo.ci_refs repo in
+  let refs = Github.Api.Repo.ci_refs repo |> set_active_refs ~repo in
   refs |> Current.list_iter ~pp:Github.Api.Commit.pp @@ fun head ->
   let* head = head in
   begin match Github.Api.Commit.kind head with
@@ -114,9 +128,13 @@ let v ~app () =
         )
       |> Current.list_seq
     in
-    let jobs =
-      let+ _ = jobs in
-      ()
+    let index =
+      let commit = head in
+      let+ analysis = job_id analysis
+      and+ jobs = jobs in
+      let repo = Current_github.Api.Commit.repo_id commit in
+      let hash = Current_github.Api.Commit.hash commit in
+      Index.record ~repo ~hash @@ ("(analysis)", analysis) :: jobs
     in
     let set_status =
       let* builds = builds in
@@ -126,5 +144,5 @@ let v ~app () =
       |> github_status_of_state ~head
       |> Github.Api.Commit.set_status (Current.return head) "opam-ci"
     in
-    Current.all [jobs; set_status]
+    Current.all [index; set_status]
   end
