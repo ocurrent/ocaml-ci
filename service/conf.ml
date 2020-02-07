@@ -42,5 +42,5 @@ module Builder(C : sig val docker_context : string end) : BUILDER = struct
 end
 
 module Builder_amd1 = Builder(struct let docker_context = "default" end)
-module Builder_amd2 = Builder(struct let docker_context = "laodoke" end)
-module Builder_amd3 = Builder(struct let docker_context = "phoebe" end)
+module Builder_amd2 = Builder(struct let docker_context = "default" end)
+module Builder_amd3 = Builder(struct let docker_context = "default" end)
