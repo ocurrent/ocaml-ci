@@ -23,4 +23,5 @@ depends: [
   "ocaml-ci-api"
   "conf-libev"
   "dockerfile"
+  "ppx_deriving_yojson"
 ]
