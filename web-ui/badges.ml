@@ -2,16 +2,18 @@ type schema = {
   schema_version : int; [@key "schemaVersion"]  (** always: 1 *)
   label : string;
   message : string;
-  color : string option;  (** default: "lightgrey" *)
-  label_color : string option; [@key "labelColor"]  (** default: "grey" *)
-  is_error : bool option; [@key "isError"]  (** default: false *)
-  named_logo : string option; [@key "namedLogo"]  (** default: none *)
-  logo_svg : string option; [@key "logoSvg"]  (** default: none *)
-  logo_color : string option; [@key "logoColor"]  (** default: none *)
-  logo_width : string option; [@key "logoWidth"]  (** default: none *)
-  logo_position : string option; [@key "logoPosition"]  (** default: none *)
-  style : string option;  (** default: "flat" *)
-  cache_seconds : int option;  (** default: 300 *)
+  color : string option; [@default None]  (** default: "lightgrey" *)
+  label_color : string option; [@key "labelColor"] [@default None]
+      (** default: "grey" *)
+  is_error : bool option; [@key "isError"] [@default None]
+      (** default: false *)
+  named_logo : string option; [@key "namedLogo"] [@default None]
+  logo_svg : string option; [@key "logoSvg"] [@default None]
+  logo_color : string option; [@key "logoColor"] [@default None]
+  logo_width : string option; [@key "logoWidth"] [@default None]
+  logo_position : string option; [@key "logoPosition"] [@default None]
+  style : string option; [@default None]  (** default: "flat" *)
+  cache_seconds : int option; [@default None]  (** default: 300 *)
 }
 [@@deriving yojson]
 (** Extracted from https://shields.io/endpoint. *)
