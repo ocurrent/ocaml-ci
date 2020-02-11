@@ -1,3 +1,7 @@
+# OCaml-CI
+
+[![OCaml-CI Build Status](https://img.shields.io/endpoint?url=https%3A%2F%2Fci.ocamllabs.io%2Fbadge%2Focurrent%2Focaml-ci%2Fmaster&logo=ocaml)](https://ci.ocamllabs.io/github/ocurrent/ocaml-ci)
+
 Status: **experimental**
 
 This is an [OCurrent][] pipeline that provides CI for OCaml projects hosted on GitHub.
