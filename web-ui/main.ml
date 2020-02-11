@@ -25,6 +25,8 @@ let handle_request ~backend _conn request _body =
     Style.get () |> normal_response
   | meth, ("github" :: path) ->
     Github.handle ~backend ~meth path
+  | `GET, ("badge" :: path) ->
+     Badges.handle ~backend ~path
   | _ ->
     Server.respond_not_found () |> normal_response
 

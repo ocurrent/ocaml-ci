@@ -105,4 +105,21 @@ module Commit = struct
     let open Raw.Client.Commit.Refs in
     let request = Capability.Request.create_no_args () in
     Capability.call_for_value t method_id request |> Lwt_result.map Results.refs_get_list
+
+  let ( >> ) f g x = g (f x)
+
+  let (>>=) = Lwt_result.bind_result
+
+  let status t =
+    let open Raw.Client.Commit.Status in
+    let request = Capability.Request.create_no_args () in
+    Capability.call_for_value t method_id request
+    >>= (Results.status_get
+         >> function
+           | NotStarted -> Ok (`Not_started)
+           | Passed -> Ok (`Passed)
+           | Failed -> Ok (`Failed)
+           | Pending -> Ok (`Pending)
+           | Undefined i -> Error (`Msg (Fmt.strf "client.states: undefined state %d" i))
+        )
 end

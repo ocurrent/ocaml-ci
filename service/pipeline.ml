@@ -143,19 +143,29 @@ let v ~app () =
                )
              |> Current.list_seq
   in
-  let index =
-    let+ commit = head
-    and+ analysis = job_id analysis
-    and+ jobs = jobs in
-    let repo = Current_github.Api.Commit.repo_id commit in
-    let hash = Current_github.Api.Commit.hash commit in
-    Index.record ~repo ~hash @@ ("(analysis)", analysis) :: jobs
-  in
-  let set_status =
+  let summary =
     builds
     |> List.map (fun (variant, (build, _job)) -> variant, build)
     |> summarise
+  in
+  let status =
+    let+ summary = summary in
+    match summary with
+    | Ok () -> `Passed
+    | Error (`Active `Running) -> `Pending
+    | Error (`Msg _) -> `Failed
+  in
+  let index =
+    let+ commit = head
+    and+ analysis = job_id analysis
+    and+ jobs = jobs
+    and+ status = status in
+    let repo = Current_github.Api.Commit.repo_id commit in
+    let hash = Current_github.Api.Commit.hash commit in
+    Index.record ~repo ~hash ~status @@ ("(analysis)", analysis) :: jobs
+  and set_github_status =
+    summary
     |> github_status_of_state ~head
     |> Github.Api.Commit.set_status head "ocaml-ci"
   in
-  Current.all [index; set_status]
+  Current.all [index; set_github_status]

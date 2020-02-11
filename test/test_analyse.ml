@@ -6,7 +6,7 @@ module Analysis = struct
   type ocamlformat_source = Ocaml_ci.Analyse_ocamlformat.source =
     | Opam of { version : string }
     | Vendored of { path : string }
-  [@@deriving yojson,eq]
+  [@@deriving yojson, eq]
 
   let set_equality = Alcotest.(equal (slist string String.compare))
 

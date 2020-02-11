@@ -27,6 +27,9 @@ module Commit : sig
 
   val refs : t -> (git_ref list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
   (** [refs t] is the list of Git references that have this commit as their head. *)
+
+  val status : t -> ([ `Not_started | `Pending | `Failed | `Passed ], [> `Capnp of Capnp_rpc.Error.t | `Msg of string]) Lwt_result.t
+  (** [status t] is the result of the most-recent 'summarise' step on this commit. *)
 end
 
 module Repo : sig
