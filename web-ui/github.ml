@@ -54,6 +54,7 @@ let css = {|
   .statuses > li.passed:before { content: "✓"; color:green; }
   .statuses > li.active:before { content: "●"; color:orange; }
   .statuses > li.undefined:before { content: "?"; color:grey; }
+  .statuses > li.skipped:before { content: "╳"; color:red; }
 |}
 
 let breadcrumbs steps page_title =
@@ -76,6 +77,7 @@ let statuses ss =
       match (s : Client.State.t) with
       | NotStarted -> "not-started"
       | Aborted -> "aborted"
+      | Failed m when Astring.String.is_prefix ~affix:"[SKIP]" m -> "skipped"
       | Failed _ -> "failed"
       | Passed -> "passed"
       | Active -> "active"
