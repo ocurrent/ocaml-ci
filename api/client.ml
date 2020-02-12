@@ -6,20 +6,25 @@ type variant = string
 
 module Ref_map = Map.Make(String)
 
+module State = struct
+  open Raw.Reader.JobInfo.State
+
+  type t = Raw.Reader.JobInfo.State.unnamed_union_t
+
+  let pp f =
+    function
+    | NotStarted -> Fmt.string f "not started"
+    | Aborted -> Fmt.string f "aborted"
+    | Failed m -> Fmt.pf f "failed: %s" m
+    | Passed -> Fmt.string f "passed"
+    | Active -> Fmt.string f "active"
+    | Undefined x -> Fmt.pf f "unknown:%d" x
+end
+
 type job_info = {
   variant : variant;
-  outcome : Raw.Reader.JobInfo.State.unnamed_union_t;
+  outcome : State.t;
 }
-
-let pp_state f =
-  let open Raw.Reader.JobInfo.State in
-  function
-  | NotStarted -> Fmt.string f "not started"
-  | Aborted -> Fmt.string f "aborted"
-  | Failed m -> Fmt.pf f "failed: %s" m
-  | Passed -> Fmt.string f "passed"
-  | Active -> Fmt.string f "active"
-  | Undefined x -> Fmt.pf f "unknown:%d" x
 
 module CI = struct
   type t = Raw.Client.CI.t Capability.t

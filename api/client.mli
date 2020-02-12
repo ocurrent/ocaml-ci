@@ -9,12 +9,16 @@ type variant = string
 
 module Ref_map : Map.S with type key = git_ref
 
+module State : sig
+  type t = Raw.Reader.JobInfo.State.unnamed_union_t
+
+  val pp : t Fmt.t
+end
+
 type job_info = {
   variant : variant;
-  outcome : Raw.Reader.JobInfo.State.unnamed_union_t;
+  outcome : State.t;
 }
-
-val pp_state : Raw.Reader.JobInfo.State.unnamed_union_t Fmt.t
 
 module Commit : sig
   type t = Raw.Client.Commit.t Capability.t
