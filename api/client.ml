@@ -9,7 +9,7 @@ module Ref_map = Map.Make(String)
 module State = struct
   open Raw.Reader.JobInfo.State
 
-  type t = Raw.Reader.JobInfo.State.unnamed_union_t
+  type t = unnamed_union_t
 
   let pp f =
     function

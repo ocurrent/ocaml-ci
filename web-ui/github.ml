@@ -72,7 +72,7 @@ let breadcrumbs steps page_title =
 let statuses ss =
   let open Tyxml.Html in
   let render_status (s, elms) =
-    let s_class =
+    let status_class_name =
       match (s : Client.State.t) with
       | NotStarted -> "not-started"
       | Aborted -> "aborted"
@@ -81,7 +81,7 @@ let statuses ss =
       | Active -> "active"
       | Undefined _ -> "undefined"
     in
-    li ~a:[a_class [s_class]] elms
+    li ~a:[a_class [status_class_name]] elms
   in
   ul ~a:[a_class ["statuses"]] (List.map render_status ss)
 
