@@ -85,7 +85,7 @@ let list_refs repo =
     Client.Ref_map.iter (fun gref hash -> Fmt.pr "%s %s@." hash gref) refs
 
 let pp_job f { Client.variant; outcome } =
-  Fmt.pf f "%s (%a)" variant Client.pp_state outcome
+  Fmt.pf f "%s (%a)" variant Client.State.pp outcome
 
 let list_variants commit =
   Client.Commit.jobs commit |> Lwt_result.map @@ function
