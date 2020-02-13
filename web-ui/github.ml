@@ -54,7 +54,7 @@ let css = {|
   .statuses > li.passed:before { content: "✓"; color:green; }
   .statuses > li.active:before { content: "●"; color:orange; }
   .statuses > li.undefined:before { content: "?"; color:grey; }
-  .statuses > li.skipped:before { content: "✓"; color:grey; }
+  .statuses > li.skipped:before { content: "–"; color:grey; }
 |}
 
 let breadcrumbs steps page_title =
