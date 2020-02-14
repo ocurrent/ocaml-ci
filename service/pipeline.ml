@@ -100,7 +100,7 @@ let summarise results =
   |> Current.list_seq
   |> Current.map @@ fun results ->
   results |> List.fold_left (fun (ok, pending, err, skip) -> function
-      | _, Ok (`Checked | `Check_skipped) -> (ok, pending, err, skip)  (* Don't count lint checks *)
+      | _, Ok `Checked -> (ok, pending, err, skip)  (* Don't count lint checks *)
       | _, Ok `Built -> (ok + 1, pending, err, skip)
       | l, Error `Msg m when Astring.String.is_prefix ~affix:"[SKIP]" m -> (ok, pending, err, (m, l) :: skip)
       | l, Error `Msg m -> (ok, pending, (m, l) :: err, skip)
