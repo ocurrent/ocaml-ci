@@ -22,3 +22,14 @@ depends: [
   "conf-libev"
   "dockerfile" {>= "6.3.0"}
 ]
+pin-depends: [
+  ["current.dev" "git+https://github.com/ocurrent/ocurrent.git#5814658ee0bc885c0e3b2417fe9fcfd8d30d0a08"]
+  ["current_ansi.dev" "git+https://github.com/ocurrent/ocurrent.git#5814658ee0bc885c0e3b2417fe9fcfd8d30d0a08"]
+  ["current_docker.dev" "git+https://github.com/ocurrent/ocurrent.git#5814658ee0bc885c0e3b2417fe9fcfd8d30d0a08"]
+  ["current_examples.dev" "git+https://github.com/ocurrent/ocurrent.git#5814658ee0bc885c0e3b2417fe9fcfd8d30d0a08"]
+  ["current_git.dev" "git+https://github.com/ocurrent/ocurrent.git#5814658ee0bc885c0e3b2417fe9fcfd8d30d0a08"]
+  ["current_github.dev" "git+https://github.com/ocurrent/ocurrent.git#5814658ee0bc885c0e3b2417fe9fcfd8d30d0a08"]
+  ["current_rpc.dev" "git+https://github.com/ocurrent/ocurrent.git#5814658ee0bc885c0e3b2417fe9fcfd8d30d0a08"]
+  ["current_slack.dev" "git+https://github.com/ocurrent/ocurrent.git#5814658ee0bc885c0e3b2417fe9fcfd8d30d0a08"]
+  ["current_web.dev" "git+https://github.com/ocurrent/ocurrent.git#5814658ee0bc885c0e3b2417fe9fcfd8d30d0a08"]
+]
