@@ -11,7 +11,7 @@ homepage: "https://github.com/ocurrent/ocaml-ci"
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
 synopsis: "Web-server frontend for ocaml-ci"
 depends: [
-  "dune" {>= "1.11"}
+  "dune" {>= "1.11" & < "2.2.0"}
   "current_rpc"
   "current_ansi"
   "prometheus-app"
