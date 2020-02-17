@@ -11,7 +11,7 @@ homepage: "https://github.com/ocurrent/ocaml-ci"
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
 synopsis: "Test OCaml projects on GitHub"
 depends: [
-  "dune" {>= "1.11"}
+  "dune" {>= "1.11" & < "2.2.0"}
   "current_git"
   "current_github"
   "current_docker"
@@ -21,4 +21,6 @@ depends: [
   "ocaml-ci-api"
   "conf-libev"
   "dockerfile" {>= "6.3.0"}
+  "alcotest" {< "1.0.0" & with-test}
+  "alcotest-lwt" {with-test}
 ]

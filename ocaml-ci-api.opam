@@ -11,11 +11,9 @@ homepage: "https://github.com/ocurrent/ocaml-ci"
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
 synopsis: "Cap'n Proto API for ocaml-ci"
 depends: [
-  "dune" {>= "1.11"}
+  "dune" {>= "1.11" & < "2.2.0"}
   "current_rpc"
   "capnp" {>= "3.4.0"}
   "capnp-rpc-lwt"
   "dockerfile"
-  "alcotest" {with-test}
-  "alcotest-lwt" {with-test}
 ]
