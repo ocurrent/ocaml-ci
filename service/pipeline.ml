@@ -65,7 +65,7 @@ let build_with_docker ~repo ~analysis source =
     "alpine", build (module Conf.Builder_amd1) @@ "alpine-3.10-ocaml-" ^ default_compiler;
     "ubuntu", build (module Conf.Builder_amd2) @@ "ubuntu-19.04-ocaml-" ^ default_compiler;
     "opensuse", build (module Conf.Builder_amd2) @@ "opensuse-15.1-ocaml-" ^ default_compiler;
-    "centos", build (module Conf.Builder_amd3) @@ "centos-7-ocaml-" ^ default_compiler;
+    "centos", build (module Conf.Builder_amd3) @@ "centos-8-ocaml-" ^ default_compiler;
     "fedora", build (module Conf.Builder_amd3) @@ "fedora-30-ocaml-" ^ default_compiler;
     (* oraclelinux doesn't work in opam 2 yet: *)
     (* build (module Conf.Builder_amd3) @@ "oraclelinux-7-ocaml-" ^ default_compiler; *)
