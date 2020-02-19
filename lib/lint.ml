@@ -31,7 +31,7 @@ module Make (Docker : S.DOCKER_CONTEXT) = struct
   let fmt_base_image ~base ~ocamlformat_source ~source =
     let dockerfile =
       let+ base = base and+ ocamlformat_source = ocamlformat_source in
-      fmt_dockerfile ~base ~ocamlformat_source
+      `Contents (fmt_dockerfile ~base ~ocamlformat_source)
     in
     Docker.build ~label:"fmt" ~dockerfile source
 
