@@ -1,4 +1,5 @@
 opam-version: "2.0"
+synopsis: "Command-line client for ocaml-ci"
 build: [
   ["dune" "build" "-p" name "-j" jobs]
   ["dune" "runtest" "-p" name "-j" jobs] {with-test}
@@ -6,10 +7,8 @@ build: [
 ]
 maintainer: ["talex5@gmail.com"]
 authors: ["talex5@gmail.com"]
-bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 homepage: "https://github.com/ocurrent/ocaml-ci"
-dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
-synopsis: "Command-line client for ocaml-ci"
+bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
   "dune" {>= "1.11" & < "2.2.0"}
   "current_rpc"
@@ -17,3 +16,4 @@ depends: [
   "ocaml-ci-api"
   "dockerfile"
 ]
+dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"

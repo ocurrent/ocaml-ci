@@ -4,12 +4,11 @@ build: [
   ["dune" "runtest" "-p" name "-j" jobs] {with-test}
   ["dune" "build" "-p" name "@doc"] {with-doc}
 ]
+synopsis: "Cap'n Proto API for ocaml-ci"
 maintainer: ["talex5@gmail.com"]
 authors: ["talex5@gmail.com"]
-bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 homepage: "https://github.com/ocurrent/ocaml-ci"
-dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
-synopsis: "Cap'n Proto API for ocaml-ci"
+bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
   "dune" {>= "1.11" & < "2.2.0"}
   "current_rpc"
@@ -17,3 +16,4 @@ depends: [
   "capnp-rpc-lwt"
   "dockerfile"
 ]
+dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
