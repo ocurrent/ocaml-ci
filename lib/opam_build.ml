@@ -99,7 +99,7 @@ let dockerfile { base; info; repo; variant} =
   crunch_list (List.map (fun pkg ->
       run {|test "$(opam show -f depexts: %s)" = "$(printf "\n")" || opam depext -ty %s|} pkg pkg) pkgs
     ) @@
-  run "opam pin remove $(opam pin -s) -n" @@
+  (if Analyse.Analysis.is_duniverse info then run "opam pin remove $(opam pin -s) -n" else empty) @@
   build_cmd
 
 let cache = Hashtbl.create 10000
