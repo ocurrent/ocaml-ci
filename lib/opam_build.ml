@@ -85,7 +85,7 @@ let dockerfile { base; info; repo; variant} =
       run "%s opam exec -- dune build @doc" caches
     else
       copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
-      run "%s opam install -tv ." caches
+      run "opam exec -- dune build @install @runtest && rm -rf _build"
   in
   comment "syntax = docker/dockerfile:experimental@sha256:ee85655c57140bd20a5ebc3bb802e7410ee9ac47ca92b193ed0ab17485024fe5" @@
   from base @@
