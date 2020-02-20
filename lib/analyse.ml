@@ -39,6 +39,8 @@ module Analysis = struct
 
   let ocamlformat_source t = t.ocamlformat_source
 
+  let is_test_dir = Astring.String.is_prefix ~affix:"test"
+
   let of_dir ~job dir =
     let is_duniverse = is_directory (Filename.concat (Fpath.to_string dir) "duniverse") in
     let cmd = "", [| "find"; "."; "-maxdepth"; "3"; "-name"; "*.opam" |] in
@@ -58,7 +60,12 @@ module Analysis = struct
               match Fpath.v path |> Fpath.segs with
               | [_file] -> true
               | ["duniverse"; _pkg; _file] -> true
-              | _ -> Current.Job.log job "WARNING: ignoring opam file %S as not in root or duniverse subdir" path; false
+              | _ when is_duniverse ->
+                Current.Job.log job "WARNING: ignoring opam file %S as not in root or duniverse subdir" path; false
+              | segs when List.exists is_test_dir segs ->
+                Current.Job.log job "Ignoring test directory %S" path;
+                false
+              | _ -> true
             in
             let full_path = Filename.concat (Fpath.to_string dir) path in
             if is_empty_file full_path then (
