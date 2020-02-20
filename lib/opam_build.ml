@@ -128,7 +128,7 @@ let v (type s) ~docker:(module Docker : S.DOCKER_CONTEXT with type source = s)
     let+ base = Docker.pull ~schedule ("ocurrent/opam:" ^ variant)
     and+ repo = repo
     and+ info = info in
-    dockerfile ~base:(Docker.image_hash base) ~info ~repo ~variant
+    `Contents (dockerfile ~base:(Docker.image_hash base) ~info ~repo ~variant)
   in
   let build = Docker.build ~dockerfile source in
   Current.map (fun _ -> `Built) build

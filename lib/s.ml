@@ -9,7 +9,7 @@ module type DOCKER_CONTEXT = sig
 
   val build :
     ?label:string ->
-    dockerfile:Dockerfile.t Current.t ->
+    dockerfile:[`Contents of Dockerfile.t | `File of Fpath.t] Current.t ->
     source ->
     image Current.t
 
