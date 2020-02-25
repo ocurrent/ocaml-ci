@@ -16,6 +16,14 @@ let build_cache repo =
     "--mount=type=cache,target=/src/_build,uid=1000,sharing=private,id=dune:%s:%s"
     owner name
 
+(* If the package's directory name doesn't contain a dot then opam will default to
+   using the last known version, which is usually wrong. In particular, if a multi-project
+   repostory adds a new package with a constraint "{ =version }" on an existing one,
+   this will fail because opam will pin the new package as "dev" but the old one with
+   the version of its last release. *)
+let maybe_add_dev name =
+  if String.contains name '.' then name else name ^ ".dev"
+
 (* Group opam files by directory.
    e.g. ["a/a1.opam"; "a/a2.opam"; "b/b1.opam"] ->
         [("a", ["a/a1.opam"; "a/a2.opam"], ["a1.dev"; "a2.dev"]);
@@ -25,7 +33,7 @@ let group_opam_files =
   ListLabels.fold_left ~init:[] ~f:(fun acc x ->
       let item = Fpath.v x in
       let dir = Fpath.parent item in
-      let pkg = Filename.basename x |> Filename.chop_extension in
+      let pkg = Filename.basename x |> Filename.chop_extension |> maybe_add_dev in
       match acc with
       | (prev_dir, prev_items, pkgs) :: rest when Fpath.equal dir prev_dir -> (prev_dir, x :: prev_items, pkg :: pkgs) :: rest
       | _ -> (dir, [x], [pkg]) :: acc
