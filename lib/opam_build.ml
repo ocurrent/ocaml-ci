@@ -21,8 +21,8 @@ let build_cache repo =
    repostory adds a new package with a constraint "{ =version }" on an existing one,
    this will fail because opam will pin the new package as "dev" but the old one with
    the version of its last release. *)
-let maybe_add_dev name =
-  if String.contains name '.' then name else name ^ ".dev"
+let maybe_add_dev ~dir name =
+  if Fpath.is_current_dir dir || not (String.contains (Fpath.basename dir) '.') then name ^ ".dev" else name
 
 (* Group opam files by directory.
    e.g. ["a/a1.opam"; "a/a2.opam"; "b/b1.opam"] ->
@@ -33,7 +33,7 @@ let group_opam_files =
   ListLabels.fold_left ~init:[] ~f:(fun acc x ->
       let item = Fpath.v x in
       let dir = Fpath.parent item in
-      let pkg = Filename.basename x |> Filename.chop_extension |> maybe_add_dev in
+      let pkg = Filename.basename x |> Filename.chop_extension |> maybe_add_dev ~dir in
       match acc with
       | (prev_dir, prev_items, pkgs) :: rest when Fpath.equal dir prev_dir -> (prev_dir, x :: prev_items, pkg :: pkgs) :: rest
       | _ -> (dir, [x], [pkg]) :: acc
