@@ -12,7 +12,7 @@
  (name ocaml-ci-api)
  (synopsis "Cap'n Proto API for ocaml-ci")
  (depends
-  (dune (and (>= "1.11") (< 2.2.0)))
+  (dune (>= "1.11"))
   current_rpc
   (capnp (>= 3.4.0))
   capnp-rpc-lwt
@@ -22,7 +22,7 @@
  (name ocaml-ci-service)
  (synopsis "Test OCaml projects on GitHub")
  (depends
-  (dune (and (>= "1.11") (< 2.2.0)))
+  (dune (>= "1.11"))
   current_git
   current_github
   current_docker
@@ -40,7 +40,7 @@
  (name ocaml-ci-web)
  (synopsis "Web-server frontend for ocaml-ci")
  (depends
-  (dune (and (>= "1.11") (< 2.2.0)))
+  (dune (>= "1.11"))
   current_rpc
   current_ansi
   prometheus-app
@@ -59,7 +59,7 @@
  (name ocaml-ci-client)
  (synopsis "Command-line client for ocaml-ci")
  (depends
-  (dune (and (>= "1.11") (< 2.2.0)))
+  (dune (>= "1.11"))
   current_rpc
   capnp-rpc-unix
   ocaml-ci-api
