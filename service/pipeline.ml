@@ -104,44 +104,49 @@ let summarise results =
     | _, [], _ -> Ok ()                     (* No errors and at least one success *)
     | ok, err, _ -> list_errors ~ok err     (* Some errors found - report *)
 
+let get_prs repo =
+  let* refs = Github.Api.Repo.ci_refs repo in
+  List.fold_left begin fun acc head ->
+    let+ acc = acc in
+    match Github.Api.Commit.kind head with
+    | `Ref _ -> acc (* Skip branches, only check PRs *)
+    | `PR _ -> head :: acc
+  end (Current.return []) refs
+
 let v ~app () =
   Github.App.installations app |> Current.list_iter ~pp:Github.Installation.pp @@ fun installation ->
   let repos = Github.Installation.repositories installation in
   repos |> Current.list_iter ~pp:Github.Api.Repo.pp @@ fun repo ->
-  let refs = Github.Api.Repo.ci_refs repo |> set_active_refs ~repo in
-  refs |> Current.list_iter ~pp:Github.Api.Commit.pp @@ fun head ->
+  let prs = get_prs repo |> set_active_refs ~repo in
+  prs |> Current.list_iter ~pp:Github.Api.Commit.pp @@ fun head ->
   let* head = head in
-  begin match Github.Api.Commit.kind head with
-  | `Ref _ -> Current.return () (* Skip branches, only check PRs *)
-  | `PR _ ->
-    let src = Git.fetch (Current.return (Github.Api.Commit.id head)) in
-    let analysis = Analyse.examine src in
-    let builds =
-      build_with_docker ~analysis src in
-    let jobs =
-      let* builds = builds in
-      builds
-      |> List.map (fun (variant, (_build, job)) ->
-          let+ x = job in
-          (variant, x)
-        )
-      |> Current.list_seq
-    in
-    let index =
-      let commit = head in
-      let+ analysis = job_id analysis
-      and+ jobs = jobs in
-      let repo = Current_github.Api.Commit.repo_id commit in
-      let hash = Current_github.Api.Commit.hash commit in
-      Ocaml_ci.Index.record ~repo ~hash @@ ("(analysis)", analysis) :: jobs
-    in
-    let set_status =
-      let* builds = builds in
-      builds
-      |> List.map (fun (variant, (build, _job)) -> variant, build)
-      |> summarise
-      |> github_status_of_state ~head
-      |> Github.Api.Commit.set_status (Current.return head) "opam-ci"
-    in
-    Current.all [index; set_status]
-  end
+  let src = Git.fetch (Current.return (Github.Api.Commit.id head)) in
+  let analysis = Analyse.examine src in
+  let builds =
+    build_with_docker ~analysis src in
+  let jobs =
+    let* builds = builds in
+    builds
+    |> List.map (fun (variant, (_build, job)) ->
+      let+ x = job in
+      (variant, x)
+    )
+    |> Current.list_seq
+  in
+  let index =
+    let commit = head in
+    let+ analysis = job_id analysis
+    and+ jobs = jobs in
+    let repo = Current_github.Api.Commit.repo_id commit in
+    let hash = Current_github.Api.Commit.hash commit in
+    Ocaml_ci.Index.record ~repo ~hash @@ ("(analysis)", analysis) :: jobs
+  in
+  let set_status =
+    let* builds = builds in
+    builds
+    |> List.map (fun (variant, (build, _job)) -> variant, build)
+    |> summarise
+    |> github_status_of_state ~head
+    |> Github.Api.Commit.set_status (Current.return head) "opam-ci"
+  in
+  Current.all [index; set_status]
