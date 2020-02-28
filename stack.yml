@@ -13,7 +13,7 @@ services:
       - "CI_PROFILE=production"
       - "DOCKER_BUILDKIT=1"
     ports:
-      - '80:8080'
+      - '8080:8080'
     volumes:
       - 'data:/var/lib/ocurrent'
       - '/var/run/docker.sock:/var/run/docker.sock'
@@ -26,7 +26,7 @@ services:
     image: ocaml-ci-web
     command: --backend /capnp-secrets/ocaml-ci-admin.cap --listen-prometheus=9090
     ports:
-      - '8080:8090'
+      - '80:8090'
     volumes:
       - 'capnp-secrets:/capnp-secrets:ro'
     sysctls:
