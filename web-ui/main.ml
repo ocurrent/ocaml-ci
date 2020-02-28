@@ -16,6 +16,7 @@ let handle_request ~backend _conn request _body =
   let meth = Cohttp.Request.meth request in
   let uri = Cohttp.Request.uri request in
   let path = Uri.path uri in
+  let path = Uri.pct_decode path in
   Log.info (fun f -> f "HTTP %s %S" (Cohttp.Code.string_of_method meth) path);
   match meth, String.cuts ~sep:"/" ~empty:false path with
   | `GET, ([] | ["index.html"]) ->
