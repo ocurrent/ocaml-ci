@@ -7,15 +7,13 @@ secrets:
     external: true
 services:
   ci:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: --github-app-id 52344 --github-private-key-file /run/secrets/ocaml-ci-github-key --github-account-whitelist "kit-ty-kate" --confirm above-average --confirm-auto-release 120 --capnp-address=tcp:check.ocamllabs.io:8102
+    image: ocaml-ci-service
+    command: --github-app-id 52344 --github-private-key-file /run/secrets/ocaml-ci-github-key --github-account-whitelist "kit-ty-kate" --confirm above-average --confirm-auto-release 120 --capnp-address=tcp:ci:9000
     environment:
       - "CI_PROFILE=production"
       - "DOCKER_BUILDKIT=1"
     ports:
-      - '8102:8080'
+      - '80:8080'
     volumes:
       - 'data:/var/lib/ocurrent'
       - '/var/run/docker.sock:/var/run/docker.sock'
@@ -25,10 +23,10 @@ services:
     sysctls:
       - 'net.ipv4.tcp_keepalive_time=60'
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile.web
+    image: ocaml-ci-web
     command: --backend /capnp-secrets/ocaml-ci-admin.cap --listen-prometheus=9090
+    ports:
+      - '8080:8090'
     volumes:
       - 'capnp-secrets:/capnp-secrets:ro'
     sysctls:
