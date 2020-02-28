@@ -8,7 +8,7 @@ module Docker = Current_docker.Default
 let timeout = Duration.of_hour 1
 
 (* Link for GitHub statuses. *)
-let url ~owner ~name ~hash = Uri.of_string (Printf.sprintf "http://check.ocamllabs.io:8080/github/%s/%s/commit/%s" owner name hash)
+let url ~owner ~name ~hash = Uri.of_string (Printf.sprintf "http://147.75.80.95/github/%s/%s/commit/%s" owner name hash)
 
 let weekly = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
 
