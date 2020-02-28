@@ -1,6 +1,6 @@
-FROM ocurrent/opam:debian-10-ocaml-4.08 AS build
+FROM ocurrent/opam:debian-10-ocaml-4.10 AS build
 RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libsqlite3-dev libgmp-dev -y --no-install-recommends
-RUN cd ~/opam-repository && git pull origin master && git reset --hard c20fd2e06a93a123d4fe407a611c35a05670af83 && opam update
+RUN cd ~/opam-repository && git pull origin master && git reset --hard 65eb41e72e359f74a45563720c584eb9646ff2be && opam update
 COPY --chown=opam \
 	ocurrent/current.opam \
 	ocurrent/current_web.opam \
@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install docker-ce -y --no-install-recommends
 WORKDIR /var/lib/ocurrent
 ENTRYPOINT ["dumb-init", "/usr/local/bin/ocaml-ci-service"]
 RUN mkdir /root/.ssh && chmod 0700 /root/.ssh && ln -s /run/secrets/ocaml-ci-ssh-key /root/.ssh/id_rsa
+ENV OCAMLRUNPARAM=a=2
 COPY builder-config/known_hosts /root/.ssh/known_hosts
 COPY builder-config/docker /root/.docker
 COPY --from=build /src/_build/install/default/bin/ocaml-ci-service /usr/local/bin/
