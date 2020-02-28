@@ -1,5 +1,4 @@
 open Current.Syntax
-open Ocaml_ci
 
 module Git = Current_git
 module Github = Current_github
@@ -27,7 +26,7 @@ let set_active_refs ~repo xs =
   let+ repo = repo
   and+ xs = xs in
   let repo = Github.Api.Repo.id repo in
-  Index.set_active_refs ~repo (
+  Ocaml_ci.Index.set_active_refs ~repo (
     xs |> List.map @@ fun x ->
     let commit = Github.Api.Commit.id x in
     let gref = Git.Commit_id.gref commit in
@@ -134,7 +133,7 @@ let v ~app () =
       and+ jobs = jobs in
       let repo = Current_github.Api.Commit.repo_id commit in
       let hash = Current_github.Api.Commit.hash commit in
-      Index.record ~repo ~hash @@ ("(analysis)", analysis) :: jobs
+      Ocaml_ci.Index.record ~repo ~hash @@ ("(analysis)", analysis) :: jobs
     in
     let set_status =
       let* builds = builds in
