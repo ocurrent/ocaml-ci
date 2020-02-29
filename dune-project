@@ -32,8 +32,8 @@
   ocaml-ci-api
   conf-libev
   (dockerfile (>= 6.3.0))
-  (alcotest (and (< 1.0.0) :with-test))
-  (alcotest-lwt :with-test)
+  (alcotest (and (>= 1.0.0) :with-test))
+  (alcotest-lwt (and (>= 1.0.1) :with-test))
 ))
 
 (package
