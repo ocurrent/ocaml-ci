@@ -109,6 +109,18 @@ let get_prs repo =
     | `PR _ -> head :: acc
   end (Current.return []) refs
 
+let local_test repo () =
+  let src = Git.Local.head_commit repo in
+  let analysis = Analyse.examine src in
+  Current.component "summarise" |>
+  let** result =
+    let* builds = build_with_docker ~analysis (`Git src) in
+    builds
+    |> List.map (fun (variant, (build, _job)) -> variant, build)
+    |> summarise
+  in
+  Current.of_output result
+
 let v ~app () =
   Github.App.installations app |> Current.list_iter ~pp:Github.Installation.pp @@ fun installation ->
   let repos = Github.Installation.repositories installation in
