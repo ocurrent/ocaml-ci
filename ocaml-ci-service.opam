@@ -16,8 +16,8 @@ depends: [
   "ocaml-ci-api"
   "conf-libev"
   "dockerfile" {>= "6.3.0"}
-  "alcotest" {< "1.0.0" & with-test}
-  "alcotest-lwt" {with-test}
+  "alcotest" {>= "1.0.0" & with-test}
+  "alcotest-lwt" {>= "1.0.1" & with-test}
 ]
 build: [
   ["dune" "subst"] {pinned}
