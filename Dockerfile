@@ -12,7 +12,7 @@ COPY --chown=opam \
 	/src/ocurrent/
 WORKDIR /src
 RUN opam pin -yn add ./ocurrent
-COPY --chown=opam opam-ci.opam ocaml-ci-api.opam /src/
+COPY --chown=opam ocaml-ci-service.opam ocaml-ci-api.opam /src/
 RUN opam install -y --deps-only .
 ADD --chown=opam . .
 RUN opam config exec -- dune build ./_build/install/default/bin/ocaml-ci-service
