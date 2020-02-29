@@ -1,2 +1,2 @@
 
-val tests: unit Alcotest.test_case list
+val tests: unit Alcotest_lwt.test_case list

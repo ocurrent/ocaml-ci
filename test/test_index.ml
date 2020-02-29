@@ -29,5 +29,5 @@ let test_simple () =
   Alcotest.(check jobs) "Jobs" ["analysis", `Passed] @@ Index.get_jobs ~owner ~name hash
 
 let tests = [
-    Alcotest.test_case "simple" `Quick test_simple;
+    Alcotest_lwt.test_case_sync "simple" `Quick test_simple;
   ]
