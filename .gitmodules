@@ -1,3 +1,4 @@
 [submodule "ocurrent"]
 	path = ocurrent
-	url = https://github.com/ocurrent/ocurrent.git
+	url = git://github.com/kit-ty-kate/ocurrent.git
+	branch = expose-branches-prs
