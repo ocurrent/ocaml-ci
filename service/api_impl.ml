@@ -55,6 +55,19 @@ let make_commit ~engine ~owner ~name hash =
       let response, results = Service.Response.create Results.init_pointer in
       Results.refs_set_list results refs |> ignore;
       Service.return response
+
+    method status_impl _params release_param_caps =
+      let open Commit.Status in
+      release_param_caps ();
+      let response, results = Service.Response.create Results.init_pointer in
+      Index.get_status ~owner ~name ~hash
+      |> (function
+          | `Not_started -> Results.status_set results NotStarted
+          | `Pending -> Results.status_set results Pending
+          | `Failed -> Results.status_set results Failed
+          | `Passed -> Results.status_set results  Passed
+         );
+      Service.return response
   end
 
 let make_repo ~engine ~owner ~name =

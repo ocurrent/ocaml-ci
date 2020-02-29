@@ -36,6 +36,27 @@ let github_branch_url ~owner ~name ref =
 let github_pr_url ~owner ~name id =
   Printf.sprintf "https://github.com/%s/%s/pull/%s" owner name id
 
+let css = {|
+  .statuses {
+    list-style: none;
+  }
+  .statuses > li:before {
+    display: inline-block;
+    width: 1em;
+    margin-right: 0.5em;
+    margin-left: -1.5em;
+    text-align: center;
+    line-height: 1.1em;
+  }
+  .statuses > li.not-started:before { content: "●"; color:grey; }
+  .statuses > li.aborted:before { content: "A"; color:red; }
+  .statuses > li.failed:before { content: "╳"; color:red; }
+  .statuses > li.passed:before { content: "✓"; color:green; }
+  .statuses > li.active:before { content: "●"; color:orange; }
+  .statuses > li.undefined:before { content: "?"; color:grey; }
+  .statuses > li.skipped:before { content: "–"; color:grey; }
+|}
+
 let breadcrumbs steps page_title =
   let open Tyxml.Html in
   let add (prefix, results) (label, link) =
@@ -48,6 +69,23 @@ let breadcrumbs steps page_title =
   ol ~a:[a_class ["breadcrumbs"]] (
     List.rev steps
   )
+
+let statuses ss =
+  let open Tyxml.Html in
+  let render_status (s, elms) =
+    let status_class_name =
+      match (s : Client.State.t) with
+      | NotStarted -> "not-started"
+      | Aborted -> "aborted"
+      | Failed m when Astring.String.is_prefix ~affix:"[SKIP]" m -> "skipped"
+      | Failed _ -> "failed"
+      | Passed -> "passed"
+      | Active -> "active"
+      | Undefined _ -> "undefined"
+    in
+    li ~a:[a_class [status_class_name]] elms
+  in
+  ul ~a:[a_class ["statuses"]] (List.map render_status ss)
 
 let format_refs ~owner ~name refs =
   let open Tyxml.Html in
@@ -87,11 +125,11 @@ let link_jobs ~owner ~name ~hash ?selected jobs =
   let open Tyxml.Html in
   let render_job { Client.variant; outcome } =
     let uri = job_url ~owner ~name ~hash variant in
-    let label = txt (Fmt.strf "%s (%a)" variant Client.pp_state outcome) in
+    let label = txt (Fmt.strf "%s (%a)" variant Client.State.pp outcome) in
     let label = if selected = Some variant then b [label] else label in
-    li [a ~a:[a_href uri] [label]]
+    outcome, [a ~a:[a_href uri] [label]]
   in
-  ul (List.map render_job jobs)
+  statuses (List.map render_job jobs)
 
 let short_hash = Astring.String.with_range ~len:6
 

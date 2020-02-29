@@ -35,3 +35,13 @@ let dockerfile ~base ~pkg ~variant =
     if Hashtbl.length cache > cache_max_size then Hashtbl.clear cache;
     Hashtbl.add cache key x;
     x
+
+let v (type s) ~docker:(module Docker : S.DOCKER_CONTEXT with type source = s)
+    ~schedule ~variant ~pkg (source : s) =
+  let open Current.Syntax in
+  let dockerfile =
+    let+ base = Docker.pull ~schedule ("ocurrent/opam:" ^ variant) in
+    `Contents (dockerfile ~base:(Docker.image_hash base) ~pkg ~variant)
+  in
+  let build = Docker.build ~dockerfile source in
+  Current.map (fun _ -> `Built) build

@@ -9,12 +9,16 @@ type variant = string
 
 module Ref_map : Map.S with type key = git_ref
 
+module State : sig
+  type t = Raw.Reader.JobInfo.State.unnamed_union_t
+
+  val pp : t Fmt.t
+end
+
 type job_info = {
   variant : variant;
-  outcome : Raw.Reader.JobInfo.State.unnamed_union_t;
+  outcome : State.t;
 }
-
-val pp_state : Raw.Reader.JobInfo.State.unnamed_union_t Fmt.t
 
 module Commit : sig
   type t = Raw.Client.Commit.t Capability.t
@@ -27,6 +31,9 @@ module Commit : sig
 
   val refs : t -> (git_ref list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
   (** [refs t] is the list of Git references that have this commit as their head. *)
+
+  val status : t -> ([ `Not_started | `Pending | `Failed | `Passed ], [> `Capnp of Capnp_rpc.Error.t | `Msg of string]) Lwt_result.t
+  (** [status t] is the result of the most-recent 'summarise' step on this commit. *)
 end
 
 module Repo : sig

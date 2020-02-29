@@ -10,4 +10,7 @@
              tyxml
              prometheus-app.unix
              ocaml-ci-api
-             capnp-rpc-unix))
+             capnp-rpc-unix
+             yojson
+             ppx_deriving_yojson.runtime)
+(preprocess (pps ppx_deriving_yojson)))

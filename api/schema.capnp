@@ -7,6 +7,13 @@ struct RefInfo {
   hash @1 :Text;
 }
 
+enum BuildStatus {
+  notStarted @0;
+  passed     @1;
+  failed     @2;
+  pending    @3;
+}
+
 struct JobInfo {
   variant @0 :Text;
   state :union {
@@ -34,6 +41,8 @@ interface Commit {
 
   refs @2 (hash :Text) -> (refs :List(Text));
   # Get the set of branches and PRs with this commit at their head.
+
+  status @3 () -> (status :BuildStatus);
 }
 
 interface Repo {

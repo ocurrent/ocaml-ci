@@ -1,10 +1,18 @@
 (** The index is:
     - A map from active Git references to the Git commit at their heads.
+    - A map from project builds ([owner * name * hash)] triples) to statuses.
     - A (persisted) map from each Git commit hash to its last known OCurrent job ID. *)
 
 type job_state = [`Not_started | `Active | `Failed of string | `Passed | `Aborted ] [@@deriving show]
 
-val record : repo:Current_github.Repo_id.t -> hash:string -> (string * Current.job_id option) list -> unit
+type build_status = [ `Not_started | `Pending | `Failed | `Passed ]
+
+val record :
+  repo:Current_github.Repo_id.t ->
+  hash:string ->
+  status:build_status ->
+  (string * Current.job_id option) list ->
+  unit
 (** [record ~repo ~hash jobs] updates the entry for [repo, hash] to point at [jobs]. *)
 
 val is_known_owner : string -> bool
@@ -24,6 +32,13 @@ val get_jobs : owner:string -> name:string -> string -> (string * job_state) lis
 
 val get_job : owner:string -> name:string -> hash:string -> variant:string -> (string option, [> `No_such_variant]) result
 (** [get_job ~owner ~name ~variant] is the last known job ID for this combination. *)
+
+val get_status:
+  owner:string ->
+  name:string ->
+  hash:string ->
+  build_status
+(** [get_status ~owner ~name ~hash] is the latest status for this combination. *)
 
 val get_full_hash : owner:string -> name:string -> string -> (string, [> `Ambiguous | `Unknown | `Invalid]) result
 (** [get_full_hash ~owner ~name short_hash] returns the full hash for [short_hash]. *)

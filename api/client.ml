@@ -6,20 +6,25 @@ type variant = string
 
 module Ref_map = Map.Make(String)
 
+module State = struct
+  open Raw.Reader.JobInfo.State
+
+  type t = unnamed_union_t
+
+  let pp f =
+    function
+    | NotStarted -> Fmt.string f "not started"
+    | Aborted -> Fmt.string f "aborted"
+    | Failed m -> Fmt.pf f "failed: %s" m
+    | Passed -> Fmt.string f "passed"
+    | Active -> Fmt.string f "active"
+    | Undefined x -> Fmt.pf f "unknown:%d" x
+end
+
 type job_info = {
   variant : variant;
-  outcome : Raw.Reader.JobInfo.State.unnamed_union_t;
+  outcome : State.t;
 }
-
-let pp_state f =
-  let open Raw.Reader.JobInfo.State in
-  function
-  | NotStarted -> Fmt.string f "not started"
-  | Aborted -> Fmt.string f "aborted"
-  | Failed m -> Fmt.pf f "failed: %s" m
-  | Passed -> Fmt.string f "passed"
-  | Active -> Fmt.string f "active"
-  | Undefined x -> Fmt.pf f "unknown:%d" x
 
 module CI = struct
   type t = Raw.Client.CI.t Capability.t
@@ -105,4 +110,21 @@ module Commit = struct
     let open Raw.Client.Commit.Refs in
     let request = Capability.Request.create_no_args () in
     Capability.call_for_value t method_id request |> Lwt_result.map Results.refs_get_list
+
+  let ( >> ) f g x = g (f x)
+
+  let (>>=) = Lwt_result.bind_result
+
+  let status t =
+    let open Raw.Client.Commit.Status in
+    let request = Capability.Request.create_no_args () in
+    Capability.call_for_value t method_id request
+    >>= (Results.status_get
+         >> function
+           | NotStarted -> Ok (`Not_started)
+           | Passed -> Ok (`Passed)
+           | Failed -> Ok (`Failed)
+           | Pending -> Ok (`Pending)
+           | Undefined i -> Error (`Msg (Fmt.strf "client.states: undefined state %d" i))
+        )
 end

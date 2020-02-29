@@ -7,7 +7,7 @@ module Job_map = Astring.String.Map
 
 type t = {
   db : Sqlite3.db;
-  record : Sqlite3.stmt;
+  record_job : Sqlite3.stmt;
   remove : Sqlite3.stmt;
   owner_exists : Sqlite3.stmt;
   repo_exists : Sqlite3.stmt;
@@ -21,6 +21,8 @@ type t = {
 
 type job_state = [`Not_started | `Active | `Failed of string | `Passed | `Aborted ] [@@deriving show]
 
+type build_status = [ `Not_started | `Pending | `Failed | `Passed ]
+
 let or_fail label x =
   match x with
   | Sqlite3.Rc.OK -> ()
@@ -33,14 +35,16 @@ let is_valid_hash hash =
 let db = lazy (
   let db = Lazy.force Current.Db.v in
   Current_cache.Db.init ();
-  Sqlite3.exec db "CREATE TABLE IF NOT EXISTS ci_build_index ( \
-                   owner     TEXT NOT NULL, \
-                   name      TEXT NOT NULL, \
-                   hash      TEXT NOT NULL, \
-                   variant   TEXT NOT NULL, \
-                   job_id    TEXT, \
-                   PRIMARY KEY (owner, name, hash, variant))" |> or_fail "create table";
-  let record = Sqlite3.prepare db "INSERT OR REPLACE INTO ci_build_index \
+  Sqlite3.exec db {|
+CREATE TABLE IF NOT EXISTS ci_build_index (
+  owner     TEXT NOT NULL,
+  name      TEXT NOT NULL,
+  hash      TEXT NOT NULL,
+  variant   TEXT NOT NULL,
+  job_id    TEXT,
+  PRIMARY KEY (owner, name, hash, variant)
+)|} |> or_fail "create table";
+  let record_job = Sqlite3.prepare db "INSERT OR REPLACE INTO ci_build_index \
                                      (owner, name, hash, variant, job_id) \
                                      VALUES (?, ?, ?, ?, ?)" in
   let remove = Sqlite3.prepare db "DELETE FROM ci_build_index \
@@ -61,7 +65,19 @@ let db = lazy (
                                      WHERE owner = ? AND name = ? AND hash = ?" in
   let full_hash = Sqlite3.prepare db "SELECT DISTINCT hash FROM ci_build_index \
                                       WHERE owner = ? AND name = ? AND hash LIKE ?" in
-  { db; record; remove; owner_exists; repo_exists; get_jobs; get_job; get_job_ids; list_owners; list_repos; full_hash }
+      {
+        db;
+        record_job;
+        remove;
+        owner_exists;
+        repo_exists;
+        get_jobs;
+        get_job;
+        get_job_ids;
+        list_owners;
+        list_repos;
+        full_hash
+      }
 )
 
 let get_job_ids t ~owner ~name ~hash =
@@ -71,9 +87,29 @@ let get_job_ids t ~owner ~name ~hash =
   | Sqlite3.Data.[ TEXT variant; TEXT id ] -> variant, Some id
   | row -> Fmt.failwith "get_job_ids: invalid row %a" Db.dump_row row
 
-let record ~repo ~hash jobs =
+module Status_cache = struct
+  let cache = Hashtbl.create 1_000
+  let cache_max_size = 1_000_000
+
+  type elt = [ `Not_started | `Pending | `Failed | `Passed ]
+
+  let add ~owner ~name ~hash (status : elt) =
+    if Hashtbl.length cache > cache_max_size then Hashtbl.clear cache;
+    Hashtbl.add cache (owner, name, hash) status
+
+  let find ~owner ~name ~hash : elt =
+    Hashtbl.find_opt cache (owner, name, hash)
+    |> function
+      | Some s -> s
+      | None -> `Not_started
+end
+
+let get_status = Status_cache.find
+
+let record ~repo ~hash ~status jobs =
   let { Current_github.Repo_id.owner; name } = repo in
   let t = Lazy.force db in
+  let () = Status_cache.add ~owner ~name ~hash status in
   let jobs = Job_map.of_list jobs in
   let previous = get_job_ids t ~owner ~name ~hash |> Job_map.of_list in
   let merge variant prev job =
@@ -81,8 +117,8 @@ let record ~repo ~hash jobs =
       Log.info (fun f -> f "@[<h>Index.record %s/%s %s %s -> %a@]"
                    owner name (Astring.String.with_range ~len:6 hash) variant Fmt.(option ~none:(unit "-") string) job_id);
       match job_id with
-      | None -> Db.exec t.record Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash; TEXT variant; NULL ]
-      | Some id -> Db.exec t.record Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash; TEXT variant; TEXT id ]
+      | None -> Db.exec t.record_job Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash; TEXT variant; NULL ]
+      | Some id -> Db.exec t.record_job Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash; TEXT variant; TEXT id ]
     in
     let update j1 j2 =
       match j1, j2 with

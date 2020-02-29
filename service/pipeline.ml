@@ -1,19 +1,18 @@
 open Current.Syntax
+open Ocaml_ci
 
 module Git = Current_git
 module Github = Current_github
 module Docker = Current_docker.Default
 
-(* Maximum time for one Docker build. *)
-let timeout = Duration.of_hour 1
+let weekly = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
 
 (* Link for GitHub statuses. *)
 let url ~owner ~name ~hash = Uri.of_string (Printf.sprintf "http://147.75.80.95/github/%s/%s/commit/%s" owner name hash)
 
-let weekly = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
-
 let github_status_of_state ~head result =
-  let+ result = result in
+  let+ head = head
+  and+ result = result in
   let { Github.Repo_id.owner; name } = Github.Api.Commit.repo_id head in
   let hash = Github.Api.Commit.hash head in
   let url = url ~owner ~name ~hash in
@@ -26,7 +25,7 @@ let set_active_refs ~repo xs =
   let+ repo = repo
   and+ xs = xs in
   let repo = Github.Api.Repo.id repo in
-  Ocaml_ci.Index.set_active_refs ~repo (
+  Index.set_active_refs ~repo (
     xs |> List.map @@ fun x ->
     let commit = Github.Api.Commit.id x in
     let gref = Git.Commit_id.gref commit in
@@ -39,18 +38,15 @@ let job_id x =
   let+ job = Current.Analysis.get x in
   Current.Analysis.job_id job
 
-let build_with_docker ~analysis src =
+let build_with_docker ~analysis source =
   let+ analysis = analysis in
   let pkgs = Analyse.Analysis.opam_files analysis in
-  let build (module Docker : Conf.BUILDER) (name, variant) =
+  let build docker (name, variant) =
     List.map begin fun pkg ->
-      let dockerfile =
-        let+ base = Docker.pull ~schedule:weekly ("ocurrent/opam:" ^ variant) in
-        Opam_build.dockerfile ~base:(Docker.Image.hash base) ~pkg ~variant
+      let build_result =
+        Opam_build.v ~docker ~schedule:weekly ~variant ~pkg source
       in
-      let build = Docker.build ~timeout ~pool:Docker.pool ~pull:false ~dockerfile (`Git src) in
-      let result = Current.map (fun _ -> `Built) build in
-      (pkg^" on "^name, (result, job_id build))
+      (pkg^" on "^name, (build_result, job_id build_result))
     end pkgs
   in
   build (module Conf.Builder_amd1) ("4.10", "debian-10-ocaml-4.10") @
@@ -91,7 +87,7 @@ let summarise results =
   |> Current.list_seq
   |> Current.map @@ fun results ->
   results |> List.fold_left (fun (ok, pending, err, skip) -> function
-      | _, Ok (`Checked | `Check_skipped) -> (ok, pending, err, skip)  (* Don't count lint checks *)
+      | _, Ok `Checked -> (ok, pending, err, skip)  (* Don't count lint checks *)
       | _, Ok `Built -> (ok + 1, pending, err, skip)
       | l, Error `Msg m when Astring.String.is_prefix ~affix:"[SKIP]" m -> (ok, pending, err, (m, l) :: skip)
       | l, Error `Msg m -> (ok, pending, (m, l) :: err, skip)
@@ -119,11 +115,10 @@ let v ~app () =
   repos |> Current.list_iter ~pp:Github.Api.Repo.pp @@ fun repo ->
   let prs = get_prs repo |> set_active_refs ~repo in
   prs |> Current.list_iter ~pp:Github.Api.Commit.pp @@ fun head ->
-  let* head = head in
-  let src = Git.fetch (Current.return (Github.Api.Commit.id head)) in
+  let src = Git.fetch (Current.map Github.Api.Commit.id head) in
   let analysis = Analyse.examine src in
   let builds =
-    build_with_docker ~analysis src in
+    build_with_docker ~analysis (`Git src) in
   let jobs =
     let* builds = builds in
     builds
@@ -133,20 +128,33 @@ let v ~app () =
     )
     |> Current.list_seq
   in
+  let summary =
+    let* builds = builds in
+    builds
+    |> List.map (fun (variant, (build, _job)) -> variant, build)
+    |> summarise
+  in
+  let status =
+    let+ summary = summary in
+    match summary with
+    | Ok () -> `Passed
+    | Error (`Active `Running) -> `Pending
+    | Error (`Msg _) -> `Failed
+  in
   let index =
-    let commit = head in
-    let+ analysis = job_id analysis
-    and+ jobs = jobs in
+    let+ commit = head
+    and+ analysis = job_id analysis
+    and+ jobs = jobs
+    and+ status = status in
     let repo = Current_github.Api.Commit.repo_id commit in
     let hash = Current_github.Api.Commit.hash commit in
-    Ocaml_ci.Index.record ~repo ~hash @@ ("(analysis)", analysis) :: jobs
-  in
-  let set_status =
+    Index.record ~repo ~hash ~status @@ ("(analysis)", analysis) :: jobs
+  and set_github_status =
     let* builds = builds in
     builds
     |> List.map (fun (variant, (build, _job)) -> variant, build)
     |> summarise
     |> github_status_of_state ~head
-    |> Github.Api.Commit.set_status (Current.return head) "opam-ci"
+    |> Github.Api.Commit.set_status head "opam-ci"
   in
-  Current.all [index; set_status]
+  Current.all [index; set_github_status]
