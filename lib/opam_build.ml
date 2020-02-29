@@ -58,7 +58,11 @@ let pin_opam_files groups =
       )
   )
 
-let get_opam_packages = List.fold_left (fun acc (_, _, pkgs) -> pkgs @ acc) []
+(* Get the packages directly in "." *)
+let rec get_root_opam_packages = function
+  | [] -> []
+  | (dir, _, pkgs) ::_ when Fpath.is_current_dir dir -> pkgs
+  | _ :: rest -> get_root_opam_packages rest
 
 let download_cache = "--mount=type=cache,target=/home/opam/.opam/download-cache,uid=1000"
 
@@ -76,7 +80,7 @@ let dockerfile { base; info; repo; variant} =
     if Analyse.Analysis.is_duniverse info then Printf.sprintf "%s %s" download_cache (build_cache repo)
     else download_cache
   in
-  let pkgs = get_opam_packages groups in
+  let root_pkgs = get_root_opam_packages groups in
   let open Dockerfile in
   let distro_extras =
     if Astring.String.is_prefix ~affix:"fedora" variant then
@@ -102,10 +106,10 @@ let dockerfile { base; info; repo; variant} =
   workdir "/src" @@
   run "sudo chown opam /src" @@
   pin_opam_files groups @@
-  run "(opam install %s --dry-run --deps-only -ty; echo $? > /tmp/exit-status) | tee /tmp/opam-plan; exit $(cat /tmp/exit-status)" (pkgs |> String.concat " ") @@
+  run "(opam install %s --dry-run --deps-only -ty; echo $? > /tmp/exit-status) | tee /tmp/opam-plan; exit $(cat /tmp/exit-status)" (root_pkgs |> String.concat " ") @@
   run "%s awk < /tmp/opam-plan '/-> installed/{print $3}' | xargs opam depext --update -iy" download_cache @@
   crunch_list (List.map (fun pkg ->
-      run {|test "$(opam show -f depexts: %s)" = "$(printf "\n")" || opam depext -ty %s|} pkg pkg) pkgs
+      run {|test "$(opam show -f depexts: %s)" = "$(printf "\n")" || opam depext -ty %s|} pkg pkg) root_pkgs
     ) @@
   (if Analyse.Analysis.is_duniverse info then run "opam pin remove $(opam pin -s) -n" else empty) @@
   build_cmd
