@@ -139,7 +139,8 @@ let link_github_refs ~owner ~name =
         intersperse ~sep:(txt ", ") (
           refs |> List.map @@ fun r ->
           match Astring.String.cuts ~sep:"/" r with
-          | ["refs"; "heads"; branch] ->
+          | "refs"::"heads"::branch ->
+            let branch = String.concat "/" branch in
             span [txt "branch "; a ~a:[a_href (github_branch_url ~owner ~name branch)] [ txt branch ]]
           | ["refs"; "pull"; id; "head"] ->
             span [txt "PR "; a ~a:[a_href (github_pr_url ~owner ~name id)] [ txt ("#" ^ id) ]]
