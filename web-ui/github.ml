@@ -139,7 +139,8 @@ let link_github_refs ~owner ~name =
         intersperse ~sep:(txt ", ") (
           refs |> List.map @@ fun r ->
           match Astring.String.cuts ~sep:"/" r with
-          | ["refs"; "heads"; branch] ->
+          | "refs"::"heads"::branch ->
+            let branch = String.concat "/" branch in
             span [txt "branch "; a ~a:[a_href (github_branch_url ~owner ~name branch)] [ txt branch ]]
           | ["refs"; "pull"; id; "head"] ->
             span [txt "PR "; a ~a:[a_href (github_pr_url ~owner ~name id)] [ txt ("#" ^ id) ]]
@@ -174,7 +175,7 @@ let stream_logs job ~owner ~name ~refs ~hash ~jobs ~variant ~status (data, next)
     let can_rebuild = status.Current_rpc.Job.can_rebuild in
     let buttons =
       if can_rebuild then Tyxml.Html.[
-          form ~a:[a_action (variant ^ "/rebuild"); a_method `Post] [
+          form ~a:[a_action ("../rebuild-variant/" ^ variant); a_method `Post] [
             input ~a:[a_input_type `Submit; a_value "Rebuild"] ()
           ]
       ] else []
@@ -230,7 +231,8 @@ let repo_handle ~meth ~owner ~name ~repo path =
         link_jobs ~owner ~name ~hash jobs;
       ] in
     Server.respond_string ~status:`OK ~body () |> normal_response
-  | `GET, ["commit"; hash; "variant"; variant] ->
+  | `GET, "commit"::hash::"variant"::variant ->
+    let variant = String.concat "/" variant in
     Capability.with_ref (Client.Repo.commit_of_hash repo hash) @@ fun commit ->
     let refs = Client.Commit.refs commit in
     let jobs = Client.Commit.jobs commit in
@@ -261,7 +263,8 @@ let repo_handle ~meth ~owner ~name ~repo path =
     in
     Capability.inc_ref job;
     Lwt.return (`Expert (res, write))
-  | `POST, ["commit"; hash; "variant"; variant; "rebuild"] ->
+  | `POST, "commit"::hash::"rebuild-variant"::variant ->
+    let variant = String.concat "/" variant in
     Capability.with_ref (Client.Repo.commit_of_hash repo hash) @@ fun commit ->
     Capability.with_ref (Client.Commit.job_of_variant commit variant) @@ fun job ->
     Capability.with_ref (Current_rpc.Job.rebuild job) @@ fun new_job ->
