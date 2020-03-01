@@ -4,6 +4,7 @@ open Ocaml_ci
 module Git = Current_git
 module Github = Current_github
 module Docker = Current_docker.Default
+module Common = Ocaml_ci_api.Common
 
 let weekly = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
 
@@ -38,26 +39,29 @@ let job_id x =
   let+ job = Current.Analysis.get x in
   Current.Analysis.job_id job
 
+let status_sep = String.make 1 Common.status_sep
+
 let build_with_docker ~analysis source =
   let+ analysis = analysis in
   let pkgs = Analyse.Analysis.opam_files analysis in
-  let build docker (name, variant) =
+  let build docker prefix name variant =
     List.map begin fun pkg ->
       let build_result =
         Opam_build.v ~docker ~schedule:weekly ~variant ~pkg source
       in
-      (pkg^" on "^name, (build_result, job_id build_result))
+      (prefix pkg^status_sep^name, (build_result, job_id build_result))
     end pkgs
   in
-  build (module Conf.Builder_amd1) ("4.10", "debian-10-ocaml-4.10") @
-  build (module Conf.Builder_amd3) ("4.09", "debian-10-ocaml-4.09") @
-  build (module Conf.Builder_amd1) ("4.08", "debian-10-ocaml-4.08") @
-  build (module Conf.Builder_amd2) ("4.07", "debian-10-ocaml-4.07") @
-  build (module Conf.Builder_amd2) ("4.06", "debian-10-ocaml-4.06") @
-  build (module Conf.Builder_amd3) ("4.05", "debian-10-ocaml-4.05") @
-  build (module Conf.Builder_amd3) ("4.04", "debian-10-ocaml-4.04") @
-  build (module Conf.Builder_amd2) ("4.03", "debian-10-ocaml-4.03") @
-  build (module Conf.Builder_amd2) ("4.02", "debian-10-ocaml-4.02")
+  let stage1 pkg = pkg in
+  build (module Conf.Builder_amd1) stage1 "4.10" "debian-10-ocaml-4.10" @
+  build (module Conf.Builder_amd3) stage1 "4.09" "debian-10-ocaml-4.09" @
+  build (module Conf.Builder_amd1) stage1 "4.08" "debian-10-ocaml-4.08" @
+  build (module Conf.Builder_amd2) stage1 "4.07" "debian-10-ocaml-4.07" @
+  build (module Conf.Builder_amd2) stage1 "4.06" "debian-10-ocaml-4.06" @
+  build (module Conf.Builder_amd3) stage1 "4.05" "debian-10-ocaml-4.05" @
+  build (module Conf.Builder_amd3) stage1 "4.04" "debian-10-ocaml-4.04" @
+  build (module Conf.Builder_amd2) stage1 "4.03" "debian-10-ocaml-4.03" @
+  build (module Conf.Builder_amd2) stage1 "4.02" "debian-10-ocaml-4.02"
 
 let list_errors ~ok errs =
   let groups =  (* Group by error message *)

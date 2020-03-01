@@ -2,6 +2,7 @@ open Lwt.Infix
 
 module Capability = Capnp_rpc_lwt.Capability
 module Client = Ocaml_ci_api.Client
+module Common = Ocaml_ci_api.Common
 module Server = Cohttp_lwt_unix.Server
 module Response = Cohttp.Response.Make(Server.IO)
 module Transfer_IO = Cohttp__Transfer_io.Make(Server.IO)
@@ -70,20 +71,40 @@ let breadcrumbs steps page_title =
     List.rev steps
   )
 
+module StatusTree = struct
+  type 'a tree =
+    | Leaf of 'a
+    | Branch of string * 'a t
+  and 'a t = 'a tree list
+
+  let add : string list -> 'a -> 'a t -> 'a t =
+    let rec aux k x ts = match k, ts with
+      | [], ts -> ts @ [Leaf x]
+      | k::ks, [] -> [Branch (k, aux ks x [])]
+      | _::_, (Leaf _ as t)::ts -> t :: aux k x ts
+      | k::ks, Branch (k', t)::ts when String.equal k k' -> Branch (k, aux ks x t) :: ts
+      | _::_, (Branch _ as t)::ts -> t :: aux k x ts
+    in
+    aux
+end
+
 let statuses ss =
   let open Tyxml.Html in
-  let render_status (s, elms) =
-    let status_class_name =
-      match (s : Client.State.t) with
-      | NotStarted -> "not-started"
-      | Aborted -> "aborted"
-      | Failed m when Astring.String.is_prefix ~affix:"[SKIP]" m -> "skipped"
-      | Failed _ -> "failed"
-      | Passed -> "passed"
-      | Active -> "active"
-      | Undefined _ -> "undefined"
-    in
-    li ~a:[a_class [status_class_name]] elms
+  let rec render_status = function
+    | StatusTree.Leaf (s, elms) ->
+        let status_class_name =
+          match (s : Client.State.t) with
+          | NotStarted -> "not-started"
+          | Aborted -> "aborted"
+          | Failed m when Astring.String.is_prefix ~affix:"[SKIP]" m -> "skipped"
+          | Failed _ -> "failed"
+          | Passed -> "passed"
+          | Active -> "active"
+          | Undefined _ -> "undefined"
+        in
+        li ~a:[a_class [status_class_name]] elms
+    | StatusTree.Branch (b, ss) ->
+        li [txt b; ul ~a:[a_class ["statuses"]] (List.map render_status ss)]
   in
   ul ~a:[a_class ["statuses"]] (List.map render_status ss)
 
@@ -123,13 +144,20 @@ let link_github_refs ~owner ~name =
 
 let link_jobs ~owner ~name ~hash ?selected jobs =
   let open Tyxml.Html in
-  let render_job { Client.variant; outcome } =
+  let render_job trees { Client.variant; outcome } =
     let uri = job_url ~owner ~name ~hash variant in
-    let label = txt (Fmt.strf "%s (%a)" variant Client.State.pp outcome) in
-    let label = if selected = Some variant then b [label] else label in
-    outcome, [a ~a:[a_href uri] [label]]
+    match List.rev (String.split_on_char Common.status_sep variant) with
+    | [] -> assert false
+    | variant::k ->
+        let k = List.rev k in
+        let x =
+          let label = txt (Fmt.strf "%s (%a)" variant Client.State.pp outcome) in
+          let label = if selected = Some variant then b [label] else label in
+          outcome, [a ~a:[a_href uri] [label]]
+        in
+        StatusTree.add k x trees
   in
-  statuses (List.map render_job jobs)
+  statuses (List.fold_left render_job [] jobs)
 
 let short_hash = Astring.String.with_range ~len:6
 
