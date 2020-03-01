@@ -71,21 +71,29 @@ let breadcrumbs steps page_title =
     List.rev steps
   )
 
-module StatusTree = struct
+module StatusTree : sig
+  type key = string
+
   type 'a tree =
     | Leaf of 'a
-    | Branch of string * 'a t
+    | Branch of key * 'a t
   and 'a t = 'a tree list
 
-  let add : string list -> 'a -> 'a t -> 'a t =
-    let rec aux k x ts = match k, ts with
-      | [], ts -> ts @ [Leaf x]
-      | k::ks, [] -> [Branch (k, aux ks x [])]
-      | _::_, (Leaf _ as t)::ts -> t :: aux k x ts
-      | k::ks, Branch (k', t)::ts when String.equal k k' -> Branch (k, aux ks x t) :: ts
-      | _::_, (Branch _ as t)::ts -> t :: aux k x ts
-    in
-    aux
+  val add : key list -> 'a -> 'a t -> 'a t
+end = struct
+  type key = string
+
+  type 'a tree =
+    | Leaf of 'a
+    | Branch of key * 'a t
+  and 'a t = 'a tree list
+
+  let rec add k x ts = match k, ts with
+    | [], ts -> ts @ [Leaf x]
+    | k::ks, [] -> [Branch (k, add ks x [])]
+    | _::_, (Leaf _ as t)::ts -> t :: add k x ts
+    | k::ks, Branch (k', t)::ts when String.equal k k' -> Branch (k, add ks x t) :: ts
+    | _::_, (Branch _ as t)::ts -> t :: add k x ts
 end
 
 let statuses ss =
