@@ -48,6 +48,6 @@ module Make (Docker : S.DOCKER_CONTEXT) = struct
         let img = fmt_base_image ~base ~ocamlformat_source ~source in
         run_fmt ~img
       )
-    |> Current.map (fun () -> `Checked)
+    |> Current.map (fun _ -> `Checked)
 
 end
