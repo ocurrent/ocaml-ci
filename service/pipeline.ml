@@ -55,10 +55,11 @@ let build_with_docker ~analysis source =
           let prefix = pkg^status_sep^name^status_sep^"revdeps" in
           let+ revdeps = D.run image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"] in
           String.split_on_char '\n' revdeps |>
+          List.filter (fun pkg -> not (String.equal pkg "")) |>
           List.map begin fun pkg ->
             let image = B.v ~schedule:weekly ~variant ~pkg source in
             let build_result = Current.map (fun _ -> `Built) image in
-            (prefix^status_sep^name, (build_result, job_id build_result))
+            (prefix^status_sep^pkg, (build_result, job_id build_result))
           end
         end else begin
           Current.return []
