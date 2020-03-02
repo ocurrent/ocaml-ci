@@ -49,9 +49,9 @@ interface Repo {
   refs         @0 () -> (refs :List(RefInfo));
   # Get the set of branches and PRs being monitored.
 
-  deprecatedJobOfCommit  @1 (hash :Text) -> (job :OCurrent.Job);
-  deprecatedJobOfRef     @2 (ref :Text) -> (job :OCurrent.Job);
-  deprecatedRefsOfCommit @3 (hash :Text) -> (refs :List(Text));
+  obsoleteJobOfCommit  @1 (hash :Text) -> (job :OCurrent.Job);
+  obsoleteJobOfRef     @2 (ref :Text) -> (job :OCurrent.Job);
+  obsoleteRefsOfCommit @3 (hash :Text) -> (refs :List(Text));
 
   commitOfHash @4 (hash :Text) -> (commit :Commit);
   # The hash doesn't need to be the full hash, but must be at least 6 characters long.
