@@ -25,10 +25,10 @@ let fmt_dockerfile ~base ~ocamlformat_source ~for_user =
   @@ copy ~chown:"opam" ~src:["./"] ~dst:"./" ()
   @@ run "opam exec -- dune build @fmt || (echo \"dune build @fmt failed\"; exit 2)"
 
-let doc_dockerfile ~base ~opam_files ~variant ~for_user =
+let doc_dockerfile ~base ~opam_files ~selection ~for_user =
   let download_cache_prefix = if for_user then "" else Opam_build.download_cache ^ " " in
   let open Dockerfile in
-  Opam_build.install_project_deps ~base ~opam_files ~variant ~for_user
+  Opam_build.install_project_deps ~base ~opam_files ~selection ~for_user
   (* Warnings-as-errors was introduced in Odoc.1.5.0 *)
   @@ run "%sopam depext -i dune odoc>=1.5.0" download_cache_prefix
   @@ run "ODOC_WARN_ERROR=true opam exec -- dune build @doc \

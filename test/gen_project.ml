@@ -181,6 +181,20 @@ let dune_get ppf =
  (depexts ()))
 |}
 
+let dummy_opam ppf =
+  Fmt.pf ppf
+    {|opam-version: "2.0"
+maintainer:   "Camelus Bactrianus"
+authors:      ["Camelus Bactrianus"]
+license:      "ISC"
+homepage:     "https://www.example.com"
+bug-reports:  "https://www.example.com/issues"
+dev-repo:     "git+https://example.com/repo.git"
+build: []
+depends: []
+synopsis: "Example project generated for testing purposes"
+|}
+
 let opam ppf =
   Fmt.pf ppf
     {|opam-version: "2.0"
@@ -219,6 +233,10 @@ let empty_file _ppf = ()
 
 type file = Folder of string * file list | File of string * contents
 
+let folder name items = Folder (name, items)
+
+let file name content = File (name, content)
+
 let print_to_file path printer =
   let channel = open_out path in
   let formatter = Format.formatter_of_out_channel channel in
@@ -241,3 +259,11 @@ let rec instantiate ~root =
         mkdir_p name;
         instantiate ~root:(Filename.concat root name) contents
     | File (name, printer) -> print_to_file (Filename.concat root name) printer)
+
+let dummy_package name versions =
+  folder name
+    ( versions
+    |> List.map (fun version ->
+           folder
+             (Printf.sprintf "%s.%s" name version)
+             [ file "opam" dummy_opam ]) )

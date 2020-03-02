@@ -2,28 +2,30 @@ open Current.Syntax
 open Lwt.Infix
 
 module Raw = Current_docker.Raw
+module Selection = Ocaml_ci_api.Worker.Selection
 
 let checkout_pool = Current.Pool.create ~label:"git-clone" 1
 
 module Spec = struct
-  type opam_files = string list [@@deriving to_yojson]
+  type opam_files = string list [@@deriving to_yojson, ord]
 
   type ty = [
-    | `Opam of [ `Build | `Lint of [ `Doc ]] * opam_files
+    | `Opam of [ `Build | `Lint of [ `Doc ]] * Selection.t * opam_files
     | `Opam_fmt of Analyse_ocamlformat.source option
     | `Duniverse
-  ] [@@deriving to_yojson]
+  ] [@@deriving to_yojson, ord]
 
   type t = {
     label : string;
     variant : string;
     ty : ty;
-  }
+  } [@@deriving ord]
 
-  let opam ~label ~variant ~analysis op =
+  let opam ~label ~selection ~analysis op =
+    let variant = selection.Selection.id in
     let ty =
       match op with
-      | `Build | `Lint `Doc as x -> `Opam (x, Analyse.Analysis.opam_files analysis)
+      | `Build | `Lint `Doc as x -> `Opam (x, selection, Analyse.Analysis.opam_files analysis)
       | `Lint `Fmt -> `Opam_fmt (Analyse.Analysis.ocamlformat_source analysis)
     in
     { label; variant; ty }
@@ -32,12 +34,12 @@ module Spec = struct
     { label; variant; ty = `Duniverse }
 
   let pp f t = Fmt.string f t.label
-  let compare a b = compare a.label b.label
+
   let label t = t.label
 
   let pp_summary f = function
-    | `Opam (`Build, _) -> Fmt.string f "Opam project build"
-    | `Opam (`Lint `Doc, _) -> Fmt.string f "Opam project lint documentation"
+    | `Opam (`Build, _, _) -> Fmt.string f "Opam project build"
+    | `Opam (`Lint `Doc, _, _) -> Fmt.string f "Opam project lint documentation"
     | `Opam_fmt v -> Fmt.pf f "ocamlformat version: %a"
                        Fmt.(option ~none:(unit "none") Analyse_ocamlformat.pp_source) v
     | `Duniverse -> Fmt.string f "Duniverse build"
@@ -118,8 +120,8 @@ module Op = struct
     let make_dockerfile =
       let base = Raw.Image.hash base in
       match ty with
-      | `Opam (`Build, opam_files) -> Opam_build.dockerfile ~base ~opam_files ~variant
-      | `Opam (`Lint `Doc, opam_files) -> Lint.doc_dockerfile ~base ~opam_files ~variant
+      | `Opam (`Build, selection, opam_files) -> Opam_build.dockerfile ~base ~opam_files ~selection
+      | `Opam (`Lint `Doc, selection, opam_files) -> Lint.doc_dockerfile ~base ~opam_files ~selection
       | `Opam_fmt ocamlformat_source -> Lint.fmt_dockerfile ~base ~ocamlformat_source
       | `Duniverse -> Duniverse_build.dockerfile ~base ~repo ~variant
     in
@@ -189,8 +191,8 @@ let v ~platforms ~repo ~spec source =
     state |> Result.map @@ fun () ->
     match spec.ty with
     | `Duniverse
-    | `Opam (`Build, _) -> `Built
-    | `Opam (`Lint `Doc, _) -> `Checked
+    | `Opam (`Build, _, _) -> `Built
+    | `Opam (`Lint `Doc, _, _) -> `Checked
     | `Opam_fmt _ -> `Checked
   in
   result, job_id

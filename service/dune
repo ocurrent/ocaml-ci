@@ -14,5 +14,6 @@
             mirage-crypto-rng.unix
             ocaml_ci
             ocaml-ci-api
+            ocaml_ci_solver
             prometheus)
  (preprocess (pps ppx_deriving_yojson)))

@@ -1,5 +1,12 @@
 (* Utility program for testing the CI pipeline on a local repository. *)
 
+let solver =
+  match Sys.argv with
+  | [| _; "--run-solver" |] -> Ocaml_ci_solver.main (); exit 0
+  | args ->
+    let prog = args.(0) in
+    prog, [| prog; "--run-solver" |]
+
 let () =
   Unix.putenv "DOCKER_BUILDKIT" "1";
   Unix.putenv "PROGRESS_NO_TRUNC" "1";
@@ -7,7 +14,7 @@ let () =
 
 let main config mode repo =
   let repo = Current_git.Local.v (Fpath.v repo) in
-  let engine = Current.Engine.create ~config (Pipeline.local_test repo) in
+  let engine = Current.Engine.create ~config (Pipeline.local_test ~solver repo) in
   let site = Current_web.Site.(v ~has_role:allow_all) ~name:"ocaml-ci-local" (Current_web.routes engine) in
   Logging.run begin
     Lwt.choose [

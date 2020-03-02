@@ -1,5 +1,9 @@
 open Lwt.Infix
 
+let () =
+  Logs.(set_level (Some Info));
+  Logs.set_reporter @@ Logs_fmt.reporter ()
+
 module Analysis = struct
   include Ocaml_ci.Analyse.Analysis
 
@@ -18,8 +22,10 @@ module Analysis = struct
   }
   [@@deriving eq, yojson]
 
-  let of_dir ~job ~platforms d =
-    of_dir ~job ~platforms d
+  let solver = ("", [| "ocaml-ci-service"; "--run-solver" |])
+
+  let of_dir ~job ~platforms ~opam_repository d =
+    of_dir ~solver ~job ~platforms ~opam_repository d
     |> Lwt_result.map (fun t ->
            {
              opam_files = opam_files t;
@@ -34,18 +40,57 @@ end
 let expect_test name ~project ~expected =
   Alcotest_lwt.test_case name `Quick (fun _switch () ->
       let ( // ) = Filename.concat in
-      let root = Filename.current_dir_name // "_test" // name in
+      let root = Filename.current_dir_name // "_test" // name // "src" in
+      let repo =
+        Filename.current_dir_name // "_test" // name // "opam-repository"
+      in
       let job =
         let label = "test_analyse-" ^ name in
         Current.Job.create
           ~switch:(Current.Switch.create ~label ())
           ~label ~config:(Current.Config.v ()) ()
       in
-      let () = Gen_project.instantiate ~root project in
-      Analysis.of_dir ~job ~platforms:Test_platforms.v (Fpath.v root)
+      Gen_project.instantiate ~root project;
+      Gen_project.instantiate ~root:repo
+        Gen_project.
+          [
+            folder "packages"
+              [
+                dummy_package "dune" [ "1.0" ];
+                dummy_package "ocaml" [ "4.10.0"; "4.09.0" ];
+                dummy_package "fmt" [ "1.0" ];
+                dummy_package "logs" [ "1.0" ];
+                dummy_package "alcotest" [ "1.0" ];
+              ];
+          ];
+      let opam_repository = Fpath.v repo in
+      Current.Process.exec ~job ~cancellable:true ~cwd:opam_repository
+        ("", [| "git"; "init" |])
+      >|= Result.get_ok
+      >>= fun _ ->
+      Current.Process.exec ~job ~cancellable:true ~cwd:opam_repository
+        ("", [| "git"; "add"; "." |])
+      >|= Result.get_ok
+      >>= fun _ ->
+      Current.Process.exec ~job ~cancellable:true ~cwd:opam_repository
+        ("", [| "git"; "commit"; "-m"; "init" |])
+      >|= Result.get_ok
+      >>= fun _ ->
+      Analysis.of_dir ~job ~platforms:Test_platforms.v ~opam_repository
+        (Fpath.v root)
       >|= (function
             | Ok o -> o
-            | Error (`Msg e) -> Alcotest.failf "Analysis stage failed: %s" e)
+            | Error (`Msg e) ->
+                let path =
+                  Current.Job.(log_path (id job))
+                  |> Result.get_ok |> Fpath.to_string
+                in
+                let ch = open_in path in
+                let len = in_channel_length ch in
+                let log = really_input_string ch len in
+                close_in ch;
+                Printf.printf "Log:\n%s\n%!" log;
+                Alcotest.failf "Analysis stage failed: %s" e)
       >|= Alcotest.(check Analysis.t) name expected)
 
 (* example duniverse containing a single package *)

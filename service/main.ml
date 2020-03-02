@@ -1,5 +1,12 @@
 open Lwt.Infix
 
+let solver =
+  match Sys.argv with
+  | [| _; "--run-solver" |] -> Ocaml_ci_solver.main (); exit 0
+  | args ->
+    let prog = args.(0) in
+    prog, [| prog; "--run-solver" |]
+
 let () =
   Logging.init ();
   Mirage_crypto_rng_unix.initialize ();
@@ -40,7 +47,7 @@ let has_role user = function
     | _ -> false
 
 let main config mode app capnp_address github_auth =
-  let engine = Current.Engine.create ~config (Pipeline.v ~app) in
+  let engine = Current.Engine.create ~config (Pipeline.v ~app ~solver) in
   let authn = Option.map Current_github.Auth.make_login_uri github_auth in
   let has_role =
     if github_auth = None then Current_web.Site.allow_all

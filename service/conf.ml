@@ -73,4 +73,6 @@ let platforms =
   | `Dev ->
     [
       v "4.10" Builders.local "debian-10" "4.10";
+      v "4.09" Builders.local "debian-10" "4.09";
+      v "4.02" Builders.local "debian-10" "4.02";
     ]
