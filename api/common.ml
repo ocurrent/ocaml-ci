@@ -1,1 +1,1 @@
-let status_sep = '/'
+let status_sep = ':'

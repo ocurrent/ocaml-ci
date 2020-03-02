@@ -98,17 +98,9 @@ let make_repo ~engine ~owner ~name =
         );
       Service.return response
 
-    method deprecated_refs_of_commit_impl params release_param_caps =
-      let open Repo.DeprecatedRefsOfCommit in
-      let hash = Params.hash_get params in
+    method obsolete_refs_of_commit_impl _ release_param_caps =
       release_param_caps ();
-      let refs =
-        Index.get_active_refs { Current_github.Repo_id.owner; name }
-        |> List.filter_map (fun (name, h) -> if h = hash then Some name else None)
-      in
-      let response, results = Service.Response.create Results.init_pointer in
-      Results.refs_set_list results refs |> ignore;
-      Service.return response
+      Service.fail "This method no longer exists"
 
     method commit_of_ref_impl params release_param_caps =
       let open Repo.CommitOfRef in
@@ -138,43 +130,13 @@ let make_repo ~engine ~owner ~name =
         Results.commit_set results (Some commit);
         Service.return response
 
-    method deprecated_job_of_commit_impl params release_param_caps =
-      let open Repo.DeprecatedJobOfCommit in
-      let hash = Params.hash_get params in
+    method obsolete_job_of_commit_impl _ release_param_caps =
       release_param_caps ();
-      match Index.get_full_hash ~owner ~name hash with
-      | Error `Ambiguous -> Service.fail "Ambiguous commit hash %S" hash
-      | Error `Invalid -> Service.fail "Invalid Git hash %S" hash
-      | Error `Unknown -> Service.fail "Unknown Git hash %S" hash
-      | Ok hash ->
-        match Index.get_job ~owner ~name ~hash ~variant:"alpine-3.10-ocaml-4.08" with
-        | Error `No_such_variant -> Service.fail "No such job"
-        | Ok None -> Service.fail "Job not started yet"
-        | Ok (Some id) ->
-          let job = Rpc.job ~engine id in
-          let response, results = Service.Response.create Results.init_pointer in
-          Results.job_set results (Some job);
-          Capability.dec_ref job;
-          Service.return response
+      Service.fail "This method no longer exists"
 
-    method deprecated_job_of_ref_impl params release_param_caps =
-      let open Repo.DeprecatedJobOfRef in
-      let gref = Params.ref_get params in
+    method obsolete_job_of_ref_impl _ release_param_caps =
       release_param_caps ();
-      let refs = Index.get_active_refs { Current_github.Repo_id.owner; name } in
-      match List.assoc_opt gref refs with
-      | None -> Service.fail "@[<v2>Unknown ref %S. Options are:@,%a@]" gref
-                  Fmt.(Dump.list string) (List.map fst refs)
-      | Some hash ->
-        match Index.get_job ~owner ~name ~hash ~variant:"alpine-3.10-ocaml-4.08" with
-        | Error `No_such_variant -> Service.fail "No such job"
-        | Ok None -> Service.fail "Job not started yet"
-        | Ok (Some id) ->
-          let job = Rpc.job ~engine id in
-          let response, results = Service.Response.create Results.init_pointer in
-          Results.job_set results (Some job);
-          Capability.dec_ref job;
-          Service.return response
+      Service.fail "This method no longer exists"
   end
 
 let make_org ~engine owner =
