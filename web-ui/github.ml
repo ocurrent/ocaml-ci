@@ -75,8 +75,8 @@ module StatusTree : sig
   type key = string
 
   type 'a tree =
-    | Leaf of 'a
-    | Branch of key * 'a t
+    | Leaf of key * 'a
+    | Branch of key * 'a option * 'a t
   and 'a t = 'a tree list
 
   val add : key list -> 'a -> 'a t -> 'a t
@@ -84,35 +84,46 @@ end = struct
   type key = string
 
   type 'a tree =
-    | Leaf of 'a
-    | Branch of key * 'a t
+    | Leaf of key * 'a
+    | Branch of key * 'a option * 'a t
   and 'a t = 'a tree list
 
   let rec add k x ts = match k, ts with
-    | [], ts -> ts @ [Leaf x]
-    | k::ks, [] -> [Branch (k, add ks x [])]
-    | _::_, (Leaf _ as t)::ts -> t :: add k x ts
-    | k::ks, Branch (k', t)::ts when String.equal k k' -> Branch (k, add ks x t) :: ts
-    | _::_, (Branch _ as t)::ts -> t :: add k x ts
+    | [], _ -> assert false
+    | [k], [] -> [Leaf (k, x)]
+    | [k], Leaf (k', _)::_ when String.equal k k' -> assert false
+    | [k], (Leaf _ as t)::ts -> t :: add [k] x ts
+    | [k], Branch (k', Some _, _)::_ when String.equal k k' -> assert false
+    | [k], Branch (k', None, t)::ts when String.equal k k' -> Branch (k, Some x, t) :: ts
+    | [k], (Branch _ as t)::ts -> t :: add [k] x ts
+    | k::ks, [] -> [Branch (k, None, add ks x [])]
+    | k::ks, Leaf (k', y)::ts when String.equal k k' -> Branch (k, Some y, add ks x []) :: ts
+    | k::ks, Branch (k', y, t)::ts when String.equal k k' -> Branch (k, y, add ks x t) :: ts
+    | _::_, t::ts -> t :: add k x ts
 end
 
 let statuses ss =
   let open Tyxml.Html in
+  let status (s, elms1) elms2 =
+    let status_class_name =
+      match (s : Client.State.t) with
+      | NotStarted -> "not-started"
+      | Aborted -> "aborted"
+      | Failed m when Astring.String.is_prefix ~affix:"[SKIP]" m -> "skipped"
+      | Failed _ -> "failed"
+      | Passed -> "passed"
+      | Active -> "active"
+      | Undefined _ -> "undefined"
+    in
+    li ~a:[a_class [status_class_name]] (elms1 @ elms2)
+  in
   let rec render_status = function
-    | StatusTree.Leaf (s, elms) ->
-        let status_class_name =
-          match (s : Client.State.t) with
-          | NotStarted -> "not-started"
-          | Aborted -> "aborted"
-          | Failed m when Astring.String.is_prefix ~affix:"[SKIP]" m -> "skipped"
-          | Failed _ -> "failed"
-          | Passed -> "passed"
-          | Active -> "active"
-          | Undefined _ -> "undefined"
-        in
-        li ~a:[a_class [status_class_name]] elms
-    | StatusTree.Branch (b, ss) ->
+    | StatusTree.Leaf (_, x) ->
+        status x []
+    | StatusTree.Branch (b, None, ss) ->
         li [txt b; ul ~a:[a_class ["statuses"]] (List.map render_status ss)]
+    | StatusTree.Branch (_, Some x, ss) ->
+        status x [ul ~a:[a_class ["statuses"]] (List.map render_status ss)]
   in
   ul ~a:[a_class ["statuses"]] (List.map render_status ss)
 
@@ -155,16 +166,14 @@ let link_jobs ~owner ~name ~hash ?selected jobs =
   let open Tyxml.Html in
   let render_job trees { Client.variant; outcome } =
     let uri = job_url ~owner ~name ~hash variant in
-    match List.rev (String.split_on_char Common.status_sep variant) with
-    | [] -> assert false
-    | label_txt::k ->
-        let k = List.rev k in
-        let x =
-          let label = txt (Fmt.strf "%s (%a)" label_txt Client.State.pp outcome) in
-          let label = if selected = Some variant then b [label] else label in
-          outcome, [a ~a:[a_href uri] [label]]
-        in
-        StatusTree.add k x trees
+    let k = String.split_on_char Common.status_sep variant in
+    let x =
+      let label_txt = List.hd (List.rev k) in
+      let label = txt (Fmt.strf "%s (%a)" label_txt Client.State.pp outcome) in
+      let label = if selected = Some variant then b [label] else label in
+      outcome, [a ~a:[a_href uri] [label]]
+    in
+    StatusTree.add k x trees
   in
   statuses (List.fold_left render_job [] jobs)
 
