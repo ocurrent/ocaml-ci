@@ -36,12 +36,12 @@ let dockerfile ~base ~pkg ~variant =
     Hashtbl.add cache key x;
     x
 
-let v (type s) ~docker:(module Docker : S.DOCKER_CONTEXT with type source = s)
-    ~schedule ~variant ~pkg (source : s) =
-  let open Current.Syntax in
-  let dockerfile =
-    let+ base = Docker.pull ~schedule ("ocurrent/opam:" ^ variant) in
-    `Contents (dockerfile ~base:(Docker.image_hash base) ~pkg ~variant)
-  in
-  let build = Docker.build ~dockerfile source in
-  Current.map (fun _ -> `Built) build
+module Make (Docker : S.DOCKER_CONTEXT) = struct
+  let v ~schedule ~variant ~pkg source =
+    let open Current.Syntax in
+    let dockerfile =
+      let+ base = Docker.pull ~schedule ("ocurrent/opam:" ^ variant) in
+      `Contents (dockerfile ~base:(Docker.image_hash base) ~pkg ~variant)
+    in
+    Docker.build ~dockerfile source
+end

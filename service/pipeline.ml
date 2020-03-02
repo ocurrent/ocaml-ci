@@ -37,31 +37,49 @@ let set_active_refs ~repo xs =
 
 let job_id x =
   let+ job = Current.Analysis.get x in
-  Current.Analysis.job_id job
+    Current.Analysis.job_id job
 
 let status_sep = String.make 1 Common.status_sep
 
 let build_with_docker ~analysis source =
-  let+ analysis = analysis in
+  let* analysis = analysis in
   let pkgs = Analyse.Analysis.opam_files analysis in
-  let build docker prefix name variant =
-    List.map begin fun pkg ->
-      let build_result =
-        Opam_build.v ~docker ~schedule:weekly ~variant ~pkg source
+  let build ~revdeps docker name variant builds =
+    List.fold_left begin fun builds pkg ->
+      let (module D : S.DOCKER_CONTEXT with
+            type source = [ `Git of Current_git.Commit.t Current.t | `No_context ]) = docker in
+      let module B = Opam_build.Make (D) in
+      let image = B.v ~schedule:weekly ~variant ~pkg source in
+      let revdeps =
+        if revdeps then begin
+          let prefix = pkg^status_sep^name^status_sep^"revdeps" in
+          let+ revdeps = D.run image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"] in
+          String.split_on_char '\n' revdeps |>
+          List.map begin fun pkg ->
+            let image = B.v ~schedule:weekly ~variant ~pkg source in
+            let build_result = Current.map (fun _ -> `Built) image in
+            (prefix^status_sep^name, (build_result, job_id build_result))
+          end
+        end else begin
+          Current.return []
+        end
       in
-      (prefix pkg^status_sep^name, (build_result, job_id build_result))
-    end pkgs
+      let build_result = Current.map (fun _ -> `Built) image in
+      let+ builds = builds
+      and+ revdeps = revdeps in
+      builds @ (pkg^status_sep^name, (build_result, job_id build_result)) :: revdeps
+    end builds pkgs
   in
-  let stage1 pkg = pkg in
-  build (module Conf.Builder_amd1) stage1 "4.10" "debian-10-ocaml-4.10" @
-  build (module Conf.Builder_amd3) stage1 "4.09" "debian-10-ocaml-4.09" @
-  build (module Conf.Builder_amd1) stage1 "4.08" "debian-10-ocaml-4.08" @
-  build (module Conf.Builder_amd2) stage1 "4.07" "debian-10-ocaml-4.07" @
-  build (module Conf.Builder_amd2) stage1 "4.06" "debian-10-ocaml-4.06" @
-  build (module Conf.Builder_amd3) stage1 "4.05" "debian-10-ocaml-4.05" @
-  build (module Conf.Builder_amd3) stage1 "4.04" "debian-10-ocaml-4.04" @
-  build (module Conf.Builder_amd2) stage1 "4.03" "debian-10-ocaml-4.03" @
-  build (module Conf.Builder_amd2) stage1 "4.02" "debian-10-ocaml-4.02"
+  Current.return [] |>
+  build ~revdeps:true (module Conf.Builder_amd1) "4.10" "debian-10-ocaml-4.10" |>
+  build ~revdeps:true (module Conf.Builder_amd2) "4.09" "debian-10-ocaml-4.09" |>
+  build ~revdeps:true (module Conf.Builder_amd3) "4.08" "debian-10-ocaml-4.08" |>
+  build ~revdeps:true (module Conf.Builder_amd1) "4.07" "debian-10-ocaml-4.07" |>
+  build ~revdeps:true (module Conf.Builder_amd2) "4.06" "debian-10-ocaml-4.06" |>
+  build ~revdeps:true (module Conf.Builder_amd3) "4.05" "debian-10-ocaml-4.05" |>
+  build ~revdeps:true (module Conf.Builder_amd1) "4.04" "debian-10-ocaml-4.04" |>
+  build ~revdeps:true (module Conf.Builder_amd2) "4.03" "debian-10-ocaml-4.03" |>
+  build ~revdeps:true (module Conf.Builder_amd3) "4.02" "debian-10-ocaml-4.02"
 
 let list_errors ~ok errs =
   let groups =  (* Group by error message *)
