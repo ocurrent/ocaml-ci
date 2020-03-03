@@ -17,6 +17,12 @@ module type DOCKER_CONTEXT = sig
     ?label:string ->
     image Current.t ->
     args:string list ->
+    unit Current.t
+
+  val pread :
+    ?label:string ->
+    image Current.t ->
+    args:string list ->
     string Current.t
 
 end

@@ -55,6 +55,9 @@ struct
   let run ?label image ~args =
     Docker.run ?label ~pool image ~args
 
+  let pread ?label image ~args =
+    Docker.pread ?label ~pool image ~args
+
 end
 
 module Builder_amd1 = Builder(struct let docker_context = "default" end)

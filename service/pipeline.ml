@@ -53,7 +53,7 @@ let build_with_docker ~analysis source =
       let revdeps =
         if revdeps then begin
           let prefix = pkg^status_sep^name^status_sep^"revdeps" in
-          let+ revdeps = D.run image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"] in
+          let+ revdeps = D.pread image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"] in
           String.split_on_char '\n' revdeps |>
           List.filter (fun pkg -> not (String.equal pkg "")) |>
           List.map begin fun pkg ->
