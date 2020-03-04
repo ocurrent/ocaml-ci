@@ -1,5 +1,4 @@
-(*let download_cache = "--mount=type=cache,target=/home/opam/.opam/download-cache,uid=1000"*)
-(* TODO: Find the way to have this? *)
+let download_cache = "--mount=type=cache,target=/home/opam/.opam/download-cache,uid=1000"
 
 type key =  {
   base : string;
@@ -21,7 +20,7 @@ let dockerfile { base; pkg; variant} =
   distro_extras @@
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
   run "git -C /home/opam/opam-repository pull origin master && git -C /home/opam/opam-repository pull /src && opam update default" @@
-  run "opam depext -ivy %s" pkg
+  run "%s opam depext -ivy %s" download_cache pkg
 
 let cache = Hashtbl.create 10000
 let cache_max_size = 1000000
