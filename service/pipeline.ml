@@ -75,14 +75,14 @@ let build_with_docker ~analysis source =
   in
   Current.return [] |>
   build ~revdeps:true (module Conf.Builder_amd1) "4.10" "debian-10-ocaml-4.10" |>
-  build ~revdeps:true (module Conf.Builder_amd2) "4.09" "debian-10-ocaml-4.09" |>
-  build ~revdeps:true (module Conf.Builder_amd3) "4.08" "debian-10-ocaml-4.08" |>
+  build ~revdeps:true (module Conf.Builder_amd1) "4.09" "debian-10-ocaml-4.09" |>
+  build ~revdeps:true (module Conf.Builder_amd1) "4.08" "debian-10-ocaml-4.08" |>
   build ~revdeps:true (module Conf.Builder_amd1) "4.07" "debian-10-ocaml-4.07" |>
-  build ~revdeps:true (module Conf.Builder_amd2) "4.06" "debian-10-ocaml-4.06" |>
-  build ~revdeps:true (module Conf.Builder_amd3) "4.05" "debian-10-ocaml-4.05" |>
+  build ~revdeps:true (module Conf.Builder_amd1) "4.06" "debian-10-ocaml-4.06" |>
+  build ~revdeps:true (module Conf.Builder_amd1) "4.05" "debian-10-ocaml-4.05" |>
   build ~revdeps:true (module Conf.Builder_amd1) "4.04" "debian-10-ocaml-4.04" |>
-  build ~revdeps:true (module Conf.Builder_amd2) "4.03" "debian-10-ocaml-4.03" |>
-  build ~revdeps:true (module Conf.Builder_amd3) "4.02" "debian-10-ocaml-4.02" |>
+  build ~revdeps:true (module Conf.Builder_amd1) "4.03" "debian-10-ocaml-4.03" |>
+  build ~revdeps:true (module Conf.Builder_amd1) "4.02" "debian-10-ocaml-4.02" |>
   List.fold_right begin fun distro builds ->
     match distro with
     | `Debian `V10 -> builds (* Skip debian 10 as it was already tested in the main phase *)
