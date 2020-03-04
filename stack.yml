@@ -22,6 +22,8 @@ services:
       - 'ocaml-ci-github-key'
     sysctls:
       - 'net.ipv4.tcp_keepalive_time=60'
+    networks:
+      - default
   web:
     image: ocaml-ci-web
     command: --backend /capnp-secrets/ocaml-ci-admin.cap --listen-prometheus=9090
@@ -31,3 +33,5 @@ services:
       - 'capnp-secrets:/capnp-secrets:ro'
     sysctls:
       - 'net.ipv4.tcp_keepalive_time=60'
+    networks:
+      - default
