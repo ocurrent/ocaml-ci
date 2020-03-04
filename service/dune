@@ -14,5 +14,6 @@
             nocrypto.lwt
             ocaml_ci
             ocaml-ci-api
+            dockerfile-opam
             prometheus)
  (preprocess (pps ppx_deriving_yojson)))

@@ -6,6 +6,8 @@ module Github = Current_github
 module Docker = Current_docker.Default
 module Common = Ocaml_ci_api.Common
 
+let default_compiler = "4.10"
+
 let weekly = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
 
 (* Link for GitHub statuses. *)
@@ -80,7 +82,16 @@ let build_with_docker ~analysis source =
   build ~revdeps:true (module Conf.Builder_amd3) "4.05" "debian-10-ocaml-4.05" |>
   build ~revdeps:true (module Conf.Builder_amd1) "4.04" "debian-10-ocaml-4.04" |>
   build ~revdeps:true (module Conf.Builder_amd2) "4.03" "debian-10-ocaml-4.03" |>
-  build ~revdeps:true (module Conf.Builder_amd3) "4.02" "debian-10-ocaml-4.02"
+  build ~revdeps:true (module Conf.Builder_amd3) "4.02" "debian-10-ocaml-4.02" |>
+  List.fold_right begin fun distro builds ->
+    match distro with
+    | `Debian `V10 -> builds (* Skip debian 10 as it was already tested in the main phase *)
+    | distro ->
+        let name = Dockerfile_distro.human_readable_string_of_distro distro in
+        let tag = Dockerfile_distro.tag_of_distro distro in
+        let tag = tag^"-ocaml-"^default_compiler in
+        build ~revdeps:false (module Conf.Builder_amd1) name tag builds
+  end (Dockerfile_distro.active_distros `X86_64)
 
 let list_errors ~ok errs =
   let groups =  (* Group by error message *)
