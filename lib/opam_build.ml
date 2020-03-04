@@ -36,10 +36,20 @@ let dockerfile ~base ~pkg ~variant =
     x
 
 module Make (Docker : S.DOCKER_CONTEXT) = struct
-  let v ~schedule ~variant ~pkg source =
-    let open Current.Syntax in
+  type t = {
+    base : Docker.image Current.t;
+    variant : string;
+  }
+
+  let base ~schedule ~variant = {
+    base = Docker.pull ~schedule ("ocurrent/opam:" ^ variant);
+    variant;
+  }
+
+  let v ~pkg source {base; variant} =
     let dockerfile =
-      let+ base = Docker.pull ~schedule ("ocurrent/opam:" ^ variant) in
+      let open Current.Syntax in
+      let+ base = base in
       `Contents (dockerfile ~base:(Docker.image_hash base) ~pkg ~variant)
     in
     Docker.build ~dockerfile source

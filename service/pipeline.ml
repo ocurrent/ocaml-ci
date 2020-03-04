@@ -47,11 +47,12 @@ let build_with_docker ~analysis source =
   let* analysis = analysis in
   let pkgs = Analyse.Analysis.opam_files analysis in
   let build ~revdeps docker name variant builds =
+    let (module D : S.DOCKER_CONTEXT with
+          type source = [ `Git of Current_git.Commit.t Current.t | `No_context ]) = docker in
+    let module B = Opam_build.Make (D) in
+    let base = B.base ~schedule:weekly ~variant in
     List.fold_left begin fun builds pkg ->
-      let (module D : S.DOCKER_CONTEXT with
-            type source = [ `Git of Current_git.Commit.t Current.t | `No_context ]) = docker in
-      let module B = Opam_build.Make (D) in
-      let image = B.v ~schedule:weekly ~variant ~pkg source in
+      let image = B.v ~pkg source base in
       let revdeps =
         if revdeps then begin
           let prefix = pkg^status_sep^name^status_sep^"revdeps" in
@@ -59,7 +60,7 @@ let build_with_docker ~analysis source =
           String.split_on_char '\n' revdeps |>
           List.filter (fun pkg -> not (String.equal pkg "")) |>
           List.map begin fun pkg ->
-            let image = B.v ~schedule:weekly ~variant ~pkg source in
+            let image = B.v ~pkg source base in
             let build_result = Current.map (fun _ -> `Built) image in
             (prefix^status_sep^pkg, (build_result, job_id build_result))
           end
