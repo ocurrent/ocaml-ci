@@ -124,13 +124,16 @@ let summarise results =
     | ok, err, _ -> list_errors ~ok err     (* Some errors found - report *)
 
 let get_prs repo =
-  let* refs = Github.Api.Repo.ci_refs repo in
-  List.fold_left begin fun acc head ->
-    let+ acc = acc in
-    match Github.Api.Commit.kind head with
+  let+ refs =
+    Current.component "Get PRs" |>
+    let> (api, repo) = repo in
+    Github.Api.refs api repo
+  in
+  Github.Api.Ref_map.fold begin fun key head acc ->
+    match key with
     | `Ref _ -> acc (* Skip branches, only check PRs *)
     | `PR _ -> head :: acc
-  end (Current.return []) refs
+  end refs []
 
 let local_test repo () =
   let src = Git.Local.head_commit repo in
