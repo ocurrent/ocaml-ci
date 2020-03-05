@@ -8,9 +8,8 @@ module Make (Docker : S.DOCKER_CONTEXT) = struct
     | Analyse_ocamlformat.Vendored { path } ->
       let opam_file = Filename.concat path "ocamlformat.opam" in
       copy ~chown:"opam" ~src:[ opam_file ] ~dst:opam_file ()
-      @@ run "opam pin add -k none -yn ocamlformat %S" path
-      (* Only the opam file is necessary to install the deps
-          [-k none] above ensures that opam doesn't try to make an installable package *)
+      @@ run "opam pin add -k path -n ocamlformat %S" path
+      (* Pinned to a directory containing only the .opam file *)
       @@ run "opam depext ocamlformat"
       @@ run "opam install --deps-only -y ocamlformat"
     | Opam { version } ->
