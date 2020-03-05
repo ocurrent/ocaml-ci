@@ -39,7 +39,7 @@ let set_active_refs ~repo xs =
 
 let job_id x =
   let+ job = Current.Analysis.get x in
-    Current.Analysis.job_id job
+  Current.Analysis.job_id job
 
 let status_sep = String.make 1 Common.status_sep
 
