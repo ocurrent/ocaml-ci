@@ -22,7 +22,7 @@ let github_status_of_state ~head result =
   match result with
   | Ok _              -> Github.Api.Status.v ~url `Success ~description:"Passed"
   | Error (`Active _) -> Github.Api.Status.v ~url `Pending
-  | Error (`Msg m)    -> Github.Api.Status.v ~url `Failure ~description:m
+  | Error (`Msg _)    -> Github.Api.Status.v ~url `Failure ~description:"Failed"
 
 let set_active_refs ~repo xs =
   let+ repo = repo
@@ -200,10 +200,7 @@ let v ~app () =
     let hash = Current_github.Api.Commit.hash commit in
     Index.record ~repo ~hash ~status @@ ("(analysis)", analysis) :: jobs
   and set_github_status =
-    let* builds = builds in
-    builds
-    |> List.map (fun (variant, (build, _job)) -> variant, build)
-    |> summarise
+    summary
     |> github_status_of_state ~head
     |> Github.Api.Commit.set_status head "opam-ci"
   in
