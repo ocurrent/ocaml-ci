@@ -6,7 +6,7 @@ type key =  {
   variant : string;
 }
 
-let dockerfile { base; pkg; variant} =
+let dockerfile {base; pkg; variant} =
   let open Dockerfile in
   let distro_extras =
     if Astring.String.is_prefix ~affix:"fedora" variant then
