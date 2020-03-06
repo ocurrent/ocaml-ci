@@ -84,6 +84,7 @@ let build_with_docker ~analysis source =
   ] @
   List.fold_left begin fun builds -> function
     | `Debian `V10 -> builds (* Skip debian 10 as it was already tested in the main phase *)
+    | `OracleLinux _ -> builds (* Not supported by opam-depext *)
     | distro ->
         let name = Dockerfile_distro.human_readable_string_of_distro distro in
         let tag = Dockerfile_distro.tag_of_distro distro in
