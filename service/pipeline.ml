@@ -209,9 +209,11 @@ let v ~app () =
     let hash = Current_github.Api.Commit.hash commit in
     let jobs = [("(analysis)", analysis)] in
     Index.record ~repo ~hash ~status:`Pending jobs; (* Stage1 *)
-    let* jobs = get_static_jobs builds in
+    let* static_jobs = get_static_jobs builds in
+    let jobs = jobs @ static_jobs in
     Index.record ~repo ~hash ~status:`Pending jobs; (* Stage2 *)
-    let* jobs = get_dynamic_jobs builds in
+    let* dynamic_jobs = get_dynamic_jobs builds in
+    let jobs = jobs @ dynamic_jobs in
     let+ status =
       let+ summary = summary in
       match summary with
