@@ -44,17 +44,17 @@ let job_id x =
 let status_sep = String.make 1 Common.status_sep
 
 let build_with_docker ~analysis source =
-  let* analysis = analysis in
-  let pkgs = Analyse.Analysis.opam_files analysis in
-  let build ~revdeps docker name variant builds =
+  let build ~revdeps docker name variant =
+    let+ analysis = analysis in
+    let pkgs = Analyse.Analysis.opam_files analysis in
     let (module D : S.DOCKER_CONTEXT with
           type source = [ `Git of Current_git.Commit.t Current.t | `No_context ]) = docker in
     let module B = Opam_build.Make (D) in
     let base = B.base ~schedule:weekly ~variant in
-    List.fold_left begin fun builds pkg ->
+    List.map begin fun pkg ->
       let image = B.v ~pkg source base in
       let revdeps =
-        if revdeps then begin
+        if revdeps then
           let prefix = pkg^status_sep^name^status_sep^"revdeps" in
           let+ revdeps = D.pread image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"] in
           String.split_on_char '\n' revdeps |>
@@ -64,35 +64,34 @@ let build_with_docker ~analysis source =
             let build_result = Current.map (fun _ -> `Built) image in
             (prefix^status_sep^pkg, (build_result, job_id build_result))
           end
-        end else begin
+        else
           Current.return []
-        end
       in
       let build_result = Current.map (fun _ -> `Built) image in
-      let+ builds = builds
-      and+ revdeps = revdeps in
-      builds @ (pkg^status_sep^name, (build_result, job_id build_result)) :: revdeps
-    end builds pkgs
+      ((pkg^status_sep^name, (build_result, job_id build_result)), revdeps)
+    end pkgs
   in
-  Current.return [] |>
-  build ~revdeps:true (module Conf.Builder_amd1) "4.10" "debian-10-ocaml-4.10" |>
-  build ~revdeps:true (module Conf.Builder_amd1) "4.09" "debian-10-ocaml-4.09" |>
-  build ~revdeps:true (module Conf.Builder_amd1) "4.08" "debian-10-ocaml-4.08" |>
-  build ~revdeps:true (module Conf.Builder_amd1) "4.07" "debian-10-ocaml-4.07" |>
-  build ~revdeps:true (module Conf.Builder_amd1) "4.06" "debian-10-ocaml-4.06" |>
-  build ~revdeps:true (module Conf.Builder_amd1) "4.05" "debian-10-ocaml-4.05" |>
-  build ~revdeps:true (module Conf.Builder_amd1) "4.04" "debian-10-ocaml-4.04" |>
-  build ~revdeps:true (module Conf.Builder_amd1) "4.03" "debian-10-ocaml-4.03" |>
-  build ~revdeps:true (module Conf.Builder_amd1) "4.02" "debian-10-ocaml-4.02" |>
-  List.fold_right begin fun distro builds ->
-    match distro with
+  [
+    build ~revdeps:true (module Conf.Builder_amd1) "4.10" "debian-10-ocaml-4.10";
+    build ~revdeps:true (module Conf.Builder_amd1) "4.09" "debian-10-ocaml-4.09";
+    build ~revdeps:true (module Conf.Builder_amd1) "4.08" "debian-10-ocaml-4.08";
+    build ~revdeps:true (module Conf.Builder_amd1) "4.07" "debian-10-ocaml-4.07";
+    build ~revdeps:true (module Conf.Builder_amd1) "4.06" "debian-10-ocaml-4.06";
+    build ~revdeps:true (module Conf.Builder_amd1) "4.05" "debian-10-ocaml-4.05";
+    build ~revdeps:true (module Conf.Builder_amd1) "4.04" "debian-10-ocaml-4.04";
+    build ~revdeps:true (module Conf.Builder_amd1) "4.03" "debian-10-ocaml-4.03";
+    build ~revdeps:true (module Conf.Builder_amd1) "4.02" "debian-10-ocaml-4.02";
+  ] @
+  List.fold_left begin fun builds -> function
     | `Debian `V10 -> builds (* Skip debian 10 as it was already tested in the main phase *)
     | distro ->
         let name = Dockerfile_distro.human_readable_string_of_distro distro in
         let tag = Dockerfile_distro.tag_of_distro distro in
         let tag = tag^"-ocaml-"^default_compiler in
-        build ~revdeps:false (module Conf.Builder_amd1) name tag builds
-  end (Dockerfile_distro.active_distros `X86_64)
+        builds @ [build ~revdeps:false (module Conf.Builder_amd1) name tag]
+  end [] (Dockerfile_distro.active_distros `X86_64) |>
+  Current.list_seq |>
+  Current.map List.concat
 
 let list_errors ~ok errs =
   let groups =  (* Group by error message *)
@@ -147,15 +146,49 @@ let get_prs repo =
     | `PR _ -> head :: acc
   end refs []
 
+(* Final summary of all static and dynamic jobs *)
+let summarise builds =
+  let get (variant, (build, _job)) = (variant, build) in
+  let* builds = builds in
+  let* jobs =
+    builds |>
+    List.map (fun (static_job, dynamic_jobs) ->
+      let+ dynamic_jobs = dynamic_jobs in
+      get static_job :: List.map get dynamic_jobs
+    ) |>
+    Current.list_seq |>
+    Current.map List.concat
+  in
+  summarise jobs
+
+let get_job (variant, (_build, job)) =
+  let+ job = job in
+  (variant, job)
+
+let get_static_jobs builds =
+  let* builds = builds in
+  builds |>
+  List.map (fun (static_job, _dynamic_jobs) -> get_job static_job) |>
+  Current.list_seq
+
+let get_dynamic_jobs builds =
+  let* builds = builds in
+  builds |>
+  List.map (fun (_static_job, dynamic_jobs) ->
+    let* dynamic_jobs = dynamic_jobs in
+    List.map get_job dynamic_jobs |>
+    Current.list_seq
+  ) |>
+  Current.list_seq |>
+  Current.map List.concat
+
 let local_test repo () =
   let src = Git.Local.head_commit repo in
   let analysis = Analyse.examine src in
   Current.component "summarise" |>
   let** result =
-    let* builds = build_with_docker ~analysis (`Git src) in
-    builds
-    |> List.map (fun (variant, (build, _job)) -> variant, build)
-    |> summarise
+    build_with_docker ~analysis (`Git src) |>
+    summarise
   in
   Current.of_output result
 
@@ -167,38 +200,26 @@ let v ~app () =
   prs |> Current.list_iter ~pp:Github.Api.Commit.pp @@ fun head ->
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
   let analysis = Analyse.examine src in
-  let builds =
-    build_with_docker ~analysis (`Git src) in
-  let jobs =
-    let* builds = builds in
-    builds
-    |> List.map (fun (variant, (_build, job)) ->
-      let+ x = job in
-      (variant, x)
-    )
-    |> Current.list_seq
-  in
-  let summary =
-    let* builds = builds in
-    builds
-    |> List.map (fun (variant, (build, _job)) -> variant, build)
-    |> summarise
-  in
-  let status =
-    let+ summary = summary in
-    match summary with
-    | Ok () -> `Passed
-    | Error (`Active `Running) -> `Pending
-    | Error (`Msg _) -> `Failed
-  in
+  let builds = build_with_docker ~analysis (`Git src) in
+  let summary = summarise builds in
   let index =
-    let+ commit = head
-    and+ analysis = job_id analysis
-    and+ jobs = jobs
-    and+ status = status in
+    let* commit = head
+    and* analysis = job_id analysis in
     let repo = Current_github.Api.Commit.repo_id commit in
     let hash = Current_github.Api.Commit.hash commit in
-    Index.record ~repo ~hash ~status @@ ("(analysis)", analysis) :: jobs
+    let jobs = [("(analysis)", analysis)] in
+    Index.record ~repo ~hash ~status:`Pending jobs; (* Stage1 *)
+    let* jobs = get_static_jobs builds in
+    Index.record ~repo ~hash ~status:`Pending jobs; (* Stage2 *)
+    let* jobs = get_dynamic_jobs builds in
+    let+ status =
+      let+ summary = summary in
+      match summary with
+      | Ok () -> `Passed
+      | Error (`Active `Running) -> `Pending
+      | Error (`Msg _) -> `Failed
+    in
+    Index.record ~repo ~hash ~status jobs; (* Stage3. TODO: Be even more dynamic *)
   and set_github_status =
     summary
     |> github_status_of_state ~head
