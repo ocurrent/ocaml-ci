@@ -60,3 +60,4 @@ end
 module Builder_amd1 = Builder(struct let docker_context = "default" end)
 module Builder_amd2 = Builder(struct let docker_context = "laodoke" end)
 module Builder_amd3 = Builder(struct let docker_context = "phoebe" end)
+module Builder_amd4 = Builder(struct let docker_context = "m1-a" end)
