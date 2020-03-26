@@ -36,10 +36,6 @@ let set_active_refs ~repo xs =
   );
   xs
 
-let job_id x =
-  let+ job = Current.Analysis.get x in
-  Current.Analysis.job_id job
-
 module Lint = Ocaml_ci.Lint.Make (Conf.Builder_amd1)
 
 let build_with_docker ~repo ~analysis source =
@@ -47,7 +43,7 @@ let build_with_docker ~repo ~analysis source =
     let build_result =
       Opam_build.v ~docker ~schedule:weekly ~variant ~repo ~analysis source
     in
-    build_result, job_id build_result
+    build_result, Current.Analysis.job_id build_result
   in
   let lint_result = Lint.v ~schedule:weekly ~analysis ~source in
   [
@@ -69,7 +65,7 @@ let build_with_docker ~repo ~analysis source =
     "fedora", build (module Conf.Builder_amd3) @@ "fedora-30-ocaml-" ^ default_compiler;
     (* oraclelinux doesn't work in opam 2 yet: *)
     (* build (module Conf.Builder_amd3) @@ "oraclelinux-7-ocaml-" ^ default_compiler; *)
-    "lint", (lint_result, job_id lint_result);
+    "lint", (lint_result, Current.Analysis.job_id lint_result);
   ]
 
 let list_errors ~ok errs =
@@ -126,11 +122,11 @@ let local_test repo () =
   Current.of_output result
 
 let v ~app () =
-  Github.App.installations app |> Current.list_iter ~pp:Github.Installation.pp @@ fun installation ->
+  Github.App.installations app |> Current.list_iter (module Github.Installation) @@ fun installation ->
   let repos = Github.Installation.repositories installation in
-  repos |> Current.list_iter ~pp:Github.Api.Repo.pp @@ fun repo ->
+  repos |> Current.list_iter (module Github.Api.Repo) @@ fun repo ->
   let refs = Github.Api.Repo.ci_refs repo |> set_active_refs ~repo in
-  refs |> Current.list_iter ~pp:Github.Api.Commit.pp @@ fun head ->
+  refs |> Current.list_iter (module Github.Api.Commit) @@ fun head ->
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
   let analysis = Analyse.examine src in
   let builds =
@@ -157,7 +153,7 @@ let v ~app () =
   in
   let index =
     let+ commit = head
-    and+ analysis = job_id analysis
+    and+ analysis = Current.Analysis.job_id analysis
     and+ jobs = jobs
     and+ status = status in
     let repo = Current_github.Api.Commit.repo_id commit in
