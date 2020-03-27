@@ -56,16 +56,21 @@ let build_with_docker ~analysis source =
       let revdeps =
         if revdeps then
           let prefix = pkg^status_sep^name^status_sep^"revdeps" in
-          let+ revdeps = D.pread image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"] in
-          String.split_on_char '\n' revdeps |>
-          List.filter (fun pkg -> not (String.equal pkg "")) |>
-          List.map begin fun pkg ->
-            let image = B.v ~pkg source base in
-            let build_result = Current.map (fun _ -> `Built) image in
-            (prefix^status_sep^pkg, (build_result, job_id build_result))
-          end
+          let revdeps_job = D.pread image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"] in
+          let revdeps =
+            let+ revdeps = revdeps_job in
+            String.split_on_char '\n' revdeps |>
+            List.filter (fun pkg -> not (String.equal pkg "")) |>
+            List.map begin fun pkg ->
+              let image = B.v ~pkg source base in
+              let build_result = Current.map (fun _ -> `Built) image in
+              (prefix^status_sep^pkg, (build_result, job_id build_result))
+            end
+          in
+          let revdeps_result = Current.map (fun _ -> `Built) revdeps_job in
+          Some ((prefix, (revdeps_result, job_id revdeps_result)), revdeps)
         else
-          Current.return []
+          None
       in
       let build_result = Current.map (fun _ -> `Built) image in
       ((pkg^status_sep^name, (build_result, job_id build_result)), revdeps)
@@ -154,7 +159,12 @@ let summarise builds =
   let* jobs =
     builds |>
     List.map (fun (static_job, dynamic_jobs) ->
-      let+ dynamic_jobs = dynamic_jobs in
+      let+ dynamic_jobs = match dynamic_jobs with
+        | None -> Current.return []
+        | Some (static_job2, dynamic_jobs) ->
+            let+ dynamic_jobs = dynamic_jobs in
+            static_job2 :: dynamic_jobs
+      in
       get static_job :: List.map get dynamic_jobs
     ) |>
     Current.list_seq |>
@@ -176,7 +186,12 @@ let get_dynamic_jobs builds =
   let* builds = builds in
   builds |>
   List.map (fun (_static_job, dynamic_jobs) ->
-    let* dynamic_jobs = dynamic_jobs in
+    let* dynamic_jobs = match dynamic_jobs with
+      | None -> Current.return []
+      | Some (static_job2, dynamic_jobs) ->
+          let+ dynamic_jobs = dynamic_jobs in
+          static_job2 :: dynamic_jobs
+    in
     List.map get_job dynamic_jobs |>
     Current.list_seq
   ) |>
