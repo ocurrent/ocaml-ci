@@ -76,7 +76,9 @@ let build_with_docker ~analysis source =
       ((pkg^status_sep^name, (build_result, job_id build_result)), revdeps)
     end pkgs
   in
+  let analysis_result = Current.map (fun _ -> `Checked) analysis in
   [
+    Current.return [(("(analysis)", (analysis_result, job_id analysis)), None)];
     build ~revdeps:true (module Conf.Builder_amd1) "4.10" "debian-10-ocaml-4.10";
     build ~revdeps:true (module Conf.Builder_amd1) "4.09" "debian-10-ocaml-4.09";
     build ~revdeps:true (module Conf.Builder_amd1) "4.08" "debian-10-ocaml-4.08";
@@ -95,9 +97,7 @@ let build_with_docker ~analysis source =
         let tag = Dockerfile_distro.tag_of_distro distro in
         let tag = tag^"-ocaml-"^default_compiler in
         builds @ [build ~revdeps:false (module Conf.Builder_amd1) name tag]
-  end [] (Dockerfile_distro.active_distros `X86_64) |>
-  Current.list_seq |>
-  Current.map List.concat
+  end [] (Dockerfile_distro.active_distros `X86_64)
 
 let list_errors ~ok errs =
   let groups =  (* Group by error message *)
@@ -152,51 +152,41 @@ let get_prs repo =
     | `PR _ -> head :: acc
   end refs []
 
-(* Final summary of all static and dynamic jobs *)
-let summarise builds =
-  let get (variant, (build, _job)) = (variant, build) in
-  let* builds = builds in
-  let* jobs =
-    builds |>
-    List.map (fun (static_job, dynamic_jobs) ->
-      let+ dynamic_jobs = match dynamic_jobs with
-        | None -> Current.return []
-        | Some (static_job2, dynamic_jobs) ->
-            let+ dynamic_jobs = dynamic_jobs in
-            static_job2 :: dynamic_jobs
-      in
-      get static_job :: List.map get dynamic_jobs
-    ) |>
-    Current.list_seq |>
-    Current.map List.concat
-  in
-  summarise jobs
-
-let get_job (variant, (_build, job)) =
-  let+ job = job in
-  (variant, job)
-
-let get_static_jobs builds =
-  let* builds = builds in
-  builds |>
-  List.map (fun (static_job, _dynamic_jobs) -> get_job static_job) |>
-  Current.list_seq
-
-let get_dynamic_jobs builds =
-  let* builds = builds in
-  builds |>
-  List.map (fun (_static_job, dynamic_jobs) ->
-    let* dynamic_jobs = match dynamic_jobs with
-      | None -> Current.return []
-      | Some (static_job2, dynamic_jobs) ->
-          let+ dynamic_jobs = dynamic_jobs in
-          static_job2 :: dynamic_jobs
-    in
-    List.map get_job dynamic_jobs |>
-    Current.list_seq
-  ) |>
+let get_jobs_aux f builds =
+  List.map (fun jobs ->
+    let* state = Current.state ~hidden:true jobs in
+    match state with
+    | Error (`Active _) -> Current.return []
+    | Ok _ | Error (`Msg _) ->
+        let* jobs = jobs in
+        List.map (fun (static_job, dynamic_jobs) ->
+          let* dynamic_jobs = match dynamic_jobs with
+            | None -> Current.return []
+            | Some (static_job, dynamic_jobs) ->
+                let* state = Current.state ~hidden:true dynamic_jobs in
+                match state with
+                | Error (`Active _) -> Current.return [static_job]
+                | Ok _ | Error (`Msg _) ->
+                    let+ dynamic_jobs = dynamic_jobs in
+                    static_job :: dynamic_jobs
+          in
+          f static_job :: List.map f dynamic_jobs |>
+          Current.list_seq
+        ) jobs |>
+        Current.list_seq |>
+        Current.map List.concat
+  ) builds |>
   Current.list_seq |>
   Current.map List.concat
+
+let summarise builds =
+  let get_job (variant, (build, _job)) = Current.return (variant, build) in
+  let* jobs = get_jobs_aux get_job builds in
+  summarise jobs
+
+let get_jobs builds =
+  let get_job (variant, (_build, job)) = Current.map (fun job -> (variant, job)) job in
+  get_jobs_aux get_job builds
 
 let local_test repo () =
   let src = Git.Local.head_commit repo in
@@ -218,26 +208,20 @@ let v ~app () =
   let analysis = Analyse.examine src in
   let builds = build_with_docker ~analysis (`Git src) in
   let summary = summarise builds in
+  let status =
+    let+ summary = summary in
+    match summary with
+    | Ok () -> `Passed
+    | Error (`Active `Running) -> `Pending
+    | Error (`Msg _) -> `Failed
+  in
   let index =
-    let* commit = head
-    and* analysis = job_id analysis in
+    let+ commit = head
+    and+ jobs = get_jobs builds
+    and+ status = status in
     let repo = Current_github.Api.Commit.repo_id commit in
     let hash = Current_github.Api.Commit.hash commit in
-    let jobs = [("(analysis)", analysis)] in
-    Index.record ~repo ~hash ~status:`Pending jobs; (* Stage1 *)
-    let* static_jobs = get_static_jobs builds in
-    let jobs = jobs @ static_jobs in
-    Index.record ~repo ~hash ~status:`Pending jobs; (* Stage2 *)
-    let* dynamic_jobs = get_dynamic_jobs builds in
-    let jobs = jobs @ dynamic_jobs in
-    let+ status =
-      let+ summary = summary in
-      match summary with
-      | Ok () -> `Passed
-      | Error (`Active `Running) -> `Pending
-      | Error (`Msg _) -> `Failed
-    in
-    Index.record ~repo ~hash ~status jobs; (* Stage3. TODO: Be even more dynamic *)
+    Index.record ~repo ~hash ~status jobs;
   and set_github_status =
     summary
     |> github_status_of_state ~head
