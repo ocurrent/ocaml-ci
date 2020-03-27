@@ -37,10 +37,6 @@ let set_active_refs ~repo xs =
   );
   xs
 
-let job_id x =
-  let+ job = Current.Analysis.get x in
-  Current.Analysis.job_id job
-
 let status_sep = String.make 1 Common.status_sep
 
 let build_with_docker ~analysis source =
@@ -64,21 +60,21 @@ let build_with_docker ~analysis source =
             List.map begin fun pkg ->
               let image = B.v ~pkg source base in
               let build_result = Current.map (fun _ -> `Built) image in
-              (prefix^status_sep^pkg, (build_result, job_id build_result))
+              (prefix^status_sep^pkg, (build_result, Current.Analysis.job_id build_result))
             end
           in
           let revdeps_result = Current.map (fun _ -> `Built) revdeps_job in
-          Some ((prefix, (revdeps_result, job_id revdeps_result)), revdeps)
+          Some ((prefix, (revdeps_result, Current.Analysis.job_id revdeps_result)), revdeps)
         else
           None
       in
       let build_result = Current.map (fun _ -> `Built) image in
-      ((pkg^status_sep^name, (build_result, job_id build_result)), revdeps)
+      ((pkg^status_sep^name, (build_result, Current.Analysis.job_id build_result)), revdeps)
     end pkgs
   in
   let analysis_result = Current.map (fun _ -> `Checked) analysis in
   [
-    Current.return [(("(analysis)", (analysis_result, job_id analysis)), None)];
+    Current.return [(("(analysis)", (analysis_result, Current.Analysis.job_id analysis)), None)];
     build ~revdeps:true (module Conf.Builder_amd1) "4.10" "debian-10-ocaml-4.10";
     build ~revdeps:true (module Conf.Builder_amd1) "4.09" "debian-10-ocaml-4.09";
     build ~revdeps:true (module Conf.Builder_amd1) "4.08" "debian-10-ocaml-4.08";
@@ -200,11 +196,11 @@ let local_test repo () =
   Current.of_output result
 
 let v ~app () =
-  Github.App.installations app |> Current.list_iter ~pp:Github.Installation.pp @@ fun installation ->
+  Github.App.installations app |> Current.list_iter (module Github.Installation) @@ fun installation ->
   let repos = Github.Installation.repositories installation in
-  repos |> Current.list_iter ~pp:Github.Api.Repo.pp @@ fun repo ->
+  repos |> Current.list_iter (module Github.Api.Repo) @@ fun repo ->
   let prs = get_prs repo |> set_active_refs ~repo in
-  prs |> Current.list_iter ~pp:Github.Api.Commit.pp @@ fun head ->
+  prs |> Current.list_iter (module Github.Api.Commit) @@ fun head ->
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
   let analysis = Analyse.examine src in
   let builds = build_with_docker ~analysis (`Git src) in
