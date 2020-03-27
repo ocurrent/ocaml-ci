@@ -160,6 +160,7 @@ let get_jobs_aux f builds =
     | Ok _ | Error (`Msg _) ->
         let* jobs = jobs in
         List.map (fun (static_job, dynamic_jobs) ->
+          let* _ = Current.state ~hidden:true static_job in (* To update dynamic_jobs in case the static one is cancelled *)
           let* dynamic_jobs = match dynamic_jobs with
             | None -> Current.return []
             | Some (static_job, dynamic_jobs) ->
