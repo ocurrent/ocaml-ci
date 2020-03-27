@@ -5,7 +5,7 @@ module Git = Current_git
 module Github = Current_github
 module Docker = Current_docker.Default
 
-let default_compiler = "4.09"
+let default_compiler = "4.10"
 
 let weekly = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
 
@@ -59,10 +59,10 @@ let build_with_docker ~repo ~analysis source =
     "4.02", build (module Conf.Builder_amd2) "debian-10-ocaml-4.02";
     (* Distributions: *)
     "alpine", build (module Conf.Builder_amd1) @@ "alpine-3.10-ocaml-" ^ default_compiler;
-    "ubuntu", build (module Conf.Builder_amd2) @@ "ubuntu-19.04-ocaml-" ^ default_compiler;
+    "ubuntu", build (module Conf.Builder_amd2) @@ "ubuntu-19.10-ocaml-" ^ default_compiler;
     "opensuse", build (module Conf.Builder_amd2) @@ "opensuse-15.1-ocaml-" ^ default_compiler;
     "centos", build (module Conf.Builder_amd3) @@ "centos-8-ocaml-" ^ default_compiler;
-    "fedora", build (module Conf.Builder_amd3) @@ "fedora-30-ocaml-" ^ default_compiler;
+    "fedora", build (module Conf.Builder_amd3) @@ "fedora-31-ocaml-" ^ default_compiler;
     (* oraclelinux doesn't work in opam 2 yet: *)
     (* build (module Conf.Builder_amd3) @@ "oraclelinux-7-ocaml-" ^ default_compiler; *)
     "lint", (lint_result, Current.Analysis.job_id lint_result);
