@@ -50,10 +50,10 @@ let build_with_docker ~analysis source =
     List.map begin fun pkg ->
       let image = B.v ~pkg source base in
       let revdeps =
+        let+ image = image in
         if revdeps then
           let prefix = pkg^status_sep^name^status_sep^"revdeps" in
           let revdeps_job =
-            let* image = image in
             D.pread (Current.return image) ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"] in
           let revdeps =
             let+ revdeps = revdeps_job in
@@ -76,7 +76,7 @@ let build_with_docker ~analysis source =
   in
   let analysis_result = Current.map (fun _ -> `Checked) analysis in
   [
-    Current.return [(("(analysis)", (analysis_result, Current.Analysis.job_id analysis)), None)];
+    Current.return [(("(analysis)", (analysis_result, Current.Analysis.job_id analysis)), Current.return None)];
     build ~revdeps:true (module Conf.Builder_amd1) "4.10" "debian-10-ocaml-4.10";
     build ~revdeps:true (module Conf.Builder_amd1) "4.09" "debian-10-ocaml-4.09";
     build ~revdeps:true (module Conf.Builder_amd1) "4.08" "debian-10-ocaml-4.08";
@@ -158,18 +158,23 @@ let get_jobs_aux f builds =
     | Ok _ | Error (`Msg _) ->
         let* jobs = jobs in
         List.map (fun (static_job, dynamic_jobs) ->
-          let* dynamic_jobs = match dynamic_jobs with
-            | None -> Current.return []
-            | Some (static_job, dynamic_jobs) ->
-                let* state = Current.state ~hidden:true dynamic_jobs in
-                match state with
-                | Error (`Active _) -> Current.return [static_job]
-                | Ok _ | Error (`Msg _) ->
-                    let+ dynamic_jobs = dynamic_jobs in
-                    static_job :: dynamic_jobs
-          in
-          f static_job :: List.map f dynamic_jobs |>
-          Current.list_seq
+          let* state = Current.state ~hidden:true dynamic_jobs in
+          match state with
+          | Error (`Active _) -> Current.return []
+          | Ok _ | Error (`Msg _) ->
+              let* dynamic_jobs = dynamic_jobs in
+              let* dynamic_jobs = match dynamic_jobs with
+                | None -> Current.return []
+                | Some (static_job, dynamic_jobs) ->
+                    let* state = Current.state ~hidden:true dynamic_jobs in
+                    match state with
+                    | Error (`Active _) -> Current.return [static_job]
+                    | Ok _ | Error (`Msg _) ->
+                        let+ dynamic_jobs = dynamic_jobs in
+                        static_job :: dynamic_jobs
+              in
+              f static_job :: List.map f dynamic_jobs |>
+              Current.list_seq
         ) jobs |>
         Current.list_seq |>
         Current.map List.concat
