@@ -52,7 +52,9 @@ let build_with_docker ~analysis source =
       let revdeps =
         if revdeps then
           let prefix = pkg^status_sep^name^status_sep^"revdeps" in
-          let revdeps_job = D.pread image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"] in
+          let revdeps_job =
+            let* image = image in
+            D.pread (Current.return image) ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"] in
           let revdeps =
             let+ revdeps = revdeps_job in
             String.split_on_char '\n' revdeps |>
