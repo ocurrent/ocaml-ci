@@ -158,8 +158,7 @@ let get_jobs_aux f builds =
         List.map (fun (static_job, dynamic_jobs) ->
           let* dynamic_jobs = match dynamic_jobs with
             | None -> Current.return []
-            | Some ((_, (static_update, _)) as static_job, dynamic_jobs) ->
-                let* _ = Current.state ~hidden:true static_update in (* test *)
+            | Some (static_job, dynamic_jobs) ->
                 let* state = Current.state ~hidden:true dynamic_jobs in
                 match state with
                 | Error (`Active _) -> Current.return [static_job]
