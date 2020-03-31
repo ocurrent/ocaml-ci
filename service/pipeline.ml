@@ -43,7 +43,7 @@ let build_with_docker ~repo ~analysis source =
     let build_result =
       Opam_build.v ~docker ~schedule:weekly ~variant ~repo ~analysis source
     in
-    build_result, Current.Analysis.job_id build_result
+    build_result, Current.Analysis.metadata build_result
   in
   let lint_result = Lint.v ~schedule:weekly ~analysis ~source in
   [
@@ -65,7 +65,7 @@ let build_with_docker ~repo ~analysis source =
     "fedora", build (module Conf.Builder_amd3) @@ "fedora-31-ocaml-" ^ default_compiler;
     (* oraclelinux doesn't work in opam 2 yet: *)
     (* build (module Conf.Builder_amd3) @@ "oraclelinux-7-ocaml-" ^ default_compiler; *)
-    "lint", (lint_result, Current.Analysis.job_id lint_result);
+    "lint", (lint_result, Current.Analysis.metadata lint_result);
   ]
 
 let list_errors ~ok errs =
@@ -153,7 +153,7 @@ let v ~app () =
   in
   let index =
     let+ commit = head
-    and+ analysis = Current.Analysis.job_id analysis
+    and+ analysis = Current.Analysis.metadata analysis
     and+ jobs = jobs
     and+ status = status in
     let repo = Current_github.Api.Commit.repo_id commit in
