@@ -16,11 +16,11 @@ let dockerfile {base; pkg; variant} =
   in
   comment "syntax = docker/dockerfile:experimental@sha256:ee85655c57140bd20a5ebc3bb802e7410ee9ac47ca92b193ed0ab17485024fe5" @@
   from base @@
-  workdir "/home/opam/opam-repository" @@
   comment "%s" variant @@
   distro_extras @@
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
-  run "git pull origin master && git pull /src && opam update default" @@
+  workdir "/src" @@
+  run "git checkout -b cibranch && git checkout master && git merge cibranch && opam repository set-url default file:///src" @@
   run "%s opam depext -ivy %s" download_cache pkg
 
 let cache = Hashtbl.create 10000
