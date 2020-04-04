@@ -11,7 +11,7 @@
             current_github
             current_rpc
             capnp-rpc-unix
-            nocrypto.lwt
+            mirage-crypto-rng.unix
             ocaml_ci
             ocaml-ci-api
             dockerfile-opam

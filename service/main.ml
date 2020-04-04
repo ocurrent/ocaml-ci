@@ -2,7 +2,7 @@ open Lwt.Infix
 
 let () =
   Logging.init ();
-  Nocrypto_entropy_lwt.initialize () |> ignore;
+  Mirage_crypto_rng_unix.initialize ();
   match Conf.profile with
   | `Production -> Logs.info (fun f -> f "Using production configuration")
   | `Dev -> Logs.info (fun f -> f "Using dev configuration")
