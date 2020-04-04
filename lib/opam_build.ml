@@ -20,7 +20,7 @@ let dockerfile {base; pkg; variant} =
   distro_extras @@
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
   workdir "/src" @@
-  run "git checkout -b cibranch && git checkout master && git merge cibranch && opam repository set-url default file:///src" @@
+  run "git checkout -b opam-ci__cibranch origin/master && git merge master && opam repository set-url default file:///src" @@
   run "%s opam depext -ivy %s" download_cache pkg
 
 let cache = Hashtbl.create 10000
