@@ -21,7 +21,6 @@ depends: [
   "alcotest-lwt" {>= "1.0.1" & with-test}
 ]
 build: [
-  ["dune" "subst"] {pinned}
   [
     "dune"
     "build"

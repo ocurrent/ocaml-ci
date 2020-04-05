@@ -21,7 +21,6 @@ depends: [
   "ppx_deriving_yojson"
 ]
 build: [
-  ["dune" "subst"] {pinned}
   [
     "dune"
     "build"

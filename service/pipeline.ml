@@ -39,63 +39,65 @@ let set_active_refs ~repo xs =
 
 let status_sep = String.make 1 Common.status_sep
 
+module Docker1 :
+  (S.DOCKER_CONTEXT with type source = [ `Git of Current_git.Commit.t Current.t | `No_context ]) =
+  Conf.Builder_amd1
+module Build1 = Opam_build.Make (Docker1)
+
+let job build =
+  (build, Current.Analysis.metadata build)
+
 let build_with_docker ~analysis source =
-  let build ~revdeps docker name variant =
-    let+ analysis = analysis in
-    let pkgs = Analyse.Analysis.opam_files analysis in
-    let (module D : S.DOCKER_CONTEXT with
-          type source = [ `Git of Current_git.Commit.t Current.t | `No_context ]) = docker in
-    let module B = Opam_build.Make (D) in
-    let base = B.base ~schedule:weekly ~variant in
-    List.map begin fun pkg ->
-      let image = B.v ~pkg source base in
+  let+ analysis = analysis in
+  let pkgs = Analyse.Analysis.opam_files analysis in
+  let build ~revdeps name variant builds =
+    let base = Build1.base ~schedule:weekly ~variant in
+    List.fold_left begin fun builds pkg ->
+      let image = Build1.v ~pkg source base in
       let revdeps =
-        let+ image = image in
         if revdeps then
           let prefix = pkg^status_sep^name^status_sep^"revdeps" in
           let revdeps_job =
-            D.pread (Current.return image) ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"] in
+            Docker1.pread image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"]
+          in
           let revdeps =
             let+ revdeps = revdeps_job in
             String.split_on_char '\n' revdeps |>
             List.filter (fun pkg -> not (String.equal pkg "")) |>
             List.map begin fun pkg ->
-              let image = B.v ~pkg source base in
+              let image = Build1.v ~pkg source base in
               let build_result = Current.map (fun _ -> `Built) image in
-              (prefix^status_sep^pkg, Current.Analysis.metadata build_result)
+              (prefix^status_sep^pkg, job build_result)
             end
           in
           let revdeps_result = Current.map (fun _ -> `Built) revdeps_job in
-          Some ((prefix, Current.Analysis.metadata revdeps_result), revdeps)
+          [Current.return [(prefix, job revdeps_result)]; revdeps]
         else
-          None
+          []
       in
       let build_result = Current.map (fun _ -> `Built) image in
-      ((pkg^status_sep^name, Current.Analysis.metadata build_result), revdeps)
-    end pkgs
+      builds @ (Current.return [(pkg^status_sep^name, job build_result)] :: revdeps)
+    end builds pkgs
   in
-  let analysis_result = Current.map (fun _ -> `Checked) analysis in
-  [
-    Current.return [(("(analysis)", Current.Analysis.metadata analysis_result), Current.return None)];
-    build ~revdeps:true (module Conf.Builder_amd1) "4.10" "debian-10-ocaml-4.10";
-    build ~revdeps:true (module Conf.Builder_amd1) "4.09" "debian-10-ocaml-4.09";
-    build ~revdeps:true (module Conf.Builder_amd1) "4.08" "debian-10-ocaml-4.08";
-    build ~revdeps:true (module Conf.Builder_amd1) "4.07" "debian-10-ocaml-4.07";
-(*    build ~revdeps:true (module Conf.Builder_amd1) "4.06" "debian-10-ocaml-4.06"; (* Temporary comment for tests *)
-    build ~revdeps:true (module Conf.Builder_amd1) "4.05" "debian-10-ocaml-4.05";   (* Too slow with dune requiring ocaml-secondary-compiler *)
-    build ~revdeps:true (module Conf.Builder_amd1) "4.04" "debian-10-ocaml-4.04";
-    build ~revdeps:true (module Conf.Builder_amd1) "4.03" "debian-10-ocaml-4.03";
-      build ~revdeps:true (module Conf.Builder_amd1) "4.02" "debian-10-ocaml-4.02"; *)
-  ] @
-  List.fold_left begin fun builds -> function
+  [] |>
+  build ~revdeps:true "4.10" "debian-10-ocaml-4.10" |>
+  build ~revdeps:true "4.09" "debian-10-ocaml-4.09" |>
+  build ~revdeps:true "4.08" "debian-10-ocaml-4.08" |>
+  build ~revdeps:true "4.07" "debian-10-ocaml-4.07" |>
+(*build ~revdeps:true "4.06" "debian-10-ocaml-4.06" |> (* Temporary comment for tests *)
+  build ~revdeps:true "4.05" "debian-10-ocaml-4.05" |> (* Too slow with dune requiring ocaml-secondary-compiler *)
+  build ~revdeps:true "4.04" "debian-10-ocaml-4.04" |>
+  build ~revdeps:true "4.03" "debian-10-ocaml-4.03" |>
+  build ~revdeps:true "4.02" "debian-10-ocaml-4.02" |> *)
+  List.fold_right begin fun distro builds -> match distro with
     | `Debian `V10 -> builds (* Skip debian 10 as it was already tested in the main phase *)
     | `OracleLinux _ -> builds (* Not supported by opam-depext *)
     | distro ->
         let name = Dockerfile_distro.human_readable_string_of_distro distro in
         let tag = Dockerfile_distro.tag_of_distro distro in
         let tag = tag^"-ocaml-"^default_compiler in
-        builds @ [build ~revdeps:false (module Conf.Builder_amd1) name tag]
-  end [] (Dockerfile_distro.active_distros `X86_64)
+        build ~revdeps:false name tag builds
+  end (Dockerfile_distro.active_distros `X86_64)
 
 let list_errors ~ok errs =
   let groups =  (* Group by error message *)
@@ -151,33 +153,15 @@ let get_prs repo =
   end refs []
 
 let get_jobs_aux f builds =
+  let* builds = builds in
   List.map (fun jobs ->
     let* state = Current.state ~hidden:true jobs in
     match state with
     | Error (`Active _) -> Current.return []
     | Ok _ | Error (`Msg _) ->
         let* jobs = jobs in
-        List.map (fun (static_job, dynamic_jobs) ->
-          let* state = Current.state ~hidden:true dynamic_jobs in
-          match state with
-          | Error (`Active _) -> Current.list_seq [f static_job]
-          | Ok _ | Error (`Msg _) ->
-              let* dynamic_jobs = dynamic_jobs in
-              let* dynamic_jobs = match dynamic_jobs with
-                | None -> Current.return []
-                | Some (static_job, dynamic_jobs) ->
-                    let* state = Current.state ~hidden:true dynamic_jobs in
-                    match state with
-                    | Error (`Active _) -> Current.return [static_job]
-                    | Ok _ | Error (`Msg _) ->
-                        let+ dynamic_jobs = dynamic_jobs in
-                        static_job :: dynamic_jobs
-              in
-              f static_job :: List.map f dynamic_jobs |>
-              Current.list_seq
-        ) jobs |>
-        Current.list_seq |>
-        Current.map List.concat
+        List.map f jobs |>
+        Current.list_seq
   ) builds |>
   Current.list_seq |>
   Current.map List.concat
@@ -220,12 +204,18 @@ let v ~app () =
   in
   let index =
     let+ commit = head
+    and+ analysis = Current.Analysis.metadata analysis
     and+ jobs = get_jobs builds
     and+ status = status in
     let repo = Current_github.Api.Commit.repo_id commit in
     let hash = Current_github.Api.Commit.hash commit in
-    Index.record ~repo ~hash ~status jobs;
+    Index.record ~repo ~hash ~status @@ ("(analysis)", analysis) :: jobs
   and set_github_status =
+    let* () = (* While waiting for the analysis phase *)
+      Current.return (Error (`Active `Running)) |>
+      github_status_of_state ~head |>
+      Github.Api.Commit.set_status head "opam-ci"
+    in
     summary
     |> github_status_of_state ~head
     |> Github.Api.Commit.set_status head "opam-ci"
