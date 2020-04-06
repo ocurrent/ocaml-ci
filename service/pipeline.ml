@@ -44,7 +44,7 @@ module Docker1 :
   Conf.Builder_amd1
 module Build1 = Opam_build.Make (Docker1)
 
-let job build =
+let job_id build =
   let job = Current.map (fun _ -> `Built) build in
   (job, Current.Analysis.metadata build)
 
@@ -76,14 +76,14 @@ let build_with_docker ~analysis source =
             List.filter (fun pkg -> not (String.equal pkg "")) |>
             List.map begin fun pkg ->
               let image = Build1.v ~pkg source base in
-              (prefix^status_sep^pkg, job image)
+              (prefix^status_sep^pkg, job_id image)
             end
           in
-          [Current.return [(prefix, job revdeps_job)]; revdeps]
+          [Current.return [(prefix, job_id revdeps_job)]; revdeps]
         else
           []
       in
-      builds @ (Current.return [(pkg^status_sep^name, job image)] :: revdeps)
+      builds @ (Current.return [(pkg^status_sep^name, job_id image)] :: revdeps)
     end builds pkgs
   in
   [] |>
