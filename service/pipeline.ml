@@ -47,8 +47,15 @@ module Build1 = Opam_build.Make (Docker1)
 let job build =
   (build, Current.Analysis.metadata build)
 
+let update job =
+  Current.map (fun _ -> Current.Engine.update ()) (Current.catch ~hidden:true job)
+
 let build_with_docker ~analysis source =
-  let+ analysis = analysis in
+  let+ analysis =
+    let job = analysis in
+    let* () = update job in
+    job
+  in
   let pkgs = Analyse.Analysis.opam_files analysis in
   let build ~revdeps name variant builds =
     let base = Build1.base ~schedule:weekly ~variant in
@@ -58,8 +65,9 @@ let build_with_docker ~analysis source =
         if revdeps then
           let prefix = pkg^status_sep^name^status_sep^"revdeps" in
           let revdeps_job =
-            let* _ = Current.state ~hidden:true image in
-            Docker1.pread image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"]
+            let job = Docker1.pread image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"] in
+            let* () = update job in
+            job
           in
           let revdeps =
             let+ revdeps = revdeps_job in
