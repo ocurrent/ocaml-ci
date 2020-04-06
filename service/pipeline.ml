@@ -58,6 +58,7 @@ let build_with_docker ~analysis source =
         if revdeps then
           let prefix = pkg^status_sep^name^status_sep^"revdeps" in
           let revdeps_job =
+            let* _ = Current.state ~hidden:true image in
             Docker1.pread image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"]
           in
           let revdeps =
@@ -218,11 +219,6 @@ let v ~app () =
     let hash = Current_github.Api.Commit.hash commit in
     Index.record ~repo ~hash ~status @@ ("(analysis)", analysis) :: jobs
   and set_github_status =
-    let* () = (* While waiting for the analysis phase *)
-      Current.return (Error (`Active `Running)) |>
-      github_status_of_state ~head |>
-      Github.Api.Commit.set_status head "opam-ci"
-    in
     summary
     |> github_status_of_state ~head
     |> Github.Api.Commit.set_status head "opam-ci"
