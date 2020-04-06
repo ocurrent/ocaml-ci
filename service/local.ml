@@ -7,10 +7,12 @@ let () =
 let main config mode repo =
   let repo = Current_git.Local.v (Fpath.v repo) in
   let engine = Current.Engine.create ~config (Pipeline.local_test repo) in
+  let site = Current_web.Site.(v ~has_role:allow_all) ~name:"ocaml-ci-local" () in
+  let routes = Current_web.routes engine in
   Logging.run begin
     Lwt.choose [
       Current.Engine.thread engine;
-      Current_web.run ~mode engine;
+      Current_web.run ~mode ~site routes;
     ]
   end
 
