@@ -13,6 +13,7 @@ depends: [
   "dockerfile"
 ]
 build: [
+  ["dune" "subst"] {pinned}
   [
     "dune"
     "build"

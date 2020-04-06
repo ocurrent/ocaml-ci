@@ -152,28 +152,35 @@ let get_prs repo =
     | `PR _ -> head :: acc
   end refs []
 
-let get_jobs_aux f builds =
-  let* builds = builds in
-  List.map (fun jobs ->
-    let* state = Current.state ~hidden:true jobs in
-    match state with
-    | Error (`Active _) -> Current.return []
-    | Ok _ | Error (`Msg _) ->
-        let* jobs = jobs in
-        List.map f jobs |>
-        Current.list_seq
-  ) builds |>
-  Current.list_seq |>
-  Current.map List.concat
+let get_jobs_aux ~default f builds =
+  let* state = Current.state ~hidden:true builds in
+  match state with
+  | Error (`Active _) -> default
+  | Ok _ | Error (`Msg _) ->
+      let* builds = builds in
+      List.fold_left (fun acc jobs ->
+        let* state = Current.state ~hidden:true jobs in
+        match state with
+        | Error (`Active _) -> acc
+        | Ok _ | Error (`Msg _) ->
+            let* jobs = jobs in
+            List.fold_left (fun acc job ->
+              let+ job = f job
+              and+ acc = acc in
+              job :: acc
+            ) acc jobs
+      ) (Current.return []) builds
 
 let summarise builds =
+  let default = Current.return [("(running)", Current.active `Running)] in
   let get_job (variant, (build, _job)) = Current.return (variant, build) in
-  let* jobs = get_jobs_aux get_job builds in
+  let* jobs = get_jobs_aux ~default get_job builds in
   summarise jobs
 
 let get_jobs builds =
+  let default = Current.return [] in
   let get_job (variant, (_build, job)) = Current.map (fun job -> (variant, job)) job in
-  get_jobs_aux get_job builds
+  get_jobs_aux ~default get_job builds
 
 let local_test repo () =
   let src = Git.Local.head_commit repo in
