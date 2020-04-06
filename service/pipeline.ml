@@ -48,13 +48,13 @@ let job_id build =
   let job = Current.map (fun _ -> `Built) build in
   (job, Current.Analysis.metadata build)
 
-let build_with_docker ~analysis:analysis_job source =
-  let+ analysis = analysis_job in
+let build_with_docker ~analysis source =
+  let+ analysis = analysis in
   let pkgs = Analyse.Analysis.opam_files analysis in
   let build ~revdeps name variant builds =
     let base = Build1.base ~schedule:weekly ~variant in
     List.fold_left begin fun builds pkg ->
-      let image = Current.with_context analysis_job (fun () -> Build1.v ~pkg source base) in
+      let image = Build1.v ~pkg source base in
       let revdeps =
         if revdeps then
           let prefix = pkg^status_sep^name^status_sep^"revdeps" in
@@ -66,7 +66,7 @@ let build_with_docker ~analysis:analysis_job source =
             String.split_on_char '\n' revdeps |>
             List.filter (fun pkg -> not (String.equal pkg "")) |>
             List.map begin fun pkg ->
-              let image = Current.with_context revdeps_job (fun () -> Build1.v ~pkg source base) in
+              let image = Build1.v ~pkg source base in
               (prefix^status_sep^pkg, job_id image)
             end
           in
