@@ -132,20 +132,22 @@ let summarise results =
       (label, result)
     )
   |> Current.list_seq
-  |> Current.map @@ fun results ->
-  results |> List.fold_left (fun (ok, pending, err, skip) -> function
-      | _, Ok `Checked -> (ok, pending, err, skip)  (* Don't count lint checks *)
-      | _, Ok `Built -> (ok + 1, pending, err, skip)
-      | l, Error `Msg m when Astring.String.is_prefix ~affix:"[SKIP]" m -> (ok, pending, err, (m, l) :: skip)
-      | l, Error `Msg m -> (ok, pending, (m, l) :: err, skip)
-      | _, Error `Active _ -> (ok, pending + 1, err, skip)
-    ) (0, 0, [], [])
-  |> fun (ok, pending, err, skip) ->
-  if pending > 0 then Error (`Active `Running)
-  else match ok, err, skip with
-    | 0, [], skip -> list_errors ~ok:0 skip (* Everything was skipped - treat skips as errors *)
-    | _, [], _ -> Ok ()                     (* No errors and at least one success *)
-    | ok, err, _ -> list_errors ~ok err     (* Some errors found - report *)
+  |> Current.map @@ function
+  | [] -> Error (`Active `Running)
+  | results ->
+      results |> List.fold_left (fun (ok, pending, err, skip) -> function
+        | _, Ok `Checked -> (ok, pending, err, skip)  (* Don't count lint checks *)
+        | _, Ok `Built -> (ok + 1, pending, err, skip)
+        | l, Error `Msg m when Astring.String.is_prefix ~affix:"[SKIP]" m -> (ok, pending, err, (m, l) :: skip)
+        | l, Error `Msg m -> (ok, pending, (m, l) :: err, skip)
+        | _, Error `Active _ -> (ok, pending + 1, err, skip)
+      ) (0, 0, [], [])
+      |> fun (ok, pending, err, skip) ->
+      if pending > 0 then Error (`Active `Running)
+      else match ok, err, skip with
+        | 0, [], skip -> list_errors ~ok:0 skip (* Everything was skipped - treat skips as errors *)
+        | _, [], _ -> Ok ()                     (* No errors and at least one success *)
+        | ok, err, _ -> list_errors ~ok err     (* Some errors found - report *)
 
 let get_prs repo =
   let+ refs =
@@ -159,10 +161,10 @@ let get_prs repo =
     | `PR _ -> head :: acc
   end refs []
 
-let get_jobs_aux ~default f builds =
+let get_jobs_aux f builds =
   let* state = Current.state ~hidden:true builds in
   match state with
-  | Error (`Active _) -> default
+  | Error (`Active _) -> Current.return []
   | Ok _ | Error (`Msg _) ->
       let* builds = builds in
       List.fold_left (fun acc jobs ->
@@ -179,15 +181,13 @@ let get_jobs_aux ~default f builds =
       ) (Current.return []) builds
 
 let summarise builds =
-  let default = Current.return [("(running)", Current.active `Running)] in
   let get_job (variant, (build, _job)) = Current.return (variant, build) in
-  let* jobs = get_jobs_aux ~default get_job builds in
+  let* jobs = get_jobs_aux get_job builds in
   summarise jobs
 
 let get_jobs builds =
-  let default = Current.return [] in
   let get_job (variant, (_build, job)) = Current.map (fun job -> (variant, job)) job in
-  get_jobs_aux ~default get_job builds
+  get_jobs_aux get_job builds
 
 let local_test repo () =
   let src = Git.Local.head_commit repo in
