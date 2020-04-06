@@ -152,34 +152,36 @@ let get_prs repo =
     | `PR _ -> head :: acc
   end refs []
 
-let get_jobs_aux f builds =
-  let* state = Current.state ~hidden:true builds in
+let if_active ~default x f =
+  let* state = Current.state ~hidden:true x in
   match state with
-  | Error (`Active _) -> Current.return []
-  | Ok _ | Error (`Msg _) ->
-      let* builds = builds in
+  | Error (`Active _) -> default
+  | Ok _ | Error (`Msg _) -> Current.bind f x
+
+let get_jobs_aux ~key f builds =
+  Current.collapse ~key ~value:"(internal)" ~input:builds begin
+    if_active ~default:(Current.return []) builds begin
       List.fold_left (fun acc jobs ->
-        let* state = Current.state ~hidden:true jobs in
-        match state with
-        | Error (`Active _) -> acc
-        | Ok _ | Error (`Msg _) ->
-            let* jobs = jobs in
-            List.fold_left (fun acc job ->
-              let+ job = f job
-              and+ acc = acc in
-              job :: acc
-            ) acc jobs
-      ) (Current.return []) builds
+        if_active ~default:acc jobs begin
+          List.fold_left (fun acc job ->
+            let+ job = f job
+            and+ acc = acc in
+            job :: acc
+          ) acc
+        end
+      ) (Current.return [])
+    end
+  end
 
 let summarise builds =
   let get_job (variant, (build, _job)) = Current.return (variant, build) in
   Current.component "summarise" |>
-  let** jobs = get_jobs_aux get_job builds in
+  let** jobs = get_jobs_aux ~key:"summarise" get_job builds in
   summarise jobs
 
 let get_jobs builds =
   let get_job (variant, (_build, job)) = Current.map (fun job -> (variant, job)) job in
-  get_jobs_aux get_job builds
+  get_jobs_aux ~key:"get-jobs" get_job builds
 
 let local_test repo () =
   let src = Git.Local.head_commit repo in
