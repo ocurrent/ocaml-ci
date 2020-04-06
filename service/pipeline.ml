@@ -48,15 +48,8 @@ let job_id build =
   let job = Current.map (fun _ -> `Built) build in
   (job, Current.Analysis.metadata build)
 
-let update job =
-  Current.map (fun _ -> Current.Engine.update ()) (Current.catch ~hidden:true job)
-
 let build_with_docker ~analysis source =
-  let+ analysis =
-    let job = analysis in
-    let* () = update job in
-    job
-  in
+  let+ analysis = analysis in
   let pkgs = Analyse.Analysis.opam_files analysis in
   let build ~revdeps name variant builds =
     let base = Build1.base ~schedule:weekly ~variant in
@@ -66,9 +59,7 @@ let build_with_docker ~analysis source =
         if revdeps then
           let prefix = pkg^status_sep^name^status_sep^"revdeps" in
           let revdeps_job =
-            let job = Docker1.pread image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"] in
-            let* () = update job in
-            job
+            Docker1.pread image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"]
           in
           let revdeps =
             let+ revdeps = revdeps_job in
