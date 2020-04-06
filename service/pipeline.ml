@@ -193,9 +193,9 @@ let local_test repo () =
   Current.of_output result
 
 let v ~app () =
-  Github.App.installations app |> Current.list_iter ~collapse_key:"org" (module Github.Installation) @@ fun installation ->
+  Github.App.installations app |> Current.list_iter (module Github.Installation) @@ fun installation ->
   let repos = Github.Installation.repositories installation in
-  repos |> Current.list_iter ~collapse_key:"repo" (module Github.Api.Repo) @@ fun repo ->
+  repos |> Current.list_iter (module Github.Api.Repo) @@ fun repo ->
   let prs = get_prs repo |> set_active_refs ~repo in
   prs |> Current.list_iter (module Github.Api.Commit) @@ fun head ->
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
