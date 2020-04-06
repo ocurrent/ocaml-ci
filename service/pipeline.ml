@@ -173,7 +173,8 @@ let get_jobs_aux f builds =
 
 let summarise builds =
   let get_job (variant, (build, _job)) = Current.return (variant, build) in
-  let* jobs = get_jobs_aux get_job builds in
+  Current.component "summarise" |>
+  let** jobs = get_jobs_aux get_job builds in
   summarise jobs
 
 let get_jobs builds =
