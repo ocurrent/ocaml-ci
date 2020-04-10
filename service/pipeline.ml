@@ -90,11 +90,11 @@ let build_with_docker ~analysis source =
   build ~revdeps:true "4.09" "debian-10-ocaml-4.09" |>
   build ~revdeps:true "4.08" "debian-10-ocaml-4.08" |>
   build ~revdeps:true "4.07" "debian-10-ocaml-4.07" |>
-(*build ~revdeps:true "4.06" "debian-10-ocaml-4.06" |> (* Temporary comment for tests *)
-  build ~revdeps:true "4.05" "debian-10-ocaml-4.05" |> (* Too slow with dune requiring ocaml-secondary-compiler *)
+  build ~revdeps:true "4.06" "debian-10-ocaml-4.06" |>
+  build ~revdeps:true "4.05" "debian-10-ocaml-4.05" |>
   build ~revdeps:true "4.04" "debian-10-ocaml-4.04" |>
   build ~revdeps:true "4.03" "debian-10-ocaml-4.03" |>
-  build ~revdeps:true "4.02" "debian-10-ocaml-4.02" |> *)
+  build ~revdeps:true "4.02" "debian-10-ocaml-4.02" |>
   List.fold_right begin fun distro builds -> match distro with
     | `Debian `V10 -> builds (* Skip debian 10 as it was already tested in the main phase *)
     | `OracleLinux _ -> builds (* Not supported by opam-depext *)

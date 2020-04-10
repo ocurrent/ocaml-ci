@@ -25,6 +25,16 @@ let dockerfile {base; variant; pkg; revdep; with_tests} =
     else
       empty
   in
+  let opam_extras =
+    if Astring.String.is_suffix ~affix:"-ocaml-4.06" variant ||
+       Astring.String.is_suffix ~affix:"-ocaml-4.05" variant ||
+       Astring.String.is_suffix ~affix:"-ocaml-4.04" variant ||
+       Astring.String.is_suffix ~affix:"-ocaml-4.03" variant ||
+       Astring.String.is_suffix ~affix:"-ocaml-4.02" variant then
+      run "%s opam install -y ocaml-secondary-compiler" download_cache (* Speed up builds for dune >= 2.0 *)
+    else
+      empty
+  in
   let revdep = match revdep with
     | None -> empty
     | Some revdep -> opam_install ~with_tests:false ~pkg:revdep
@@ -36,6 +46,7 @@ let dockerfile {base; variant; pkg; revdep; with_tests} =
   comment "syntax = docker/dockerfile:experimental@sha256:ee85655c57140bd20a5ebc3bb802e7410ee9ac47ca92b193ed0ab17485024fe5" @@
   from base @@
   distro_extras @@
+  opam_extras @@
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
   workdir "/src" @@
   run "git checkout -b opam-ci__cibranch origin/master && git merge master && opam repository set-url default file:///src" @@
