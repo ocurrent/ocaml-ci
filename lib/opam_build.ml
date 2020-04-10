@@ -25,6 +25,14 @@ let dockerfile {base; variant; pkg; revdep; with_tests} =
     else
       empty
   in
+  let revdep = match revdep with
+    | None -> empty
+    | Some revdep -> opam_install ~with_tests:false ~pkg:revdep
+  and tests = match with_tests, revdep with
+    | true, None -> opam_install ~with_tests:true ~pkg
+    | true, Some revdep -> opam_install ~with_tests:true ~pkg:revdep
+    | false, _ -> empty
+  in
   comment "syntax = docker/dockerfile:experimental@sha256:ee85655c57140bd20a5ebc3bb802e7410ee9ac47ca92b193ed0ab17485024fe5" @@
   from base @@
   distro_extras @@
@@ -32,15 +40,8 @@ let dockerfile {base; variant; pkg; revdep; with_tests} =
   workdir "/src" @@
   run "git checkout -b opam-ci__cibranch origin/master && git merge master && opam repository set-url default file:///src" @@
   opam_install ~with_tests:false ~pkg @@
-  begin match revdep with
-  | None -> empty
-  | Some revdep -> opam_install ~with_tests:false ~pkg:revdep
-  end @@
-  begin match with_tests, revdep with
-  | true, None -> opam_install ~with_tests:true ~pkg
-  | true, Some revdep -> opam_install ~with_tests:true ~pkg:revdep
-  | false, _ -> empty
-  end
+  revdep @@
+  tests
 
 let cache = Hashtbl.create 10000
 let cache_max_size = 1000000
