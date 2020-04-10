@@ -51,7 +51,7 @@ module Examine = struct
 
   let build No_context job src =
     Current.Job.start job ~pool ~level:Current.Level.Harmless >>= fun () ->
-    Current_git.with_checkout ~job src (Analysis.of_dir ~job)
+    Current_git.with_checkout ~enable_submodules:false ~job src (Analysis.of_dir ~job)
 
   let pp f _ = Fmt.string f "Analyse"
 

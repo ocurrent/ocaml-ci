@@ -50,7 +50,7 @@ struct
     Docker.pull ~schedule name
 
   let build ?label ~dockerfile source =
-    Docker.build ~timeout:build_timeout ~pool ?label ~pull:false ~dockerfile source
+    Docker.build ~enable_submodules:false ~timeout:build_timeout ~pool ?label ~pull:false ~dockerfile source
 
   let run ?label image ~args =
     Docker.run ?label ~pool image ~args
