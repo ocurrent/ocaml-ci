@@ -99,9 +99,9 @@ let build_with_docker ~analysis source =
     | `Debian `V10 -> builds (* Skip debian 10 as it was already tested in the main phase *)
     | `OracleLinux _ -> builds (* Not supported by opam-depext *)
     | distro ->
-        let tag = Dockerfile_distro.tag_of_distro distro in
-        let tag = tag^"-ocaml-"^default_compiler in
-        build ~revdeps:false tag tag builds
+        let distro = Dockerfile_distro.tag_of_distro distro in
+        let variant = distro^"-ocaml-"^default_compiler in
+        build ~revdeps:false distro variant builds
   end (Dockerfile_distro.active_distros `X86_64)
 
 let list_errors ~ok errs =
