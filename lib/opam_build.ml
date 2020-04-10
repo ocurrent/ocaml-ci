@@ -49,7 +49,7 @@ let dockerfile {base; variant; pkg; revdep; with_tests} =
   opam_extras @@
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
   workdir "/src" @@
-  run "git checkout -b opam-ci__cibranch origin/master && git merge master && opam repository set-url default file:///src" @@
+  run "git checkout -b opam-ci__cibranch origin/master && git merge master && opam repository set-url --strict default file:///src" @@
   opam_install ~with_tests:false ~pkg @@
   revdep @@
   tests
