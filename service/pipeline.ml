@@ -55,8 +55,8 @@ let build_with_docker ~analysis source =
     let base = Build1.base ~schedule:weekly ~variant in
     List.fold_left begin fun builds pkg ->
       let prefix = pkg^status_sep^name in
-      let image = Build1.v ~with_tests:false ~pkg source base in
-      let tests_image = Build1.v ~with_tests:true ~pkg source base in
+      let image = Build1.v ~revdep:None ~with_tests:false ~pkg source base in
+      let tests_image = Build1.v ~revdep:None ~with_tests:true ~pkg source base in
       let revdeps =
         if revdeps then
           let prefix = prefix^status_sep^"revdeps" in
@@ -67,10 +67,11 @@ let build_with_docker ~analysis source =
             let+ revdeps = revdeps_job in
             String.split_on_char '\n' revdeps |>
             List.filter (fun pkg -> not (String.equal pkg "")) |>
-            List.fold_left (fun acc pkg ->
-              let prefix = prefix^status_sep^pkg in
-              let image = Build1.v ~with_tests:false ~pkg source base in
-              let tests_image = Build1.v ~with_tests:true ~pkg source base in
+            List.fold_left (fun acc revdep ->
+              let prefix = prefix^status_sep^revdep in
+              let revdep = Some revdep in
+              let image = Build1.v ~revdep ~with_tests:false ~pkg source base in
+              let tests_image = Build1.v ~revdep ~with_tests:true ~pkg source base in
               acc @ [(prefix, job_id image); (prefix^status_sep^"tests", job_id tests_image)]
             ) []
           in

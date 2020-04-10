@@ -2,12 +2,22 @@ let download_cache = "--mount=type=cache,target=/home/opam/.opam/download-cache,
 
 type key =  {
   base : string;
-  with_tests : bool;
-  pkg : string;
   variant : string;
+  pkg : string;
+  revdep : string option;
+  with_tests : bool;
 }
 
-let dockerfile {base; with_tests; pkg; variant} =
+let opam_install ~with_tests ~pkg =
+  let open Dockerfile in
+  let version =
+    let idx = String.index pkg '.' + 1 in
+    String.sub pkg idx (String.length pkg - idx)
+  in
+  run "opam pin add -k version -yn %s %s" pkg version @@
+  run "%s opam depext -uivy%s %s" download_cache (if with_tests then "t" else "") pkg
+
+let dockerfile {base; variant; pkg; revdep; with_tests} =
   let open Dockerfile in
   let distro_extras =
     if Astring.String.is_prefix ~affix:"fedora" variant then
@@ -17,18 +27,26 @@ let dockerfile {base; with_tests; pkg; variant} =
   in
   comment "syntax = docker/dockerfile:experimental@sha256:ee85655c57140bd20a5ebc3bb802e7410ee9ac47ca92b193ed0ab17485024fe5" @@
   from base @@
-  comment "%s" variant @@
   distro_extras @@
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
   workdir "/src" @@
   run "git checkout -b opam-ci__cibranch origin/master && git merge master && opam repository set-url default file:///src" @@
-  run "%s opam depext -ivy%s %s" download_cache (if with_tests then "t" else "") pkg
+  opam_install ~with_tests:false ~pkg @@
+  begin match revdep with
+  | None -> empty
+  | Some revdep -> opam_install ~with_tests:false ~pkg:revdep
+  end @@
+  begin match with_tests, revdep with
+  | true, None -> opam_install ~with_tests:true ~pkg
+  | true, Some revdep -> opam_install ~with_tests:true ~pkg:revdep
+  | false, _ -> empty
+  end
 
 let cache = Hashtbl.create 10000
 let cache_max_size = 1000000
 
-let dockerfile ~base ~with_tests ~pkg ~variant =
-  let key = { base; with_tests; pkg; variant } in
+let dockerfile ~base ~revdep ~with_tests ~pkg ~variant =
+  let key = { base; variant; pkg; revdep; with_tests } in
   match Hashtbl.find_opt cache key with
   | Some x -> x
   | None ->
@@ -48,11 +66,11 @@ module Make (Docker : S.DOCKER_CONTEXT) = struct
     variant;
   }
 
-  let v ~with_tests ~pkg source {base; variant} =
+  let v ~revdep ~with_tests ~pkg source {base; variant} =
     let dockerfile =
       let open Current.Syntax in
       let+ base = base in
-      `Contents (dockerfile ~base:(Docker.image_hash base) ~with_tests ~pkg ~variant)
+      `Contents (dockerfile ~base:(Docker.image_hash base) ~revdep ~with_tests ~pkg ~variant)
     in
     Docker.build ~dockerfile source
 end
