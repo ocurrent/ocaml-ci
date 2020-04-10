@@ -2,11 +2,12 @@ let download_cache = "--mount=type=cache,target=/home/opam/.opam/download-cache,
 
 type key =  {
   base : string;
+  with_tests : bool;
   pkg : string;
   variant : string;
 }
 
-let dockerfile {base; pkg; variant} =
+let dockerfile {base; with_tests; pkg; variant} =
   let open Dockerfile in
   let distro_extras =
     if Astring.String.is_prefix ~affix:"fedora" variant then
@@ -21,13 +22,13 @@ let dockerfile {base; pkg; variant} =
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
   workdir "/src" @@
   run "git checkout -b opam-ci__cibranch origin/master && git merge master && opam repository set-url default file:///src" @@
-  run "%s opam depext -ivy %s" download_cache pkg
+  run "%s opam depext -ivy%s %s" download_cache (if with_tests then "t" else "") pkg
 
 let cache = Hashtbl.create 10000
 let cache_max_size = 1000000
 
-let dockerfile ~base ~pkg ~variant =
-  let key = { base; pkg; variant } in
+let dockerfile ~base ~with_tests ~pkg ~variant =
+  let key = { base; with_tests; pkg; variant } in
   match Hashtbl.find_opt cache key with
   | Some x -> x
   | None ->
@@ -47,11 +48,11 @@ module Make (Docker : S.DOCKER_CONTEXT) = struct
     variant;
   }
 
-  let v ~pkg source {base; variant} =
+  let v ~with_tests ~pkg source {base; variant} =
     let dockerfile =
       let open Current.Syntax in
       let+ base = base in
-      `Contents (dockerfile ~base:(Docker.image_hash base) ~pkg ~variant)
+      `Contents (dockerfile ~base:(Docker.image_hash base) ~with_tests ~pkg ~variant)
     in
     Docker.build ~dockerfile source
 end

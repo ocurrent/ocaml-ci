@@ -54,10 +54,12 @@ let build_with_docker ~analysis source =
   let build ~revdeps name variant builds =
     let base = Build1.base ~schedule:weekly ~variant in
     List.fold_left begin fun builds pkg ->
-      let image = Build1.v ~pkg source base in
+      let prefix = pkg^status_sep^name in
+      let image = Build1.v ~with_tests:false ~pkg source base in
+      let tests_image = Build1.v ~with_tests:true ~pkg source base in
       let revdeps =
         if revdeps then
-          let prefix = pkg^status_sep^name^status_sep^"revdeps" in
+          let prefix = prefix^status_sep^"revdeps" in
           let revdeps_job =
             Docker1.pread image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"]
           in
@@ -65,16 +67,18 @@ let build_with_docker ~analysis source =
             let+ revdeps = revdeps_job in
             String.split_on_char '\n' revdeps |>
             List.filter (fun pkg -> not (String.equal pkg "")) |>
-            List.map begin fun pkg ->
-              let image = Build1.v ~pkg source base in
-              (prefix^status_sep^pkg, job_id image)
-            end
+            List.fold_left (fun acc pkg ->
+              let prefix = prefix^status_sep^pkg in
+              let image = Build1.v ~with_tests:false ~pkg source base in
+              let tests_image = Build1.v ~with_tests:true ~pkg source base in
+              acc @ [(prefix, job_id image); (prefix^status_sep^"tests", job_id tests_image)]
+            ) []
           in
           [Current.return [(prefix, job_id revdeps_job)]; revdeps]
         else
           []
       in
-      builds @ (Current.return [(pkg^status_sep^name, job_id image)] :: revdeps)
+      builds @ (Current.return [(prefix, job_id image); (prefix^status_sep^"tests", job_id tests_image)] :: revdeps)
     end builds pkgs
   in
   [] |>

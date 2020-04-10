@@ -10,6 +10,7 @@ module Make (Docker : S.DOCKER_CONTEXT) : sig
       [~variant] is the variant of the "ocurrent/opam" image.
       [~repo] is the ID of the repository-under-test on GitHub. *)
   val v :
+    with_tests:bool ->
     pkg:string ->
     Docker.source ->
     t ->
