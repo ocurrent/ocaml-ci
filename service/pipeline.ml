@@ -56,7 +56,10 @@ let build_with_docker ~analysis source =
     List.fold_left begin fun builds pkg ->
       let prefix = pkg^status_sep^name in
       let image = Build1.v ~revdep:None ~with_tests:false ~pkg source base in
-      let tests_image = Build1.v ~revdep:None ~with_tests:true ~pkg source base in
+      let tests =
+        let+ _ = image in
+        [(prefix^status_sep^"tests", job_id (Build1.v ~revdep:None ~with_tests:true ~pkg source base))]
+      in
       let revdeps =
         if revdeps then
           let prefix = prefix^status_sep^"revdeps" in
@@ -79,7 +82,7 @@ let build_with_docker ~analysis source =
         else
           []
       in
-      builds @ (Current.return [(prefix, job_id image); (prefix^status_sep^"tests", job_id tests_image)] :: revdeps)
+      builds @ (Current.return [(prefix, job_id image)] :: tests :: revdeps)
     end builds pkgs
   in
   [] |>
