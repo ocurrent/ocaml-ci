@@ -57,9 +57,9 @@ let build_with_docker ~analysis source =
       let prefix = pkg^status_sep^name in
       let image = Build1.v ~revdep:None ~with_tests:false ~pkg source base in
       let tests =
-        Current.component "tests" |>
-        let** _ = image in
-        Current.return [(prefix^status_sep^"tests", job_id (Build1.v ~revdep:None ~with_tests:true ~pkg source base))]
+        Current.component "Waiting for stage1" |>
+        let> _ = image in
+        Current.Primitive.const [(prefix^status_sep^"tests", job_id (Build1.v ~revdep:None ~with_tests:true ~pkg source base))]
       in
       let revdeps =
         if revdeps then
