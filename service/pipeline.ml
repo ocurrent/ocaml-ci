@@ -68,7 +68,8 @@ let build_with_docker ~analysis source =
             Docker1.pread image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"]
           in
           let revdeps =
-            let+ revdeps = revdeps_job in
+            Current.component "Waiting for the revdeps" |>
+            let> revdeps = revdeps_job in
             String.split_on_char '\n' revdeps |>
             List.filter (fun pkg -> not (String.equal pkg "")) |>
             List.fold_left (fun acc revdep ->
@@ -77,7 +78,8 @@ let build_with_docker ~analysis source =
               let image = Build1.v ~revdep ~with_tests:false ~pkg source base in
               let tests_image = Build1.v ~revdep ~with_tests:true ~pkg source base in
               acc @ [(prefix, job_id image); (prefix^status_sep^"tests", job_id tests_image)]
-            ) []
+            ) [] |>
+            Current.Primitive.const
           in
           [Current.return [(prefix, job_id revdeps_job)]; revdeps]
         else
