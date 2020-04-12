@@ -123,14 +123,16 @@ let build_with_docker ~analysis source : stage Current.t =
           build ~revdeps:true "4.03" "debian-10-ocaml-4.03";
           build ~revdeps:true "4.02" "debian-10-ocaml-4.02";
         ] @
-        List.fold_left (fun builds -> function
-          | `Debian `V10 -> builds (* Skip debian 10 as it was already tested in the main phase *)
-          | `OracleLinux _ -> builds (* Not supported by opam-depext *)
-          | distro ->
-              let distro = Dockerfile_distro.tag_of_distro distro in
-              let variant = distro^"-ocaml-"^default_compiler in
-              build ~revdeps:false distro variant
-        ) [] (Dockerfile_distro.active_distros `X86_64)
+        List.concat (
+          List.filter_map (function
+            | `Debian `V10 -> None (* Skip debian 10 as it was already tested in the main phase *)
+            | `OracleLinux _ -> None (* Not supported by opam-depext *)
+            | distro ->
+                let distro = Dockerfile_distro.tag_of_distro distro in
+                let variant = distro^"-ocaml-"^default_compiler in
+                Some (build ~revdeps:false distro variant)
+          ) (Dockerfile_distro.active_distros `X86_64)
+        )
       in
       DynamicStages [Current.return analysis_job; Current.return (DynamicStages stages)]
 
