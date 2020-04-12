@@ -45,17 +45,17 @@ module Docker1 :
 module Build1 = Opam_build.Make (Docker1)
 
 type job = (string * ([`Built | `Checked] Current.t * Current.job_id option Current.t))
-type stage =
+type pipeline =
   | Skip
-  | Stage of job
-  | DynamicStages of stage Current.t list
+  | Job of job
+  | Stage of pipeline Current.t list
 
 let job_id ?(kind=`Built) build =
   let job = Current.map (fun _ -> kind) build in
   (job, Current.Analysis.metadata build)
 
-let build_with_docker ~analysis source : stage Current.t =
-  let analysis_job = Stage ("(analysis)", job_id ~kind:`Checked analysis) in
+let build_with_docker ~analysis source =
+  let analysis_job = Job ("(analysis)", job_id ~kind:`Checked analysis) in
   let+ analysis = Current.state ~hidden:true analysis in
   match analysis with
   | Error _ -> analysis_job
@@ -70,7 +70,7 @@ let build_with_docker ~analysis source : stage Current.t =
             let+ state = Current.state ~hidden:true image in
             match state with
             | Error _ -> Skip
-            | Ok _ -> Stage (prefix^status_sep^"tests", job_id (Build1.v ~revdep:None ~with_tests:true ~pkg source base))
+            | Ok _ -> Job (prefix^status_sep^"tests", job_id (Build1.v ~revdep:None ~with_tests:true ~pkg source base))
           in
           let revdeps =
             if revdeps then
@@ -87,7 +87,7 @@ let build_with_docker ~analysis source : stage Current.t =
                     match revdeps with
                     | Error _ -> Skip
                     | Ok revdeps ->
-                        DynamicStages (
+                        Stage (
                           String.split_on_char '\n' revdeps |>
                           List.filter (fun pkg -> not (String.equal pkg "")) |>
                           List.map (fun revdep ->
@@ -98,17 +98,17 @@ let build_with_docker ~analysis source : stage Current.t =
                               let+ state = Current.state ~hidden:true image in
                               match state with
                               | Error _ -> Skip
-                              | Ok _ -> Stage (prefix^status_sep^"tests", job_id (Build1.v ~revdep ~with_tests:true ~pkg source base))
+                              | Ok _ -> Job (prefix^status_sep^"tests", job_id (Build1.v ~revdep ~with_tests:true ~pkg source base))
                             in
-                            Current.return (DynamicStages [Current.return (Stage (prefix, job_id image)); tests])
+                            Current.return (Stage [Current.return (Job (prefix, job_id image)); tests])
                           )
                         )
                   in
-                  DynamicStages [Current.return (Stage (prefix, job_id revdeps_job)); revdeps]
+                  Stage [Current.return (Job (prefix, job_id revdeps_job)); revdeps]
             else
               Current.return Skip
           in
-          Current.return (DynamicStages [Current.return (Stage (prefix, job_id image)); tests; revdeps])
+          Current.return (Stage [Current.return (Job (prefix, job_id image)); tests; revdeps])
         ) pkgs
       in
       let stages =
@@ -134,7 +134,7 @@ let build_with_docker ~analysis source : stage Current.t =
           ) (Dockerfile_distro.active_distros `X86_64)
         )
       in
-      DynamicStages [Current.return analysis_job; Current.return (DynamicStages stages)]
+      Stage [Current.return analysis_job; Current.return (Stage stages)]
 
 let list_errors ~ok errs =
   let groups =  (* Group by error message *)
@@ -194,10 +194,10 @@ let rec get_jobs_aux f builds =
   match builds with
   | Skip ->
       Current.return []
-  | Stage job ->
+  | Job job ->
       let+ job = f job in
       [job]
-  | DynamicStages stages ->
+  | Stage stages ->
       List.fold_left (fun acc stage ->
         let+ stage = get_jobs_aux f stage
         and+ acc = acc in
