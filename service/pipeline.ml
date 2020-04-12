@@ -44,68 +44,95 @@ module Docker1 :
   Conf.Builder_amd1
 module Build1 = Opam_build.Make (Docker1)
 
-let job_id build =
-  let job = Current.map (fun _ -> `Built) build in
+type job = (string * ([`Built | `Checked] Current.t * Current.job_id option Current.t))
+type stage =
+  | Skip
+  | Stage of job
+  | DynamicStages of stage Current.t list
+
+let job_id ?(kind=`Built) build =
+  let job = Current.map (fun _ -> kind) build in
   (job, Current.Analysis.metadata build)
 
-let build_with_docker ~analysis source =
-  let+ analysis = analysis in
-  let pkgs = Analyse.Analysis.opam_files analysis in
-  let build ~revdeps name variant builds =
-    let base = Build1.base ~schedule:weekly ~variant in
-    List.fold_left begin fun builds pkg ->
-      let prefix = pkg^status_sep^name in
-      let image = Build1.v ~revdep:None ~with_tests:false ~pkg source base in
-      let tests =
-        Current.component "Waiting for stage1" |>
-        let> _ = image in
-        Current.Primitive.const [(prefix^status_sep^"tests", job_id (Build1.v ~revdep:None ~with_tests:true ~pkg source base))]
-      in
-      let revdeps =
-        if revdeps then
-          let prefix = prefix^status_sep^"revdeps" in
-          let revdeps_job =
-            Docker1.pread image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"]
+let build_with_docker ~analysis source : stage Current.t =
+  let analysis_job = Stage ("(analysis)", job_id ~kind:`Checked analysis) in
+  let+ analysis = Current.state ~hidden:true analysis in
+  match analysis with
+  | Error _ -> analysis_job
+  | Ok analysis ->
+      let pkgs = Analyse.Analysis.opam_files analysis in
+      let build ~revdeps name variant =
+        let base = Build1.base ~schedule:weekly ~variant in
+        List.map (fun pkg ->
+          let prefix = pkg^status_sep^name in
+          let image = Build1.v ~revdep:None ~with_tests:false ~pkg source base in
+          let tests =
+            let+ state = Current.state ~hidden:true image in
+            match state with
+            | Error _ -> Skip
+            | Ok _ -> Stage (prefix^status_sep^"tests", job_id (Build1.v ~revdep:None ~with_tests:true ~pkg source base))
           in
           let revdeps =
-            Current.component "Waiting for the revdeps" |>
-            let> revdeps = revdeps_job in
-            String.split_on_char '\n' revdeps |>
-            List.filter (fun pkg -> not (String.equal pkg "")) |>
-            List.fold_left (fun acc revdep ->
-              let prefix = prefix^status_sep^revdep in
-              let revdep = Some revdep in
-              let image = Build1.v ~revdep ~with_tests:false ~pkg source base in
-              let tests_image = Build1.v ~revdep ~with_tests:true ~pkg source base in
-              acc @ [(prefix, job_id image); (prefix^status_sep^"tests", job_id tests_image)]
-            ) [] |>
-            Current.Primitive.const
+            if revdeps then
+              let+ state = Current.state ~hidden:true image in
+              match state with
+              | Error _ -> Skip
+              | Ok _ ->
+                  let prefix = prefix^status_sep^"revdeps" in
+                  let revdeps_job =
+                    Docker1.pread image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"]
+                  in
+                  let revdeps =
+                    let+ revdeps = Current.state ~hidden:true revdeps_job in
+                    match revdeps with
+                    | Error _ -> Skip
+                    | Ok revdeps ->
+                        DynamicStages (
+                          String.split_on_char '\n' revdeps |>
+                          List.filter (fun pkg -> not (String.equal pkg "")) |>
+                          List.map (fun revdep ->
+                            let prefix = prefix^status_sep^revdep in
+                            let revdep = Some revdep in
+                            let image = Build1.v ~revdep ~with_tests:false ~pkg source base in
+                            let tests =
+                              let+ state = Current.state ~hidden:true image in
+                              match state with
+                              | Error _ -> Skip
+                              | Ok _ -> Stage (prefix^status_sep^"tests", job_id (Build1.v ~revdep ~with_tests:true ~pkg source base))
+                            in
+                            Current.return (DynamicStages [Current.return (Stage (prefix, job_id image)); tests])
+                          )
+                        )
+                  in
+                  DynamicStages [Current.return (Stage (prefix, job_id revdeps_job)); revdeps]
+            else
+              Current.return Skip
           in
-          [Current.return [(prefix, job_id revdeps_job)]; revdeps]
-        else
-          []
+          Current.return (DynamicStages [Current.return (Stage (prefix, job_id image)); tests; revdeps])
+        ) pkgs
       in
-      builds @ (Current.return [(prefix, job_id image)] :: tests :: revdeps)
-    end builds pkgs
-  in
-  [] |>
-  build ~revdeps:true "4.10" "debian-10-ocaml-4.10" |>
-  build ~revdeps:true "4.09" "debian-10-ocaml-4.09" |>
-  build ~revdeps:true "4.08" "debian-10-ocaml-4.08" |>
-  build ~revdeps:true "4.07" "debian-10-ocaml-4.07" |>
-  build ~revdeps:true "4.06" "debian-10-ocaml-4.06" |>
-  build ~revdeps:true "4.05" "debian-10-ocaml-4.05" |>
-  build ~revdeps:true "4.04" "debian-10-ocaml-4.04" |>
-  build ~revdeps:true "4.03" "debian-10-ocaml-4.03" |>
-  build ~revdeps:true "4.02" "debian-10-ocaml-4.02" |>
-  List.fold_right begin fun distro builds -> match distro with
-    | `Debian `V10 -> builds (* Skip debian 10 as it was already tested in the main phase *)
-    | `OracleLinux _ -> builds (* Not supported by opam-depext *)
-    | distro ->
-        let distro = Dockerfile_distro.tag_of_distro distro in
-        let variant = distro^"-ocaml-"^default_compiler in
-        build ~revdeps:false distro variant builds
-  end (Dockerfile_distro.active_distros `X86_64)
+      let stages =
+        List.concat [
+          build ~revdeps:true "4.10" "debian-10-ocaml-4.10";
+          build ~revdeps:true "4.09" "debian-10-ocaml-4.09";
+          build ~revdeps:true "4.08" "debian-10-ocaml-4.08";
+          build ~revdeps:true "4.07" "debian-10-ocaml-4.07";
+          build ~revdeps:true "4.06" "debian-10-ocaml-4.06";
+          build ~revdeps:true "4.05" "debian-10-ocaml-4.05";
+          build ~revdeps:true "4.04" "debian-10-ocaml-4.04";
+          build ~revdeps:true "4.03" "debian-10-ocaml-4.03";
+          build ~revdeps:true "4.02" "debian-10-ocaml-4.02";
+        ] @
+        List.fold_left (fun builds -> function
+          | `Debian `V10 -> builds (* Skip debian 10 as it was already tested in the main phase *)
+          | `OracleLinux _ -> builds (* Not supported by opam-depext *)
+          | distro ->
+              let distro = Dockerfile_distro.tag_of_distro distro in
+              let variant = distro^"-ocaml-"^default_compiler in
+              build ~revdeps:false distro variant
+        ) [] (Dockerfile_distro.active_distros `X86_64)
+      in
+      DynamicStages [Current.return analysis_job; Current.return (DynamicStages stages)]
 
 let list_errors ~ok errs =
   let groups =  (* Group by error message *)
@@ -133,22 +160,20 @@ let summarise results =
       (label, result)
     )
   |> Current.list_seq
-  |> Current.map @@ function
-  | [] -> Error (`Active `Running)
-  | results ->
-      results |> List.fold_left (fun (ok, pending, err, skip) -> function
-        | _, Ok `Checked -> (ok, pending, err, skip)  (* Don't count lint checks *)
-        | _, Ok `Built -> (ok + 1, pending, err, skip)
-        | l, Error `Msg m when Astring.String.is_prefix ~affix:"[SKIP]" m -> (ok, pending, err, (m, l) :: skip)
-        | l, Error `Msg m -> (ok, pending, (m, l) :: err, skip)
-        | _, Error `Active _ -> (ok, pending + 1, err, skip)
-      ) (0, 0, [], [])
-      |> fun (ok, pending, err, skip) ->
-      if pending > 0 then Error (`Active `Running)
-      else match ok, err, skip with
-        | 0, [], skip -> list_errors ~ok:0 skip (* Everything was skipped - treat skips as errors *)
-        | _, [], _ -> Ok ()                     (* No errors and at least one success *)
-        | ok, err, _ -> list_errors ~ok err     (* Some errors found - report *)
+  |> Current.map @@ fun results ->
+  results |> List.fold_left (fun (ok, pending, err, skip) -> function
+    | _, Ok `Checked -> (ok, pending, err, skip)  (* Don't count lint checks *)
+    | _, Ok `Built -> (ok + 1, pending, err, skip)
+    | l, Error `Msg m when Astring.String.is_prefix ~affix:"[SKIP]" m -> (ok, pending, err, (m, l) :: skip)
+    | l, Error `Msg m -> (ok, pending, (m, l) :: err, skip)
+    | _, Error `Active _ -> (ok, pending + 1, err, skip)
+  ) (0, 0, [], [])
+  |> fun (ok, pending, err, skip) ->
+  if pending > 0 then Error (`Active `Running)
+  else match ok, err, skip with
+    | 0, [], skip -> list_errors ~ok:0 skip (* Everything was skipped - treat skips as errors *)
+    | _, [], _ -> Ok ()                     (* No errors and at least one success *)
+    | ok, err, _ -> list_errors ~ok err     (* Some errors found - report *)
 
 let get_prs repo =
   let+ refs =
@@ -162,24 +187,20 @@ let get_prs repo =
     | `PR _ -> head :: acc
   end refs []
 
-let if_active ~default x f =
-  let* state = Current.state ~hidden:true x in
-  match state with
-  | Error (`Active _) -> default
-  | Ok _ | Error (`Msg _) -> Current.bind f x
-
-let get_jobs_aux f builds =
-  if_active ~default:(Current.return []) builds begin
-    List.fold_left (fun acc jobs ->
-      if_active ~default:acc jobs begin
-        List.fold_left (fun acc job ->
-          let+ job = f job
-          and+ acc = acc in
-          job :: acc
-        ) acc
-      end
-    ) (Current.return [])
-  end
+let rec get_jobs_aux f builds =
+  let* builds = builds in
+  match builds with
+  | Skip ->
+      Current.return []
+  | Stage job ->
+      let+ job = f job in
+      [job]
+  | DynamicStages stages ->
+      List.fold_left (fun acc stage ->
+        let+ stage = get_jobs_aux f stage
+        and+ acc = acc in
+        stage @ acc
+      ) (Current.return []) stages
 
 let summarise builds =
   let get_job (variant, (build, _job)) = Current.return (variant, build) in
@@ -220,12 +241,11 @@ let v ~app () =
   in
   let index =
     let+ commit = head
-    and+ analysis = Current.Analysis.metadata analysis
     and+ jobs = get_jobs builds
     and+ status = status in
     let repo = Current_github.Api.Commit.repo_id commit in
     let hash = Current_github.Api.Commit.hash commit in
-    Index.record ~repo ~hash ~status @@ ("(analysis)", analysis) :: jobs
+    Index.record ~repo ~hash ~status jobs
   and set_github_status =
     summary
     |> github_status_of_state ~head
