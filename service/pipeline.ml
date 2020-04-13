@@ -113,6 +113,7 @@ let build_with_docker ~analysis source =
       in
       let stages =
         List.concat [
+          (* Compilers *)
           build ~revdeps:true "4.10" "debian-10-ocaml-4.10";
           build ~revdeps:true "4.09" "debian-10-ocaml-4.09";
           build ~revdeps:true "4.08" "debian-10-ocaml-4.08";
@@ -122,6 +123,8 @@ let build_with_docker ~analysis source =
           build ~revdeps:true "4.04" "debian-10-ocaml-4.04";
           build ~revdeps:true "4.03" "debian-10-ocaml-4.03";
           build ~revdeps:true "4.02" "debian-10-ocaml-4.02";
+          (* Special checks *)
+          build ~revdeps:false "flambda" ("debian-10-ocaml-"^default_compiler^"-flambda");
         ] @
         List.concat (
           List.filter_map (function
