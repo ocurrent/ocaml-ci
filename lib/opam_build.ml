@@ -8,13 +8,19 @@ type key =  {
   with_tests : bool;
 }
 
-let opam_install ~with_tests ~pkg =
+let opam_install ~pin ~with_tests ~pkg =
   let open Dockerfile in
-  let version =
-    let idx = String.index pkg '.' + 1 in
-    String.sub pkg idx (String.length pkg - idx)
+  let pin =
+    if pin then
+      let version =
+        let idx = String.index pkg '.' + 1 in
+        String.sub pkg idx (String.length pkg - idx)
+      in
+      run "opam pin add -k version -yn %s %s" pkg version
+    else
+      empty
   in
-  run "opam pin add -k version -yn %s %s" pkg version @@
+  pin @@
   run "%s opam depext -uivy%s %s" download_cache (if with_tests then "t" else "") pkg
 
 let dockerfile {base; variant; pkg; revdep; with_tests} =
@@ -37,10 +43,10 @@ let dockerfile {base; variant; pkg; revdep; with_tests} =
   in
   let revdep = match revdep with
     | None -> empty
-    | Some revdep -> opam_install ~with_tests:false ~pkg:revdep
+    | Some revdep -> opam_install ~pin:false ~with_tests:false ~pkg:revdep
   and tests = match with_tests, revdep with
-    | true, None -> opam_install ~with_tests:true ~pkg
-    | true, Some revdep -> opam_install ~with_tests:true ~pkg:revdep
+    | true, None -> opam_install ~pin:false ~with_tests:true ~pkg
+    | true, Some revdep -> opam_install ~pin:false ~with_tests:true ~pkg:revdep
     | false, _ -> empty
   in
   comment "syntax = docker/dockerfile:experimental@sha256:ee85655c57140bd20a5ebc3bb802e7410ee9ac47ca92b193ed0ab17485024fe5" @@
@@ -50,7 +56,7 @@ let dockerfile {base; variant; pkg; revdep; with_tests} =
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
   workdir "/src" @@
   run "git checkout -b opam-ci__cibranch origin/master && git merge master && opam repository set-url --strict default file:///src" @@
-  opam_install ~with_tests:false ~pkg @@
+  opam_install ~pin:true ~with_tests:false ~pkg @@
   revdep @@
   tests
 
