@@ -66,9 +66,21 @@ let build_with_docker ~repo ~analysis source =
   (* At the moment, we know the set of platforms statically. However, we're pretending
      it's dynamic here in anticipation of future changes where the set of platforms
      to use comes from the analysis phase. *)
-  let platforms = Current.return platforms in
+  let platforms =
+    let+ analysis = analysis in
+    if Analyse.Analysis.is_duniverse analysis then (
+      Analyse.Analysis.ocaml_versions analysis
+      |> List.rev_map (fun ov ->
+          let variant = "debian-10-ocaml-" ^ ov in
+          let builder = Conf.Builder.amd1 in    (* XXX: maybe use other machines too? *)
+          { Platform.label = ov; variant; builder }
+        )
+    ) else (
+      platforms
+    )
+  in
   let builds = platforms |> Current.list_map (module Platform) (fun platform ->
-      let job = Opam_build.v ~platform ~schedule:weekly ~repo ~analysis source in
+      let job = Build.v ~platform ~schedule:weekly ~repo ~analysis source in
       let+ result = Current.state ~hidden:true job
       and+ job_id = Current.Analysis.metadata job
       and+ platform = platform in
