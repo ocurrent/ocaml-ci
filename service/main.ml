@@ -7,10 +7,6 @@ let () =
   | `Production -> Logs.info (fun f -> f "Using production configuration")
   | `Dev -> Logs.info (fun f -> f "Using dev configuration")
 
-let webhooks = [
-  "github", Current_github.input_webhook
-]
-
 let or_die = function
   | Ok x -> x
   | Error `Msg m -> failwith m
@@ -31,13 +27,35 @@ let run_capnp ~engine = function
     Logs.app (fun f -> f "Wrote capability reference to %S" Conf.Capnp.cap_file);
     Lwt.return_unit
 
-let main config mode app capnp_address =
+(* Access control policy. *)
+let has_role user = function
+  | `Viewer | `Monitor -> true
+  | _ ->
+    match Option.map Current_web.User.id user with
+    | Some ( "github:talex5"
+           | "github:avsm"
+           | "github:kit-ty-kate"
+           | "github:samoht"
+           ) -> true
+    | _ -> false
+
+let main config mode app capnp_address github_auth =
   let engine = Current.Engine.create ~config (Pipeline.v ~app) in
+  let authn = Option.map Current_github.Auth.make_login_uri github_auth in
+  let has_role =
+    if github_auth = None then Current_web.Site.allow_all
+    else has_role
+  in
+  let site = Current_web.Site.v ?authn ~has_role ~secure_cookies:true ~name:"ocaml-ci" () in
+  let routes =
+    Routes.(s "webhooks" / s "github" /? nil @--> Current_github.webhook) ::
+    Routes.(s "login" /? nil @--> Current_github.Auth.login github_auth) ::
+    Current_web.routes engine in
   Logging.run begin
     run_capnp ~engine capnp_address >>= fun () ->
     Lwt.choose [
       Current.Engine.thread engine;
-      Current_web.run ~mode ~webhooks engine;
+      Current_web.run ~mode ~site routes;
     ]
   end
 
@@ -56,7 +74,7 @@ let capnp_address =
 let cmd =
   let doc = "Build OCaml projects on GitHub" in
   Term.(const main $ Current.Config.cmdliner $ Current_web.cmdliner $
-        Current_github.App.cmdliner $ capnp_address),
+        Current_github.App.cmdliner $ capnp_address $ Current_github.Auth.cmdliner),
   Term.info "ocaml-ci" ~doc
 
 let () = Term.(exit @@ eval cmd)
