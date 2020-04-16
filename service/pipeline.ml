@@ -21,8 +21,8 @@ let platforms =
     v "4.03" Builder.amd2 "debian-10-ocaml-4.03";
     v "4.02" Builder.amd2 "debian-10-ocaml-4.02";
     (* Distributions: *)
-    v "alpine"   Builder.amd1 @@ "alpine-3.10-ocaml-" ^ default_compiler;
-    v "ubuntu"   Builder.amd2 @@ "ubuntu-19.10-ocaml-" ^ default_compiler;
+    v "alpine"   Builder.amd1 @@ "alpine-3.11-ocaml-" ^ default_compiler;
+    v "ubuntu"   Builder.amd2 @@ "ubuntu-20.04-ocaml-" ^ default_compiler;
     v "opensuse" Builder.amd2 @@ "opensuse-15.1-ocaml-" ^ default_compiler;
     v "centos"   Builder.amd3 @@ "centos-8-ocaml-" ^ default_compiler;
     v "fedora"   Builder.amd3 @@ "fedora-31-ocaml-" ^ default_compiler;
