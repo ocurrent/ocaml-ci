@@ -74,11 +74,16 @@ let build_with_docker ~repo ~analysis source =
       and+ platform = platform in
       platform.label, (result, job_id)
     ) in
-  let+ builds = builds
+  let+ builds = Current.state builds
+  and+ analysis_result = Current.state ~hidden:true (Current.map (fun _ -> `Checked) analysis)
+  and+ analysis_id = Current.Analysis.metadata analysis
   and+ lint_result = Current.state ~hidden:true lint_job
-  and+ job_id = Current.Analysis.metadata lint_job in
+  and+ lint_id = Current.Analysis.metadata lint_job in
+  (* If we don't have the list of builds yet, just use the empty list. *)
+  let builds = builds |> Result.to_option |> Option.value ~default:[] in
   builds @ [
-    "lint", (lint_result, job_id);
+    "(analysis)", (analysis_result, analysis_id);
+    "lint", (lint_result, lint_id);
   ]
 
 let list_errors ~ok errs =
@@ -153,13 +158,12 @@ let v ~app () =
   in
   let index =
     let+ commit = head
-    and+ analysis = Current.Analysis.metadata analysis
     and+ builds = builds
     and+ status = status in
     let repo = Current_github.Api.Commit.repo_id commit in
     let hash = Current_github.Api.Commit.hash commit in
     let jobs = builds |> List.map (fun (variant, (_, job_id)) -> (variant, job_id)) in
-    Index.record ~repo ~hash ~status @@ ("(analysis)", analysis) :: jobs
+    Index.record ~repo ~hash ~status jobs
   and set_github_status =
     summary
     |> github_status_of_state ~head
