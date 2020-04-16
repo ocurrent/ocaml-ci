@@ -58,7 +58,12 @@ module Analysis = struct
 
   let of_dir ~job dir =
     let is_duniverse = Sys.file_exists (Filename.concat (Fpath.to_string dir) "dune-get") in
-    let ocaml_versions = if is_duniverse then get_ocaml_versions dir else [] in
+    let ocaml_versions =
+      if is_duniverse then (
+        let vs = get_ocaml_versions dir in
+        if vs = [] then failwith "No OCaml compilers specified!";
+        vs
+      ) else [] in
     let cmd = "", [| "find"; "."; "-maxdepth"; "3"; "-name"; "*.opam" |] in
     Current.Process.check_output ~cwd:dir ~cancellable:true ~job cmd >>!= fun output ->
     let opam_files =

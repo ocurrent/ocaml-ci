@@ -108,7 +108,7 @@ let list_errors ~ok errs =
   in
   Error (`Msg (
       match groups with
-      | [] -> assert false
+      | [] -> "No builds at all!"
       | [ msg, _ ] when ok = 0 -> msg (* Everything failed with the same error *)
       | [ msg, ls ] -> Fmt.strf "%a failed: %s" Fmt.(list ~sep:(unit ", ") string) ls msg
       | _ ->
