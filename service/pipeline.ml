@@ -48,96 +48,102 @@ type job = (string * ([`Built | `Checked] Current.t * Current.job_id option Curr
 type pipeline =
   | Skip
   | Job of job
-  | Stage of pipeline Current.t list
+  | Dynamic of pipeline Current.t
+  | Stage of pipeline list
 
 let job_id ?(kind=`Built) build =
   let job = Current.map (fun _ -> kind) build in
   (job, Current.Analysis.metadata build)
 
 let build_with_docker ~analysis source =
-  let analysis_job = Job ("(analysis)", job_id ~kind:`Checked analysis) in
-  let+ analysis = Current.state ~hidden:true analysis in
-  match analysis with
-  | Error _ -> analysis_job
-  | Ok analysis ->
-      let pkgs = Analyse.Analysis.opam_files analysis in
-      let build ~revdeps name variant =
-        let base = Build1.base ~schedule:weekly ~variant in
-        List.map (fun pkg ->
-          let prefix = pkg^status_sep^name in
-          let image = Build1.v ~revdep:None ~with_tests:false ~pkg source base in
-          let tests =
-            let+ state = Current.state ~hidden:true image in
-            match state with
-            | Error _ -> Skip
-            | Ok _ -> Job (prefix^status_sep^"tests", job_id (Build1.v ~revdep:None ~with_tests:true ~pkg source base))
-          in
-          let revdeps =
-            if revdeps then
+  let pipeline =
+    let+ analysis = Current.state ~hidden:true analysis in
+    match analysis with
+    | Error _ -> Skip
+    | Ok analysis ->
+        let pkgs = Analyse.Analysis.opam_files analysis in
+        let build ~revdeps name variant =
+          let base = Build1.base ~schedule:weekly ~variant in
+          List.map (fun pkg ->
+            let prefix = pkg^status_sep^name in
+            let image = Build1.v ~revdep:None ~with_tests:false ~pkg source base in
+            let tests =
               let+ state = Current.state ~hidden:true image in
               match state with
               | Error _ -> Skip
-              | Ok _ ->
-                  let prefix = prefix^status_sep^"revdeps" in
-                  let revdeps_job =
-                    Docker1.pread image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"]
-                  in
-                  let revdeps =
-                    let+ revdeps = Current.state ~hidden:true revdeps_job in
-                    match revdeps with
-                    | Error _ -> Skip
-                    | Ok revdeps ->
-                        Stage (
-                          String.split_on_char '\n' revdeps |>
-                          List.filter (fun pkg -> not (String.equal pkg "")) |>
-                          List.map (fun revdep ->
-                            let prefix = prefix^status_sep^revdep in
-                            let revdep = Some revdep in
-                            let image = Build1.v ~revdep ~with_tests:false ~pkg source base in
-                            let tests =
-                              let+ state = Current.state ~hidden:true image in
-                              match state with
-                              | Error _ -> Skip
-                              | Ok _ -> Job (prefix^status_sep^"tests", job_id (Build1.v ~revdep ~with_tests:true ~pkg source base))
-                            in
-                            Current.return (Stage [Current.return (Job (prefix, job_id image)); tests])
+              | Ok _ -> Job (prefix^status_sep^"tests", job_id (Build1.v ~revdep:None ~with_tests:true ~pkg source base))
+            in
+            let revdeps =
+              if revdeps then
+                let+ state = Current.state ~hidden:true image in
+                match state with
+                | Error _ -> Skip
+                | Ok _ ->
+                    let prefix = prefix^status_sep^"revdeps" in
+                    let revdeps_job =
+                      Docker1.pread image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"]
+                    in
+                    let revdeps =
+                      let+ revdeps = Current.state ~hidden:true revdeps_job in
+                      match revdeps with
+                      | Error _ -> Skip
+                      | Ok revdeps ->
+                          Stage (
+                            String.split_on_char '\n' revdeps |>
+                            List.filter (fun pkg -> not (String.equal pkg "")) |>
+                            List.map (fun revdep ->
+                              let prefix = prefix^status_sep^revdep in
+                              let revdep = Some revdep in
+                              let image = Build1.v ~revdep ~with_tests:false ~pkg source base in
+                              let tests =
+                                let+ state = Current.state ~hidden:true image in
+                                match state with
+                                | Error _ -> Skip
+                                | Ok _ -> Job (prefix^status_sep^"tests", job_id (Build1.v ~revdep ~with_tests:true ~pkg source base))
+                              in
+                              Stage [Job (prefix, job_id image); Dynamic tests]
+                            )
                           )
-                        )
-                  in
-                  Stage [Current.return (Job (prefix, job_id revdeps_job)); revdeps]
-            else
-              Current.return Skip
-          in
-          Current.return (Stage [Current.return (Job (prefix, job_id image)); tests; revdeps])
-        ) pkgs
-      in
-      let stages =
-        List.concat [
-          (* Compilers *)
-          build ~revdeps:true "4.10" "debian-10-ocaml-4.10";
-          build ~revdeps:true "4.09" "debian-10-ocaml-4.09";
-          build ~revdeps:true "4.08" "debian-10-ocaml-4.08";
-          build ~revdeps:true "4.07" "debian-10-ocaml-4.07";
-          build ~revdeps:true "4.06" "debian-10-ocaml-4.06";
-          build ~revdeps:true "4.05" "debian-10-ocaml-4.05";
-          build ~revdeps:true "4.04" "debian-10-ocaml-4.04";
-          build ~revdeps:true "4.03" "debian-10-ocaml-4.03";
-          build ~revdeps:true "4.02" "debian-10-ocaml-4.02";
-          (* Special checks *)
-          build ~revdeps:false "flambda" ("debian-10-ocaml-"^default_compiler^"-flambda");
-        ] @
-        List.concat (
-          List.filter_map (function
-            | `Debian `V10 -> None (* Skip debian 10 as it was already tested in the main phase *)
-            | `OracleLinux _ -> None (* Not supported by opam-depext *)
-            | distro ->
-                let distro = Dockerfile_distro.tag_of_distro distro in
-                let variant = distro^"-ocaml-"^default_compiler in
-                Some (build ~revdeps:false distro variant)
-          ) (Dockerfile_distro.active_distros `X86_64)
-        )
-      in
-      Stage [Current.return analysis_job; Current.return (Stage stages)]
+                    in
+                    Stage [Job (prefix, job_id revdeps_job); Dynamic revdeps]
+              else
+                Current.return Skip
+            in
+            Stage [Job (prefix, job_id image); Dynamic tests; Dynamic revdeps]
+          ) pkgs
+        in
+        let stages =
+          List.concat [
+            (* Compilers *)
+            build ~revdeps:true "4.10" "debian-10-ocaml-4.10";
+            build ~revdeps:true "4.09" "debian-10-ocaml-4.09";
+            build ~revdeps:true "4.08" "debian-10-ocaml-4.08";
+            build ~revdeps:true "4.07" "debian-10-ocaml-4.07";
+            build ~revdeps:true "4.06" "debian-10-ocaml-4.06";
+            build ~revdeps:true "4.05" "debian-10-ocaml-4.05";
+            build ~revdeps:true "4.04" "debian-10-ocaml-4.04";
+            build ~revdeps:true "4.03" "debian-10-ocaml-4.03";
+            build ~revdeps:true "4.02" "debian-10-ocaml-4.02";
+            (* Special checks *)
+            build ~revdeps:false "flambda" ("debian-10-ocaml-"^default_compiler^"-flambda");
+          ] @
+          List.concat (
+            List.filter_map (function
+              | `Debian `V10 -> None (* Skip debian 10 as it was already tested in the main phase *)
+              | `OracleLinux _ -> None (* Not supported by opam-depext *)
+              | distro ->
+                  let distro = Dockerfile_distro.tag_of_distro distro in
+                  let variant = distro^"-ocaml-"^default_compiler in
+                  Some (build ~revdeps:false distro variant)
+            ) (Dockerfile_distro.active_distros `X86_64)
+          )
+        in
+        Stage stages
+  in
+  Stage [
+    Job ("(analysis)", job_id ~kind:`Checked analysis) ;
+    Dynamic pipeline;
+  ]
 
 let list_errors ~ok errs =
   let groups =  (* Group by error message *)
@@ -192,14 +198,10 @@ let get_prs repo =
     | `PR _ -> head :: acc
   end refs []
 
-let rec get_jobs_aux f builds =
-  let* builds = builds in
-  match builds with
-  | Skip ->
-      Current.return []
-  | Job job ->
-      let+ job = f job in
-      [job]
+let rec get_jobs_aux f = function
+  | Skip -> Current.return []
+  | Job job -> Current.map (fun job -> [job]) (f job)
+  | Dynamic pipeline -> Current.bind (get_jobs_aux f) pipeline
   | Stage stages ->
       List.fold_left (fun acc stage ->
         let+ stage = get_jobs_aux f stage
