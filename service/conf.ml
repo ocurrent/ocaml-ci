@@ -20,44 +20,22 @@ end
 
 let dev_pool = Current.Pool.create ~label:"docker" 1
 
-module Builder(C : sig val docker_context : string end) :
-  Ocaml_ci.S.DOCKER_CONTEXT with type source = Current_docker.S.source =
-struct
+(** Maximum time for one Docker build. *)
+let build_timeout = Duration.of_hour 1
 
-  module Docker = Current_docker.Make(struct
-      let docker_context =
-        match profile with
-        | `Production -> Some C.docker_context
-        | `Dev -> None
-    end)
+module Builder = struct
+  let v docker_context =
+    let docker_context, pool =
+      match profile with
+      | `Production ->
+        Some docker_context, Current.Pool.create ~label:("docker-" ^ docker_context) 20
+      | `Dev ->
+        None, dev_pool
+    in
+    { Ocaml_ci.Builder.docker_context; pool; build_timeout }
 
-  (** Limit number of concurrent builds. *)
-  let pool =
-    match profile with
-    | `Production -> Current.Pool.create ~label:("docker-" ^ C.docker_context) 20
-    | `Dev -> dev_pool
-
-  (** Maximum time for one Docker build. *)
-  let build_timeout = Duration.of_hour 1
-
-  type source = Current_docker.S.source
-
-  type image = Docker.Image.t
-
-  let image_hash = Docker.Image.hash
-
-  let pull ~schedule name =
-    Docker.pull ~schedule name
-
-  let build ?label ~dockerfile source =
-    Docker.build ~timeout:build_timeout ~pool ?label ~pull:false ~dockerfile source
-
-  let run ?label image ~args =
-    Docker.run ?label ~pool image ~args
-
+  let amd1 = v "default"
+  let amd2 = v "laodoke"
+  let amd3 = v "phoebe"
+  let amd4 = v "m1-a"
 end
-
-module Builder_amd1 = Builder(struct let docker_context = "default" end)
-module Builder_amd2 = Builder(struct let docker_context = "laodoke" end)
-module Builder_amd3 = Builder(struct let docker_context = "phoebe" end)
-module Builder_amd4 = Builder(struct let docker_context = "m1-a" end)

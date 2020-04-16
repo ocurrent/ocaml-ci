@@ -1,3 +1,5 @@
+open Current.Syntax
+
 let crunch_list items = Dockerfile.(crunch (empty @@@ items))
 
 let safe_char = function
@@ -117,7 +119,8 @@ let dockerfile { base; info; repo; variant} =
 let cache = Hashtbl.create 10000
 let cache_max_size = 1000000
 
-let dockerfile ~base ~info ~repo ~variant =
+let dockerfile ~base ~info ~repo ~platform =
+  let variant = platform.Platform.variant in
   let key = { base; info; repo; variant } in
   match Hashtbl.find_opt cache key with
   | Some x -> x
@@ -127,20 +130,26 @@ let dockerfile ~base ~info ~repo ~variant =
     Hashtbl.add cache key x;
     x
 
-let v (type s) ~docker:(module Docker : S.DOCKER_CONTEXT with type source = s)
-    ~schedule ~variant ~repo ~analysis (source : s) =
-  let open Current.Syntax in
-  let info =
-    let+ info = analysis in
-    let opam_files = Analyse.Analysis.opam_files info in
-    if opam_files = [] then failwith "No opam files found!";
-    info
-  in
+let pull ~schedule platform =
+  Current.component "docker pull" |>
+  let> { Platform.builder; variant; label = _ } = platform in
+  Builder.pull builder ("ocurrent/opam:" ^ variant) ~schedule
+
+let build ~repo ~analysis ~dockerfile ~platform ~base source =
+  Current.component "build" |>
+  let> platform = platform
+  and> analysis = analysis
+  and> base = base
+  and> source = source
+  and> repo = repo in
+  let opam_files = Analyse.Analysis.opam_files analysis in
+  if opam_files = [] then failwith "No opam files found!";
   let dockerfile =
-    let+ base = Docker.pull ~schedule ("ocurrent/opam:" ^ variant)
-    and+ repo = repo
-    and+ info = info in
-    `Contents (dockerfile ~base:(Docker.image_hash base) ~info ~repo ~variant)
+    `Contents (dockerfile ~base:(Current_docker.Raw.Image.hash base) ~info:analysis ~repo ~platform)
   in
-  let build = Docker.build ~dockerfile source in
-  Current.map (fun _ -> `Built) build
+  Builder.build platform.Platform.builder source ~dockerfile
+
+let v ~platform ~schedule ~repo ~analysis source =
+  let base = pull ~schedule platform in
+  let+ _ : Current_docker.Raw.Image.t = build ~analysis ~repo ~dockerfile ~platform ~base source in
+  `Built

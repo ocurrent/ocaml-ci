@@ -1,4 +1,4 @@
 (library
   (name ocaml_ci)
   (preprocess (pps ppx_deriving.std ppx_deriving_yojson))
-  (libraries logs current current_github current.cache dockerfile ppx_deriving_yojson.runtime))
+  (libraries logs current current_docker current_github current.cache dockerfile ppx_deriving_yojson.runtime))
