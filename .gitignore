@@ -4,3 +4,5 @@ _build
 _opam
 var
 *.cap
+.*.swp
+.vscode

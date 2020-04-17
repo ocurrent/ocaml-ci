@@ -5,6 +5,8 @@ module Analysis : sig
   val is_duniverse : t -> bool
   val ocamlformat_source : t -> Analyse_ocamlformat.source option
 
+  val ocaml_versions : t -> string list
+
   val of_dir : job:Current.Job.t -> Fpath.t -> (t, [ `Msg of string ]) result Lwt.t
 end
 
