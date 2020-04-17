@@ -1,5 +1,5 @@
 module Analysis : sig
-  type t
+  type t [@@deriving yojson]
 
   val opam_files : t -> string list
   val is_duniverse : t -> bool
