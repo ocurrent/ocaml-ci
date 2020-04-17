@@ -50,90 +50,83 @@ let job_id ?(kind=`Built) build =
   let job = Current.map (fun _ -> kind) build in
   (job, Current.Analysis.metadata build)
 
+let once_done x f =
+  let+ state = Current.state ~hidden:true x in
+  match state with
+  | Error _ -> Skip
+  | Ok x -> f x
+
 let build_with_docker ~analysis source =
   let pipeline =
-    let+ analysis = Current.state ~hidden:true analysis in
-    match analysis with
-    | Error _ -> Skip
-    | Ok analysis ->
-        let pkgs = Analyse.Analysis.opam_files analysis in
-        let build ~revdeps label builder variant =
-          let platform = Current.return { Platform.label; builder; variant } in
-          List.map (fun pkg ->
-            let prefix = pkg^status_sep^label in
-            let image = Build.v ~platform ~schedule:weekly ~revdep:None ~with_tests:false ~pkg source in
-            let tests =
-              let+ state = Current.state ~hidden:true image in
-              match state with
-              | Error _ -> Skip
-              | Ok _ -> Job (prefix^status_sep^"tests", job_id (Build.v ~platform ~schedule:weekly ~revdep:None ~with_tests:true ~pkg source))
+    once_done analysis @@ fun analysis ->
+    let pkgs = Analyse.Analysis.opam_files analysis in
+    let build ~revdeps label builder variant =
+      let platform = Current.return { Platform.label; builder; variant } in
+      List.map (fun pkg ->
+        let prefix = pkg^status_sep^label in
+        let image = Build.v ~platform ~schedule:weekly ~revdep:None ~with_tests:false ~pkg source in
+        let tests =
+          once_done image @@ fun _ ->
+          Job (prefix^status_sep^"tests", job_id (Build.v ~platform ~schedule:weekly ~revdep:None ~with_tests:true ~pkg source))
+        in
+        let revdeps =
+          if revdeps then
+            once_done image @@ fun image ->
+            let prefix = prefix^status_sep^"revdeps" in
+            let revdeps_job =
+              Build.pread ~platform image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"]
             in
             let revdeps =
-              if revdeps then
-                let+ state = Current.state ~hidden:true image in
-                match state with
-                | Error _ -> Skip
-                | Ok image ->
-                    let prefix = prefix^status_sep^"revdeps" in
-                    let revdeps_job =
-                      Build.pread ~platform image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"]
-                    in
-                    let revdeps =
-                      let+ revdeps = Current.state ~hidden:true revdeps_job in
-                      match revdeps with
-                      | Error _ -> Skip
-                      | Ok revdeps ->
-                          Stage (
-                            String.split_on_char '\n' revdeps |>
-                            List.filter (fun pkg -> not (String.equal pkg "")) |>
-                            List.map (fun revdep ->
-                              let prefix = prefix^status_sep^revdep in
-                              let revdep = Some revdep in
-                              let image = Build.v ~platform ~schedule:weekly ~revdep ~with_tests:false ~pkg source in
-                              let tests =
-                                let+ state = Current.state ~hidden:true image in
-                                match state with
-                                | Error _ -> Skip
-                                | Ok _ -> Job (prefix^status_sep^"tests", job_id (Build.v ~platform ~schedule:weekly ~revdep ~with_tests:true ~pkg source))
-                              in
-                              Stage [Job (prefix, job_id image); Dynamic tests]
-                            )
-                          )
-                    in
-                    Stage [Job (prefix, job_id revdeps_job); Dynamic revdeps]
-              else
-                Current.return Skip
+              once_done revdeps_job @@ fun revdeps ->
+              Stage (
+                String.split_on_char '\n' revdeps |>
+                List.filter (fun pkg -> not (String.equal pkg "")) |>
+                List.map (fun revdep ->
+                  let prefix = prefix^status_sep^revdep in
+                  let revdep = Some revdep in
+                  let image = Build.v ~platform ~schedule:weekly ~revdep ~with_tests:false ~pkg source in
+                  let tests =
+                    once_done image @@ fun _ ->
+                    Job (prefix^status_sep^"tests", job_id (Build.v ~platform ~schedule:weekly ~revdep ~with_tests:true ~pkg source))
+                  in
+                  Stage [Job (prefix, job_id image); Dynamic tests]
+                )
+              )
             in
-            Stage [Job (prefix, job_id image); Dynamic tests; Dynamic revdeps]
-          ) pkgs
+            Stage [Job (prefix, job_id revdeps_job); Dynamic revdeps]
+          else
+            Current.return Skip
         in
-        let stages =
-          List.concat [
-            (* Compilers *)
-            build ~revdeps:true "4.10" Conf.Builder.amd1 "debian-10-ocaml-4.10";
-            build ~revdeps:true "4.09" Conf.Builder.amd1 "debian-10-ocaml-4.09";
-            build ~revdeps:true "4.08" Conf.Builder.amd1 "debian-10-ocaml-4.08";
-            build ~revdeps:true "4.07" Conf.Builder.amd1 "debian-10-ocaml-4.07";
-            build ~revdeps:true "4.06" Conf.Builder.amd1 "debian-10-ocaml-4.06";
-            build ~revdeps:true "4.05" Conf.Builder.amd1 "debian-10-ocaml-4.05";
-            build ~revdeps:true "4.04" Conf.Builder.amd1 "debian-10-ocaml-4.04";
-            build ~revdeps:true "4.03" Conf.Builder.amd1 "debian-10-ocaml-4.03";
-            build ~revdeps:true "4.02" Conf.Builder.amd1 "debian-10-ocaml-4.02";
-            (* Special checks *)
-            build ~revdeps:false "flambda" Conf.Builder.amd1 ("debian-10-ocaml-"^default_compiler^"-flambda");
-          ] @
-          List.concat (
-            List.filter_map (function
-              | `Debian `V10 -> None (* Skip debian 10 as it was already tested in the main phase *)
-              | `OracleLinux _ -> None (* Not supported by opam-depext *)
-              | distro ->
-                  let distro = Dockerfile_distro.tag_of_distro distro in
-                  let variant = distro^"-ocaml-"^default_compiler in
-                  Some (build ~revdeps:false distro Conf.Builder.amd1 variant)
-            ) (Dockerfile_distro.active_distros `X86_64)
-          )
-        in
-        Stage stages
+        Stage [Job (prefix, job_id image); Dynamic tests; Dynamic revdeps]
+      ) pkgs
+    in
+    let stages =
+      List.concat [
+        (* Compilers *)
+        build ~revdeps:true "4.10" Conf.Builder.amd1 "debian-10-ocaml-4.10";
+        build ~revdeps:true "4.09" Conf.Builder.amd1 "debian-10-ocaml-4.09";
+        build ~revdeps:true "4.08" Conf.Builder.amd1 "debian-10-ocaml-4.08";
+        build ~revdeps:true "4.07" Conf.Builder.amd1 "debian-10-ocaml-4.07";
+        build ~revdeps:true "4.06" Conf.Builder.amd1 "debian-10-ocaml-4.06";
+        build ~revdeps:true "4.05" Conf.Builder.amd1 "debian-10-ocaml-4.05";
+        build ~revdeps:true "4.04" Conf.Builder.amd1 "debian-10-ocaml-4.04";
+        build ~revdeps:true "4.03" Conf.Builder.amd1 "debian-10-ocaml-4.03";
+        build ~revdeps:true "4.02" Conf.Builder.amd1 "debian-10-ocaml-4.02";
+        (* Special checks *)
+        build ~revdeps:false "flambda" Conf.Builder.amd1 ("debian-10-ocaml-"^default_compiler^"-flambda");
+      ] @
+      List.concat (
+        List.filter_map (function
+          | `Debian `V10 -> None (* Skip debian 10 as it was already tested in the main phase *)
+          | `OracleLinux _ -> None (* Not supported by opam-depext *)
+          | distro ->
+              let distro = Dockerfile_distro.tag_of_distro distro in
+              let variant = distro^"-ocaml-"^default_compiler in
+              Some (build ~revdeps:false distro Conf.Builder.amd1 variant)
+        ) (Dockerfile_distro.active_distros `X86_64)
+      )
+    in
+    Stage stages
   in
   Stage [
     Job ("(analysis)", job_id ~kind:`Checked analysis) ;
