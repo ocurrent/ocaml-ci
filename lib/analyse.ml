@@ -113,7 +113,7 @@ module Examine = struct
   module Key = struct
     type t = Current_git.Commit.t
 
-    let digest t = Current_git.Commit.id t
+    let digest t = Current_git.Commit.hash t
   end
 
   module Value = Analysis
