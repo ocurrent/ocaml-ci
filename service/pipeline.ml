@@ -67,17 +67,21 @@ let build_with_docker ~repo ~analysis source =
      it's dynamic here in anticipation of future changes where the set of platforms
      to use comes from the analysis phase. *)
   let platforms =
-    let+ analysis = analysis in
-    if Analyse.Analysis.is_duniverse analysis then (
-      Analyse.Analysis.ocaml_versions analysis
-      |> List.rev_map (fun ov ->
-          let variant = "debian-10-ocaml-" ^ ov in
-          let builder = Conf.Builder.amd1 in    (* XXX: maybe use other machines too? *)
-          { Platform.label = ov; variant; builder }
-        )
-    ) else (
-      platforms
-    )
+    let+ analysis = Current.state ~hidden:true analysis in
+    match analysis with
+    | Ok analysis ->
+        if Analyse.Analysis.is_duniverse analysis then
+          Analyse.Analysis.ocaml_versions analysis
+          |> List.rev_map (fun ov ->
+            let variant = "debian-10-ocaml-" ^ ov in
+            let builder = Conf.Builder.amd1 in    (* XXX: maybe use other machines too? *)
+            { Platform.label = ov; variant; builder }
+          )
+        else
+          platforms
+    | Error _ ->
+        (* If we don't have the list of builds yet, just use the empty list. *)
+        []
   in
   let builds = platforms |> Current.list_map (module Platform) (fun platform ->
       let job = Build.v ~platform ~schedule:weekly ~repo ~analysis source in
@@ -86,13 +90,11 @@ let build_with_docker ~repo ~analysis source =
       and+ platform = platform in
       platform.label, (result, job_id)
     ) in
-  let+ builds = Current.state builds
+  let+ builds = builds
   and+ analysis_result = Current.state ~hidden:true (Current.map (fun _ -> `Checked) analysis)
   and+ analysis_id = Current.Analysis.metadata analysis
   and+ lint_result = Current.state ~hidden:true lint_job
   and+ lint_id = Current.Analysis.metadata lint_job in
-  (* If we don't have the list of builds yet, just use the empty list. *)
-  let builds = builds |> Result.to_option |> Option.value ~default:[] in
   builds @ [
     "(analysis)", (analysis_result, analysis_id);
     "lint", (lint_result, lint_id);
