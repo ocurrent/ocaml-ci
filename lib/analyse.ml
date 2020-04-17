@@ -23,7 +23,8 @@ module Analysis = struct
   let ocamlformat_source _ = None
 
   let of_dir ~job dir =
-    let cmd = "", [| "sh"; "-c"; {|git diff origin/master..HEAD | grep '^+++ ' | sed -E 's,^\+\+\+ ./packages/[^/]+/([^/]+)/opam,\1,'|} |] in
+    (* TODO: Check if the PR added an opam file in packages/<pkg> instead of packages/<pkg>/<pkg>.<ver> (common mistake) *)
+    let cmd = "", [| "sh"; "-c"; {|git diff origin/master..HEAD | sed -E -n -e '\''s,\+\+\+ b/packages/[^/]*/([^/]*)/.*,\1,p'\''|} |] in
     Current.Process.check_output ~cwd:dir ~cancellable:true ~job cmd >>= fun output ->
     let output = Stdlib.Result.get_ok output in
     let opam_files =
