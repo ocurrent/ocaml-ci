@@ -63,9 +63,6 @@ let set_active_refs ~repo xs =
 let build_with_docker ~repo ~analysis source =
   Current.with_context analysis @@ fun () ->
   let lint_job = Ocaml_ci.Lint.v ~builder:lint_builder ~schedule:weekly ~analysis ~source in
-  (* At the moment, we know the set of platforms statically. However, we're pretending
-     it's dynamic here in anticipation of future changes where the set of platforms
-     to use comes from the analysis phase. *)
   let platforms =
     let+ analysis = Current.state ~hidden:true analysis in
     match analysis with

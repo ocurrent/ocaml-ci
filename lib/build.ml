@@ -16,11 +16,8 @@ let build ~repo ~analysis ~platform ~base source =
   let dockerfile =
     if Analyse.Analysis.is_duniverse analysis then
       Duniverse_build.dockerfile ~base ~repo ~variant
-    else (
-      let opam_files = Analyse.Analysis.opam_files analysis in
-      if opam_files = [] then failwith "No opam files found!";
+    else
       Opam_build.dockerfile ~base ~info:analysis ~variant
-    )
   in
   Builder.build builder source ~dockerfile:(`Contents dockerfile)
 
