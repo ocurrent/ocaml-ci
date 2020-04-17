@@ -51,8 +51,9 @@ module Examine = struct
   module Key = struct
     type t = key
 
-    let digest {src; master} =
-      Current_git.Commit.id src ^ Current_git.Commit.id master
+    let digest {src; master = _} =
+      (* Only keep track of [src]. We don't want to redo the whole pipeline when something is pushed on master *)
+      Current_git.Commit.id src
   end
 
   module Value = Analysis

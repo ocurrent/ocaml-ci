@@ -222,8 +222,6 @@ let v ~app () =
   Github.App.installations app |> Current.list_iter (module Github.Installation) @@ fun installation ->
   let repos = Github.Installation.repositories installation in
   repos |> Current.list_iter (module Github.Api.Repo) @@ fun repo ->
-  (* TODO: Fix issue with the [master] value.
-     We don't want to rebuild everything everytime something gets pushed to master (too costly) *)
   let master = Github.Api.Repo.head_commit repo in
   let master = Git.fetch (Current.map Github.Api.Commit.id master) in
   let prs = get_prs repo |> set_active_refs ~repo in
