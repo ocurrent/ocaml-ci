@@ -104,7 +104,7 @@ let test_multiple_opam =
 let test_duniverse =
   let project =
     let open Gen_project in
-    [ File ("example.opam", opam); duniverse ]
+    [ File ("dune-get", dune_get); File ("example.opam", opam); duniverse ]
   in
   let expected =
     let open Analysis in
@@ -120,6 +120,7 @@ let test_ocamlformat_vendored =
   let project =
     let open Gen_project in
     [
+      File ("dune-get", dune_get);
       File ("example.opam", opam);
       (* This file is not parsed if ocamlformat is vendored *)
       File (".ocamlformat", empty_file);

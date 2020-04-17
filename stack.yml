@@ -5,10 +5,12 @@ volumes:
 secrets:
   ocaml-ci-github-key:
     external: true
+  ocaml-ci-oauth:
+    external: true
 services:
   ci:
     image: ocaml-ci-service
-    command: --github-app-id 52344 --github-private-key-file /run/secrets/ocaml-ci-github-key --github-account-whitelist "kit-ty-kate" --confirm above-average --confirm-auto-release 120 --capnp-address=tcp:ci:9000
+    command: --github-app-id 52344 --github-private-key-file /run/secrets/ocaml-ci-github-key --github-account-whitelist "kit-ty-kate" --confirm above-average --confirm-auto-release 120 --capnp-address=tcp:ci:9000 --github-oauth /run/secrets/ocaml-ci-oauth
     environment:
       - "CI_PROFILE=production"
       - "DOCKER_BUILDKIT=1"
@@ -19,6 +21,7 @@ services:
       - '/var/run/docker.sock:/var/run/docker.sock'
       - 'capnp-secrets:/capnp-secrets'
     secrets:
+      - 'ocaml-ci-oauth'
       - 'ocaml-ci-github-key'
     sysctls:
       - 'net.ipv4.tcp_keepalive_time=60'

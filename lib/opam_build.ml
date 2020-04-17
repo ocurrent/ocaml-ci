@@ -1,13 +1,5 @@
 let download_cache = "--mount=type=cache,target=/home/opam/.opam/download-cache,uid=1000"
 
-type key =  {
-  base : string;
-  variant : string;
-  pkg : string;
-  revdep : string option;
-  with_tests : bool;
-}
-
 let opam_install ~pin ~with_tests ~pkg =
   let open Dockerfile in
   let pin =
@@ -23,7 +15,7 @@ let opam_install ~pin ~with_tests ~pkg =
   pin @@
   run "%s opam depext -uivy%s %s" download_cache (if with_tests then "t" else "") pkg
 
-let dockerfile {base; variant; pkg; revdep; with_tests} =
+let dockerfile ~base ~variant ~revdep ~with_tests ~pkg =
   let open Dockerfile in
   let distro_extras =
     if Astring.String.is_prefix ~affix:"fedora" variant then
@@ -59,36 +51,3 @@ let dockerfile {base; variant; pkg; revdep; with_tests} =
   opam_install ~pin:true ~with_tests:false ~pkg @@
   revdep @@
   tests
-
-let cache = Hashtbl.create 10000
-let cache_max_size = 1000000
-
-let dockerfile ~base ~revdep ~with_tests ~pkg ~variant =
-  let key = { base; variant; pkg; revdep; with_tests } in
-  match Hashtbl.find_opt cache key with
-  | Some x -> x
-  | None ->
-    let x = dockerfile key in
-    if Hashtbl.length cache > cache_max_size then Hashtbl.clear cache;
-    Hashtbl.add cache key x;
-    x
-
-module Make (Docker : S.DOCKER_CONTEXT) = struct
-  type t = {
-    base : Docker.image Current.t;
-    variant : string;
-  }
-
-  let base ~schedule ~variant = {
-    base = Docker.pull ~schedule ("ocurrent/opam:" ^ variant);
-    variant;
-  }
-
-  let v ~revdep ~with_tests ~pkg source {base; variant} =
-    let dockerfile =
-      let open Current.Syntax in
-      let+ base = base in
-      `Contents (dockerfile ~base:(Docker.image_hash base) ~revdep ~with_tests ~pkg ~variant)
-    in
-    Docker.build ~dockerfile source
-end

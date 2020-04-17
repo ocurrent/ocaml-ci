@@ -39,11 +39,6 @@ let set_active_refs ~repo xs =
 
 let status_sep = String.make 1 Common.status_sep
 
-module Docker1 :
-  (S.DOCKER_CONTEXT with type source = [ `Git of Current_git.Commit.t Current.t | `No_context ]) =
-  Conf.Builder_amd1
-module Build1 = Opam_build.Make (Docker1)
-
 type job = (string * ([`Built | `Checked] Current.t * Current.job_id option Current.t))
 type pipeline =
   | Skip
@@ -62,26 +57,26 @@ let build_with_docker ~analysis source =
     | Error _ -> Skip
     | Ok analysis ->
         let pkgs = Analyse.Analysis.opam_files analysis in
-        let build ~revdeps name variant =
-          let base = Build1.base ~schedule:weekly ~variant in
+        let build ~revdeps label builder variant =
+          let platform = Current.return { Platform.label; builder; variant } in
           List.map (fun pkg ->
-            let prefix = pkg^status_sep^name in
-            let image = Build1.v ~revdep:None ~with_tests:false ~pkg source base in
+            let prefix = pkg^status_sep^label in
+            let image = Build.v ~platform ~schedule:weekly ~revdep:None ~with_tests:false ~pkg source in
             let tests =
               let+ state = Current.state ~hidden:true image in
               match state with
               | Error _ -> Skip
-              | Ok _ -> Job (prefix^status_sep^"tests", job_id (Build1.v ~revdep:None ~with_tests:true ~pkg source base))
+              | Ok _ -> Job (prefix^status_sep^"tests", job_id (Build.v ~platform ~schedule:weekly ~revdep:None ~with_tests:true ~pkg source))
             in
             let revdeps =
               if revdeps then
                 let+ state = Current.state ~hidden:true image in
                 match state with
                 | Error _ -> Skip
-                | Ok _ ->
+                | Ok image ->
                     let prefix = prefix^status_sep^"revdeps" in
                     let revdeps_job =
-                      Docker1.pread image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"]
+                      Build.pread ~platform image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"]
                     in
                     let revdeps =
                       let+ revdeps = Current.state ~hidden:true revdeps_job in
@@ -94,12 +89,12 @@ let build_with_docker ~analysis source =
                             List.map (fun revdep ->
                               let prefix = prefix^status_sep^revdep in
                               let revdep = Some revdep in
-                              let image = Build1.v ~revdep ~with_tests:false ~pkg source base in
+                              let image = Build.v ~platform ~schedule:weekly ~revdep ~with_tests:false ~pkg source in
                               let tests =
                                 let+ state = Current.state ~hidden:true image in
                                 match state with
                                 | Error _ -> Skip
-                                | Ok _ -> Job (prefix^status_sep^"tests", job_id (Build1.v ~revdep ~with_tests:true ~pkg source base))
+                                | Ok _ -> Job (prefix^status_sep^"tests", job_id (Build.v ~platform ~schedule:weekly ~revdep ~with_tests:true ~pkg source))
                               in
                               Stage [Job (prefix, job_id image); Dynamic tests]
                             )
@@ -115,17 +110,17 @@ let build_with_docker ~analysis source =
         let stages =
           List.concat [
             (* Compilers *)
-            build ~revdeps:true "4.10" "debian-10-ocaml-4.10";
-            build ~revdeps:true "4.09" "debian-10-ocaml-4.09";
-            build ~revdeps:true "4.08" "debian-10-ocaml-4.08";
-            build ~revdeps:true "4.07" "debian-10-ocaml-4.07";
-            build ~revdeps:true "4.06" "debian-10-ocaml-4.06";
-            build ~revdeps:true "4.05" "debian-10-ocaml-4.05";
-            build ~revdeps:true "4.04" "debian-10-ocaml-4.04";
-            build ~revdeps:true "4.03" "debian-10-ocaml-4.03";
-            build ~revdeps:true "4.02" "debian-10-ocaml-4.02";
+            build ~revdeps:true "4.10" Conf.Builder.amd1 "debian-10-ocaml-4.10";
+            build ~revdeps:true "4.09" Conf.Builder.amd1 "debian-10-ocaml-4.09";
+            build ~revdeps:true "4.08" Conf.Builder.amd1 "debian-10-ocaml-4.08";
+            build ~revdeps:true "4.07" Conf.Builder.amd1 "debian-10-ocaml-4.07";
+            build ~revdeps:true "4.06" Conf.Builder.amd1 "debian-10-ocaml-4.06";
+            build ~revdeps:true "4.05" Conf.Builder.amd1 "debian-10-ocaml-4.05";
+            build ~revdeps:true "4.04" Conf.Builder.amd1 "debian-10-ocaml-4.04";
+            build ~revdeps:true "4.03" Conf.Builder.amd1 "debian-10-ocaml-4.03";
+            build ~revdeps:true "4.02" Conf.Builder.amd1 "debian-10-ocaml-4.02";
             (* Special checks *)
-            build ~revdeps:false "flambda" ("debian-10-ocaml-"^default_compiler^"-flambda");
+            build ~revdeps:false "flambda" Conf.Builder.amd1 ("debian-10-ocaml-"^default_compiler^"-flambda");
           ] @
           List.concat (
             List.filter_map (function
@@ -134,7 +129,7 @@ let build_with_docker ~analysis source =
               | distro ->
                   let distro = Dockerfile_distro.tag_of_distro distro in
                   let variant = distro^"-ocaml-"^default_compiler in
-                  Some (build ~revdeps:false distro variant)
+                  Some (build ~revdeps:false distro Conf.Builder.amd1 variant)
             ) (Dockerfile_distro.active_distros `X86_64)
           )
         in
@@ -155,7 +150,7 @@ let list_errors ~ok errs =
   in
   Error (`Msg (
       match groups with
-      | [] -> assert false
+      | [] -> "No builds at all!"
       | [ msg, _ ] when ok = 0 -> msg (* Everything failed with the same error *)
       | [ msg, ls ] -> Fmt.strf "%a failed: %s" Fmt.(list ~sep:(unit ", ") string) ls msg
       | _ ->
@@ -167,9 +162,9 @@ let list_errors ~ok errs =
 let summarise results =
   results
   |> List.map (fun (label, build) ->
-      let+ result = Current.state build ~hidden:true in
-      (label, result)
-    )
+    let+ result = Current.state build ~hidden:true in
+    (label, result)
+  )
   |> Current.list_seq
   |> Current.map @@ fun results ->
   results |> List.fold_left (fun (ok, pending, err, skip) -> function
@@ -224,7 +219,7 @@ let local_test repo () =
   let analysis = Analyse.examine src in
   Current.component "summarise" |>
   let** result =
-    build_with_docker ~analysis (`Git src) |>
+    build_with_docker ~analysis src |>
     summarise
   in
   Current.of_output result
@@ -237,7 +232,7 @@ let v ~app () =
   prs |> Current.list_iter (module Github.Api.Commit) @@ fun head ->
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
   let analysis = Analyse.examine src in
-  let builds = build_with_docker ~analysis (`Git src) in
+  let builds = build_with_docker ~analysis src in
   let summary = summarise builds in
   let status =
     let+ summary = summary in
