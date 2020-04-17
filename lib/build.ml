@@ -23,7 +23,7 @@ module Op = struct
 
     let to_json { commit; analysis; base; variant; repo } =
       `Assoc [
-        "commit", `String (Current_git.Commit.id commit);
+        "commit", `String (Current_git.Commit.hash commit);
         "analysis", digest_analysis analysis;
         "base", `String (Raw.Image.digest base);
         "variant", `String variant;
@@ -40,18 +40,27 @@ module Op = struct
     | Error (`Msg m) -> raise (Failure m)
 
   let build { Builder.docker_context; pool; build_timeout } job { Key.commit; base; analysis; variant; repo } =
-    let dockerfile =
+    let make_dockerfile =
       let base = Raw.Image.hash base in
-      Dockerfile.string_of_t (
-        if Analyse.Analysis.is_duniverse analysis then
-          Duniverse_build.dockerfile ~base ~repo ~variant
-        else
-          Opam_build.dockerfile ~base ~info:analysis ~variant
-      )
+      if Analyse.Analysis.is_duniverse analysis then
+        Duniverse_build.dockerfile ~base ~repo ~variant
+      else
+        Opam_build.dockerfile ~base ~info:analysis ~variant
     in
-    Current.Job.log job "@[<v2>Using Dockerfile:@,%a@]" Fmt.lines dockerfile;
+    Current.Job.write job
+      (Fmt.strf "@.\
+                 To reproduce locally:@.@.\
+                 %a@.\
+                 cat > Dockerfile <<'END-OF-DOCKERFILE'@.\
+                 \o033[34m%a\o033[0m@.\
+                 END-OF-DOCKERFILE@.\
+                 docker build .@.@."
+         Current_git.Commit_id.pp_user_clone (Current_git.Commit.id commit)
+         Dockerfile.pp (make_dockerfile ~for_user:true));
+    let dockerfile = Dockerfile.string_of_t (make_dockerfile ~for_user:false) in
     Current.Job.start ~timeout:build_timeout ~pool job ~level:Current.Level.Average >>= fun () ->
     Current_git.with_checkout ~job commit @@ fun dir ->
+    Current.Job.write job (Fmt.strf "Writing BuildKit Dockerfile:@.%s@." dockerfile);
     Bos.OS.File.write Fpath.(dir / "Dockerfile") (dockerfile ^ "\n") |> or_raise;
     let cmd = Raw.Cmd.docker ~docker_context @@ ["build"; "--"; Fpath.to_string dir] in
     let pp_error_command f = Fmt.string f "Docker build" in

@@ -66,13 +66,15 @@ let build_cache repo =
 
 let download_cache = "--mount=type=cache,target=/home/opam/.opam/download-cache,uid=1000"
 
-let dockerfile ~base ~repo ~variant =
+let dockerfile ~base ~repo ~variant ~for_user =
   let caches =
-    Printf.sprintf "%s %s" download_cache (build_cache repo)
+    if for_user then ""
+    else Printf.sprintf "%s %s" download_cache (build_cache repo)
   in
   let build_platform, install_platform = install_platform ~compiler:"4.09" in
   let open Dockerfile in
-  comment "syntax = docker/dockerfile:experimental@sha256:ee85655c57140bd20a5ebc3bb802e7410ee9ac47ca92b193ed0ab17485024fe5" @@
+  (if for_user then empty
+   else comment "syntax = docker/dockerfile:experimental@sha256:ee85655c57140bd20a5ebc3bb802e7410ee9ac47ca92b193ed0ab17485024fe5") @@
   build_platform @@
   from base @@
   install_platform @@
