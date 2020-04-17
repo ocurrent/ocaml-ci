@@ -208,8 +208,9 @@ let get_jobs builds =
   get_jobs_aux get_job builds
 
 let local_test repo () =
+  let master = Git.Local.commit_of_ref repo "/refs/heads/master" in
   let src = Git.Local.head_commit repo in
-  let analysis = Analyse.examine src in
+  let analysis = Analyse.examine ~master src in
   Current.component "summarise" |>
   let** result =
     build_with_docker ~analysis src |>
@@ -221,10 +222,14 @@ let v ~app () =
   Github.App.installations app |> Current.list_iter (module Github.Installation) @@ fun installation ->
   let repos = Github.Installation.repositories installation in
   repos |> Current.list_iter (module Github.Api.Repo) @@ fun repo ->
+  (* TODO: Fix issue with the [master] value.
+     We don't want to rebuild everything everytime something gets pushed to master (too costly) *)
+  let master = Github.Api.Repo.head_commit repo in
+  let master = Git.fetch (Current.map Github.Api.Commit.id master) in
   let prs = get_prs repo |> set_active_refs ~repo in
   prs |> Current.list_iter (module Github.Api.Commit) @@ fun head ->
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
-  let analysis = Analyse.examine src in
+  let analysis = Analyse.examine ~master src in
   let builds = build_with_docker ~analysis src in
   let summary = summarise builds in
   let status =

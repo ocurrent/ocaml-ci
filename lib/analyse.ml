@@ -1,6 +1,11 @@
 open Lwt.Infix
 open Current.Syntax
 
+type key = {
+  src : Current_git.Commit.t;
+  master : Current_git.Commit.t;
+}
+
 let pool = Current.Pool.create ~label:"analyse" 2
 
 module Analysis = struct
@@ -22,9 +27,12 @@ module Analysis = struct
 
   let ocamlformat_source _ = None
 
-  let of_dir ~job dir =
+  let of_dir ~master ~head ~job dir =
     (* TODO: Check if the PR added an opam file in packages/<pkg> instead of packages/<pkg>/<pkg>.<ver> (common mistake) *)
-    let cmd = "", [| "sh"; "-c"; {|git diff origin/master..HEAD | sed -E -n -e '\''s,\+\+\+ b/packages/[^/]*/([^/]*)/.*,\1,p'\''|} |] in
+    let master = Current_git.Commit.id master in
+    let head = Current_git.Commit.id head in
+    let fmt = Printf.sprintf in
+    let cmd = "", [| "sh"; "-c"; fmt {|git diff %s..%s | sed -E -n -e '\''s,\+\+\+ b/packages/[^/]*/([^/]*)/.*,\1,p'\''|} master head |] in
     Current.Process.check_output ~cwd:dir ~cancellable:true ~job cmd >>= fun output ->
     let output = Stdlib.Result.get_ok output in
     let opam_files =
@@ -41,18 +49,19 @@ module Examine = struct
   type t = No_context
 
   module Key = struct
-    type t = Current_git.Commit.t
+    type t = key
 
-    let digest t = Current_git.Commit.id t
+    let digest {src; master} =
+      Current_git.Commit.id src ^ Current_git.Commit.id master
   end
 
   module Value = Analysis
 
   let id = "ci-analyse"
 
-  let build No_context job src =
+  let build No_context job {src; master} =
     Current.Job.start job ~pool ~level:Current.Level.Harmless >>= fun () ->
-    Current_git.with_checkout ~enable_submodules:false ~job src (Analysis.of_dir ~job)
+    Current_git.with_checkout ~enable_submodules:false ~job src (Analysis.of_dir ~master ~head:src ~job)
 
   let pp f _ = Fmt.string f "Analyse"
 
@@ -61,7 +70,8 @@ end
 
 module Examine_cache = Current_cache.Make(Examine)
 
-let examine src =
+let examine ~master src =
   Current.component "Analyse" |>
-  let> src = src in
-  Examine_cache.get Examine.No_context src
+  let> src = src
+  and> master = master in
+  Examine_cache.get Examine.No_context {src; master}
