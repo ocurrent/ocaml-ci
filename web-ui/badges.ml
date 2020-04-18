@@ -37,7 +37,7 @@ let v ~label ~message ?color ?label_color ?is_error ?named_logo ?logo_svg
   }
 
 let schema_of_status =
-  let v = v ~label:"ocaml-ci" in
+  let v = v ~label:"opam-ci" in
   function
   | `Not_started -> v ~message:"unknown" ~color:"inactive" ()
   | `Pending -> v ~message:"building" ~color:"yellow" ()

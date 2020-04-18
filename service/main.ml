@@ -46,7 +46,7 @@ let main config mode app capnp_address github_auth =
     if github_auth = None then Current_web.Site.allow_all
     else has_role
   in
-  let site = Current_web.Site.v ?authn ~has_role ~secure_cookies:true ~name:"ocaml-ci" () in
+  let site = Current_web.Site.v ?authn ~has_role ~secure_cookies:true ~name:"opam-ci" () in
   let routes =
     Routes.(s "webhooks" / s "github" /? nil @--> Current_github.webhook) ::
     Routes.(s "login" /? nil @--> Current_github.Auth.login github_auth) ::
