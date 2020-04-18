@@ -8,6 +8,8 @@ type key = {
 
 let pool = Current.Pool.create ~label:"analyse" 2
 
+let ( >>!= ) = Lwt_result.bind
+
 module Analysis = struct
   type t = {
     opam_files : string list;
@@ -29,12 +31,14 @@ module Analysis = struct
 
   let of_dir ~master ~head ~job dir =
     (* TODO: Check if the PR added an opam file in packages/<pkg> instead of packages/<pkg>/<pkg>.<ver> (common mistake) *)
+    (* TODO: Split modified vs. added (using git diff --name-status) *)
     let master = Current_git.Commit.id master in
     let head = Current_git.Commit.id head in
     let fmt = Printf.sprintf in
-    let cmd = "", [| "sh"; "-c"; fmt {|git diff %s..%s | sed -E -n -e 's,\+\+\+ b/packages/[^/]*/([^/]*)/.*,\1,p'|} master head |] in
-    Current.Process.check_output ~cwd:dir ~cancellable:true ~job cmd >>= fun output ->
-    let output = Stdlib.Result.get_ok output in
+    Current.Process.exec ~cwd:dir ~cancellable:true ~job ("", [|fmt "git checkout -b opam-ci__cibranch %s" master|]) >>!= fun () ->
+    Current.Process.exec ~cwd:dir ~cancellable:true ~job ("", [|fmt "git merge %s" head|]) >>!= fun () ->
+    let cmd = "", [| "sh"; "-c"; fmt {|git diff %s | sed -E -n -e 's,^\+\+\+ b/packages/[^/]*/([^/]*)/.*,\1,p'|} master |] in
+    Current.Process.check_output ~cwd:dir ~cancellable:true ~job cmd >>!= fun output ->
     let opam_files =
       String.split_on_char '\n' output
       |> List.filter (fun s -> not (String.equal s ""))
