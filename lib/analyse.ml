@@ -41,6 +41,12 @@ module Analysis = struct
   let get_ocaml_versions dir =
     (* TODO Just manual right now to avoid a build dep on Duniverse_lib *)
     let dune_get_path = Filename.concat (Fpath.to_string dir) "dune-get" in
+    let is_valid_ocaml_release v =
+      List.exists (fun ocv ->
+        let ocv = Ocaml_version.with_just_major_and_minor ocv in
+        String.equal (Ocaml_version.to_string ocv) v
+      ) Ocaml_version.Releases.recent
+    in
     let open Sexplib.Sexp in
     match load_sexp dune_get_path with
     | sxp -> begin
@@ -48,7 +54,12 @@ module Analysis = struct
         | List (List (Atom "config" :: List cs :: _) :: _) -> begin
             List.filter_map (function
                 | List (Atom "ocaml_compilers" :: List os :: _) ->
-                  Some (List.filter_map (function Atom s -> Some s | _ -> None) os)
+                    Some (
+                      List.filter_map (function
+                        | Atom s when is_valid_ocaml_release s -> Some s
+                        | Atom s -> failwith ("OCaml compiler version '"^s^"' is invalid")
+                        | _ -> None
+                      ) os)
                 | _ -> None) cs |> List.flatten
           end
         | _ -> []
