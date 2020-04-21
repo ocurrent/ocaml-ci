@@ -20,6 +20,9 @@ depends: [
   "dockerfile"
   "ppx_deriving_yojson"
 ]
+conflicts: [
+  "ocaml-migrate-parsetree" {= "1.7.1"}
+]
 build: [
   ["dune" "subst"] {pinned}
   [
