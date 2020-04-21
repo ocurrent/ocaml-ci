@@ -31,7 +31,7 @@ let platforms =
 
 let lint_builder = Conf.Builder.amd1
 
-let weekly = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
+let daily = Current_cache.Schedule.v ~valid_for:(Duration.of_day 1) ()
 
 (* Link for GitHub statuses. *)
 let url ~owner ~name ~hash = Uri.of_string (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s" owner name hash)
@@ -60,9 +60,15 @@ let set_active_refs ~repo xs =
   );
   xs
 
+let get_job_id x =
+  let+ md = Current.Analysis.metadata x in
+  match md with
+  | Some { Current.Metadata.job_id; _ } -> job_id
+  | None -> None
+
 let build_with_docker ~repo ~analysis source =
   Current.with_context analysis @@ fun () ->
-  let lint_job = Ocaml_ci.Lint.v ~builder:lint_builder ~schedule:weekly ~analysis ~source in
+  let lint_job = Ocaml_ci.Lint.v ~builder:lint_builder ~schedule:daily ~analysis ~source in
   let platforms =
     let+ analysis = Current.state ~hidden:true analysis in
     match analysis with
@@ -81,17 +87,17 @@ let build_with_docker ~repo ~analysis source =
         []
   in
   let builds = platforms |> Current.list_map (module Platform) (fun platform ->
-      let job = Build.v ~platform ~schedule:weekly ~repo ~analysis source in
+      let job = Build.v ~platform ~schedule:daily ~repo ~analysis source in
       let+ result = Current.state ~hidden:true job
-      and+ job_id = Current.Analysis.metadata job
+      and+ job_id = get_job_id job
       and+ platform = platform in
       platform.label, (result, job_id)
     ) in
   let+ builds = builds
   and+ analysis_result = Current.state ~hidden:true (Current.map (fun _ -> `Checked) analysis)
-  and+ analysis_id = Current.Analysis.metadata analysis
+  and+ analysis_id = get_job_id analysis
   and+ lint_result = Current.state ~hidden:true lint_job
-  and+ lint_id = Current.Analysis.metadata lint_job in
+  and+ lint_id = get_job_id lint_job in
   builds @ [
     "(analysis)", (analysis_result, analysis_id);
     "lint", (lint_result, lint_id);
