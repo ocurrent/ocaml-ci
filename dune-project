@@ -21,6 +21,7 @@
 (package
  (name ocaml-ci-service)
  (synopsis "Test OCaml projects on GitHub")
+ (conflicts (ocaml-migrate-parsetree (= "1.7.1")))
  (depends
   (dune (>= "1.11"))
   current_git
@@ -41,6 +42,7 @@
 (package
  (name ocaml-ci-web)
  (synopsis "Web-server frontend for ocaml-ci")
+ (conflicts (ocaml-migrate-parsetree (= "1.7.1")))
  (depends
   (dune (>= "1.11"))
   current_rpc

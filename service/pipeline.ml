@@ -67,20 +67,24 @@ let build_with_docker ~repo ~analysis source =
     once_done analysis @@ fun analysis ->
     let pkgs = Analyse.Analysis.opam_files analysis in
     let build ~revdeps label builder variant =
-      let platform = Current.return { Platform.label; builder; variant } in
+      let spec =
+        let platform = {Platform.label; builder; variant} in
+        Build.Spec.opam ~label:variant ~platform ~analysis `Build |>
+        Current.return
+      in
       List.map (fun pkg ->
         let prefix = pkg^status_sep^label in
-        let image = Build.v ~platform ~schedule:weekly ~repo ~analysis ~revdep:None ~with_tests:false ~pkg source in
+        let image = Build.v ~spec ~schedule:weekly ~repo ~revdep:None ~with_tests:false ~pkg source in
         let tests =
           once_done image @@ fun _ ->
-          Job (prefix^status_sep^"tests", job_id (Build.v ~platform ~schedule:weekly ~repo ~analysis ~revdep:None ~with_tests:true ~pkg source))
+          Job (prefix^status_sep^"tests", job_id (Build.v ~spec ~schedule:weekly ~repo ~revdep:None ~with_tests:true ~pkg source))
         in
         let revdeps =
           if revdeps then
             once_done image @@ fun image ->
             let prefix = prefix^status_sep^"revdeps" in
             let revdeps_job =
-              Build.pread ~platform image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"]
+              Build.pread ~spec image ~args:["opam";"list";"-s";"--color=never";"--depends-on";pkg;"--installable";"--all-versions";"--depopts"]
             in
             let revdeps =
               once_done revdeps_job @@ fun revdeps ->
@@ -90,10 +94,10 @@ let build_with_docker ~repo ~analysis source =
                 List.map (fun revdep ->
                   let prefix = prefix^status_sep^revdep in
                   let revdep = Some revdep in
-                  let image = Build.v ~platform ~schedule:weekly ~repo ~analysis ~revdep ~with_tests:false ~pkg source in
+                  let image = Build.v ~spec ~schedule:weekly ~repo ~revdep ~with_tests:false ~pkg source in
                   let tests =
                     once_done image @@ fun _ ->
-                    Job (prefix^status_sep^"tests", job_id (Build.v ~platform ~schedule:weekly ~repo ~analysis ~revdep ~with_tests:true ~pkg source))
+                    Job (prefix^status_sep^"tests", job_id (Build.v ~spec ~schedule:weekly ~repo ~revdep ~with_tests:true ~pkg source))
                   in
                   Stage [Job (prefix, job_id image); Dynamic tests]
                 )

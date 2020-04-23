@@ -15,7 +15,7 @@ let opam_install ~pin ~with_tests ~pkg =
   pin @@
   run "%s opam depext -uivy%s %s" download_cache (if with_tests then "t" else "") pkg
 
-let dockerfile ~for_user ~base ~variant ~revdep ~with_tests ~pkg =
+let dockerfile ~base ~variant ~revdep ~with_tests ~pkg ~for_user =
   let open Dockerfile in
   let distro_extras =
     if Astring.String.is_prefix ~affix:"fedora" variant then
