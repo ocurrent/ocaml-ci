@@ -113,6 +113,7 @@ let build_with_docker ~master ~repo ~analysis source =
     let stages =
       List.concat [
         (* Compilers *)
+        build ~revdeps:true "4.11" Conf.Builder.amd1 "debian-10-ocaml-4.11";
         build ~revdeps:true "4.10" Conf.Builder.amd1 "debian-10-ocaml-4.10";
         build ~revdeps:true "4.09" Conf.Builder.amd1 "debian-10-ocaml-4.09";
         build ~revdeps:true "4.08" Conf.Builder.amd1 "debian-10-ocaml-4.08";
@@ -122,19 +123,18 @@ let build_with_docker ~master ~repo ~analysis source =
         build ~revdeps:true "4.04" Conf.Builder.amd1 "debian-10-ocaml-4.04";
         build ~revdeps:true "4.03" Conf.Builder.amd1 "debian-10-ocaml-4.03";
         build ~revdeps:true "4.02" Conf.Builder.amd1 "debian-10-ocaml-4.02";
-        (* Special checks *)
-        build ~revdeps:false "flambda" Conf.Builder.amd1 ("debian-10-ocaml-"^default_compiler^"-flambda");
-      ] @
-      List.concat (
-        List.filter_map (function
-          | `Debian `V10 -> None (* Skip debian 10 as it was already tested in the main phase *)
-          | `OracleLinux _ -> None (* Not supported by opam-depext *)
-          | distro ->
-              let distro = Dockerfile_distro.tag_of_distro distro in
-              let variant = distro^"-ocaml-"^default_compiler in
-              Some (build ~revdeps:false distro Conf.Builder.amd1 variant)
-        ) (Dockerfile_distro.active_distros `X86_64)
-      )
+        (* Distributions *)
+        build ~revdeps:false ("distributions"^status_sep^"alpine-3.11") Conf.Builder.amd1 ("alpine-3.11-ocaml-"^default_compiler);
+        build ~revdeps:false ("distributions"^status_sep^"debian-testing") Conf.Builder.amd1 ("debian-testing-ocaml-"^default_compiler);
+        build ~revdeps:false ("distributions"^status_sep^"debian-unstable") Conf.Builder.amd1 ("debian-unstable-ocaml-"^default_compiler);
+        build ~revdeps:false ("distributions"^status_sep^"centos-8") Conf.Builder.amd1 ("centos-8-ocaml-"^default_compiler);
+        build ~revdeps:false ("distributions"^status_sep^"fedora-31") Conf.Builder.amd1 ("fedora-31-ocaml-"^default_compiler);
+        build ~revdeps:false ("distributions"^status_sep^"opensuse-15.1") Conf.Builder.amd1 ("opensuse-15.1-ocaml-"^default_compiler);
+        build ~revdeps:false ("distributions"^status_sep^"ubuntu-18.04") Conf.Builder.amd1 ("ubuntu-18.04-ocaml-"^default_compiler);
+        build ~revdeps:false ("distributions"^status_sep^"ubuntu-20.04") Conf.Builder.amd1 ("ubuntu-20.04-ocaml-"^default_compiler);
+        (* Extra checks *)
+        build ~revdeps:false ("extras"^status_sep^"flambda") Conf.Builder.amd1 ("debian-10-ocaml-"^default_compiler^"-flambda");
+      ]
     in
     Stage stages
   in
