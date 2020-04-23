@@ -11,7 +11,7 @@ let platforms =
   let module Builder = Conf.Builder in
   let v label builder variant = { Platform.label; builder; variant } in [
     (* Compiler versions:*)
-    v "4.10" Builder.amd4 "debian-10-ocaml-4.10";
+    v "4.10" Builder.amd4 "debian-10-ocaml-4.10";       (* Note: first item is also used as lint platform *)
     v "4.09" Builder.amd3 "debian-10-ocaml-4.09";
     v "4.08" Builder.amd1 "debian-10-ocaml-4.08";
     v "4.07" Builder.amd2 "debian-10-ocaml-4.07";
@@ -28,8 +28,6 @@ let platforms =
     v "fedora"   Builder.amd3 @@ "fedora-31-ocaml-" ^ default_compiler;
     (* oraclelinux doesn't work in opam 2 yet *)
   ]
-
-let lint_builder = Conf.Builder.amd1
 
 let daily = Current_cache.Schedule.v ~valid_for:(Duration.of_day 1) ()
 
@@ -68,39 +66,41 @@ let get_job_id x =
 
 let build_with_docker ~repo ~analysis source =
   Current.with_context analysis @@ fun () ->
-  let lint_job = Ocaml_ci.Lint.v ~builder:lint_builder ~schedule:daily ~analysis ~source in
-  let platforms =
+  let specs =
     let+ analysis = Current.state ~hidden:true analysis in
     match analysis with
-    | Ok analysis ->
-        if Analyse.Analysis.is_duniverse analysis then
-          Analyse.Analysis.ocaml_versions analysis
-          |> List.rev_map (fun ov ->
-            let variant = "debian-10-ocaml-" ^ ov in
-            let builder = Conf.Builder.amd1 in    (* XXX: maybe use other machines too? *)
-            { Platform.label = ov; variant; builder }
-          )
-        else
-          platforms
     | Error _ ->
-        (* If we don't have the list of builds yet, just use the empty list. *)
+        (* If we don't have the analysis yet, just use the empty list. *)
         []
+    | Ok analysis when Analyse.Analysis.is_duniverse analysis ->
+      Analyse.Analysis.ocaml_versions analysis
+      |> List.rev_map (fun ov ->
+          let variant = "debian-10-ocaml-" ^ ov in
+          let builder = Conf.Builder.amd1 in    (* XXX: maybe use other machines too? *)
+          let platform = { Platform.label = ov; variant; builder } in
+          Build.Spec.duniverse ~label:variant ~platform
+        )
+    | Ok analysis ->
+      (* Library (non-duniverse) project *)
+      let lint_platform = List.hd platforms in
+      let builds =
+        platforms |> List.map (fun platform ->
+            Build.Spec.opam ~label:platform.Platform.variant ~platform ~analysis `Build
+          )
+      in
+      let lint = Build.Spec.opam ~label:"(lint)" ~platform:lint_platform ~analysis `Lint in
+      lint :: builds
   in
-  let builds = platforms |> Current.list_map (module Platform) (fun platform ->
-      let job = Build.v ~platform ~schedule:daily ~repo ~analysis source in
-      let+ result = Current.state ~hidden:true job
-      and+ job_id = get_job_id job
-      and+ platform = platform in
-      platform.label, (result, job_id)
+  let builds = specs |> Current.list_map (module Build.Spec) (fun spec ->
+      let+ result = Build.v ~schedule:daily ~repo ~spec source
+      and+ spec = spec in
+      Build.Spec.label spec, result
     ) in
   let+ builds = builds
   and+ analysis_result = Current.state ~hidden:true (Current.map (fun _ -> `Checked) analysis)
-  and+ analysis_id = get_job_id analysis
-  and+ lint_result = Current.state ~hidden:true lint_job
-  and+ lint_id = get_job_id lint_job in
+  and+ analysis_id = get_job_id analysis in
   builds @ [
     "(analysis)", (analysis_result, analysis_id);
-    "lint", (lint_result, lint_id);
   ]
 
 let list_errors ~ok errs =
