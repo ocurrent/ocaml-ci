@@ -51,7 +51,7 @@ let css = {|
   }
   .statuses > li.not-started:before { content: "●"; color:grey; }
   .statuses > li.aborted:before { content: "A"; color:red; }
-  .statuses > li.failed:before { content: "╳"; color:red; }
+  .statuses > li.failed:before { content: "🗙"; color:red; }
   .statuses > li.passed:before { content: "✓"; color:green; }
   .statuses > li.active:before { content: "●"; color:orange; }
   .statuses > li.undefined:before { content: "?"; color:grey; }
