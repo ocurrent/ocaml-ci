@@ -18,8 +18,8 @@ module Analysis = struct
   }
   [@@deriving eq, yojson]
 
-  let of_dir ~job d =
-    of_dir ~job d
+  let of_dir ~job ~platforms d =
+    of_dir ~job ~platforms d
     |> Lwt_result.map (fun t ->
            {
              opam_files = opam_files t;
@@ -42,7 +42,7 @@ let expect_test name ~project ~expected =
           ~label ~config:(Current.Config.v ()) ()
       in
       let () = Gen_project.instantiate ~root project in
-      Analysis.of_dir ~job (Fpath.v root)
+      Analysis.of_dir ~job ~platforms:Test_platforms.v (Fpath.v root)
       >|= (function
             | Ok o -> o
             | Error (`Msg e) -> Alcotest.failf "Analysis stage failed: %s" e)

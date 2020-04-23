@@ -17,15 +17,15 @@ module Spec = struct
 
   type t = {
     label : string;
-    platform : Platform.t;
+    variant : string;
     ty : ty;
   }
 
-  let opam ~label ~platform ~analysis op =
-    { label; platform; ty = `Opam (op, analysis) }
+  let opam ~label ~variant ~analysis op =
+    { label; variant; ty = `Opam (op, analysis) }
 
-  let duniverse ~label ~platform =
-    { label; platform; ty = `Duniverse }
+  let duniverse ~label ~variant =
+    { label; variant; ty = `Duniverse }
 
   let pp f t = Fmt.string f t.label
   let compare a b = compare a.label b.label
@@ -123,20 +123,19 @@ end
 
 module BC = Current_cache.Generic(Op)
 
-let pull ~schedule spec =
-  Current.component "docker pull" |>
-  let> { Spec.platform; _} = spec in
-  let { Platform.builder; variant; label = _ } = platform in
-  Builder.pull builder ("ocurrent/opam:" ^ variant) ~schedule
-
-let build ~spec ~repo ~base commit =
+let build ~platforms ~spec ~repo commit =
   Current.component "build" |>
-  let> { Spec.platform; ty; label } = spec
-  and> base = base
+  let> { Spec.variant; ty; label } = spec
   and> commit = commit
+  and> platforms = platforms
   and> repo = repo in
-  let { Platform.builder; variant; _ } = platform in
-  BC.run builder { Op.Key.commit; repo; label } { Op.Value.base; ty; variant }
+  match List.find_opt (fun p -> p.Platform.variant = variant) platforms with
+  | Some { Platform.builder; variant; base; _ } ->
+    BC.run builder { Op.Key.commit; repo; label } { Op.Value.base; ty; variant }
+  | None ->
+    (* We can only get here if there is a bug. If the set of platforms changes, [Analyse] should recalculate. *)
+    let msg = Fmt.strf "BUG: variant %S is not a supported platform" variant in
+    Current_incr.const (Error (`Msg msg), None)
 
 let get_job_id x =
   let+ md = Current.Analysis.metadata x in
@@ -144,9 +143,8 @@ let get_job_id x =
   | Some { Current.Metadata.job_id; _ } -> job_id
   | None -> None
 
-let v ~schedule ~repo ~spec source =
-  let base = pull ~schedule spec in
-  let build = build ~spec ~repo ~base source in
+let v ~platforms ~repo ~spec source =
+  let build = build ~platforms ~spec ~repo source in
   let+ state = Current.state ~hidden:true build
   and+ job_id = get_job_id build
   and+ spec = spec in

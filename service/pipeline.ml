@@ -5,31 +5,20 @@ module Git = Current_git
 module Github = Current_github
 module Docker = Current_docker.Default
 
-let default_compiler = "4.10"
+let daily = Current_cache.Schedule.v ~valid_for:(Duration.of_day 1) ()
+
+let pull builder variant =
+  Current.component "pull@,%s" variant |>
+  let> () = Current.return () in
+  let tag = "ocurrent/opam:" ^ variant in
+  Builder.pull ~schedule:daily builder tag
 
 let platforms =
-  let module Builder = Conf.Builder in
-  let v label builder variant = { Platform.label; builder; variant } in [
-    (* Compiler versions:*)
-    v "4.10" Builder.amd4 "debian-10-ocaml-4.10";       (* Note: first item is also used as lint platform *)
-    v "4.09" Builder.amd3 "debian-10-ocaml-4.09";
-    v "4.08" Builder.amd1 "debian-10-ocaml-4.08";
-    v "4.07" Builder.amd2 "debian-10-ocaml-4.07";
-    v "4.06" Builder.amd2 "debian-10-ocaml-4.06";
-    v "4.05" Builder.amd3 "debian-10-ocaml-4.05";
-    v "4.04" Builder.amd3 "debian-10-ocaml-4.04";
-    v "4.03" Builder.amd2 "debian-10-ocaml-4.03";
-    v "4.02" Builder.amd2 "debian-10-ocaml-4.02";
-    (* Distributions: *)
-    v "alpine"   Builder.amd1 @@ "alpine-3.11-ocaml-" ^ default_compiler;
-    v "ubuntu"   Builder.amd2 @@ "ubuntu-20.04-ocaml-" ^ default_compiler;
-    v "opensuse" Builder.amd2 @@ "opensuse-15.1-ocaml-" ^ default_compiler;
-    v "centos"   Builder.amd3 @@ "centos-8-ocaml-" ^ default_compiler;
-    v "fedora"   Builder.amd3 @@ "fedora-31-ocaml-" ^ default_compiler;
-    (* oraclelinux doesn't work in opam 2 yet *)
-  ]
-
-let daily = Current_cache.Schedule.v ~valid_for:(Duration.of_day 1) ()
+  let v { Conf.label; builder; variant } =
+    let base = pull builder variant in
+    Platform.get ~label ~builder ~variant base
+  in
+  Current.list_seq (List.map v Conf.platforms)
 
 (* Link for GitHub statuses. *)
 let url ~owner ~name ~hash = Uri.of_string (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s" owner name hash)
@@ -73,30 +62,28 @@ let build_with_docker ~repo ~analysis source =
         (* If we don't have the analysis yet, just use the empty list. *)
         []
     | Ok analysis when Analyse.Analysis.is_duniverse analysis ->
-      Analyse.Analysis.ocaml_versions analysis
-      |> List.rev_map (fun ov ->
-          let variant = "debian-10-ocaml-" ^ ov in
-          let builder = Conf.Builder.amd1 in    (* XXX: maybe use other machines too? *)
-          let platform = { Platform.label = ov; variant; builder } in
-          Build.Spec.duniverse ~label:variant ~platform
+      Analyse.Analysis.variants analysis
+      |> List.rev_map (fun variant ->
+          Build.Spec.duniverse ~label:variant ~variant
         )
     | Ok analysis ->
       (* Library (non-duniverse) project *)
-      let lint_platform = List.hd platforms in
+      let variants = Analyse.Analysis.variants analysis in
+      let lint_platform = List.hd variants in
       let builds =
-        platforms |> List.map (fun platform ->
-            Build.Spec.opam ~label:platform.Platform.variant ~platform ~analysis `Build
+        variants |> List.map (fun variant ->
+            Build.Spec.opam ~label:variant ~variant ~analysis `Build
           )
       and lint =
         [
-          Build.Spec.opam ~label:"(lint-fmt)" ~platform:lint_platform ~analysis (`Lint `Fmt);
-          Build.Spec.opam ~label:"(lint-doc)" ~platform:lint_platform ~analysis (`Lint `Doc);
+          Build.Spec.opam ~label:"(lint-fmt)" ~variant:lint_platform ~analysis (`Lint `Fmt);
+          Build.Spec.opam ~label:"(lint-doc)" ~variant:lint_platform ~analysis (`Lint `Doc);
         ]
       in
       lint @ builds
   in
   let builds = specs |> Current.list_map (module Build.Spec) (fun spec ->
-      let+ result = Build.v ~schedule:daily ~repo ~spec source
+      let+ result = Build.v ~platforms ~repo ~spec source
       and+ spec = spec in
       Build.Spec.label spec, result
     ) in
@@ -144,7 +131,7 @@ let summarise results =
 let local_test repo () =
   let src = Git.Local.head_commit repo in
   let repo = Current.return { Github.Repo_id.owner = "local"; name = "test" }
-  and analysis = Analyse.examine src in
+  and analysis = Analyse.examine ~platforms src in
   Current.component "summarise" |>
   let> results = build_with_docker ~repo ~analysis src in
   let result =
@@ -155,13 +142,14 @@ let local_test repo () =
   Current_incr.const (result, None)
 
 let v ~app () =
+  Current.with_context platforms @@ fun () ->
   Github.App.installations app |> Current.list_iter ~collapse_key:"org" (module Github.Installation) @@ fun installation ->
   let repos = Github.Installation.repositories installation in
   repos |> Current.list_iter ~collapse_key:"repo" (module Github.Api.Repo) @@ fun repo ->
   let refs = Github.Api.Repo.ci_refs repo |> set_active_refs ~repo in
   refs |> Current.list_iter (module Github.Api.Commit) @@ fun head ->
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
-  let analysis = Analyse.examine src in
+  let analysis = Analyse.examine ~platforms src in
   let builds =
     let repo = Current.map Github.Api.Repo.id repo in
     build_with_docker ~repo ~analysis src in

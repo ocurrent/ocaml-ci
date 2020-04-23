@@ -15,9 +15,9 @@ let ( >>!= ) = Lwt_result.bind
 module Analysis = struct
   type t = {
     is_duniverse : bool;
-    ocaml_versions: string list;
     opam_files : string list;
     ocamlformat_source : Analyse_ocamlformat.source option;
+    variants : string list;
   }
   [@@deriving yojson]
 
@@ -34,7 +34,7 @@ module Analysis = struct
 
   let ocamlformat_source t = t.ocamlformat_source
 
-  let ocaml_versions t = t.ocaml_versions
+  let variants t = t.variants
 
   let is_test_dir = Astring.String.is_prefix ~affix:"test"
 
@@ -56,14 +56,30 @@ module Analysis = struct
     | exception exn ->
       Fmt.failwith "Exception parsing dune-get: %a" Fmt.exn exn
 
-  let of_dir ~job dir =
+  let of_dir ~job ~platforms dir =
     let is_duniverse = Sys.file_exists (Filename.concat (Fpath.to_string dir) "dune-get") in
-    let ocaml_versions =
+    let variants =
       if is_duniverse then (
         let vs = get_ocaml_versions dir in
         if vs = [] then failwith "No OCaml compilers specified!";
-        vs
-      ) else [] in
+        let find_compiler v =
+          let affix = Printf.sprintf "-ocaml-%s" v in
+          let matches_compiler (variant, _vars) = Astring.String.is_suffix ~affix variant in
+          match List.find_opt matches_compiler platforms with
+          | None ->
+            Current.Job.log job "WARNING: Unsupported compiler version %S (have: %a)"
+              v Fmt.(Dump.list string) (List.map fst platforms);
+            None
+          | Some (variant, _vars) ->
+            Some variant
+        in
+        let variants = List.filter_map find_compiler vs in
+        if variants = [] then failwith "No supported compilers found!";
+        variants
+      ) else (
+        List.map fst platforms
+      )
+    in
     let cmd = "", [| "find"; "."; "-maxdepth"; "3"; "-name"; "*.opam" |] in
     Current.Process.check_output ~cwd:dir ~cancellable:true ~job cmd >>!= fun output ->
     let opam_files =
@@ -100,7 +116,7 @@ module Analysis = struct
     (* [opam_files] are used to detect vendored OCamlformat but this only works
        with duniverse, as other opam files are filtered above. *)
     Analyse_ocamlformat.get_ocamlformat_source job ~opam_files ~root:dir >>= fun ocamlformat_source ->
-    let r = { opam_files; ocaml_versions; is_duniverse; ocamlformat_source } in
+    let r = { opam_files; is_duniverse; ocamlformat_source; variants } in
     Current.Job.log job "@[<v2>Results:@,%a@]" Yojson.Safe.(pretty_print ~std:true) (to_yojson r);
     if opam_files = [] then Lwt_result.fail (`Msg "No opam files found!")
     else if List.filter is_toplevel opam_files = [] then Lwt_result.fail (`Msg "No top-level opam files found!")
@@ -111,18 +127,33 @@ module Examine = struct
   type t = No_context
 
   module Key = struct
-    type t = Current_git.Commit.t
+    type t = {
+      src : Current_git.Commit.t;
+      platforms : (string * Platform.Vars.t) list;
+    }
 
-    let digest t = Current_git.Commit.hash t
+    let platform_to_yojson (variant, vars) =
+      `Assoc [
+        "variant", `String variant;
+        "vars", Platform.Vars.to_yojson vars
+      ]
+
+    let digest { src; platforms } =
+      let json = `Assoc [
+          "src", `String (Current_git.Commit.hash src);
+          "platforms", `List (List.map platform_to_yojson platforms);
+        ]
+      in
+      Yojson.Safe.to_string json
   end
 
   module Value = Analysis
 
   let id = "ci-analyse"
 
-  let build No_context job src =
+  let build No_context job { Key.src; platforms } =
     Current.Job.start job ~pool ~level:Current.Level.Harmless >>= fun () ->
-    Current_git.with_checkout ~job src (Analysis.of_dir ~job)
+    Current_git.with_checkout ~job src (Analysis.of_dir ~platforms ~job)
 
   let pp f _ = Fmt.string f "Analyse"
 
@@ -131,7 +162,9 @@ end
 
 module Examine_cache = Current_cache.Make(Examine)
 
-let examine src =
+let examine ~platforms src =
   Current.component "Analyse" |>
-  let> src = src in
-  Examine_cache.get Examine.No_context src
+  let> src = src
+  and> platforms = platforms in
+  let platforms = platforms |> List.map (fun { Platform.variant; vars; _ } -> (variant, vars)) in
+  Examine_cache.get Examine.No_context { Examine.Key.src; platforms }
