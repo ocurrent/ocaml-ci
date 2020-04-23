@@ -36,7 +36,8 @@ module Analysis = struct
     let head = Current_git.Commit.hash head in
     let fmt = Printf.sprintf in
     Current.Process.exec ~cwd:dir ~cancellable:true ~job ("", [|"git";"checkout";"-b";"opam-ci__cibranch";master|]) >>!= fun () ->
-    Current.Process.exec ~cwd:dir ~cancellable:true ~job ("", [|"git";"merge";head|]) >>!= fun () ->
+    Current.Process.exec ~cwd:dir ~cancellable:true ~job ("", [|"git";"merge";"--no-commit";head|]) >>!= fun () ->
+    Current.Process.exec ~cwd:dir ~cancellable:true ~job ("", [|"git";"commit";"--author=ci";head|]) >>!= fun () ->
     let cmd = "", [| "sh"; "-c"; fmt {|git diff %s | sed -E -n -e 's,^\+\+\+ b/packages/[^/]*/([^/]*)/.*,\1,p'|} master |] in
     Current.Process.check_output ~cwd:dir ~cancellable:true ~job cmd >>!= fun output ->
     let opam_files =
