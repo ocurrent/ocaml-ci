@@ -11,7 +11,7 @@ module Spec = struct
     `String (Digest.string s |> Digest.to_hex)
 
   type ty = [
-    | `Opam of [ `Build | `Lint ] * analysis
+    | `Opam of [ `Build | `Lint of [ `Fmt | `Doc ]] * analysis
     | `Duniverse
   ] [@@deriving to_yojson]
 
@@ -84,8 +84,8 @@ module Op = struct
       match ty with
       | `Opam (`Build, analysis) ->
         Opam_build.dockerfile ~base ~info:analysis ~variant
-      | `Opam (`Lint, analysis) ->
-        Lint.dockerfile ~base ~info:analysis ~variant
+      | `Opam (`Lint `Fmt, analysis) -> Lint.fmt_dockerfile ~base ~info:analysis ~variant
+      | `Opam (`Lint `Doc, analysis) -> Lint.doc_dockerfile ~base ~info:analysis ~variant
       | `Duniverse ->
         Duniverse_build.dockerfile ~base ~repo ~variant
     in
@@ -152,6 +152,6 @@ let v ~schedule ~repo ~spec source =
     match spec.ty with
     | `Duniverse
     | `Opam (`Build, _) -> `Built
-    | `Opam (`Lint, _) -> `Checked
+    | `Opam (`Lint _, _) -> `Checked
   in
   result, job_id

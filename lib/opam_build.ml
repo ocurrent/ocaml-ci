@@ -50,7 +50,7 @@ let rec get_root_opam_packages = function
 
 let download_cache = "--mount=type=cache,target=/home/opam/.opam/download-cache,uid=1000"
 
-let dockerfile ~base ~info ~variant ~for_user =
+let install_project_deps ~base ~info ~variant ~for_user =
   let opam_files = Analyse.Analysis.opam_files info in
   let groups = group_opam_files opam_files in
   let root_pkgs = get_root_opam_packages groups in
@@ -61,10 +61,6 @@ let dockerfile ~base ~info ~variant ~for_user =
       run "sudo dnf install -y findutils" (* (we need xargs) *)
     else
       empty
-  in
-  let build_cmd =
-    copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
-    run "opam exec -- dune build @install @runtest && rm -rf _build"
   in
   (if for_user then empty
    else comment "syntax = docker/dockerfile:experimental@sha256:ee85655c57140bd20a5ebc3bb802e7410ee9ac47ca92b193ed0ab17485024fe5") @@
@@ -79,5 +75,10 @@ let dockerfile ~base ~info ~variant ~for_user =
   crunch_list (List.map (fun pkg ->
       run {|test "$(opam show -f depexts: %s)" = "$(printf "\n")" || opam depext -ty %s|} pkg pkg) root_pkgs
     ) @@
-  (if Analyse.Analysis.is_duniverse info then run "opam pin remove $(opam pin -s) -n" else empty) @@
-  build_cmd
+  (if Analyse.Analysis.is_duniverse info then run "opam pin remove $(opam pin -s) -n" else empty)
+
+let dockerfile ~base ~info ~variant ~for_user =
+  let open Dockerfile in
+  install_project_deps ~base ~info ~variant ~for_user @@
+  copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
+  run "opam exec -- dune build @install @runtest && rm -rf _build"

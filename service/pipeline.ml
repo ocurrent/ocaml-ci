@@ -87,9 +87,13 @@ let build_with_docker ~repo ~analysis source =
         platforms |> List.map (fun platform ->
             Build.Spec.opam ~label:platform.Platform.variant ~platform ~analysis `Build
           )
+      and lint =
+        [
+          Build.Spec.opam ~label:"(lint-fmt)" ~platform:lint_platform ~analysis (`Lint `Fmt);
+          Build.Spec.opam ~label:"(lint-doc)" ~platform:lint_platform ~analysis (`Lint `Doc);
+        ]
       in
-      let lint = Build.Spec.opam ~label:"(lint)" ~platform:lint_platform ~analysis `Lint in
-      lint :: builds
+      lint @ builds
   in
   let builds = specs |> Current.list_map (module Build.Spec) (fun spec ->
       let+ result = Build.v ~schedule:daily ~repo ~spec source
