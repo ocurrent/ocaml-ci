@@ -56,6 +56,7 @@ let css = {|
   .statuses > li.active:before { content: "●"; color:orange; }
   .statuses > li.undefined:before { content: "?"; color:grey; }
   .statuses > li.skipped:before { content: "–"; color:grey; }
+  .statuses > li.none:before { content: "○"; }
 |}
 
 let breadcrumbs steps page_title =
@@ -121,7 +122,7 @@ let statuses ss =
     | StatusTree.Leaf (_, x) ->
         status x []
     | StatusTree.Branch (b, None, ss) ->
-        li [txt b; ul ~a:[a_class ["statuses"]] (List.map render_status ss)]
+        li ~a:[a_class ["none"]] [txt b; ul ~a:[a_class ["statuses"]] (List.map render_status ss)]
     | StatusTree.Branch (_, Some x, ss) ->
         status x [ul ~a:[a_class ["statuses"]] (List.map render_status ss)]
   in
