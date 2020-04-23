@@ -41,13 +41,15 @@ module Op = struct
     type t = {
       commit : Current_git.Commit.t;            (* The source code to build and test *)
       repo : Current_github.Repo_id.t;          (* Used to choose a build cache *)
+      master : Current_git.Commit.t;            (* The master commit used *)
       label : string;                           (* A unique ID for this build within the commit *)
       revdep : string option;                   (* The revdep package to test *)
       with_tests : bool;                        (* Triggers the tests or not *)
       pkg : string;                             (* The base package to test *)
     }
 
-    let to_json { commit; label; repo; revdep; with_tests; pkg } =
+    let to_json { commit; label; repo; master = _; revdep; with_tests; pkg } =
+      (* NOTE: Do not register "master" to avoid rebuilding everything everytime we push something to master *)
       `Assoc [
         "commit", `String (Current_git.Commit.hash commit);
         "repo", `String (Fmt.to_to_string Current_github.Repo_id.pp repo);
@@ -84,12 +86,12 @@ module Op = struct
     | Error (`Msg m) -> raise (Failure m)
 
   let run { Builder.docker_context; pool; build_timeout } job
-      { Key.commit; repo; label = _; revdep; with_tests; pkg } { Value.base; variant; ty } =
+      { Key.commit; repo; label = _; master; revdep; with_tests; pkg } { Value.base; variant; ty } =
     let make_dockerfile =
       let base = Raw.Image.hash base in
       match ty with
       | `Opam (`Build, _) ->
-        Opam_build.dockerfile ~base ~variant ~revdep ~with_tests ~pkg
+        Opam_build.dockerfile ~master ~head:commit ~base ~variant ~revdep ~with_tests ~pkg
       | `Opam (`Lint `Fmt, analysis) -> Lint.fmt_dockerfile ~base ~info:analysis ~variant
       | `Opam (`Lint `Doc, analysis) -> Lint.doc_dockerfile ~base ~info:analysis ~variant
       | `Duniverse ->
@@ -117,11 +119,12 @@ module Op = struct
     | Error _ as e -> e
     | Ok () -> Bos.OS.File.read iidfile |> Stdlib.Result.map Current_docker.Raw.Image.of_hash
 
-  let pp f ({ Key.repo; commit; label; revdep; with_tests; pkg }, _) =
-    Fmt.pf f "@[<v2>test %a %a (%s) %s %b %s@]"
+  let pp f ({ Key.repo; commit; label; master; revdep; with_tests; pkg }, _) =
+    Fmt.pf f "@[<v2>test %a %a (%s) %a %s %b %s@]"
       Current_github.Repo_id.pp repo
       Current_git.Commit.pp commit
       label
+      Current_git.Commit.pp master
       (Option.fold ~none:"None" ~some:(fun x -> "(Some "^x^")") revdep)
       with_tests
       pkg
@@ -143,15 +146,16 @@ let pread ~spec image ~args =
   let> { Spec.platform = {Platform.builder; _}; _ } = spec in
   Builder.pread builder ~args image
 
-let build ~spec ~repo ~base ~revdep ~with_tests ~pkg commit =
+let build ~spec ~repo ~base ~master ~revdep ~with_tests ~pkg commit =
   Current.component "build" |>
   let> { Spec.platform; ty; label } = spec
   and> base = base
   and> commit = commit
+  and> master = master
   and> repo = repo in
   let { Platform.builder; variant; _ } = platform in
-  BC.run builder { Op.Key.commit; repo; label; revdep; with_tests; pkg } { Op.Value.base; ty; variant }
+  BC.run builder { Op.Key.commit; master; repo; label; revdep; with_tests; pkg } { Op.Value.base; ty; variant }
 
-let v ~schedule ~repo ~spec ~revdep ~with_tests ~pkg source =
+let v ~schedule ~repo ~spec ~master ~revdep ~with_tests ~pkg source =
   let base = pull ~schedule spec in
-  build ~spec ~repo ~base ~revdep ~with_tests ~pkg source
+  build ~spec ~repo ~base ~master ~revdep ~with_tests ~pkg source
