@@ -51,8 +51,7 @@ let dockerfile ~master ~head ~base ~variant ~revdep ~with_tests ~pkg ~for_user =
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
   crunch (
     run "git -C /src checkout -b opam-ci__cibranch %s" master @@
-    run "git -C /src merge --no-commit %s" head @@
-    run "git -C /src commit --author=ci %s" head @@
+    run "git -C /src merge %s" head @@
     run "opam repository set-url --strict default file:///src"
   ) @@
   opam_install ~pin:true ~with_tests:false ~pkg @@
