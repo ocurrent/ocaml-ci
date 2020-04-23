@@ -32,6 +32,7 @@ RUN apt-get update && apt-get install libev4 openssh-client curl gnupg2 dumb-ini
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -
 RUN echo 'deb [arch=amd64] https://download.docker.com/linux/debian buster stable' >> /etc/apt/sources.list
 RUN apt-get update && apt-get install docker-ce -y --no-install-recommends
+RUN git config --global user.name "ocaml" && git config --global user.email "ci"
 WORKDIR /var/lib/ocurrent
 ENTRYPOINT ["dumb-init", "/usr/local/bin/ocaml-ci-service"]
 ENV OCAMLRUNPARAM=a=2
