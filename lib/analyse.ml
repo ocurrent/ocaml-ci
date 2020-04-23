@@ -32,8 +32,8 @@ module Analysis = struct
   let of_dir ~master ~head ~job dir =
     (* TODO: Check if the PR added an opam file in packages/<pkg> instead of packages/<pkg>/<pkg>.<ver> (common mistake) *)
     (* TODO: Split modified vs. added (using git diff --name-status) *)
-    let master = Current_git.Commit.id master in
-    let head = Current_git.Commit.id head in
+    let master = Current_git.Commit.hash master in
+    let head = Current_git.Commit.hash head in
     let fmt = Printf.sprintf in
     Current.Process.exec ~cwd:dir ~cancellable:true ~job ("", [|"git";"checkout";"-b";"opam-ci__cibranch";master|]) >>!= fun () ->
     Current.Process.exec ~cwd:dir ~cancellable:true ~job ("", [|"git";"merge";head|]) >>!= fun () ->
@@ -57,7 +57,7 @@ module Examine = struct
 
     let digest {src; master = _} =
       (* Only keep track of [src]. We don't want to redo the whole pipeline when something is pushed on master *)
-      Current_git.Commit.id src
+      Current_git.Commit.hash src
   end
 
   module Value = Analysis

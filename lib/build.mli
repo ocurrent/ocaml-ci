@@ -3,6 +3,8 @@
 val v :
   platform:Platform.t Current.t ->
   schedule:Current_cache.Schedule.t ->
+  repo:Current_github.Repo_id.t Current.t ->
+  analysis:Analyse.Analysis.t ->
   revdep:string option ->
   with_tests:bool ->
   pkg:string ->

@@ -1,4 +1,5 @@
 val dockerfile :
+  for_user:bool ->
   base:string ->
   variant:string ->
   revdep:string option ->

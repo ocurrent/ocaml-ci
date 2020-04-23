@@ -48,7 +48,13 @@ type pipeline =
 
 let job_id ?(kind=`Built) build =
   let job = Current.map (fun _ -> kind) build in
-  (job, Current.Analysis.metadata build)
+  let metadata =
+    let+ md = Current.Analysis.metadata build in
+    match md with
+    | Some { Current.Metadata.job_id; _ } -> job_id
+    | None -> None
+  in
+  (job, metadata)
 
 let once_done x f =
   let+ state = Current.state ~hidden:true x in
@@ -56,7 +62,7 @@ let once_done x f =
   | Error _ -> Skip
   | Ok x -> f x
 
-let build_with_docker ~analysis source =
+let build_with_docker ~repo ~analysis source =
   let pipeline =
     once_done analysis @@ fun analysis ->
     let pkgs = Analyse.Analysis.opam_files analysis in
@@ -64,10 +70,10 @@ let build_with_docker ~analysis source =
       let platform = Current.return { Platform.label; builder; variant } in
       List.map (fun pkg ->
         let prefix = pkg^status_sep^label in
-        let image = Build.v ~platform ~schedule:weekly ~revdep:None ~with_tests:false ~pkg source in
+        let image = Build.v ~platform ~schedule:weekly ~repo ~analysis ~revdep:None ~with_tests:false ~pkg source in
         let tests =
           once_done image @@ fun _ ->
-          Job (prefix^status_sep^"tests", job_id (Build.v ~platform ~schedule:weekly ~revdep:None ~with_tests:true ~pkg source))
+          Job (prefix^status_sep^"tests", job_id (Build.v ~platform ~schedule:weekly ~repo ~analysis ~revdep:None ~with_tests:true ~pkg source))
         in
         let revdeps =
           if revdeps then
@@ -84,10 +90,10 @@ let build_with_docker ~analysis source =
                 List.map (fun revdep ->
                   let prefix = prefix^status_sep^revdep in
                   let revdep = Some revdep in
-                  let image = Build.v ~platform ~schedule:weekly ~revdep ~with_tests:false ~pkg source in
+                  let image = Build.v ~platform ~schedule:weekly ~repo ~analysis ~revdep ~with_tests:false ~pkg source in
                   let tests =
                     once_done image @@ fun _ ->
-                    Job (prefix^status_sep^"tests", job_id (Build.v ~platform ~schedule:weekly ~revdep ~with_tests:true ~pkg source))
+                    Job (prefix^status_sep^"tests", job_id (Build.v ~platform ~schedule:weekly ~repo ~analysis ~revdep ~with_tests:true ~pkg source))
                   in
                   Stage [Job (prefix, job_id image); Dynamic tests]
                 )
@@ -210,10 +216,11 @@ let get_jobs builds =
 let local_test repo () =
   let master = Git.Local.commit_of_ref repo "/refs/heads/master" in
   let src = Git.Local.head_commit repo in
-  let analysis = Analyse.examine ~master src in
+  let repo = Current.return { Github.Repo_id.owner = "local"; name = "test" }
+  and analysis = Analyse.examine ~master src in
   Current.component "summarise" |>
   let** result =
-    build_with_docker ~analysis src |>
+    build_with_docker ~repo ~analysis src |>
     summarise
   in
   Current.of_output result
@@ -226,9 +233,10 @@ let v ~app () =
   let master = Git.fetch (Current.map Github.Api.Commit.id master) in
   let prs = get_prs repo |> set_active_refs ~repo in
   prs |> Current.list_iter (module Github.Api.Commit) @@ fun head ->
+  let repo = Current.map Github.Api.Repo.id repo in
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
   let analysis = Analyse.examine ~master src in
-  let builds = build_with_docker ~analysis src in
+  let builds = build_with_docker ~repo ~analysis src in
   let summary = summarise builds in
   let status =
     let+ summary = summary in

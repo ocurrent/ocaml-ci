@@ -12,6 +12,7 @@ services:
     environment:
       - "CI_PROFILE=production"
       - "DOCKER_BUILDKIT=1"
+      - "PROGRESS_NO_TRUNC=1"
     ports:
       - '8080:8080'
     volumes:
