@@ -12,7 +12,9 @@ let install_ocamlformat =
     run "opam depext ocamlformat=%s" version
     @@ run "opam install ocamlformat=%s" version
 
-let fmt_dockerfile ~base ~ocamlformat_source =
+let fmt_dockerfile ~base ~info ~variant ~for_user =
+  ignore (variant, for_user); (* (todo) *)
+  let ocamlformat_source = Analyse.Analysis.ocamlformat_source info in
   let open Dockerfile in
   from base
   @@ run "opam install dune" (* Not necessarily the dune version used by the project *)
@@ -23,7 +25,11 @@ let fmt_dockerfile ~base ~ocamlformat_source =
   @@ copy ~chown:"opam" ~src:["./"] ~dst:"./" ()
   @@ run "opam exec -- dune build @fmt || (echo \"dune build @fmt failed\"; exit 2)"
 
-let dockerfile ~base ~info ~variant ~for_user =
-  ignore (variant, for_user); (* (todo) *)
-  let ocamlformat_source = Analyse.Analysis.ocamlformat_source info in
-  fmt_dockerfile ~base ~ocamlformat_source
+let doc_dockerfile ~base ~info ~variant ~for_user =
+  let open Dockerfile in
+  Opam_build.install_project_deps ~base ~info ~variant ~for_user
+  @@ run "opam depext odoc"
+  (* Warnings-as-errors was introduced in Odoc.1.5.0 *)
+  @@ run "opam install dune odoc>=1.5.0"
+  @@ run "ODOC_WARN_ERROR=true opam exec -- dune build @doc \
+          || (echo \"dune build @doc failed\"; exit 2)"

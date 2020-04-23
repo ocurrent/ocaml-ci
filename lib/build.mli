@@ -1,7 +1,13 @@
 module Spec : sig
   type t
 
-  val opam : label:string -> platform:Platform.t -> analysis:Analyse.Analysis.t -> [`Build | `Lint] -> t
+  val opam :
+    label:string ->
+    platform:Platform.t ->
+    analysis:Analyse.Analysis.t ->
+    [ `Build | `Lint of [ `Doc | `Fmt ] ] ->
+    t
+
   val duniverse : label:string -> platform:Platform.t -> t
 
   val pp : t Fmt.t
