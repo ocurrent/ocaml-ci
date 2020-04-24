@@ -37,6 +37,8 @@ module Op = struct
 
   let id = "ci-build"
 
+  let dockerignore = ".git"
+
   module Key = struct
     type t = {
       commit : Current_git.Commit.t;            (* The source code to build and test *)
@@ -104,6 +106,7 @@ module Op = struct
     Current_git.with_checkout ~job commit @@ fun dir ->
     Current.Job.write job (Fmt.strf "Writing BuildKit Dockerfile:@.%s@." dockerfile);
     Bos.OS.File.write Fpath.(dir / "Dockerfile") (dockerfile ^ "\n") |> or_raise;
+    Bos.OS.File.write Fpath.(dir / ".dockerignore") dockerignore |> or_raise;
     let cmd = Raw.Cmd.docker ~docker_context @@ ["build"; "--"; Fpath.to_string dir] in
     let pp_error_command f = Fmt.string f "Docker build" in
     Current.Process.exec ~cancellable:true ~pp_error_command ~job cmd
