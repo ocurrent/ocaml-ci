@@ -109,7 +109,7 @@ module Op = struct
          Dockerfile.pp (make_dockerfile ~for_user:true));
     let dockerfile = Dockerfile.string_of_t (make_dockerfile ~for_user:false) in
     Current.Job.start ~timeout:build_timeout ~pool job ~level:Current.Level.Average >>= fun () ->
-    Current_git.with_checkout ~job commit @@ fun dir ->
+    Current_git.with_checkout ~enable_submodules:false ~job commit @@ fun dir ->
     Current.Job.write job (Fmt.strf "Writing BuildKit Dockerfile:@.%s@." dockerfile);
     Bos.OS.File.write Fpath.(dir / "Dockerfile") (dockerfile ^ "\n") |> or_raise;
     let iidfile = Fpath.add_seg dir "docker-iid" in
