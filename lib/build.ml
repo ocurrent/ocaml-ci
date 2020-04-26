@@ -32,6 +32,28 @@ module Spec = struct
   let label t = t.label
 end
 
+(* Make sure we never build the same (commit, variant) twice at the same time, as this is likely
+   to trigger BuildKit bug https://github.com/moby/buildkit/issues/1456.
+   While a build is in progress, this contains a promise for the build finishing. *)
+let commit_locks = Hashtbl.create 1000
+
+let rec with_commit_lock ~job commit variant fn =
+  let key = (Current_git.Commit.hash commit, variant) in
+  match Hashtbl.find_opt commit_locks key with
+  | Some lock ->
+    Current.Job.log job "Waiting for a similar build to finish...";
+    lock >>= fun () ->
+    with_commit_lock ~job commit variant fn
+  | None ->
+    let finished, set_finished = Lwt.wait () in
+    Hashtbl.add commit_locks key finished;
+    Lwt.finalize fn
+      (fun () ->
+         Hashtbl.remove commit_locks key;
+         Lwt.wakeup set_finished ();
+         Lwt.return_unit
+      )
+
 module Op = struct
   type t = Builder.t
 
@@ -103,6 +125,7 @@ module Op = struct
          Dockerfile.pp (make_dockerfile ~for_user:true));
     let dockerfile = Dockerfile.string_of_t (make_dockerfile ~for_user:false) in
     Current.Job.start ~timeout:build_timeout ~pool job ~level:Current.Level.Average >>= fun () ->
+    with_commit_lock ~job commit variant @@ fun () ->
     Current_git.with_checkout ~job commit @@ fun dir ->
     Current.Job.write job (Fmt.strf "Writing BuildKit Dockerfile:@.%s@." dockerfile);
     Bos.OS.File.write Fpath.(dir / "Dockerfile") (dockerfile ^ "\n") |> or_raise;
