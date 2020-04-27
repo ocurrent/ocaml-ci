@@ -3,6 +3,8 @@ open Lwt.Infix
 
 module Raw = Current_docker.Raw
 
+let checkout_pool = Current.Pool.create ~label:"git-clone" 1
+
 module Spec = struct
   type analysis = Analyse.Analysis.t
 
@@ -126,7 +128,7 @@ module Op = struct
     let dockerfile = Dockerfile.string_of_t (make_dockerfile ~for_user:false) in
     Current.Job.start ~timeout:build_timeout ~pool job ~level:Current.Level.Average >>= fun () ->
     with_commit_lock ~job commit variant @@ fun () ->
-    Current_git.with_checkout ~job commit @@ fun dir ->
+    Current_git.with_checkout ~pool:checkout_pool ~job commit @@ fun dir ->
     Current.Job.write job (Fmt.strf "Writing BuildKit Dockerfile:@.%s@." dockerfile);
     Bos.OS.File.write Fpath.(dir / "Dockerfile") (dockerfile ^ "\n") |> or_raise;
     Bos.OS.File.write Fpath.(dir / ".dockerignore") dockerignore |> or_raise;
