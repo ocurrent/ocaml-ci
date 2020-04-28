@@ -43,33 +43,34 @@ let default_compiler = "4.10"
 type platform = {
   label : string;
   builder : Ocaml_ci.Builder.t;
-  variant : string;
+  distro : string;
+  ocaml_version : string;
 }
 
 let platforms =
-  let v label builder variant = { label; builder; variant } in
+  let v label builder distro ocaml_version = { label; builder; distro; ocaml_version } in
   match profile with
   | `Production ->
     [
       (* Compiler versions:*)
-      v "4.10" Builders.amd4 "debian-10-ocaml-4.10";       (* Note: first item is also used as lint platform *)
-      v "4.09" Builders.amd3 "debian-10-ocaml-4.09";
-      v "4.08" Builders.amd1 "debian-10-ocaml-4.08";
-      v "4.07" Builders.amd2 "debian-10-ocaml-4.07";
-      v "4.06" Builders.amd2 "debian-10-ocaml-4.06";
-      v "4.05" Builders.amd3 "debian-10-ocaml-4.05";
-      v "4.04" Builders.amd3 "debian-10-ocaml-4.04";
-      v "4.03" Builders.amd2 "debian-10-ocaml-4.03";
-      v "4.02" Builders.amd2 "debian-10-ocaml-4.02";
+      v "4.10" Builders.amd4 "debian-10" "4.10";       (* Note: first item is also used as lint platform *)
+      v "4.09" Builders.amd3 "debian-10" "4.09";
+      v "4.08" Builders.amd1 "debian-10" "4.08";
+      v "4.07" Builders.amd2 "debian-10" "4.07";
+      v "4.06" Builders.amd2 "debian-10" "4.06";
+      v "4.05" Builders.amd3 "debian-10" "4.05";
+      v "4.04" Builders.amd3 "debian-10" "4.04";
+      v "4.03" Builders.amd2 "debian-10" "4.03";
+      v "4.02" Builders.amd2 "debian-10" "4.02";
       (* Distributions: *)
-      v "alpine"   Builders.amd1 @@ "alpine-3.11-ocaml-" ^ default_compiler;
-      v "ubuntu"   Builders.amd2 @@ "ubuntu-20.04-ocaml-" ^ default_compiler;
-      v "opensuse" Builders.amd2 @@ "opensuse-15.1-ocaml-" ^ default_compiler;
-      v "centos"   Builders.amd3 @@ "centos-8-ocaml-" ^ default_compiler;
-      v "fedora"   Builders.amd3 @@ "fedora-31-ocaml-" ^ default_compiler;
+      v "alpine"   Builders.amd1 "alpine-3.11"   default_compiler;
+      v "ubuntu"   Builders.amd2 "ubuntu-20.04"  default_compiler;
+      v "opensuse" Builders.amd2 "opensuse-15.1" default_compiler;
+      v "centos"   Builders.amd3 "centos-8"      default_compiler;
+      v "fedora"   Builders.amd3 "fedora-31"     default_compiler;
       (* oraclelinux doesn't work in opam 2 yet *)
     ]
   | `Dev ->
     [
-      v "4.10" Builders.local "debian-10-ocaml-4.10";
+      v "4.10" Builders.local "debian-10" "4.10";
     ]
