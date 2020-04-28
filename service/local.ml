@@ -2,6 +2,7 @@
 
 let () =
   Unix.putenv "DOCKER_BUILDKIT" "1";
+  Unix.putenv "PROGRESS_NO_TRUNC" "1";
   Logging.init ()
 
 let main config mode repo =

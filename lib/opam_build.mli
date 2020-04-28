@@ -1,3 +1,5 @@
+val download_cache : string
+
 val install_project_deps :
   base:string ->
   info:Analyse.Analysis.t ->
