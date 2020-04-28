@@ -7,16 +7,10 @@ module Docker = Current_docker.Default
 
 let daily = Current_cache.Schedule.v ~valid_for:(Duration.of_day 1) ()
 
-let pull builder variant =
-  Current.component "pull@,%s" variant |>
-  let> () = Current.return () in
-  let tag = "ocurrent/opam:" ^ variant in
-  Builder.pull ~schedule:daily builder tag
-
 let platforms =
-  let v { Conf.label; builder; variant } =
-    let base = pull builder variant in
-    Platform.get ~label ~builder ~variant base
+  let v { Conf.label; builder; distro; ocaml_version } =
+    let base = Platform.pull ~schedule:daily ~builder ~distro ~ocaml_version in
+    Platform.get ~label ~builder ~distro ~ocaml_version base
   in
   Current.list_seq (List.map v Conf.platforms)
 

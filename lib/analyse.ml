@@ -56,6 +56,9 @@ module Analysis = struct
     | exception exn ->
       Fmt.failwith "Exception parsing dune-get: %a" Fmt.exn exn
 
+  let pp_ocaml_version f (_variant, vars) =
+    Fmt.string f vars.Platform.Vars.ocaml_version
+
   let of_dir ~job ~platforms dir =
     let is_duniverse = Sys.file_exists (Filename.concat (Fpath.to_string dir) "dune-get") in
     let variants =
@@ -63,12 +66,14 @@ module Analysis = struct
         let vs = get_ocaml_versions dir in
         if vs = [] then failwith "No OCaml compilers specified!";
         let find_compiler v =
-          let affix = Printf.sprintf "-ocaml-%s" v in
-          let matches_compiler (variant, _vars) = Astring.String.is_suffix ~affix variant in
+          let v = Ocaml_version.with_just_major_and_minor (Ocaml_version.of_string_exn v) in
+          let matches_compiler (_variant, vars) =
+            Ocaml_version.compare v (Platform.Vars.ocaml_major_version vars) = 0
+          in
           match List.find_opt matches_compiler platforms with
           | None ->
-            Current.Job.log job "WARNING: Unsupported compiler version %S (have: %a)"
-              v Fmt.(Dump.list string) (List.map fst platforms);
+            Current.Job.log job "WARNING: Unsupported compiler version %a (have: %a)"
+              Ocaml_version.pp v Fmt.(Dump.list pp_ocaml_version) platforms;
             None
           | Some (variant, _vars) ->
             Some variant
