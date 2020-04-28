@@ -55,26 +55,27 @@ let build_with_docker ~repo ~analysis source =
     | Error _ ->
         (* If we don't have the analysis yet, just use the empty list. *)
         []
-    | Ok analysis when Analyse.Analysis.is_duniverse analysis ->
-      Analyse.Analysis.variants analysis
-      |> List.rev_map (fun variant ->
-          Build.Spec.duniverse ~label:variant ~variant
-        )
     | Ok analysis ->
-      (* Library (non-duniverse) project *)
-      let variants = Analyse.Analysis.variants analysis in
-      let lint_platform = List.hd variants in
-      let builds =
-        variants |> List.map (fun variant ->
-            Build.Spec.opam ~label:variant ~variant ~analysis `Build
+      match Analyse.Analysis.selections analysis with
+      | `Duniverse variants ->
+        variants
+        |> List.rev_map (fun variant ->
+            Build.Spec.duniverse ~label:variant ~variant
           )
-      and lint =
-        [
-          Build.Spec.opam ~label:"(lint-fmt)" ~variant:lint_platform ~analysis (`Lint `Fmt);
-          Build.Spec.opam ~label:"(lint-doc)" ~variant:lint_platform ~analysis (`Lint `Doc);
-        ]
-      in
-      lint @ builds
+      | `Opam_build variants ->
+        (* Library (non-duniverse) project *)
+        let lint_platform = List.hd variants in
+        let builds =
+          variants |> List.map (fun variant ->
+              Build.Spec.opam ~label:variant ~variant ~analysis `Build
+            )
+        and lint =
+          [
+            Build.Spec.opam ~label:"(lint-fmt)" ~variant:lint_platform ~analysis (`Lint `Fmt);
+            Build.Spec.opam ~label:"(lint-doc)" ~variant:lint_platform ~analysis (`Lint `Doc);
+          ]
+        in
+        lint @ builds
   in
   let builds = specs |> Current.list_map (module Build.Spec) (fun spec ->
       let+ result = Build.v ~platforms ~repo ~spec source

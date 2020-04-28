@@ -5,7 +5,8 @@ module Analysis : sig
   val is_duniverse : t -> bool
   val ocamlformat_source : t -> Analyse_ocamlformat.source option
 
-  val variants : t -> string list
+  val selections : t -> [ `Opam_build of string list | `Duniverse of string list ]
+  (** Get the variants selected for the builds. *)
 
   val of_dir : job:Current.Job.t -> platforms:(string * Platform.Vars.t) list -> Fpath.t -> (t, [ `Msg of string ]) result Lwt.t
 end
