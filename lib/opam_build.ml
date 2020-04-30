@@ -50,8 +50,7 @@ let rec get_root_opam_packages = function
 
 let download_cache = "--mount=type=cache,target=/home/opam/.opam/download-cache,uid=1000"
 
-let install_project_deps ~base ~info ~variant ~for_user =
-  let opam_files = Analyse.Analysis.opam_files info in
+let install_project_deps ~base ~opam_files ~variant ~for_user =
   let groups = group_opam_files opam_files in
   let root_pkgs = get_root_opam_packages groups in
   let download_cache_prefix = if for_user then "" else download_cache ^ " " in
@@ -74,11 +73,10 @@ let install_project_deps ~base ~info ~variant ~for_user =
   run "%sawk < /tmp/opam-plan '/-> installed/{print $3}' | xargs opam depext --update -iy" download_cache_prefix @@
   crunch_list (List.map (fun pkg ->
       run {|test "$(opam show -f depexts: %s)" = "$(printf "\n")" || opam depext -ty %s|} pkg pkg) root_pkgs
-    ) @@
-  (if Analyse.Analysis.is_duniverse info then run "opam pin remove $(opam pin -s) -n" else empty)
+    )
 
-let dockerfile ~base ~info ~variant ~for_user =
+let dockerfile ~base ~opam_files ~variant ~for_user =
   let open Dockerfile in
-  install_project_deps ~base ~info ~variant ~for_user @@
+  install_project_deps ~base ~opam_files ~variant ~for_user @@
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
   run "opam exec -- dune build @install @runtest && rm -rf _build"

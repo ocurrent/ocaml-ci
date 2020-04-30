@@ -5,6 +5,10 @@ type source =
   | Vendored of { path : string }
 [@@deriving yojson,eq]
 
+let pp_source f = function
+  | Opam { version } -> Fmt.pf f "version %s (from opam)" version
+  | Vendored { path } -> Fmt.pf f "vendored at %s" path
+
 let ocamlformat_version_from_string =
     let re =
       Re.(
