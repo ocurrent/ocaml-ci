@@ -33,20 +33,17 @@ let install_bin ~compiler ~repo ~tag ~bins name =
 
 let install_platform ~compiler =
   let duniverse = install_bin ~compiler
-    ~repo:"ocamllabs/duniverse" ~tag:"dev-ocaml-ci-3"
+    ~repo:"ocamllabs/duniverse" ~tag:"dev-ocaml-ci-4"
     ~bins:["bin/duniverse", "/usr/bin/duniverse"] "duniverse" in
   let dune = install_bin ~compiler
-    ~repo:"ocaml/dune" ~tag:"2.5.0"
+    ~repo:"ocaml/dune" ~tag:"2.5.1"
     ~bins:["bin/dune", "/usr/bin/dune"] "dune" in
-  let odoc = install_bin ~compiler
-    ~repo:"ocaml/odoc" ~tag:"1.5.0"
-    ~bins:["bin/odoc", "/usr/bin/odoc"] "odoc" in
   let ocamlformat = install_bin ~compiler
-    ~repo:"ocaml-ppx/ocamlformat" ~tag:"0.14.0"
+    ~repo:"ocaml-ppx/ocamlformat" ~tag:"0.14.1"
     ~bins:["bin/ocamlformat", "/usr/bin/ocamlformat"] "ocamlformat" in
   let open Dockerfile in
   List.fold_left (fun (b, u) (b',u') -> (b @@ b'), (u @@ u')) (empty, empty)
-    [ duniverse; dune; odoc; ocamlformat ]
+    [ duniverse; dune; ocamlformat ]
 
 let safe_char = function
   | 'A'..'Z' | 'a'..'z' | '0'..'9' | '-' | '_' -> true
@@ -71,7 +68,7 @@ let dockerfile ~base ~repo ~variant ~for_user =
     if for_user then ""
     else Printf.sprintf "%s %s" download_cache (build_cache repo)
   in
-  let build_platform, install_platform = install_platform ~compiler:"4.09" in
+  let build_platform, install_platform = install_platform ~compiler:"4.10" in
   let open Dockerfile in
   (if for_user then empty
    else comment "syntax = docker/dockerfile:experimental@sha256:ee85655c57140bd20a5ebc3bb802e7410ee9ac47ca92b193ed0ab17485024fe5") @@
@@ -87,5 +84,4 @@ let dockerfile ~base ~repo ~variant ~for_user =
   run "duniverse pull" @@
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
   run "%s opam exec -- dune build @install" caches @@
-  run "%s opam exec -- dune runtest" caches @@
-  run "%s opam exec -- dune build @doc" caches
+  run "%s opam exec -- dune runtest" caches
