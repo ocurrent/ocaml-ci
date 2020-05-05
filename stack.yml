@@ -12,7 +12,7 @@ secrets:
 services:
   ci:
     image: ocaml-ci-service
-    command: --github-app-id 39151 --github-private-key-file /run/secrets/ocaml-ci-github-key --github-account-whitelist "talex5,ocurrent,ocaml,mirage,avsm,samoht,kit-ty-kate,tarides,aantron,ocamllabs,realworldocaml,NathanReb,0install,gpetiot,ocaml-ppx,CraigFe,pascutto,julow,vocal-project,vbmithr,gs0510" --confirm above-average --confirm-auto-release 120 --capnp-address=tcp:ci.ocamllabs.io:8102 --github-oauth /run/secrets/ocaml-ci-oauth
+    command: --github-app-id 39151 --github-private-key-file /run/secrets/ocaml-ci-github-key --github-account-whitelist "talex5,ocurrent,ocaml,mirage,avsm,samoht,kit-ty-kate,tarides,aantron,ocamllabs,realworldocaml,NathanReb,0install,gpetiot,ocaml-ppx,CraigFe,pascutto,julow,vocal-project,vbmithr,gs0510,magnuss" --confirm above-average --confirm-auto-release 120 --capnp-address=tcp:ci.ocamllabs.io:8102 --github-oauth /run/secrets/ocaml-ci-oauth
     environment:
       - "CI_PROFILE=production"
       - "DOCKER_BUILDKIT=1"
