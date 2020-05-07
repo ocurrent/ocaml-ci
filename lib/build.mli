@@ -3,7 +3,7 @@ module Spec : sig
 
   val opam :
     label:string ->
-    variant:string ->
+    selection:Ocaml_ci_api.Worker.Selection.t ->
     analysis:Analyse.Analysis.t ->
     [ `Build | `Lint of [ `Doc | `Fmt ] ] ->
     t

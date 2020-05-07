@@ -1,7 +1,7 @@
 type source =
   | Opam of { version : string } (** Should install OCamlformat from Opam. *)
   | Vendored of { path : string } (** OCamlformat is vendored. [path] is relative to the project's root. *)
-[@@deriving yojson,eq]
+[@@deriving yojson, eq, ord]
 
 val pp_source : source Fmt.t
 

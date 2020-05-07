@@ -1,25 +1,11 @@
 (** A platform on which we wish to perform test builds. *)
 
-(** Opam variables. *)
-module Vars : sig
-  type t = {
-    arch : string;
-    os : string;
-    os_family : string;
-    os_distribution : string;
-    os_version : string;
-    ocaml_version : string;
-  } [@@deriving yojson]
-
-  val ocaml_major_version : t -> Ocaml_version.t
-end
-
 type t = {
   label : string;
   builder : Builder.t;
   variant : string;                     (* e.g. "debian-10-ocaml-4.08" *)
   base : Current_docker.Raw.Image.t;
-  vars : Vars.t;
+  vars : Ocaml_ci_api.Worker.Vars.t;
 }
 
 val pp : t Fmt.t

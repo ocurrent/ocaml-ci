@@ -2,19 +2,13 @@ open Lwt.Infix
 open Current.Syntax
 
 module Raw = Current_docker.Raw
+module Worker = Ocaml_ci_api.Worker
 
 let docker_tag ~distro ~ocaml_version =
   Printf.sprintf "%s-ocaml-%s" distro ocaml_version
 
 module Vars = struct
-  type t = {
-    arch : string;
-    os : string;
-    os_family : string;
-    os_distribution : string;
-    os_version : string;
-    ocaml_version : string;
-  } [@@deriving yojson]
+  type t = Worker.Vars.t
 
   let template = {|
     {
@@ -26,15 +20,12 @@ module Vars = struct
     }
   |}
 
-  let marshal t = Yojson.Safe.to_string (to_yojson t)
+  let marshal t = Yojson.Safe.to_string (Worker.Vars.to_yojson t)
 
   let unmarshal s =
-    match of_yojson (Yojson.Safe.from_string s) with
+    match Worker.Vars.of_yojson (Yojson.Safe.from_string s) with
     | Ok x -> x
     | Error e -> failwith e
-
-  let ocaml_major_version t =
-    Ocaml_version.with_just_major_and_minor (Ocaml_version.of_string_exn t.ocaml_version)
 end
 
 type t = {
@@ -85,7 +76,7 @@ module Query = struct
       | json -> Fmt.failwith "Unexpected JSON: %a" Yojson.Safe.(pretty_print ~std:true) json
     in
     Current.Job.log job "@[<v2>Result:@,%a@]" Yojson.Safe.(pretty_print ~std:true) json;
-    match Vars.of_yojson json with
+    match Worker.Vars.of_yojson json with
     | Error msg -> Lwt_result.fail (`Msg msg)
     | Ok vars -> Lwt_result.return vars
 

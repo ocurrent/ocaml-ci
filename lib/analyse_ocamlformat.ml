@@ -3,7 +3,7 @@ open Lwt.Infix
 type source =
   | Opam of { version : string }
   | Vendored of { path : string }
-[@@deriving yojson,eq]
+[@@deriving yojson, eq, ord]
 
 let pp_source f = function
   | Opam { version } -> Fmt.pf f "version %s (from opam)" version

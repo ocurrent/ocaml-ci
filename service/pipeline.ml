@@ -4,6 +4,7 @@ open Ocaml_ci
 module Git = Current_git
 module Github = Current_github
 module Docker = Current_docker.Default
+module Selection = Ocaml_ci_api.Worker.Selection
 
 let daily = Current_cache.Schedule.v ~valid_for:(Duration.of_day 1) ()
 
@@ -16,6 +17,8 @@ let platforms =
 
 (* Link for GitHub statuses. *)
 let url ~owner ~name ~hash = Uri.of_string (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s" owner name hash)
+
+let opam_repository = Git.clone ~schedule:daily "https://github.com/ocaml/opam-repository.git"
 
 let github_status_of_state ~head result =
   let+ head = head
@@ -62,17 +65,17 @@ let build_with_docker ~repo ~analysis source =
         |> List.rev_map (fun variant ->
             Build.Spec.duniverse ~label:variant ~variant
           )
-      | `Opam_build variants ->
-        (* Library (non-duniverse) project *)
-        let lint_platform = List.hd variants in
+      | `Opam_build selections ->
+        let lint_selection = List.hd selections in
         let builds =
-          variants |> List.map (fun variant ->
-              Build.Spec.opam ~label:variant ~variant ~analysis `Build
+          selections |> List.map (fun selection ->
+              let label = selection.Selection.id in
+              Build.Spec.opam ~label ~selection ~analysis `Build
             )
         and lint =
           [
-            Build.Spec.opam ~label:"(lint-fmt)" ~variant:lint_platform ~analysis (`Lint `Fmt);
-            Build.Spec.opam ~label:"(lint-doc)" ~variant:lint_platform ~analysis (`Lint `Doc);
+            Build.Spec.opam ~label:"(lint-fmt)" ~selection:lint_selection ~analysis (`Lint `Fmt);
+            Build.Spec.opam ~label:"(lint-doc)" ~selection:lint_selection ~analysis (`Lint `Doc);
           ]
         in
         lint @ builds
@@ -123,10 +126,10 @@ let summarise results =
     | _, [], _ -> Ok ()                     (* No errors and at least one success *)
     | ok, err, _ -> list_errors ~ok err     (* Some errors found - report *)
 
-let local_test repo () =
+let local_test ~solver repo () =
   let src = Git.Local.head_commit repo in
   let repo = Current.return { Github.Repo_id.owner = "local"; name = "test" }
-  and analysis = Analyse.examine ~platforms src in
+  and analysis = Analyse.examine ~solver ~platforms ~opam_repository src in
   Current.component "summarise" |>
   let> results = build_with_docker ~repo ~analysis src in
   let result =
@@ -136,7 +139,7 @@ let local_test repo () =
   in
   Current_incr.const (result, None)
 
-let v ~app () =
+let v ~app ~solver () =
   Current.with_context platforms @@ fun () ->
   Github.App.installations app |> Current.list_iter ~collapse_key:"org" (module Github.Installation) @@ fun installation ->
   let repos = Github.Installation.repositories installation in
@@ -144,7 +147,7 @@ let v ~app () =
   let refs = Github.Api.Repo.ci_refs repo |> set_active_refs ~repo in
   refs |> Current.list_iter (module Github.Api.Commit) @@ fun head ->
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
-  let analysis = Analyse.examine ~platforms src in
+  let analysis = Analyse.examine ~solver ~platforms ~opam_repository src in
   let builds =
     let repo = Current.map Github.Api.Repo.id repo in
     build_with_docker ~repo ~analysis src in

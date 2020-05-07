@@ -1,0 +1,4 @@
+(library
+  (name ocaml_ci_solver)
+  (preprocess (pps ppx_deriving.std ppx_deriving_yojson))
+  (libraries lwt.unix logs ocaml-ci-api ppx_deriving_yojson.runtime opam-0install))
