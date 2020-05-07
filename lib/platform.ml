@@ -7,33 +7,12 @@ module Worker = Ocaml_ci_api.Worker
 let docker_tag ~distro ~ocaml_version =
   Printf.sprintf "%s-ocaml-%s" distro ocaml_version
 
-module Vars = struct
-  type t = Worker.Vars.t
-
-  let template = {|
-    {
-      "arch": "%{arch}%",
-      "os": "%{os}%",
-      "os_family": "%{os-family}%",
-      "os_distribution": "%{os-distribution}%",
-      "os_version": "%{os-version}%"
-    }
-  |}
-
-  let marshal t = Yojson.Safe.to_string (Worker.Vars.to_yojson t)
-
-  let unmarshal s =
-    match Worker.Vars.of_yojson (Yojson.Safe.from_string s) with
-    | Ok x -> x
-    | Error e -> failwith e
-end
-
 type t = {
   label : string;
   builder : Builder.t;
   variant : string;
   base : Current_docker.Raw.Image.t;
-  vars : Vars.t;
+  vars : Worker.Vars.t;
 }
 
 let pp f t = Fmt.string f t.label
@@ -49,21 +28,51 @@ module Query = struct
   module Key = struct
     type t = {
       docker_context : string option;
+      variant : string;
+    } [@@deriving to_yojson]
+
+    let digest t = Yojson.Safe.to_string (to_yojson t)
+  end
+
+  module Value = struct
+    type t = {
       image : string;
     } [@@deriving to_yojson]
 
     let digest t = Yojson.Safe.to_string (to_yojson t)
   end
 
-  module Value = Vars
+  module Outcome = struct
+    type t = {
+      image : string;
+      vars : Worker.Vars.t;
+    } [@@deriving yojson]
+
+    let marshal t = Yojson.Safe.to_string (to_yojson t)
+
+    let unmarshal s =
+      match of_yojson (Yojson.Safe.from_string s) with
+      | Ok x -> x
+      | Error e -> failwith e
+  end
+
+  let opam_template = {|
+    {
+      "arch": "%{arch}%",
+      "os": "%{os}%",
+      "os_family": "%{os-family}%",
+      "os_distribution": "%{os-distribution}%",
+      "os_version": "%{os-version}%"
+    }
+  |}
 
   let get_vars ~docker_context image =
-    Raw.Cmd.docker ~docker_context ["run"; "-i"; image; "opam"; "config"; "expand"; Vars.template]
+    Raw.Cmd.docker ~docker_context ["run"; "-i"; image; "opam"; "config"; "expand"; opam_template]
 
   let get_ocaml_version ~docker_context image =
     Raw.Cmd.docker ~docker_context ["run"; "-i"; image; "opam"; "exec"; "--"; "ocaml"; "-vnum"]
 
-  let build No_context job { Key.docker_context; image } =
+  let run No_context job { Key.docker_context; variant = _ } { Value.image } =
     Current.Job.start job ~level:Current.Level.Mostly_harmless >>= fun () ->
     let cmd = get_ocaml_version ~docker_context image in
     Current.Process.check_output ~cancellable:false ~job cmd >>!= fun vnum ->
@@ -78,26 +87,27 @@ module Query = struct
     Current.Job.log job "@[<v2>Result:@,%a@]" Yojson.Safe.(pretty_print ~std:true) json;
     match Worker.Vars.of_yojson json with
     | Error msg -> Lwt_result.fail (`Msg msg)
-    | Ok vars -> Lwt_result.return vars
+    | Ok vars -> Lwt_result.return { Outcome.vars; image }
 
-  let pp f key = Fmt.pf f "opam vars of %s" key.Key.image
+  let pp f (key, value) = Fmt.pf f "opam vars of %s@,(%s)" key.Key.variant value.Value.image
 
   let auto_cancel = false
+  let latched = true
 end
 
-module QC = Current_cache.Make(Query)
+module QC = Current_cache.Generic(Query)
 
-let query builder image =
+let query builder ~variant image =
   Current.component "opam-vars" |>
   let> image = image in
   let image = Raw.Image.hash image in
   let docker_context = builder.Builder.docker_context in
-  QC.get Query.No_context { Query.Key.docker_context; image }
+  QC.run Query.No_context { Query.Key.docker_context; variant } { Query.Value.image }
 
 let get ~label ~builder ~distro ~ocaml_version base =
-  let+ vars = query builder base
-  and+ base = base in
   let variant = docker_tag ~distro ~ocaml_version in
+  let+ { Query.Outcome.vars; image } = query builder base ~variant in
+  let base = Raw.Image.of_hash image in
   { label; builder; variant; base; vars }
 
 let pull ~schedule ~builder ~distro ~ocaml_version =
