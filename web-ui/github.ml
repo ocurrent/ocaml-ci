@@ -154,7 +154,7 @@ let link_github_refs ~owner ~name =
           | "refs"::"heads"::branch ->
             let branch = String.concat "/" branch in
             span [txt "branch "; a ~a:[a_href (github_branch_url ~owner ~name branch)] [ txt branch ]]
-          | ["refs"; "pull"; id; "head"] ->
+          | ["refs"; "pull"; id; "merge"] ->
             span [txt "PR "; a ~a:[a_href (github_pr_url ~owner ~name id)] [ txt ("#" ^ id) ]]
           | _ ->
             txt (Printf.sprintf "Bad ref format %S" r)

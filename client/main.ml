@@ -147,7 +147,7 @@ let gref =
   let make_ref s =
     if String.is_prefix ~affix:"refs/pull/" s then (
       match String.cuts ~sep:"/" s with
-      | ["refs"; "pull"; pr] -> Ok (`Ref (Fmt.strf "refs/pull/%s/head" pr))
+      | ["refs"; "pull"; pr] -> Ok (`Ref (Fmt.strf "refs/pull/%s/merge" pr))
       | _ -> Ok (`Ref s)
     ) else (
       Ok (`Ref s)

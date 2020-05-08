@@ -57,7 +57,7 @@ interface Repo {
   # The hash doesn't need to be the full hash, but must be at least 6 characters long.
 
   commitOfRef @5 (ref :Text) -> (commit :Commit);
-  # ref should be of the form "refs/heads/..." or "refs/pull/4/head"
+  # ref should be of the form "refs/heads/..." or "refs/pull/4/merge"
 }
 
 interface Org {
