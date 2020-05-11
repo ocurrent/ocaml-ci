@@ -18,7 +18,9 @@ let platforms =
 (* Link for GitHub statuses. *)
 let url ~owner ~name ~hash = Uri.of_string (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s" owner name hash)
 
-let opam_repository = Git.clone ~schedule:daily "https://github.com/ocaml/opam-repository.git"
+let opam_repository =
+  let schedule = Current_cache.Schedule.v ~valid_for:(Duration.of_hour 1) () in
+  Git.clone ~schedule "https://github.com/ocaml/opam-repository.git"
 
 let github_status_of_state ~head result =
   let+ head = head
