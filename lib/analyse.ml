@@ -75,6 +75,57 @@ module Analysis = struct
   let ocaml_major_version vars =
     Ocaml_version.with_just_major_and_minor (Ocaml_version.of_string_exn vars.Worker.Vars.ocaml_version)
 
+  let duniverse_selections ~job ~platforms dir =
+    let vs = get_ocaml_versions dir in
+    if vs = [] then failwith "No OCaml compilers specified!";
+    let find_compiler v =
+      let v = Ocaml_version.with_just_major_and_minor (Ocaml_version.of_string_exn v) in
+      let matches_compiler (_variant, vars) =
+        Ocaml_version.compare v (ocaml_major_version vars) = 0
+      in
+      match List.find_opt matches_compiler platforms with
+      | None ->
+        Current.Job.log job "WARNING: Unsupported compiler version %a (have: %a)"
+          Ocaml_version.pp v Fmt.(Dump.list pp_ocaml_version) platforms;
+        None
+      | Some (variant, _vars) ->
+        Some variant
+    in
+    let variants = List.filter_map find_compiler vs in
+    if variants = [] then failwith "No supported compilers found!";
+    Lwt_result.return (`Duniverse variants)
+
+  let opam_selections ~solver ~job ~platforms ~opam_repository ~opam_files dir =
+    let src = Fpath.to_string dir in
+    let ( / ) = Filename.concat in
+    let root_pkgs, pinned_pkgs =
+      opam_files |> List.fold_left (fun (root_pkgs, pinned_pkgs) path ->
+          let name = Filename.basename path |> Filename.chop_extension in
+          let name = if String.contains name '.' then name else name ^ ".dev" in
+          let item = name, read_file ~max_len:102400 (src / path) in
+          if Filename.dirname path = "." then
+            (item :: root_pkgs, pinned_pkgs)
+          else
+            (root_pkgs, item :: pinned_pkgs)
+        ) ([], [])
+    in
+    let request = { Ocaml_ci_api.Worker.Solve_request.
+                    opam_repository = Fpath.to_string opam_repository;
+                    root_pkgs;
+                    pinned_pkgs;
+                    platforms
+                  } in
+    let stdin = Yojson.Safe.to_string (Ocaml_ci_api.Worker.Solve_request.to_yojson request) in
+    Current.Process.check_output ~job ~stdin ~cancellable:false solver >>!= fun response ->
+    let json = Yojson.Safe.from_string response in
+    match Worker.Solve_response.of_yojson json with
+    | Error msg -> Lwt.return (Fmt.error_msg "Bad solver response: %s" msg)
+    | Ok response ->
+      match response with
+      | Ok [] -> Lwt.return (Fmt.error_msg "No solution found for any supported platform")
+      | Ok x -> Lwt_result.return (`Opam_build x)
+      | Error (`Msg msg) -> Lwt.return (Fmt.error_msg "Error from solver: %s" msg)
+
   let of_dir ~solver ~job ~platforms ~opam_repository dir =
     let is_duniverse = Sys.file_exists (Filename.concat (Fpath.to_string dir) "dune-get") in
     let cmd = "", [| "find"; "."; "-maxdepth"; "3"; "-name"; "*.opam" |] in
@@ -117,56 +168,8 @@ module Analysis = struct
     else if List.filter is_toplevel opam_files = [] then Lwt_result.fail (`Msg "No top-level opam files found!")
     else (
       begin
-        if is_duniverse then (
-          let vs = get_ocaml_versions dir in
-          if vs = [] then failwith "No OCaml compilers specified!";
-          let find_compiler v =
-            let v = Ocaml_version.with_just_major_and_minor (Ocaml_version.of_string_exn v) in
-            let matches_compiler (_variant, vars) =
-              Ocaml_version.compare v (ocaml_major_version vars) = 0
-            in
-            match List.find_opt matches_compiler platforms with
-            | None ->
-              Current.Job.log job "WARNING: Unsupported compiler version %a (have: %a)"
-                Ocaml_version.pp v Fmt.(Dump.list pp_ocaml_version) platforms;
-              None
-            | Some (variant, _vars) ->
-              Some variant
-          in
-          let variants = List.filter_map find_compiler vs in
-          if variants = [] then failwith "No supported compilers found!";
-          Lwt_result.return (`Duniverse variants)
-        ) else (
-          let src = Fpath.to_string dir in
-          let ( / ) = Filename.concat in
-          let root_pkgs, pinned_pkgs =
-            opam_files |> List.fold_left (fun (root_pkgs, pinned_pkgs) path ->
-                let name = Filename.basename path |> Filename.chop_extension in
-                let name = if String.contains name '.' then name else name ^ ".dev" in
-                let item = name, read_file ~max_len:102400 (src / path) in
-                if Filename.dirname path = "." then
-                  (item :: root_pkgs, pinned_pkgs)
-                else
-                  (root_pkgs, item :: pinned_pkgs)
-              ) ([], [])
-          in
-          let request = { Ocaml_ci_api.Worker.Solve_request.
-            opam_repository = Fpath.to_string opam_repository;
-            root_pkgs;
-            pinned_pkgs;
-            platforms
-          } in
-          let stdin = Yojson.Safe.to_string (Ocaml_ci_api.Worker.Solve_request.to_yojson request) in
-          Current.Process.check_output ~job ~stdin ~cancellable:false solver >>!= fun response ->
-          let json = Yojson.Safe.from_string response in
-          match Worker.Solve_response.of_yojson json with
-          | Error msg -> Lwt.return (Fmt.error_msg "Bad solver response: %s" msg)
-          | Ok response ->
-            match response with
-            | Ok [] -> Lwt.return (Fmt.error_msg "No solution found for any supported platform")
-            | Ok x -> Lwt_result.return (`Opam_build x)
-            | Error (`Msg msg) -> Lwt.return (Fmt.error_msg "Error from solver: %s" msg)
-        )
+        if is_duniverse then duniverse_selections ~job ~platforms dir
+        else opam_selections ~solver ~job ~platforms ~opam_repository ~opam_files dir
       end >>!= fun selections ->
       let r = { opam_files; ocamlformat_source; selections } in
       Current.Job.log job "@[<v2>Results:@,%a@]" Yojson.Safe.(pretty_print ~std:true) (to_yojson r);
