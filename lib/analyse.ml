@@ -221,7 +221,7 @@ module Examine = struct
 
   let pp f _ = Fmt.string f "Analyse"
 
-  let auto_cancel = false
+  let auto_cancel = true
   let latched = true
 end
 
