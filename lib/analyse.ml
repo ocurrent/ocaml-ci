@@ -3,7 +3,6 @@ open Current.Syntax
 
 type key = {
   src : Current_git.Commit.t;
-  master : Current_git.Commit.t;
 }
 
 let pool = Current.Pool.create ~label:"analyse" 2
@@ -29,14 +28,12 @@ module Analysis = struct
 
   let ocamlformat_source _ = None
 
-  let of_dir ~master ~head ~job dir =
+  let of_dir ~head ~job dir =
     (* TODO: Check if the PR added an opam file in packages/<pkg> instead of packages/<pkg>/<pkg>.<ver> (common mistake) *)
     (* TODO: Split modified vs. added (using git diff --name-status) *)
-    let master = Current_git.Commit.hash master in
-    let head = Current_git.Commit.hash head in
+    let (_, master) = Current_git.Commit.hash head in
+    let master = Option.get master in
     let fmt = Printf.sprintf in
-    Current.Process.exec ~cwd:dir ~cancellable:true ~job ("", [|"git";"checkout";"-b";"opam-ci__cibranch";master|]) >>!= fun () ->
-    Current.Process.exec ~cwd:dir ~cancellable:true ~job ("", [|"git";"merge";head|]) >>!= fun () ->
     let cmd = "", [| "sh"; "-c"; fmt {|git diff %s | sed -E -n -e 's,^\+\+\+ b/packages/[^/]*/([^/]*)/.*,\1,p'|} master |] in
     Current.Process.check_output ~cwd:dir ~cancellable:true ~job cmd >>!= fun output ->
     let opam_files =
@@ -55,18 +52,17 @@ module Examine = struct
   module Key = struct
     type t = key
 
-    let digest {src; master = _} =
-      (* Only keep track of [src]. We don't want to redo the whole pipeline when something is pushed on master *)
-      Current_git.Commit.hash src
+    let digest {src} =
+      fst (Current_git.Commit.hash src)
   end
 
   module Value = Analysis
 
   let id = "ci-analyse"
 
-  let build No_context job {src; master} =
+  let build No_context job {src} =
     Current.Job.start job ~pool ~level:Current.Level.Harmless >>= fun () ->
-    Current_git.with_checkout ~enable_submodules:false ~job src (Analysis.of_dir ~master ~head:src ~job)
+    Current_git.with_checkout ~enable_submodules:false ~job src (Analysis.of_dir ~head:src ~job)
 
   let pp f _ = Fmt.string f "Analyse"
 
@@ -75,8 +71,7 @@ end
 
 module Examine_cache = Current_cache.Make(Examine)
 
-let examine ~master src =
+let examine src =
   Current.component "Analyse" |>
-  let> src = src
-  and> master = master in
-  Examine_cache.get Examine.No_context {src; master}
+  let> src = src in
+  Examine_cache.get Examine.No_context {src}

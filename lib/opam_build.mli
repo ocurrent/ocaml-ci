@@ -1,6 +1,4 @@
 val dockerfile :
-  master:Current_git.Commit.t ->
-  head:Current_git.Commit.t ->
   base:string ->
   variant:string ->
   revdep:string option ->

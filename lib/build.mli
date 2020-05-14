@@ -27,7 +27,6 @@ val v :
   schedule:Current_cache.Schedule.t ->
   repo:Current_github.Repo_id.t Current.t ->
   spec:Spec.t Current.t ->
-  master:Current_git.Commit.t Current.t ->
   revdep:string option ->
   with_tests:bool ->
   pkg:string ->
