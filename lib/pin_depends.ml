@@ -66,6 +66,15 @@ let clone ~job repo =
 
 let re_hash = Str.regexp "^[0-9A-Fa-f]+$"
 
+let read_opam_file ~job ~repo ~hash pkg =
+  let opam_filename = OpamPackage.name_to_string pkg ^ ".opam" in
+  Cmd.git_show ~job ~repo hash opam_filename >>= function
+  | Ok contents -> Lwt_result.return contents
+  | Error (`Msg msg) ->
+    Cmd.git_show ~job ~repo hash ("opam/" ^ opam_filename) >>= function
+    | Ok contents -> Lwt_result.return contents
+    | Error _ -> Lwt.return @@ Fmt.error_msg "Can't find %s (or opam/%s): %s" opam_filename opam_filename msg
+
 let get_opam ~job ~pkg url =
   let { OpamUrl.transport; path = _; hash; backend } = url in
   if backend <> `git then
@@ -80,12 +89,11 @@ let get_opam ~job ~pkg url =
   | Some hash ->
     if not (Str.string_match re_hash hash 0) then
       Fmt.failwith "Invalid commit hash %S for package %s" hash (OpamPackage.to_string pkg);
-    let opam_filename = OpamPackage.name_to_string pkg ^ ".opam" in
     let repo_url = OpamUrl.base_url url in
     let repo = Cmd.local_copy repo_url in
-    Cmd.git_show ~job ~repo hash opam_filename >>= function
+    read_opam_file ~job ~repo ~hash pkg >>= function
     | Ok contents -> Lwt.return contents
     | Error _ ->
       clone ~job repo_url >>!= fun repo ->
-      Cmd.git_show ~job ~repo hash opam_filename >>!= fun contents ->
+      read_opam_file ~job ~repo ~hash pkg >>!= fun contents ->
       Lwt.return contents
