@@ -142,6 +142,7 @@ let local_test ~solver repo () =
   Current_incr.const (result, None)
 
 let v ~app ~solver () =
+  Current.with_context opam_repository @@ fun () ->
   Current.with_context platforms @@ fun () ->
   Github.App.installations app |> Current.list_iter ~collapse_key:"org" (module Github.Installation) @@ fun installation ->
   let repos = Github.Installation.repositories installation in
