@@ -69,6 +69,8 @@ let platforms =
       v "centos"   Builders.amd3 "centos-8"      default_compiler;
       v "fedora"   Builders.amd3 "fedora-31"     default_compiler;
       (* oraclelinux doesn't work in opam 2 yet *)
+      (* Variants *)
+      v "4.10+32bit" Builders.amd4 "debian-10" "4.10+32bit";
     ]
   | `Dev ->
     [
