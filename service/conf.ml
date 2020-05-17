@@ -70,7 +70,7 @@ let platforms =
       v "fedora"   Builders.amd3 "fedora-31"     default_compiler;
       (* oraclelinux doesn't work in opam 2 yet *)
       (* Variants *)
-      v "4.10+32bit" Builders.amd4 "debian-10" "4.10+32bit";
+      v (default_compiler ^ "+32bit") Builders.amd4 "debian-10" (default_compiler ^ "+32bit");
     ]
   | `Dev ->
     [
