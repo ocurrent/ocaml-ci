@@ -1,11 +1,10 @@
 (* Utility program for testing the CI pipeline on a local repository. *)
 
 let solver =
-  match Sys.argv with
-  | [| _; "--run-solver" |] -> Ocaml_ci_solver.main (); exit 0
-  | args ->
-    let prog = args.(0) in
-    prog, [| prog; "--run-solver" |]
+  match Array.to_list Sys.argv with
+  | prog :: "--run-solver" :: args -> Ocaml_ci_solver.main ~self:[prog; "--run-solver"] args; exit 0
+  | prog :: _ -> prog, [| prog; "--run-solver" |]
+  | _ -> failwith "Missing argv[0]!"
 
 let () =
   Unix.putenv "DOCKER_BUILDKIT" "1";
