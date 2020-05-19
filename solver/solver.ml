@@ -37,14 +37,9 @@ let oldest_commit_with ~opam_repository ~pins pkgs =
   let cmd = ("", Array.of_list cmd) in
   Process.pread cmd >|= String.trim
 
-let version_2 = OpamVersion.of_string "2"
-
 let parse_opam (name, contents) =
   let pkg = OpamPackage.of_string name in
   let opam = OpamFile.OPAM.read_from_string contents in
-  let opam_version = OpamFile.OPAM.opam_version opam in
-  if OpamVersion.compare opam_version version_2 < 0 then
-    Fmt.failwith "Package %S uses unsupported opam version %s (need >= 2)" name (OpamVersion.to_string opam_version);
   OpamPackage.name pkg, (OpamPackage.version pkg, opam)
 
 let run_child ~opam_repository ~pins ~root_pkgs (vars : Worker.Vars.t) =

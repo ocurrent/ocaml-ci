@@ -95,14 +95,25 @@ module Analysis = struct
     if variants = [] then failwith "No supported compilers found!";
     Lwt_result.return (`Duniverse variants)
 
+  let check_opam_version =
+    let version_2 = OpamVersion.of_string "2" in
+    fun name opam ->
+      let opam_version = OpamFile.OPAM.opam_version opam in
+      if OpamVersion.compare opam_version version_2 < 0 then
+        Fmt.failwith "Package %S uses unsupported opam version %s (need >= 2)" name (OpamVersion.to_string opam_version)
+
   (* For each package in [root_pkgs], parse the opam file and check whether it uses pin-depends.
-     Fetch and return all pinned opam files. *)
-  let handle_pin_depends ~job root_pkgs =
+     Fetch and return all pinned opam files. Also, ensure we're using opam format version 2. *)
+  let handle_opam_files ~job ~root_pkgs ~pinned_pkgs =
+    pinned_pkgs |> List.iter (fun (name, contents) ->
+        check_opam_version name (OpamFile.OPAM.read_from_string contents)
+      );
     let pin_depends =
       root_pkgs
       |> List.map (fun (name, contents) ->
           try
             let opam = OpamFile.OPAM.read_from_string contents in
+            check_opam_version name opam;
             let pin_depends = OpamFile.OPAM.pin_depends opam in
             pin_depends |> List.map (fun (pkg, url) ->
                 Current.Job.log job "%s: found pin-depends: %s -> %s"
@@ -140,7 +151,7 @@ module Analysis = struct
             (root_pkgs, item :: pinned_pkgs)
         ) ([], [])
     in
-    Lwt_result.catch (handle_pin_depends ~job root_pkgs) >>= function
+    Lwt_result.catch (handle_opam_files ~job ~root_pkgs ~pinned_pkgs) >>= function
     | Error (Failure msg) ->
       Lwt_result.fail (`Msg msg)
     | Error ex -> Lwt.fail ex
