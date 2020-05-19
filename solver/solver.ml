@@ -1,13 +1,8 @@
 open Lwt.Infix
 
-let src = Logs.Src.create "ocaml_ci_solver" ~doc:"ocaml-ci dependency solver"
-module Log = (val Logs.src_log src : Logs.LOG)
-
 module Worker = Ocaml_ci_api.Worker
 module Solver = Opam_0install.Solver.Make(Opam_0install.Dir_context)
 module Selection = Worker.Selection
-
-let ( / ) = Filename.concat
 
 let env (vars : Worker.Vars.t) =
   Opam_0install.Dir_context.std_env
@@ -19,24 +14,6 @@ let env (vars : Worker.Vars.t) =
 
 let ocaml_name = OpamPackage.Name.of_string "ocaml"
 
-(* Use "git-log" to find the oldest commit with these package versions.
-   This avoids invalidating the Docker build cache on every update to opam-repository. *)
-let oldest_commit_with ~opam_repository ~pins pkgs =
-  let paths =
-    pkgs |> List.filter_map (fun pkg ->
-        let { OpamPackage.name; version } = OpamPackage.of_string pkg in
-        if OpamPackage.Name.Map.mem name pins then None
-        else (
-          let name = OpamPackage.Name.to_string name in
-          let version = OpamPackage.Version.to_string version in
-          Some (Printf.sprintf "%s/%s.%s" name name version)
-        )
-      )
-  in
-  let cmd = "git" :: "-C" :: opam_repository / "packages" :: "log" :: "-n" :: "1" :: "--format=format:%H" :: paths in
-  let cmd = ("", Array.of_list cmd) in
-  Process.pread cmd >|= String.trim
-
 let parse_opam (name, contents) =
   let pkg = OpamPackage.of_string name in
   let opam = OpamFile.OPAM.read_from_string contents in
@@ -45,7 +22,7 @@ let parse_opam (name, contents) =
 let run_child ~opam_repository ~pins ~root_pkgs (vars : Worker.Vars.t) =
   let ocaml_version = OpamPackage.Version.of_string vars.ocaml_version in
   let context =
-    Opam_0install.Dir_context.create (opam_repository / "packages")
+    Opam_0install.Dir_context.create (Opam_repository.packages_dir opam_repository)
       ~pins
       ~env:(env vars)
       ~constraints:(OpamPackage.Name.Map.singleton ocaml_name (`Eq, ocaml_version))
@@ -95,6 +72,7 @@ let spawn_child run (id, vars) =
 let pp_name = Fmt.of_to_string OpamPackage.Name.to_string
 
 let solve { Worker.Solve_request.opam_repository; root_pkgs; pinned_pkgs; platforms } =
+  let opam_repository = Opam_repository.of_dir opam_repository in
   let root_pkgs = List.map parse_opam root_pkgs in
   let pinned_pkgs = List.map parse_opam pinned_pkgs in
   let pins =
@@ -145,7 +123,14 @@ let solve { Worker.Solve_request.opam_repository; root_pkgs; pinned_pkgs; platfo
     |> Lwt_list.map_p (fun (id, output) ->
         match output with
         | Ok packages ->
-          oldest_commit_with packages ~opam_repository ~pins >|= fun commit ->
+          let repo_packages =
+            packages |> List.filter_map (fun pkg ->
+                let pkg = OpamPackage.of_string pkg in
+                if OpamPackage.Name.Map.mem pkg.name pins then None
+                else Some pkg
+              )
+          in
+          Opam_repository.oldest_commit_with opam_repository repo_packages >|= fun commit ->
           id, Ok { Selection.id; packages; commit }
         | Error _ as e -> Lwt.return (id, e)
       )
