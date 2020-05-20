@@ -27,7 +27,7 @@
   current_docker
   current_web
   current_rpc
-  (capnp-rpc-unix (>= 0.5.0))
+  (capnp-rpc-unix (>= 0.7.0))
   ocaml-ci-api
   ocaml-ci-solver
   conf-libev
@@ -48,6 +48,7 @@
   ocaml-ci-api
   conf-libev
   opam-0install
+  (capnp-rpc-unix (>= 0.7.0))
 ))
 
 (package

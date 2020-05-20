@@ -23,6 +23,20 @@ let read_file ~max_len path =
        else Fmt.failwith "File %S too big (%d bytes)" path len
     )
 
+(* A logging service that logs to [job]. *)
+let job_log job =
+  let module X = Ocaml_ci_api.Raw.Service.Log in
+  X.local @@ object
+    inherit X.service
+
+    method write_impl params release_param_caps =
+      let open X.Write in
+      release_param_caps ();
+      let msg = Params.msg_get params in
+      Current.Job.write job msg;
+      Capnp_rpc_lwt.Service.(return (Response.create_empty ()))
+  end
+
 module Analysis = struct
   type t = {
     opam_files : string list;
@@ -163,16 +177,11 @@ module Analysis = struct
                       pinned_pkgs;
                       platforms
                     } in
-      let stdin = Yojson.Safe.to_string (Ocaml_ci_api.Worker.Solve_request.to_yojson request) in
-      Current.Process.check_output ~job ~stdin ~cancellable:false solver >>!= fun response ->
-      let json = Yojson.Safe.from_string response in
-      match Worker.Solve_response.of_yojson json with
-      | Error msg -> Lwt.return (Fmt.error_msg "Bad solver response: %s" msg)
-      | Ok response ->
-        match response with
-        | Ok [] -> Lwt.return (Fmt.error_msg "No solution found for any supported platform")
-        | Ok x -> Lwt_result.return (`Opam_build x)
-        | Error (`Msg msg) -> Lwt.return (Fmt.error_msg "Error from solver: %s" msg)
+      Capnp_rpc_lwt.Capability.with_ref (job_log job) @@ fun log ->
+      Ocaml_ci_api.Solver.solve solver request ~log >>= function
+      | Ok [] -> Lwt.return (Fmt.error_msg "No solution found for any supported platform")
+      | Ok x -> Lwt_result.return (`Opam_build x)
+      | Error (`Msg msg) -> Lwt.return (Fmt.error_msg "Error from solver: %s" msg)
 
   let of_dir ~solver ~job ~platforms ~opam_repository dir =
     let is_duniverse = Sys.file_exists (Filename.concat (Fpath.to_string dir) "dune-get") in
@@ -226,7 +235,7 @@ module Analysis = struct
 end
 
 module Examine = struct
-  type t = Lwt_process.command          (* Command to run solver process *)
+  type t = Ocaml_ci_api.Solver.t
 
   module Key = struct
     type t = Current_git.Commit.t

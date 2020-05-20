@@ -73,3 +73,11 @@ interface CI {
   orgs         @1 () -> (orgs :List(Text));
   # Get the list of organisations for this CI capability.
 }
+
+interface Log {
+  write @0 (msg :Text);
+}
+
+interface Solver {
+  solve @0 (request :Text, log :Log) -> (response :Text);
+}
