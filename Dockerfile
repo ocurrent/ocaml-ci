@@ -1,6 +1,6 @@
 FROM ocurrent/opam:debian-10-ocaml-4.10 AS build
 RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libsqlite3-dev libgmp-dev -y --no-install-recommends
-RUN cd ~/opam-repository && git pull origin master && git reset --hard 7e694c5f96b623d2d20e66df820bf8cc7cef5b70 && opam update
+RUN cd ~/opam-repository && git pull origin master && git reset --hard e08bab6fc7403012184885b9ec9672297b107ae9 && opam update
 COPY --chown=opam \
 	ocurrent/current_ansi.opam \
 	ocurrent/current_docker.opam \
@@ -26,7 +26,7 @@ RUN opam pin add -yn current_ansi.dev "./ocurrent" && \
     opam pin add -yn current_slack.dev "./ocurrent" && \
     opam pin add -yn current_web.dev "./ocurrent" && \
     opam pin add -yn opam-0install.dev "./opam-0install-solver"
-COPY --chown=opam ocaml-ci-service.opam ocaml-ci-api.opam /src/
+COPY --chown=opam ocaml-ci-service.opam ocaml-ci-api.opam ocaml-ci-solver.opam /src/
 RUN opam install -y --deps-only .
 ADD --chown=opam . .
 RUN opam config exec -- dune build ./_build/install/default/bin/ocaml-ci-service
@@ -42,4 +42,4 @@ RUN mkdir /root/.ssh && chmod 0700 /root/.ssh && ln -s /run/secrets/ocaml-ci-ssh
 ENV OCAMLRUNPARAM=a=2
 COPY builder-config/known_hosts /root/.ssh/known_hosts
 COPY builder-config/docker /root/.docker
-COPY --from=build /src/_build/install/default/bin/ocaml-ci-service /usr/local/bin/
+COPY --from=build /src/_build/install/default/bin/ocaml-ci-service /src/_build/install/default/bin/ocaml-ci-solver /usr/local/bin/

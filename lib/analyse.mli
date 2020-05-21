@@ -11,7 +11,7 @@ module Analysis : sig
     ]
 
   val of_dir :
-    solver:Lwt_process.command ->
+    solver:Ocaml_ci_api.Solver.t ->
     job:Current.Job.t ->
     platforms:(string * Ocaml_ci_api.Worker.Vars.t) list ->
     opam_repository:Fpath.t ->
@@ -20,7 +20,7 @@ module Analysis : sig
 end
 
 val examine :
-  solver:Lwt_process.command ->
+  solver:Ocaml_ci_api.Solver.t ->
   platforms:Platform.t list Current.t ->
   opam_repository:Current_git.Commit.t Current.t ->
   Current_git.Commit.t Current.t ->

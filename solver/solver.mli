@@ -1,1 +1,2 @@
-val solve : Ocaml_ci_api.Worker.Solve_request.t -> Ocaml_ci_api.Worker.Selection.t list
+val main : unit -> unit
+(** [main ()] runs a worker process that reads requests from stdin and writes results to stdout. *)

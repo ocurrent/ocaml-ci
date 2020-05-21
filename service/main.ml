@@ -1,11 +1,6 @@
 open Lwt.Infix
 
-let solver =
-  match Sys.argv with
-  | [| _; "--run-solver" |] -> Ocaml_ci_solver.main (); exit 0
-  | args ->
-    let prog = args.(0) in
-    prog, [| prog; "--run-solver" |]
+let solver = Ocaml_ci.Solver_pool.spawn_local ()
 
 let () =
   Logging.init ();

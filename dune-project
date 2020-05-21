@@ -12,7 +12,6 @@
  (name ocaml-ci-api)
  (synopsis "Cap'n Proto API for ocaml-ci")
  (depends
-  (dune (>= "1.11"))
   current_rpc
   (capnp (>= 3.4.0))
   capnp-rpc-lwt
@@ -23,20 +22,33 @@
  (synopsis "Test OCaml projects on GitHub")
  (conflicts (ocaml-migrate-parsetree (= "1.7.1")))
  (depends
-  (dune (>= "1.11"))
   current_git
   current_github
   current_docker
   current_web
   current_rpc
-  (capnp-rpc-unix (>= 0.5.0))
+  (capnp-rpc-unix (>= 0.7.0))
   ocaml-ci-api
+  ocaml-ci-solver
   conf-libev
   (dockerfile (>= 6.3.0))
-  opam-0install
   (ocaml-version (>= 2.4.0))
   (alcotest (and (>= 1.0.0) :with-test))
   (alcotest-lwt (and (>= 1.0.1) :with-test))
+))
+
+(package
+ (name ocaml-ci-solver)
+ (synopsis "Choose package versions to test")
+ (depends
+  yojson
+  lwt
+  logs
+  fmt
+  ocaml-ci-api
+  conf-libev
+  opam-0install
+  (capnp-rpc-unix (>= 0.7.0))
 ))
 
 (package
@@ -44,7 +56,6 @@
  (synopsis "Web-server frontend for ocaml-ci")
  (conflicts (ocaml-migrate-parsetree (= "1.7.1")))
  (depends
-  (dune (>= "1.11"))
   current_rpc
   current_ansi
   prometheus-app
@@ -63,7 +74,6 @@
  (name ocaml-ci-client)
  (synopsis "Command-line client for ocaml-ci")
  (depends
-  (dune (>= "1.11"))
   current_rpc
   capnp-rpc-unix
   ocaml-ci-api
