@@ -6,5 +6,5 @@
 (rule
   (alias runtest)
   (package ocaml-ci-service)
-  (deps (alias ../install))
+  (deps (package ocaml-ci-solver))
   (action (run ./test.exe)))

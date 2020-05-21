@@ -83,18 +83,18 @@ let run_toplevel pool =
     >|= fun response ->
     Yojson.Safe.to_channel stdout (Worker.Solve_response.to_yojson response)
 
-let main ~self args =
+let () =
   Logs.(set_level (Some Info));
   Logs.set_reporter Log.reporter;
-  match args with
-  | [] ->
+  match Sys.argv with
+  | [| prog |] ->
     let n_workers = 20 in
     Lwt_main.run begin
       let pool = Lwt_pool.create n_workers (fun () ->
-          let cmd = ("", Array.of_list (self @ ["--worker"])) in
+          let cmd = ("", [| prog; "--worker" |]) in
           Lwt.return (Lwt_process.open_process cmd)
         ) in
       run_toplevel pool
     end
-  | ["--worker"] -> Solver.main ()
-  | args -> Fmt.failwith "Usage: %a (got %a)" Fmt.(list string) self Fmt.(list (quote string)) args
+  | [| _prog; "--worker" |] -> Solver.main ()
+  | args -> Fmt.failwith "Usage: ocaml-ci-solver (got %a)" Fmt.(array (quote string)) args

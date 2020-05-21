@@ -22,7 +22,7 @@ module Analysis = struct
   }
   [@@deriving eq, yojson]
 
-  let solver = ("", [| "ocaml-ci-service"; "--run-solver" |])
+  let solver = ("", [| "ocaml-ci-solver" |])
 
   let of_dir ~job ~platforms ~opam_repository d =
     of_dir ~solver ~job ~platforms ~opam_repository d
