@@ -16,8 +16,9 @@ let process ~log ~id request worker =
   | None ->
     Fmt.failwith "Bad frame from worker: time=%S len=%S" time len
   | Some len ->
-    Lwt_io.read ~count:len worker#stdout >|= fun results ->
-    if String.length results = 0 then Fmt.failwith "No output from solve worker!";
+    let buf = Bytes.create len in
+    Lwt_io.read_into_exactly worker#stdout buf 0 len >|= fun () ->
+    let results = Bytes.unsafe_to_string buf in
     match results.[0] with
     | '+' ->
       Log.info log "%s: found solution in %s s" id time;
