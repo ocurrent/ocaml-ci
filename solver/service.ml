@@ -12,23 +12,27 @@ let process ~log ~id request worker =
   Lwt_io.write worker#stdin request_str >>= fun () ->
   Lwt_io.read_line worker#stdout >>= fun time ->
   Lwt_io.read_line worker#stdout >>= fun len ->
-  let len = int_of_string len in
-  Lwt_io.read ~count:len worker#stdout >|= fun results ->
-  if String.length results = 0 then Fmt.failwith "No output from solve worker!";
-  match results.[0] with
-  | '+' ->
-    Log.info log "%s: found solution in %s s" id time;
-    let packages =
-      Astring.String.with_range ~first:1 results
-      |> Astring.String.cuts ~sep:" "
-    in
-    Ok packages
-  | '-' ->
-    Log.info log "%s: eliminated all possibilities in %s s" id time;
-    let msg = results |> Astring.String.with_range ~first:1 in
-    Error msg
-  | _ ->
-    Fmt.failwith "BUG: bad output: %s" results
+  match Astring.String.to_int len with
+  | None ->
+    Fmt.failwith "Bad frame from worker: time=%S len=%S" time len
+  | Some len ->
+    let buf = Bytes.create len in
+    Lwt_io.read_into_exactly worker#stdout buf 0 len >|= fun () ->
+    let results = Bytes.unsafe_to_string buf in
+    match results.[0] with
+    | '+' ->
+      Log.info log "%s: found solution in %s s" id time;
+      let packages =
+        Astring.String.with_range ~first:1 results
+        |> Astring.String.cuts ~sep:" "
+      in
+      Ok packages
+    | '-' ->
+      Log.info log "%s: eliminated all possibilities in %s s" id time;
+      let msg = results |> Astring.String.with_range ~first:1 in
+      Error msg
+    | _ ->
+      Fmt.failwith "BUG: bad output: %s" results
 
 (* Handle a request by distributing it among the worker processes and then aggregating their responses. *)
 let handle ~pool ~log request =
