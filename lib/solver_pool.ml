@@ -1,7 +1,13 @@
-let spawn_local () : Ocaml_ci_api.Solver.t =
+let spawn_local ?solver_dir () : Ocaml_ci_api.Solver.t =
   let p, c = Unix.(socketpair PF_UNIX SOCK_STREAM 0 ~cloexec:true) in
   Unix.clear_close_on_exec c;
-  let _child = Lwt_process.open_process_none ~stdin:(`FD_move c) ("", [| "ocaml-ci-solver" |]) in
+  let solver_dir =
+    match solver_dir with
+    | None -> Fpath.to_string (Current.state_dir "solver")
+    | Some x -> x
+  in
+  let cmd = ("", [| "ocaml-ci-solver" |]) in
+  let _child = Lwt_process.open_process_none ~cwd:solver_dir ~stdin:(`FD_move c) cmd in
   let switch = Lwt_switch.create () in
   let p = Lwt_unix.of_unix_file_descr p
           |> Capnp_rpc_unix.Unix_flow.connect ~switch

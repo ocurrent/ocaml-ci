@@ -24,7 +24,7 @@ end
 (** A request to select sets of packages for the builds. *)
 module Solve_request = struct
   type t = {
-    opam_repository : string;                   (** Path of opam repository checkout. *)
+    opam_repository_commit : string;            (** Commit in opam repository to use. *)
     root_pkgs : (string * string) list;         (** Name and contents of top-level opam files. *)
     pinned_pkgs : (string * string) list;       (** Name and contents of other pinned opam files. *)
     platforms : (string * Vars.t) list;         (** Possible build platforms, by ID. *)

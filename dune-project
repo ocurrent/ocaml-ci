@@ -1,6 +1,6 @@
 (lang dune 2.0)
 (name ocaml-ci)
-(formatting (enabled_for ocaml))
+(formatting disabled)
 
 (generate_opam_files true)
 
@@ -48,6 +48,7 @@
   ocaml-ci-api
   conf-libev
   opam-0install
+  git-unix
   (capnp-rpc-unix (>= 0.7.0))
 ))
 

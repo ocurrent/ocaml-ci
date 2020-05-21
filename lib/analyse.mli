@@ -14,7 +14,7 @@ module Analysis : sig
     solver:Ocaml_ci_api.Solver.t ->
     job:Current.Job.t ->
     platforms:(string * Ocaml_ci_api.Worker.Vars.t) list ->
-    opam_repository:Fpath.t ->
+    opam_repository_commit:Current_git.Commit_id.t ->
     Fpath.t ->
     (t, [ `Msg of string ]) result Lwt.t
 end

@@ -1,12 +1,12 @@
-type t
-(** A Git clone of opam-repository. *)
+val open_store : unit -> Git_unix.Store.t Lwt.t
 
-val of_dir : string -> t
-(** [of_dir root] uses the opam repository Git clone at [root]. *)
+val clone : unit -> unit Lwt.t
+(** [clone ()] ensures that "./opam-repository" exists. If not, it clones it. *)
 
-val packages_dir : t -> string
-(** [packages_dir t] is the path of [t]'s "packages" directory. *)
-
-val oldest_commit_with : t -> OpamPackage.t list -> string Lwt.t
+val oldest_commit_with : from:Git_unix.Store.Hash.t -> OpamPackage.t list -> string Lwt.t
 (** Use "git-log" to find the oldest commit with these package versions.
-    This avoids invalidating the Docker build cache on every update to opam-repository. *)
+    This avoids invalidating the Docker build cache on every update to opam-repository.
+    @param from The commit at which to begin the search. *)
+
+val fetch : unit -> unit Lwt.t
+(* Does a "git fetch origin" to update the store. *)
