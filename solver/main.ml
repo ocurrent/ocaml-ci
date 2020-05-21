@@ -11,11 +11,24 @@ let export service ~on:socket =
   let _ : Capnp_rpc_unix.CapTP.t = Capnp_rpc_unix.CapTP.connect ~restore stdin in
   fst (Lwt.wait ())
 
+let pp_status f = function
+  | Unix.WEXITED x -> Fmt.pf f "exited with status %d" x
+  | Unix.WSIGNALED x -> Fmt.pf f "failed with signal %d" x
+  | Unix.WSTOPPED x -> Fmt.pf f "stopped with signal %d" x
+
+let validate (worker : Lwt_process.process) =
+  match Lwt.state worker#status with
+  | Lwt.Sleep -> Lwt.return true
+  | Lwt.Fail ex -> Lwt.fail ex
+  | Lwt.Return status ->
+    Format.eprintf "Worker %d is dead (%a) - removing from pool@." worker#pid pp_status status;
+    Lwt.return false
+
 let () =
   match Sys.argv with
   | [| prog |] ->
     Lwt_main.run begin
-      let pool = Lwt_pool.create n_workers (fun () ->
+      let pool = Lwt_pool.create n_workers ~validate (fun () ->
           let cmd = ("", [| prog; "--worker" |]) in
           Lwt.return (Lwt_process.open_process cmd)
         ) in
