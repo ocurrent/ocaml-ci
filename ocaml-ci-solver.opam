@@ -14,6 +14,7 @@ depends: [
   "ocaml-ci-api"
   "conf-libev"
   "opam-0install"
+  "git-unix"
   "capnp-rpc-unix" {>= "0.7.0"}
 ]
 build: [

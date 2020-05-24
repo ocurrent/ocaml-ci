@@ -22,10 +22,10 @@ module Analysis = struct
   }
   [@@deriving eq, yojson]
 
-  let solver = Ocaml_ci.Solver_pool.spawn_local ()
 
-  let of_dir ~job ~platforms ~opam_repository d =
-    of_dir ~solver ~job ~platforms ~opam_repository d
+  let of_dir ~job ~platforms ~solver_dir ~opam_repository_commit d =
+    let solver = Ocaml_ci.Solver_pool.spawn_local ~solver_dir () in
+    of_dir ~solver ~job ~platforms ~opam_repository_commit d
     |> Lwt_result.map (fun t ->
            {
              opam_files = opam_files t;
@@ -41,9 +41,8 @@ let expect_test name ~project ~expected =
   Alcotest_lwt.test_case name `Quick (fun _switch () ->
       let ( // ) = Filename.concat in
       let root = Filename.current_dir_name // "_test" // name // "src" in
-      let repo =
-        Filename.current_dir_name // "_test" // name // "opam-repository"
-      in
+      let solver_dir = Filename.current_dir_name // "_test" // name in
+      let repo = solver_dir // "opam-repository-builder" in
       let job =
         let label = "test_analyse-" ^ name in
         Current.Job.create
@@ -67,16 +66,30 @@ let expect_test name ~project ~expected =
       Current.Process.exec ~job ~cancellable:true ~cwd:opam_repository
         ("", [| "git"; "init" |])
       >|= Result.get_ok
-      >>= fun _ ->
+      >>= fun () ->
       Current.Process.exec ~job ~cancellable:true ~cwd:opam_repository
         ("", [| "git"; "add"; "." |])
       >|= Result.get_ok
-      >>= fun _ ->
+      >>= fun () ->
       Current.Process.exec ~job ~cancellable:true ~cwd:opam_repository
         ("", [| "git"; "commit"; "-m"; "init" |])
       >|= Result.get_ok
-      >>= fun _ ->
-      Analysis.of_dir ~job ~platforms:Test_platforms.v ~opam_repository
+      >>= fun () ->
+      Current.Process.check_output ~job ~cancellable:true ~cwd:opam_repository
+        ("", [| "git"; "rev-parse"; "HEAD" |])
+      >|= Result.get_ok
+      >>= fun hash ->
+      Current.Process.exec ~job ~cancellable:true ~cwd:(Fpath.v solver_dir)
+        ("", [| "git"; "clone"; "--bare"; "opam-repository-builder"; "opam-repository" |])
+      >|= Result.get_ok
+      >>= fun () ->
+      let opam_repository_commit =
+        Current_git.Commit_id.v
+          ~repo:"opam-repository"
+          ~hash:(String.trim hash)
+          ~gref:"master"
+      in
+      Analysis.of_dir ~job ~platforms:Test_platforms.v ~solver_dir ~opam_repository_commit
         (Fpath.v root)
       >|= (function
             | Ok o -> o

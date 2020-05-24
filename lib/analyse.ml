@@ -151,7 +151,7 @@ module Analysis = struct
           )
       )
 
-  let opam_selections ~solver ~job ~platforms ~opam_repository ~opam_files dir =
+  let opam_selections ~solver ~job ~platforms ~opam_repository_commit ~opam_files dir =
     let src = Fpath.to_string dir in
     let ( / ) = Filename.concat in
     let root_pkgs, pinned_pkgs =
@@ -172,7 +172,7 @@ module Analysis = struct
     | Ok pin_depends ->
       let pinned_pkgs = pin_depends @ pinned_pkgs in
       let request = { Ocaml_ci_api.Worker.Solve_request.
-                      opam_repository = Fpath.to_string opam_repository;
+                      opam_repository_commit = Current_git.Commit_id.hash opam_repository_commit;
                       root_pkgs;
                       pinned_pkgs;
                       platforms
@@ -183,7 +183,7 @@ module Analysis = struct
       | Ok x -> Lwt_result.return (`Opam_build x)
       | Error (`Msg msg) -> Lwt.return (Fmt.error_msg "Error from solver: %s" msg)
 
-  let of_dir ~solver ~job ~platforms ~opam_repository dir =
+  let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
     let is_duniverse = Sys.file_exists (Filename.concat (Fpath.to_string dir) "dune-get") in
     let cmd = "", [| "find"; "."; "-maxdepth"; "3"; "-name"; "*.opam" |] in
     Current.Process.check_output ~cwd:dir ~cancellable:true ~job cmd >>!= fun output ->
@@ -226,7 +226,7 @@ module Analysis = struct
     else (
       begin
         if is_duniverse then duniverse_selections ~job ~platforms dir
-        else opam_selections ~solver ~job ~platforms ~opam_repository ~opam_files dir
+        else opam_selections ~solver ~job ~platforms ~opam_repository_commit ~opam_files dir
       end >>!= fun selections ->
       let r = { opam_files; ocamlformat_source; selections } in
       Current.Job.log job "@[<v2>Results:@,%a@]" Yojson.Safe.(pretty_print ~std:true) (to_yojson r);
@@ -276,8 +276,8 @@ module Examine = struct
   let run solver job src { Value.opam_repository; platforms } =
     Current.Job.start job ~pool ~level:Current.Level.Harmless >>= fun () ->
     Current_git.with_checkout ~job src @@ fun src ->
-    Current_git.with_checkout ~job opam_repository @@ fun opam_repository ->
-    Analysis.of_dir ~solver ~platforms ~opam_repository ~job src
+    let opam_repository_commit = Current_git.Commit.id opam_repository in
+    Analysis.of_dir ~solver ~platforms ~opam_repository_commit ~job src
 
   let pp f _ = Fmt.string f "Analyse"
 
