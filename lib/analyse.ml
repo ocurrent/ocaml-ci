@@ -125,17 +125,19 @@ module Analysis = struct
     let pin_depends =
       root_pkgs
       |> List.map (fun (name, contents) ->
-          try
-            let opam = OpamFile.OPAM.read_from_string contents in
-            check_opam_version name opam;
-            let pin_depends = OpamFile.OPAM.pin_depends opam in
-            pin_depends |> List.map (fun (pkg, url) ->
-                Current.Job.log job "%s: found pin-depends: %s -> %s"
-                  name (OpamPackage.to_string pkg) (OpamUrl.to_string url);
-                (name, pkg, url)
-              )
-          with ex ->
-            Fmt.failwith "Invalid opam file %S: %a" name Fmt.exn ex
+          let opam =
+            try
+              OpamFile.OPAM.read_from_string contents
+            with ex ->
+              Fmt.failwith "Invalid opam file %S: %a" name Fmt.exn ex
+          in
+          check_opam_version name opam;
+          let pin_depends = OpamFile.OPAM.pin_depends opam in
+          pin_depends |> List.map (fun (pkg, url) ->
+              Current.Job.log job "%s: found pin-depends: %s -> %s"
+                name (OpamPackage.to_string pkg) (OpamUrl.to_string url);
+              (name, pkg, url)
+            )
         )
       |> List.concat
     in
@@ -165,23 +167,26 @@ module Analysis = struct
             (root_pkgs, item :: pinned_pkgs)
         ) ([], [])
     in
-    Lwt_result.catch (handle_opam_files ~job ~root_pkgs ~pinned_pkgs) >>= function
-    | Error (Failure msg) ->
-      Lwt_result.fail (`Msg msg)
-    | Error ex -> Lwt.fail ex
-    | Ok pin_depends ->
-      let pinned_pkgs = pin_depends @ pinned_pkgs in
-      let request = { Ocaml_ci_api.Worker.Solve_request.
-                      opam_repository_commit = Current_git.Commit_id.hash opam_repository_commit;
-                      root_pkgs;
-                      pinned_pkgs;
-                      platforms
-                    } in
-      Capnp_rpc_lwt.Capability.with_ref (job_log job) @@ fun log ->
-      Ocaml_ci_api.Solver.solve solver request ~log >>= function
-      | Ok [] -> Lwt.return (Fmt.error_msg "No solution found for any supported platform")
-      | Ok x -> Lwt_result.return (`Opam_build x)
-      | Error (`Msg msg) -> Lwt.return (Fmt.error_msg "Error from solver: %s" msg)
+    Lwt.try_bind
+      (fun () -> handle_opam_files ~job ~root_pkgs ~pinned_pkgs)
+      (fun pin_depends ->
+         let pinned_pkgs = pin_depends @ pinned_pkgs in
+         let request = { Ocaml_ci_api.Worker.Solve_request.
+                         opam_repository_commit = Current_git.Commit_id.hash opam_repository_commit;
+                         root_pkgs;
+                         pinned_pkgs;
+                         platforms
+                       } in
+         Capnp_rpc_lwt.Capability.with_ref (job_log job) @@ fun log ->
+         Ocaml_ci_api.Solver.solve solver request ~log >>= function
+         | Ok [] -> Lwt.return (Fmt.error_msg "No solution found for any supported platform")
+         | Ok x -> Lwt_result.return (`Opam_build x)
+         | Error (`Msg msg) -> Lwt.return (Fmt.error_msg "Error from solver: %s" msg)
+      )
+      (function
+        | Failure msg -> Lwt_result.fail (`Msg msg)
+        | ex -> Lwt.fail ex
+      )
 
   let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
     let is_duniverse = Sys.file_exists (Filename.concat (Fpath.to_string dir) "dune-get") in
