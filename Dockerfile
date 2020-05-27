@@ -1,6 +1,6 @@
 FROM ocurrent/opam:debian-10-ocaml-4.10 AS build
 RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libsqlite3-dev libgmp-dev -y --no-install-recommends
-RUN cd ~/opam-repository && git pull origin master && git reset --hard e08bab6fc7403012184885b9ec9672297b107ae9 && opam update
+RUN cd ~/opam-repository && git pull origin master && git reset --hard 61bbad883b6951c3979133dfe07644a5c0cb67d7 && opam update
 COPY --chown=opam \
 	ocurrent/current_ansi.opam \
 	ocurrent/current_docker.opam \
@@ -12,9 +12,6 @@ COPY --chown=opam \
 	ocurrent/current_slack.opam \
 	ocurrent/current_web.opam \
 	/src/ocurrent/
-COPY --chown=opam \
-	opam-0install-solver/opam-0install.opam \
-	/src/opam-0install-solver/
 WORKDIR /src
 RUN opam pin add -yn current_ansi.dev "./ocurrent" && \
     opam pin add -yn current_docker.dev "./ocurrent" && \
@@ -24,8 +21,7 @@ RUN opam pin add -yn current_ansi.dev "./ocurrent" && \
     opam pin add -yn current.dev "./ocurrent" && \
     opam pin add -yn current_rpc.dev "./ocurrent" && \
     opam pin add -yn current_slack.dev "./ocurrent" && \
-    opam pin add -yn current_web.dev "./ocurrent" && \
-    opam pin add -yn opam-0install.dev "./opam-0install-solver"
+    opam pin add -yn current_web.dev "./ocurrent"
 COPY --chown=opam ocaml-ci-service.opam ocaml-ci-api.opam ocaml-ci-solver.opam /src/
 RUN opam install -y --deps-only .
 ADD --chown=opam . .
