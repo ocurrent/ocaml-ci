@@ -1,6 +1,3 @@
 [submodule "ocurrent"]
 	path = ocurrent
 	url = https://github.com/ocurrent/ocurrent.git
-[submodule "opam-0install-solver"]
-	path = opam-0install-solver
-	url = https://github.com/talex5/opam-0install-solver
