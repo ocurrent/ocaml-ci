@@ -2,8 +2,6 @@
 
 [![OCaml-CI Build Status](https://img.shields.io/endpoint?url=https%3A%2F%2Fci.ocamllabs.io%2Fbadge%2Focurrent%2Focaml-ci%2Fmaster&logo=ocaml)](https://ci.ocamllabs.io/github/ocurrent/ocaml-ci)
 
-Status: **experimental**
-
 This is an [OCurrent][] pipeline that provides CI for OCaml projects hosted on GitHub.
 
 The pipeline is defined in [pipeline.ml][]. It:
@@ -58,6 +56,9 @@ docker build -f Dockerfile.web -t ocaml-ci-web .
 
 The `stack.yml` contains the configuration used on the live system.
 You'll have to register your own GitHub app to be able to test the services locally.
+
+If you want it to update to changes in opam-repository automatically you'll also need
+to register a webhook there sending push events to the CI's `/webhooks/github` path.
 
 ## Remote API
 

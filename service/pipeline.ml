@@ -18,9 +18,9 @@ let platforms =
 (* Link for GitHub statuses. *)
 let url ~owner ~name ~hash = Uri.of_string (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s" owner name hash)
 
-let opam_repository =
-  let schedule = Current_cache.Schedule.v ~valid_for:(Duration.of_hour 1) () in
-  Git.clone ~schedule "https://github.com/ocaml/opam-repository.git"
+let opam_repository_commit =
+  let repo = { Github.Repo_id.owner = "ocaml"; name = "opam-repository" } in
+  Github.Api.Anonymous.head_of repo @@ `Ref "refs/heads/master"
 
 let github_status_of_state ~head result =
   let+ head = head
@@ -131,7 +131,7 @@ let summarise results =
 let local_test ~solver repo () =
   let src = Git.Local.head_commit repo in
   let repo = Current.return { Github.Repo_id.owner = "local"; name = "test" }
-  and analysis = Analyse.examine ~solver ~platforms ~opam_repository src in
+  and analysis = Analyse.examine ~solver ~platforms ~opam_repository_commit src in
   Current.component "summarise" |>
   let> results = build_with_docker ~repo ~analysis src in
   let result =
@@ -142,7 +142,7 @@ let local_test ~solver repo () =
   Current_incr.const (result, None)
 
 let v ~app ~solver () =
-  Current.with_context opam_repository @@ fun () ->
+  Current.with_context opam_repository_commit @@ fun () ->
   Current.with_context platforms @@ fun () ->
   Github.App.installations app |> Current.list_iter ~collapse_key:"org" (module Github.Installation) @@ fun installation ->
   let repos = Github.Installation.repositories installation in
@@ -150,7 +150,7 @@ let v ~app ~solver () =
   let refs = Github.Api.Repo.ci_refs repo |> set_active_refs ~repo in
   refs |> Current.list_iter (module Github.Api.Commit) @@ fun head ->
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
-  let analysis = Analyse.examine ~solver ~platforms ~opam_repository src in
+  let analysis = Analyse.examine ~solver ~platforms ~opam_repository_commit src in
   let builds =
     let repo = Current.map Github.Api.Repo.id repo in
     build_with_docker ~repo ~analysis src in
