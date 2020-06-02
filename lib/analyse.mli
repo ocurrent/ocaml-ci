@@ -22,8 +22,8 @@ end
 val examine :
   solver:Ocaml_ci_api.Solver.t ->
   platforms:Platform.t list Current.t ->
-  opam_repository:Current_git.Commit.t Current.t ->
+  opam_repository_commit:Current_git.Commit_id.t Current.t ->
   Current_git.Commit.t Current.t ->
   Analysis.t Current.t
-(** [examine ~solver ~platforms ~opam_repository src] analyses the source code [src] and selects
-    package versions to test using [opam_repository]. *)
+(** [examine ~solver ~platforms ~opam_repository_commit src] analyses the source code [src] and selects
+    package versions to test using [opam_repository_commit]. *)

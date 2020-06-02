@@ -255,7 +255,7 @@ module Examine = struct
 
   module Value = struct
     type t = {
-      opam_repository : Current_git.Commit.t;
+      opam_repository_commit : Current_git.Commit_id.t;
       platforms : (string * Worker.Vars.t) list;
     }
 
@@ -265,9 +265,9 @@ module Examine = struct
         "vars", Worker.Vars.to_yojson vars
       ]
 
-    let digest { opam_repository; platforms } =
+    let digest { opam_repository_commit; platforms } =
       let json = `Assoc [
-          "opam-repository", `String (Current_git.Commit.hash opam_repository);
+          "opam-repository", `String (Current_git.Commit_id.hash opam_repository_commit);
           "platforms", `List (List.map platform_to_yojson platforms);
         ]
       in
@@ -278,10 +278,9 @@ module Examine = struct
 
   let id = "ci-analyse"
 
-  let run solver job src { Value.opam_repository; platforms } =
+  let run solver job src { Value.opam_repository_commit; platforms } =
     Current.Job.start job ~pool ~level:Current.Level.Harmless >>= fun () ->
     Current_git.with_checkout ~job src @@ fun src ->
-    let opam_repository_commit = Current_git.Commit.id opam_repository in
     Analysis.of_dir ~solver ~platforms ~opam_repository_commit ~job src
 
   let pp f _ = Fmt.string f "Analyse"
@@ -292,10 +291,10 @@ end
 
 module Examine_cache = Current_cache.Generic(Examine)
 
-let examine ~solver ~platforms ~opam_repository src =
+let examine ~solver ~platforms ~opam_repository_commit src =
   Current.component "Analyse" |>
   let> src = src
-  and> opam_repository = opam_repository
+  and> opam_repository_commit = opam_repository_commit
   and> platforms = platforms in
   let platforms = platforms |> List.map (fun { Platform.variant; vars; _ } -> (variant, vars)) in
-  Examine_cache.run solver src { Examine.Value.opam_repository; platforms }
+  Examine_cache.run solver src { Examine.Value.opam_repository_commit; platforms }
