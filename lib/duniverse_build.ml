@@ -11,10 +11,12 @@ let install_bin ~compiler ~repo ~tag ~bins name =
   let open Dockerfile in
   let alias = Printf.sprintf "%s_binary" name in
   let base = Printf.sprintf "ocurrent/opam:debian-10-ocaml-%s" compiler in
+  let opam_repo_hash = "9509aa5e87a7431329e26428db51707869a7e22a" in
   let switch = latest_patch_release_with_flambda compiler in
   let build =
     from ~alias base @@
     run "sudo apt-get -y install musl-tools" @@
+    run "git -C /home/opam/opam-repository pull origin master && git -C /home/opam/opam-repository checkout %s && opam update -uy" opam_repo_hash @@
     run "opam switch create static %s" switch @@ (* TODO base-compilers should build this variant *)
     run "opam install -y dune" @@
     run "git clone --depth=1 --branch=%s https://github.com/%s.git /home/opam/src" tag repo @@
@@ -39,7 +41,7 @@ let install_platform ~compiler =
     ~repo:"ocaml/dune" ~tag:"2.5.1"
     ~bins:["bin/dune", "/usr/bin/dune"] "dune" in
   let ocamlformat = install_bin ~compiler
-    ~repo:"ocaml-ppx/ocamlformat" ~tag:"0.14.1"
+    ~repo:"ocaml-ppx/ocamlformat" ~tag:"0.14.2"
     ~bins:["bin/ocamlformat", "/usr/bin/ocamlformat"] "ocamlformat" in
   let open Dockerfile in
   List.fold_left (fun (b, u) (b',u') -> (b @@ b'), (u @@ u')) (empty, empty)
