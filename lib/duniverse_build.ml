@@ -23,7 +23,6 @@ let install_bin ~compiler ~repo ~tag ~bins name =
     workdir "/home/opam/src" @@
     run "echo \"(lang dune 2.0)\" > dune-workspace" @@
     run "echo \"(env (_ (flags -cclib -static)))\" >> dune-workspace" @@
-    run "opam pin add -n ." @@
     run "opam depext %s" name @@
     run "opam install --deps-only %s" name @@
     run "opam exec -- dune build @install" @@@
