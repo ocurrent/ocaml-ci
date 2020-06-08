@@ -75,3 +75,16 @@ let main commit =
       aux ()
   in
   aux ()
+
+let main commit =
+  try main commit
+  with ex ->
+    Fmt.epr "solver bug: %a@." Fmt.exn ex;
+    let msg =
+      match ex with
+      | Failure msg -> msg
+      | ex -> Printexc.to_string ex
+    in
+    let msg = "!" ^ msg in
+    Printf.printf "0.0\n%d\n%s%!" (String.length msg) msg;
+    raise ex

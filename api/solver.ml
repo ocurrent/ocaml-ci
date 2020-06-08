@@ -24,7 +24,7 @@ module Log = struct
       let thread = write t msg in
       Lwt.on_failure thread (fun ex -> Format.eprintf "Log.info(%S) failed: %a@." msg Fmt.exn ex)
     in
-    Fmt.kstr k ("%a [INFO] " ^^ fmt ^^ "@.") pp_timestamp now
+    Fmt.kstr k ("%a [INFO] @[" ^^ fmt ^^ "@]@.") pp_timestamp now
 end
 
 module X = Raw.Client.Solver

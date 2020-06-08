@@ -74,6 +74,9 @@ end = struct
         Log.info log "%s: eliminated all possibilities in %s s" id time;
         let msg = results |> Astring.String.with_range ~first:1 in
         Error msg
+      | '!' ->
+        let msg = results |> Astring.String.with_range ~first:1 in
+        Fmt.failwith "BUG: solver worker failed: %s" msg;
       | _ ->
         Fmt.failwith "BUG: bad output: %s" results
 
