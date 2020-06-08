@@ -23,6 +23,7 @@ RUN opam pin add -yn current_ansi.dev "./ocurrent" && \
     opam pin add -yn current_slack.dev "./ocurrent" && \
     opam pin add -yn current_web.dev "./ocurrent"
 COPY --chown=opam ocaml-ci-service.opam ocaml-ci-api.opam ocaml-ci-solver.opam /src/
+RUN opam pin add -n git 'https://github.com/mirage/ocaml-git.git#a89ab14ce5cc59531122627ef664a8aee03352f1'
 RUN opam install -y --deps-only .
 ADD --chown=opam . .
 RUN opam config exec -- dune build ./_build/install/default/bin/ocaml-ci-service
