@@ -225,7 +225,7 @@ module Analysis = struct
     in
     (* [opam_files] are used to detect vendored OCamlformat but this only works
        with duniverse, as other opam files are filtered above. *)
-    Analyse_ocamlformat.get_ocamlformat_source job ~opam_files ~root:dir >>= fun ocamlformat_source ->
+    Analyse_ocamlformat.get_ocamlformat_source job ~opam_files ~root:dir >>!= fun ocamlformat_source ->
     if opam_files = [] then Lwt_result.fail (`Msg "No opam files found!")
     else if List.filter is_toplevel opam_files = [] then Lwt_result.fail (`Msg "No top-level opam files found!")
     else (

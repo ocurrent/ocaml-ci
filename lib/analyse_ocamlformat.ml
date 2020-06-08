@@ -1,5 +1,3 @@
-open Lwt.Infix
-
 type source =
   | Opam of { version : string }
   | Vendored of { path : string }
@@ -49,17 +47,14 @@ let ocamlformat_version_from_file job path =
           Current.Job.log job "Found OCamlformat version '%s' in dotfile" v
         in
         Ok (Some v)
-    | _ -> Error (`Msg "Unable to parse .ocamlformat file")
+    | _ -> Error (`Msg "Missing 'version=' line in .ocamlformat")
 
 let get_ocamlformat_source job ~opam_files ~root =
   let proj_is_ocamlformat p = String.equal (Filename.basename p) "ocamlformat.opam" in
   match List.find_opt proj_is_ocamlformat opam_files with
   | Some opam_file ->
     let path = Filename.dirname opam_file in
-    Lwt.return (Some (Vendored { path }))
+    Lwt_result.return (Some (Vendored { path }))
   | None ->
     Fpath.(to_string (root / ".ocamlformat")) |> ocamlformat_version_from_file job
-    >|= function
-    | Ok (Some version) -> Some (Opam { version })
-    | Ok None -> None
-    | Error (`Msg e) -> failwith e
+    |> Lwt_result.map (Option.map (fun version -> Opam { version }))
