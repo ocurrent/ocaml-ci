@@ -36,20 +36,30 @@ let github_status_of_state ~head result =
 let set_active_installations installations =
   let+ installations = installations in
   installations
-  |> List.fold_left (fun acc i -> Index.Account_set.add (Github.Installation.account i) acc) Index.Account_set.empty
-  |> Index.set_active_accounts;
+  |> List.fold_left (fun acc i -> Index.Owner_set.add (Github.Installation.account i) acc) Index.Owner_set.empty
+  |> Index.set_active_owners;
   installations
+
+let set_active_repos ~installation repos =
+  let+ installation = installation
+  and+ repos = repos in
+  let owner = Github.Installation.account installation in
+  repos
+  |> List.fold_left (fun acc r -> Index.Repo_set.add (Github.Api.Repo.id r).name acc) Index.Repo_set.empty
+  |> Index.set_active_repos ~owner;
+  repos
 
 let set_active_refs ~repo xs =
   let+ repo = repo
   and+ xs = xs in
   let repo = Github.Api.Repo.id repo in
   Index.set_active_refs ~repo (
-    xs |> List.map @@ fun x ->
-    let commit = Github.Api.Commit.id x in
-    let gref = Git.Commit_id.gref commit in
-    let hash = Git.Commit_id.hash commit in
-    (gref, hash)
+    xs |> List.fold_left (fun acc x ->
+        let commit = Github.Api.Commit.id x in
+        let gref = Git.Commit_id.gref commit in
+        let hash = Git.Commit_id.hash commit in
+        Index.Ref_map.add gref hash acc
+      ) Index.Ref_map.empty
   );
   xs
 
@@ -153,7 +163,7 @@ let v ~app ~solver () =
   Current.with_context platforms @@ fun () ->
   let installations = Github.App.installations app |> set_active_installations in
   installations |> Current.list_iter ~collapse_key:"org" (module Github.Installation) @@ fun installation ->
-  let repos = Github.Installation.repositories installation in
+  let repos = Github.Installation.repositories installation |> set_active_repos ~installation in
   repos |> Current.list_iter ~collapse_key:"repo" (module Github.Api.Repo) @@ fun repo ->
   let refs = Github.Api.Repo.ci_refs repo |> set_active_refs ~repo in
   refs |> Current.list_iter (module Github.Api.Commit) @@ fun head ->
