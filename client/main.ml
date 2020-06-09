@@ -74,7 +74,8 @@ let list_repos ~owner org =
   | [] ->
     Fmt.pr "@[<v>No repository given and no suggestions available.@."
   | repos ->
-    let full_name f r = Fmt.pf f "%s/%s" owner r in
+    let full_name f { Client.Org.name; master_status } =
+      Fmt.pf f "%s/%s (%a)" owner name Client.Build_status.pp master_status in
     Fmt.pr "@[<v>No repository given. Try one of these:@,@,%a@]@." Fmt.(list full_name) repos
 
 let list_refs repo =
@@ -82,7 +83,7 @@ let list_refs repo =
   if Client.Ref_map.is_empty refs then
     Fmt.pr "No branches or PRs are being tracked by the CI for this repository.@."
   else
-    Client.Ref_map.iter (fun gref hash -> Fmt.pr "%s %s@." hash gref) refs
+    Client.Ref_map.iter (fun gref (hash, status) -> Fmt.pr "%s %s (%a)@." hash gref Client.Build_status.pp status) refs
 
 let pp_job f { Client.variant; outcome } =
   Fmt.pf f "%s (%a)" variant Client.State.pp outcome

@@ -9,6 +9,12 @@ type variant = string
 
 module Ref_map : Map.S with type key = git_ref
 
+module Build_status : sig
+  type t = Raw.Reader.BuildStatus.t
+
+  val pp : t Fmt.t
+end
+
 module State : sig
   type t = Raw.Reader.JobInfo.State.unnamed_union_t
 
@@ -40,7 +46,7 @@ module Repo : sig
   type t = Raw.Client.Repo.t Capability.t
   (** A GitHub repository that is tested by ocaml-ci. *)
 
-  val refs : t -> (git_hash Ref_map.t, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
+  val refs : t -> ((git_hash * Build_status.t) Ref_map.t, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
   (** [refs t] returns the known Git references (branches and pull requests) that ocaml-ci
       is monitoring, along with the current head of each one. *)
 
@@ -55,11 +61,16 @@ module Org : sig
   type t = Raw.Client.Org.t Capability.t
   (** A GitHub organisation. *)
 
+  type repo_info = {
+    name : string;
+    master_status : Build_status.t;
+  }
+
   val repo : t -> string -> Repo.t
   (** [repo t name] is the GitHub organisation at "https://github.com/$owner/$name".
       It returns an error if ocaml-ci doesn't know about this repository. *)
 
-  val repos : t -> (string list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
+  val repos : t -> (repo_info list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
 end
 
 module CI : sig

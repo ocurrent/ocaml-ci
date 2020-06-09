@@ -21,6 +21,18 @@ module State = struct
     | Undefined x -> Fmt.pf f "unknown:%d" x
 end
 
+module Build_status = struct
+  include Raw.Reader.BuildStatus
+
+  let pp f =
+    function
+    | NotStarted -> Fmt.string f "not started"
+    | Failed -> Fmt.pf f "failed"
+    | Passed -> Fmt.string f "passed"
+    | Pending -> Fmt.string f "pending"
+    | Undefined x -> Fmt.pf f "unknown:%d" x
+end
+
 type job_info = {
   variant : variant;
   outcome : State.t;
@@ -45,6 +57,11 @@ end
 module Org = struct
   type t = Raw.Client.Org.t Capability.t
 
+  type repo_info = {
+    name : string;
+    master_status : Build_status.t;
+  }
+
   let repo t name =
     let open Raw.Client.Org.Repo in
     let request, params = Capability.Request.create Params.init_pointer in
@@ -55,7 +72,13 @@ module Org = struct
     let open Raw.Client.Org.Repos in
     let request = Capability.Request.create_no_args () in
     Capability.call_for_value t method_id request
-    |> Lwt_result.map Results.repos_get_list
+    |> Lwt_result.map (fun result ->
+        Results.repos_get_list result
+        |> List.map @@ fun repo ->
+        let name = Raw.Reader.RepoInfo.name_get repo in
+        let master_status = Raw.Reader.RepoInfo.master_state_get repo in
+        { name; master_status }
+      )
 end
 
 module Repo = struct
@@ -69,7 +92,8 @@ module Repo = struct
     |> List.fold_left (fun acc slot ->
         let gref = Raw.Reader.RefInfo.ref_get slot in
         let hash = Raw.Reader.RefInfo.hash_get slot in
-        Ref_map.add gref hash acc
+        let state = Raw.Reader.RefInfo.state_get slot in
+        Ref_map.add gref (hash, state) acc
       ) Ref_map.empty
 
   let commit_of_hash t hash =

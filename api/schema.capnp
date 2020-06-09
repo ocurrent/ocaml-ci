@@ -2,16 +2,18 @@
 
 using OCurrent = import "ocurrent.capnp";
 
-struct RefInfo {
-  ref  @0 :Text;
-  hash @1 :Text;
-}
-
 enum BuildStatus {
   notStarted @0;
   passed     @1;
   failed     @2;
   pending    @3;
+}
+
+struct RefInfo {
+  ref         @0 :Text;
+  hash        @1 :Text;
+  state       @2 :BuildStatus;
+  # The state of the ref's head commit
 }
 
 struct JobInfo {
@@ -60,10 +62,16 @@ interface Repo {
   # ref should be of the form "refs/heads/..." or "refs/pull/4/head"
 }
 
+struct RepoInfo {
+  name @0 :Text;
+  masterState @1 :BuildStatus;
+  # The status of the repository's master branch (notStarted if there isn't one)
+}
+
 interface Org {
   repo         @0 (name :Text) -> (repo :Repo);
 
-  repos        @1 () -> (repos :List(Text));
+  repos        @1 () -> (repos :List(RepoInfo));
   # Get the list of tracked repositories for this organisation.
 }
 

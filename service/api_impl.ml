@@ -71,6 +71,13 @@ let make_commit ~engine ~owner ~name hash =
       Service.return response
   end
 
+let to_build_status =
+  let open Raw.Builder.BuildStatus in function
+  | `Not_started -> NotStarted
+  | `Failed -> Failed
+  | `Pending -> Pending
+  | `Passed -> Passed
+
 let make_repo ~engine ~owner ~name =
   let module Repo = Raw.Service.Repo in
   let commits = ref String_map.empty in
@@ -99,6 +106,8 @@ let make_repo ~engine ~owner ~name =
           let slot = Capnp.Array.get arr i in
           Raw.Builder.RefInfo.ref_set slot gref;
           Raw.Builder.RefInfo.hash_set slot hash;
+          let status = to_build_status (Index.get_status ~owner ~name ~hash) in
+          Raw.Builder.RefInfo.state_set slot status;
         );
       Service.return response
 
@@ -177,7 +186,18 @@ let make_org ~engine owner =
       release_param_caps ();
       let response, results = Service.Response.create Results.init_pointer in
       let repos = Index.get_active_repos ~owner |> Index.Repo_set.elements in
-      Results.repos_set_list results repos |> ignore;
+      let arr = Results.repos_init results (List.length repos) in
+      repos |> List.iteri (fun i name ->
+          let slot = Capnp.Array.get arr i in
+          Raw.Builder.RepoInfo.name_set slot name;
+          let refs = Index.get_active_refs { Current_github.Repo_id.owner; name } in
+          let status =
+            match Index.Ref_map.find_opt "refs/heads/master" refs with
+            | Some hash -> to_build_status (Index.get_status ~owner ~name ~hash)
+            | None -> NotStarted
+          in
+          Raw.Builder.RepoInfo.master_state_set slot status;
+        );
       Service.return response
   end
 

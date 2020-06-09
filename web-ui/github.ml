@@ -96,6 +96,18 @@ end = struct
     | _::_, (Branch _ as t)::ts -> t :: add k x ts
 end
 
+module Build_status = struct
+  include Client.Build_status
+
+  let class_name (t : t) =
+    match t with
+    | NotStarted -> "not-started"
+    | Failed -> "failed"
+    | Passed -> "passed"
+    | Pending -> "active"
+    | Undefined _ -> "undefined"
+end
+
 let statuses ss =
   let open Tyxml.Html in
   let rec render_status = function
@@ -118,9 +130,11 @@ let statuses ss =
 
 let format_refs ~owner ~name refs =
   let open Tyxml.Html in
-  ul (
-    Client.Ref_map.to_seq refs |> List.of_seq |> List.map @@ fun (branch, commit) ->
-    li [a ~a:[a_href (commit_url ~owner ~name commit)] [txt branch]]
+  ul ~a:[a_class ["statuses"]] (
+    Client.Ref_map.bindings refs |> List.map @@ fun (branch, (commit, status)) ->
+    li ~a:[a_class [Build_status.class_name status]] [
+      a ~a:[a_href (commit_url ~owner ~name commit)] [txt branch]
+    ]
   )
 
 let rec intersperse ~sep = function
@@ -289,15 +303,17 @@ let list_orgs ci =
     ] in
   Server.respond_string ~status:`OK ~body () |> normal_response
 
-let format_repo ~owner name =
+let format_repo ~owner { Client.Org.name; master_status } =
   let open Tyxml.Html in
-  li [a ~a:[a_href (repo_url ~owner name)] [txt name]]
+  li ~a:[a_class [Build_status.class_name master_status]] [
+    a ~a:[a_href (repo_url ~owner name)] [txt name]
+  ]
 
 let list_repos ~owner org =
   Client.Org.repos org >>!= fun repos ->
   let body = Template.instance Tyxml.Html.[
       breadcrumbs ["github", "github"] owner;
-      ul (List.map (format_repo ~owner) repos)
+      ul ~a:[a_class ["statuses"]] (List.map (format_repo ~owner) repos)
     ] in
   Server.respond_string ~status:`OK ~body () |> normal_response
 
