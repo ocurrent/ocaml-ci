@@ -50,6 +50,7 @@ let make_commit ~engine ~owner ~name hash =
       release_param_caps ();
       let refs =
         Index.get_active_refs { Current_github.Repo_id.owner; name }
+        |> Index.Ref_map.bindings
         |> List.filter_map (fun (name, h) -> if h = hash then Some name else None)
       in
       let response, results = Service.Response.create Results.init_pointer in
@@ -88,7 +89,10 @@ let make_repo ~engine ~owner ~name =
     method refs_impl _params release_param_caps =
       let open Repo.Refs in
       release_param_caps ();
-      let refs = Index.get_active_refs { Current_github.Repo_id.owner; name } in
+      let refs =
+        Index.get_active_refs { Current_github.Repo_id.owner; name }
+        |> Index.Ref_map.bindings
+      in
       let response, results = Service.Response.create Results.init_pointer in
       let arr = Results.refs_init results (List.length refs) in
       refs |> List.iteri (fun i (gref, hash) ->
@@ -107,9 +111,9 @@ let make_repo ~engine ~owner ~name =
       let gref = Params.ref_get params in
       release_param_caps ();
       let refs = Index.get_active_refs { Current_github.Repo_id.owner; name } in
-      match List.assoc_opt gref refs with
+      match Index.Ref_map.find_opt gref refs with
       | None -> Service.fail "@[<v2>Unknown ref %S. Options are:@,%a@]" gref
-                  Fmt.(Dump.list string) (List.map fst refs)
+                  Fmt.(Dump.list string) (List.map fst (Index.Ref_map.bindings refs))
       | Some hash ->
         let commit = get_commit hash in
         let response, results = Service.Response.create Results.init_pointer in
@@ -147,7 +151,8 @@ let make_org ~engine owner =
     match String_map.find_opt name !repos with
     | Some repo -> Some repo
     | None ->
-      if Index.is_known_repo ~owner ~name then (
+      let active_repos = Index.get_active_repos ~owner in
+      if Index.Repo_set.mem name active_repos then (
         let repo = make_repo ~engine ~owner ~name in
         repos := String_map.add name repo !repos;
         Some repo
@@ -171,7 +176,8 @@ let make_org ~engine owner =
       let open Org.Repos in
       release_param_caps ();
       let response, results = Service.Response.create Results.init_pointer in
-      Results.repos_set_list results (Index.list_repos owner) |> ignore;
+      let repos = Index.get_active_repos ~owner |> Index.Repo_set.elements in
+      Results.repos_set_list results repos |> ignore;
       Service.return response
   end
 
@@ -183,7 +189,7 @@ let make_ci ~engine =
     match String_map.find_opt owner !orgs with
     | Some org -> Some org
     | None ->
-      if Index.Account_set.mem owner (Index.get_active_accounts ()) then (
+      if Index.Owner_set.mem owner (Index.get_active_owners ()) then (
         let org = make_org ~engine owner in
         orgs := String_map.add owner org !orgs;
         Some org
@@ -207,7 +213,7 @@ let make_ci ~engine =
       let open CI.Orgs in
       release_param_caps ();
       let response, results = Service.Response.create Results.init_pointer in
-      let owners = Index.get_active_accounts () |> Index.Account_set.elements in
+      let owners = Index.get_active_owners () |> Index.Owner_set.elements in
       Results.orgs_set_list results owners |> ignore;
       Service.return response
   end
