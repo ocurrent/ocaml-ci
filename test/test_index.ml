@@ -5,18 +5,17 @@ let jobs =
   Alcotest.testable (Fmt.Dump.list state) (=)
 
 let test_simple () =
-  Alcotest.(check (list string)) "Empty DB" [] @@ Index.list_owners ();
   let owner = "owner" in
   let name = "name" in
   let repo = { Current_github.Repo_id.owner; name } in
   let hash = "abc" in
   let db = Lazy.force Current.Db.v in
+  Index.init ();
   Current.Db.exec_literal db "INSERT INTO cache (op, key, job_id, value, ok, outcome, ready, running, finished, build)
                                      VALUES ('test', x'00', 'job1', x'01', 1, x'02', '2019-11-01 9:00', '2019-11-01 9:01', '2019-11-01 9:02', 0)";
   Index.set_active_refs ~repo ["master", hash];
   Index.record ~repo ~hash ~status:`Pending [ "analysis", Some "job1";
                              "alpine", None ];
-  Alcotest.(check (list string)) "Owners" ["owner"] @@ Index.list_owners ();
   Alcotest.(check (list string)) "Repos" ["name"] @@ Index.list_repos owner;
   Alcotest.(check (list (pair string string))) "Refs" ["master", hash] @@ Index.get_active_refs repo;
   Alcotest.(check jobs) "Jobs" ["alpine", `Not_started; "analysis", `Passed] @@ Index.get_jobs ~owner ~name hash;

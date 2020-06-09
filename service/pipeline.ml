@@ -33,6 +33,13 @@ let github_status_of_state ~head result =
   | Error (`Active _) -> Github.Api.Status.v ~url `Pending
   | Error (`Msg m)    -> Github.Api.Status.v ~url `Failure ~description:m
 
+let set_active_installations installations =
+  let+ installations = installations in
+  installations
+  |> List.fold_left (fun acc i -> Index.Account_set.add (Github.Installation.account i) acc) Index.Account_set.empty
+  |> Index.set_active_accounts;
+  installations
+
 let set_active_refs ~repo xs =
   let+ repo = repo
   and+ xs = xs in
@@ -144,7 +151,8 @@ let local_test ~solver repo () =
 let v ~app ~solver () =
   Current.with_context opam_repository_commit @@ fun () ->
   Current.with_context platforms @@ fun () ->
-  Github.App.installations app |> Current.list_iter ~collapse_key:"org" (module Github.Installation) @@ fun installation ->
+  let installations = Github.App.installations app |> set_active_installations in
+  installations |> Current.list_iter ~collapse_key:"org" (module Github.Installation) @@ fun installation ->
   let repos = Github.Installation.repositories installation in
   repos |> Current.list_iter ~collapse_key:"repo" (module Github.Api.Repo) @@ fun repo ->
   let refs = Github.Api.Repo.ci_refs repo |> set_active_refs ~repo in

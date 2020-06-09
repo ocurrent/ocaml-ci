@@ -9,12 +9,10 @@ type t = {
   db : Sqlite3.db;
   record_job : Sqlite3.stmt;
   remove : Sqlite3.stmt;
-  owner_exists : Sqlite3.stmt;
   repo_exists : Sqlite3.stmt;
   get_jobs : Sqlite3.stmt;
   get_job : Sqlite3.stmt;
   get_job_ids : Sqlite3.stmt;
-  list_owners : Sqlite3.stmt;
   list_repos : Sqlite3.stmt;
   full_hash : Sqlite3.stmt;
 }
@@ -49,10 +47,7 @@ CREATE TABLE IF NOT EXISTS ci_build_index (
                                      VALUES (?, ?, ?, ?, ?)" in
   let remove = Sqlite3.prepare db "DELETE FROM ci_build_index \
                                      WHERE owner = ? AND name = ? AND hash = ? AND variant = ?" in
-  let list_owners = Sqlite3.prepare db "SELECT DISTINCT owner FROM ci_build_index" in
   let list_repos = Sqlite3.prepare db "SELECT DISTINCT name FROM ci_build_index WHERE owner = ?" in
-  let owner_exists = Sqlite3.prepare db "SELECT EXISTS (SELECT 1 FROM ci_build_index \
-                                                        WHERE owner = ?)" in
   let repo_exists = Sqlite3.prepare db "SELECT EXISTS (SELECT 1 FROM ci_build_index \
                                                        WHERE owner = ? AND name = ?)" in
   let get_jobs = Sqlite3.prepare db "SELECT ci_build_index.variant, ci_build_index.job_id, cache.ok, cache.outcome \
@@ -69,16 +64,16 @@ CREATE TABLE IF NOT EXISTS ci_build_index (
         db;
         record_job;
         remove;
-        owner_exists;
         repo_exists;
         get_jobs;
         get_job;
         get_job_ids;
-        list_owners;
         list_repos;
         full_hash
       }
 )
+
+let init () = ignore (Lazy.force db)
 
 let get_job_ids t ~owner ~name ~hash =
   Db.query t.get_job_ids Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash ]
@@ -142,12 +137,6 @@ let record ~repo ~hash ~status jobs =
   let _ : [`Empty] Job_map.t = Job_map.merge merge previous jobs in
   ()
 
-let is_known_owner owner =
-  let t = Lazy.force db in
-  match Db.query_one t.owner_exists Sqlite3.Data.[ TEXT owner ] with
-  | Sqlite3.Data.[ INT x ] -> x = 1L
-  | _ -> failwith "owner_exists failed!"
-
 let is_known_repo ~owner ~name =
   let t = Lazy.force db in
   match Db.query_one t.repo_exists Sqlite3.Data.[ TEXT owner; TEXT name ] with
@@ -189,13 +178,6 @@ let get_job ~owner ~name ~hash ~variant =
   | Some Sqlite3.Data.[ NULL ] -> Ok None
   | _ -> failwith "get_job: invalid result!"
 
-let list_owners () =
-  let t = Lazy.force db in
-  Db.query t.list_owners []
-  |> List.map @@ function
-  | Sqlite3.Data.[ TEXT x ] -> x
-  | _ -> failwith "list_owners: invalid data returned!"
-
 let list_repos owner =
   let t = Lazy.force db in
   Db.query t.list_repos Sqlite3.Data.[ TEXT owner ]
@@ -203,7 +185,12 @@ let list_repos owner =
   | Sqlite3.Data.[ TEXT x ] -> x
   | _ -> failwith "list_repos: invalid data returned!"
 
+module Account_set = Set.Make(String)
 module Repo_map = Map.Make(Current_github.Repo_id)
+
+let active_accounts = ref Account_set.empty
+let set_active_accounts x = active_accounts := x
+let get_active_accounts () = !active_accounts
 
 let active_refs = ref Repo_map.empty
 
