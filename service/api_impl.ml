@@ -183,7 +183,7 @@ let make_ci ~engine =
     match String_map.find_opt owner !orgs with
     | Some org -> Some org
     | None ->
-      if Index.is_known_owner owner then (
+      if Index.Account_set.mem owner (Index.get_active_accounts ()) then (
         let org = make_org ~engine owner in
         orgs := String_map.add owner org !orgs;
         Some org
@@ -207,6 +207,7 @@ let make_ci ~engine =
       let open CI.Orgs in
       release_param_caps ();
       let response, results = Service.Response.create Results.init_pointer in
-      Results.orgs_set_list results (Index.list_owners ()) |> ignore;
+      let owners = Index.get_active_accounts () |> Index.Account_set.elements in
+      Results.orgs_set_list results owners |> ignore;
       Service.return response
   end

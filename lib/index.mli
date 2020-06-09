@@ -7,6 +7,9 @@ type job_state = [`Not_started | `Active | `Failed of string | `Passed | `Aborte
 
 type build_status = [ `Not_started | `Pending | `Failed | `Passed ]
 
+val init : unit -> unit
+(** Ensure the database is initialised (for unit-tests). *)
+
 val record :
   repo:Current_github.Repo_id.t ->
   hash:string ->
@@ -15,14 +18,8 @@ val record :
   unit
 (** [record ~repo ~hash jobs] updates the entry for [repo, hash] to point at [jobs]. *)
 
-val is_known_owner : string -> bool
-(** [is_known_owner owner] is [true] iff there is an entry for a commit in organisation [owner]. *)
-
 val is_known_repo : owner:string -> name:string -> bool
 (** [is_known_repo ~owner ~name] is [true] iff there is an entry for a commit in repository [owner/name]. *)
-
-val list_owners : unit -> string list
-(** [list_owners ()] lists all the tracked owners. *)
 
 val list_repos : string -> string list
 (** [list_repos owner] lists all the tracked repos under [owner]. *)
@@ -43,7 +40,15 @@ val get_status:
 val get_full_hash : owner:string -> name:string -> string -> (string, [> `Ambiguous | `Unknown | `Invalid]) result
 (** [get_full_hash ~owner ~name short_hash] returns the full hash for [short_hash]. *)
 
+module Account_set : Set.S with type elt = string
 module Repo_map : Map.S with type key = Current_github.Repo_id.t
+
+val set_active_accounts : Account_set.t -> unit
+(** [set_active_accounts accounts] record that [accounts] is the set of accounts on which the CI is installed.
+    This is displayed in the CI web interface. *)
+
+val get_active_accounts : unit -> Account_set.t
+(** [get_active_accounts ()] is the last value passed to [set_active_accounts], or [[]] if not known yet. *)
 
 val set_active_refs : repo:Current_github.Repo_id.t -> (string * string) list -> unit
 (** [set_active_refs ~repo entries] records that [entries] is the current set of Git references that the CI
