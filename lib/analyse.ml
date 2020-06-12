@@ -15,12 +15,16 @@ let is_toplevel path = not (String.contains path '/')
 let ( >>!= ) = Lwt_result.bind
 
 let read_file ~max_len path =
-  let ch = open_in path in
-  Fun.protect ~finally:(fun () -> close_in ch)
-    (fun () ->
-       let len = in_channel_length ch in
-       if len <= max_len then really_input_string ch len
-       else Fmt.failwith "File %S too big (%d bytes)" path len
+  Lwt_io.with_file ~mode:Lwt_io.input path
+    (fun ch ->
+       Lwt_io.length ch >>= fun len ->
+       let len =
+         if len <= Int64.of_int max_len then Int64.to_int len
+         else Fmt.failwith "File %S too big (%Ld bytes)" path len
+       in
+       let buf = Bytes.create len in
+       Lwt_io.read_into_exactly ch buf 0 len >|= fun () ->
+       Bytes.to_string buf
     )
 
 (* A logging service that logs to [job]. *)
@@ -156,17 +160,18 @@ module Analysis = struct
   let opam_selections ~solver ~job ~platforms ~opam_repository_commit ~opam_files dir =
     let src = Fpath.to_string dir in
     let ( / ) = Filename.concat in
-    let root_pkgs, pinned_pkgs =
-      opam_files |> List.fold_left (fun (root_pkgs, pinned_pkgs) path ->
+    begin
+      opam_files |> Lwt_list.fold_left_s (fun (root_pkgs, pinned_pkgs) path ->
           let name = Filename.basename path |> Filename.chop_extension in
           let name = if String.contains name '.' then name else name ^ ".dev" in
-          let item = name, read_file ~max_len:102400 (src / path) in
+          read_file ~max_len:102400 (src / path) >|= fun file ->
+          let item = name, file in
           if Filename.dirname path = "." then
             (item :: root_pkgs, pinned_pkgs)
           else
             (root_pkgs, item :: pinned_pkgs)
         ) ([], [])
-    in
+    end >>= fun (root_pkgs, pinned_pkgs) ->
     Lwt.try_bind
       (fun () -> handle_opam_files ~job ~root_pkgs ~pinned_pkgs)
       (fun pin_depends ->
