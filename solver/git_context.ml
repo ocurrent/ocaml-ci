@@ -3,7 +3,9 @@ module Search = Git.Search.Make(Store)
 
 open Lwt.Infix
 
-type rejection = UserConstraint of OpamFormula.atom
+type rejection =
+  | UserConstraint of OpamFormula.atom
+  | Unavailable
 
 type t = {
   env : string -> OpamVariable.variable_contents option;
@@ -12,18 +14,6 @@ type t = {
   constraints : OpamFormula.version_constraint OpamTypes.name_map;    (* User-provided constraints *)
   test : OpamPackage.Name.Set.t;
 }
-
-let load t pkg =
-  let { OpamPackage.name; version } = pkg in
-  match OpamPackage.Name.Map.find_opt name t.pins with
-  | Some (_, opam) -> opam
-  | None ->
-    match OpamPackage.Name.Map.find_opt name t.packages with
-    | None -> Fmt.failwith "Package %S not found" (OpamPackage.Name.to_string name)
-    | Some versions ->
-      match OpamPackage.Version.Map.find_opt version versions with
-      | None -> Fmt.failwith "Package %S not found" (OpamPackage.to_string pkg)
-      | Some opam -> opam
 
 let user_restrictions t name =
   OpamPackage.Name.Map.find_opt name t.constraints
@@ -45,7 +35,7 @@ let filter_deps t pkg f =
 
 let candidates t name =
   match OpamPackage.Name.Map.find_opt name t.pins with
-  | Some (version, _) -> [version, None]
+  | Some (version, opam) -> [version, Ok opam]
   | None ->
     match OpamPackage.Name.Map.find_opt name t.packages with
     | None ->
@@ -54,15 +44,24 @@ let candidates t name =
     | Some versions ->
       let user_constraints = user_restrictions t name in
       OpamPackage.Version.Map.bindings versions
-      |> List.rev_map (fun (v, _) ->
+      |> List.rev_map (fun (v, opam) ->
           match user_constraints with
           | Some test when not (OpamFormula.check_version_formula (OpamFormula.Atom test) v) ->
-            v, Some (UserConstraint (name, Some test))  (* Reject *)
-          | _ -> v, None
+            v, Error (UserConstraint (name, Some test))
+          | _ ->
+            let pkg = OpamPackage.create name v in
+            let available = OpamFile.OPAM.available opam in
+            match OpamFilter.eval ~default:(B false) (env t pkg) available with
+            | B true -> v, Ok opam
+            | B false -> v, Error Unavailable
+            | _ ->
+              OpamConsole.error "Available expression not a boolean: %s" (OpamFilter.to_string available);
+              v, Error Unavailable
         )
 
 let pp_rejection f = function
   | UserConstraint x -> Fmt.pf f "Rejected by user-specified constraint %s" (OpamFormula.string_of_atom x)
+  | Unavailable -> Fmt.string f "Availability condition not satisfied"
 
 let read_dir store hash =
   Store.read store hash >|= function

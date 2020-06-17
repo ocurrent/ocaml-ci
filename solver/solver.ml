@@ -11,6 +11,7 @@ let env (vars : Worker.Vars.t) =
     ~os_distribution:vars.os_distribution
     ~os_version:vars.os_version
     ~os_family:vars.os_family
+    ()
 
 let ocaml_name = OpamPackage.Name.of_string "ocaml"
 
