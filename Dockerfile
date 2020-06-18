@@ -1,6 +1,6 @@
 FROM ocurrent/opam:debian-10-ocaml-4.10 AS build
 RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libsqlite3-dev libgmp-dev -y --no-install-recommends
-RUN cd ~/opam-repository && git pull origin master && git reset --hard 61bbad883b6951c3979133dfe07644a5c0cb67d7 && opam update
+RUN cd ~/opam-repository && git pull origin master && git reset --hard dbd4c97fbe25d8179a416b7252957de2b53322ad && opam update
 COPY --chown=opam \
 	ocurrent/current_ansi.opam \
 	ocurrent/current_docker.opam \

@@ -47,7 +47,7 @@
   fmt
   ocaml-ci-api
   conf-libev
-  opam-0install
+  (opam-0install (>= "0.2"))
   git-unix
   (capnp-rpc-unix (>= 0.7.0))
 ))
