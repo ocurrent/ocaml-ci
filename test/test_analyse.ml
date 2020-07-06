@@ -23,8 +23,12 @@ module Analysis = struct
   [@@deriving eq, yojson]
 
 
-  let of_dir ~job ~platforms ~solver_dir ~opam_repository_commit d =
+  let of_dir ~switch ~job ~platforms ~solver_dir ~opam_repository_commit d =
     let solver = Ocaml_ci.Solver_pool.spawn_local ~solver_dir () in
+    Lwt_switch.add_hook (Some switch) (fun () ->
+        Capnp_rpc_lwt.Capability.dec_ref solver;
+        Lwt.return_unit
+      );
     of_dir ~solver ~job ~platforms ~opam_repository_commit d
     |> Lwt_result.map (fun t ->
            {
@@ -89,8 +93,10 @@ let expect_test name ~project ~expected =
           ~hash:(String.trim hash)
           ~gref:"master"
       in
-      Analysis.of_dir ~job ~platforms:Test_platforms.v ~solver_dir ~opam_repository_commit
-        (Fpath.v root)
+      Lwt_switch.with_switch (fun switch ->
+          Analysis.of_dir ~switch ~job ~platforms:Test_platforms.v ~solver_dir ~opam_repository_commit
+            (Fpath.v root)
+        )
       >|= (function
             | Ok o -> o
             | Error (`Msg e) ->
@@ -104,7 +110,10 @@ let expect_test name ~project ~expected =
                 close_in ch;
                 Printf.printf "Log:\n%s\n%!" log;
                 Alcotest.failf "Analysis stage failed: %s" e)
-      >|= Alcotest.(check Analysis.t) name expected)
+      >|= Alcotest.(check Analysis.t) name expected
+      >|= fun () ->
+      Gc.full_major ()
+    )
 
 (* example duniverse containing a single package *)
 let duniverse =
