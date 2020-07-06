@@ -30,7 +30,7 @@ module Builders = struct
     in
     { Ocaml_ci.Builder.docker_context; pool; build_timeout }
 
-  let amd1 = v "default"
+  (* let amd1 = v "default" *)
   let amd2 = v "laodoke"
   let amd3 = v "phoebe"
   let amd4 = v "m1-a"
@@ -55,7 +55,7 @@ let platforms =
       (* Compiler versions:*)
       v "4.10" Builders.amd4 "debian-10" "4.10";       (* Note: first item is also used as lint platform *)
       v "4.09" Builders.amd3 "debian-10" "4.09";
-      v "4.08" Builders.amd1 "debian-10" "4.08";
+      v "4.08" Builders.amd4 "debian-10" "4.08";
       v "4.07" Builders.amd2 "debian-10" "4.07";
       v "4.06" Builders.amd2 "debian-10" "4.06";
       v "4.05" Builders.amd3 "debian-10" "4.05";
@@ -63,7 +63,7 @@ let platforms =
       v "4.03" Builders.amd2 "debian-10" "4.03";
       v "4.02" Builders.amd2 "debian-10" "4.02";
       (* Distributions: *)
-      v "alpine"   Builders.amd1 "alpine-3.11"   default_compiler;
+      v "alpine"   Builders.amd4 "alpine-3.11"   default_compiler;
       v "ubuntu"   Builders.amd2 "ubuntu-20.04"  default_compiler;
       v "opensuse" Builders.amd2 "opensuse-15.1" default_compiler;
       v "centos"   Builders.amd3 "centos-8"      default_compiler;
