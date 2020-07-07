@@ -6,11 +6,10 @@ module Github = Current_github
 module Docker = Current_docker.Default
 module Selection = Ocaml_ci_api.Worker.Selection
 
-let daily = Current_cache.Schedule.v ~valid_for:(Duration.of_day 1) ()
-
 let platforms =
+  let schedule = Current_cache.Schedule.v ~valid_for:(Duration.of_day 30) () in
   let v { Conf.label; builder; distro; ocaml_version } =
-    let base = Platform.pull ~schedule:daily ~builder ~distro ~ocaml_version in
+    let base = Platform.pull ~schedule ~builder ~distro ~ocaml_version in
     Platform.get ~label ~builder ~distro ~ocaml_version base
   in
   Current.list_seq (List.map v Conf.platforms)
