@@ -1,6 +1,6 @@
 type t = {
   docker_context : string option;
-  pool : Current.Pool.t;
+  pool : unit Current.Pool.t;
   build_timeout : Duration.t;
 }
 
