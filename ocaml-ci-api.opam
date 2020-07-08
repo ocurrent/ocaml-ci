@@ -11,6 +11,8 @@ depends: [
   "capnp" {>= "3.4.0"}
   "capnp-rpc-lwt"
   "dockerfile"
+  "ppx_deriving"
+  "ppx_deriving_yojson"
 ]
 build: [
   ["dune" "subst"] {pinned}

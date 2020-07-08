@@ -15,7 +15,9 @@
   current_rpc
   (capnp (>= 3.4.0))
   capnp-rpc-lwt
-  dockerfile))
+  dockerfile
+  ppx_deriving
+  ppx_deriving_yojson))
 
 (package
  (name ocaml-ci-service)
