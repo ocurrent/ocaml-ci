@@ -1,5 +1,5 @@
 (lang dune 2.0)
-(name ocaml-ci)
+(name ocaml-ci-api)
 (formatting disabled)
 
 (generate_opam_files true)
