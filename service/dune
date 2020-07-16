@@ -8,6 +8,7 @@
             current_git
             current_github
             current_rpc
+            ocluster-api
             capnp-rpc-unix
             mirage-crypto-rng.unix
             ocaml_ci

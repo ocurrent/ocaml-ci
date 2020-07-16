@@ -8,9 +8,9 @@ module Selection = Ocaml_ci_api.Worker.Selection
 
 let platforms =
   let schedule = Current_cache.Schedule.v ~valid_for:(Duration.of_day 30) () in
-  let v { Conf.label; builder; distro; ocaml_version } =
+  let v { Conf.label; builder; pool; distro; ocaml_version } =
     let base = Platform.pull ~schedule ~builder ~distro ~ocaml_version in
-    Platform.get ~label ~builder ~distro ~ocaml_version base
+    Platform.get ~label ~builder ~pool ~distro ~ocaml_version base
   in
   Current.list_seq (List.map v Conf.platforms)
 
@@ -68,7 +68,7 @@ let get_job_id x =
   | Some { Current.Metadata.job_id; _ } -> job_id
   | None -> None
 
-let build_with_docker ~repo ~analysis source =
+let build_with_docker ?ocluster ~repo ~analysis source =
   Current.with_context analysis @@ fun () ->
   let specs =
     let+ analysis = Current.state ~hidden:true analysis in
@@ -81,27 +81,32 @@ let build_with_docker ~repo ~analysis source =
       | `Duniverse variants ->
         variants
         |> List.rev_map (fun variant ->
-            Build.Spec.duniverse ~label:variant ~variant
+            Spec.duniverse ~label:variant ~variant
           )
       | `Opam_build selections ->
         let lint_selection = List.hd selections in
         let builds =
           selections |> List.map (fun selection ->
               let label = selection.Selection.id in
-              Build.Spec.opam ~label ~selection ~analysis `Build
+              Spec.opam ~label ~selection ~analysis `Build
             )
         and lint =
           [
-            Build.Spec.opam ~label:"(lint-fmt)" ~selection:lint_selection ~analysis (`Lint `Fmt);
-            Build.Spec.opam ~label:"(lint-doc)" ~selection:lint_selection ~analysis (`Lint `Doc);
+            Spec.opam ~label:"(lint-fmt)" ~selection:lint_selection ~analysis (`Lint `Fmt);
+            Spec.opam ~label:"(lint-doc)" ~selection:lint_selection ~analysis (`Lint `Doc);
           ]
         in
         lint @ builds
   in
-  let builds = specs |> Current.list_map (module Build.Spec) (fun spec ->
-      let+ result = Build.v ~platforms ~repo ~spec source
+  let builds = specs |> Current.list_map (module Spec) (fun spec ->
+      let+ result =
+        match ocluster with
+        | None -> Build.v ~platforms ~repo ~spec source
+        | Some ocluster ->
+          let src = Current.map Git.Commit.id source in
+          Cluster_build.v ocluster ~platforms ~repo ~spec src
       and+ spec = spec in
-      Build.Spec.label spec, result
+      Spec.label spec, result
     ) in
   let+ builds = builds
   and+ analysis_result = Current.state ~hidden:true (Current.map (fun _ -> `Checked) analysis)
@@ -157,7 +162,8 @@ let local_test ~solver repo () =
   in
   Current_incr.const (result, None)
 
-let v ~app ~solver () =
+let v ?ocluster ~app ~solver () =
+  let ocluster = Option.map (Cluster_build.config ~timeout:(Duration.of_hour 1)) ocluster in
   Current.with_context opam_repository_commit @@ fun () ->
   Current.with_context platforms @@ fun () ->
   let installations = Github.App.installations app |> set_active_installations in
@@ -170,7 +176,7 @@ let v ~app ~solver () =
   let analysis = Analyse.examine ~solver ~platforms ~opam_repository_commit src in
   let builds =
     let repo = Current.map Github.Api.Repo.id repo in
-    build_with_docker ~repo ~analysis src in
+    build_with_docker ?ocluster ~repo ~analysis src in
   let summary =
     builds
     |> Current.map (List.map (fun (variant, (build, _job)) -> variant, build))

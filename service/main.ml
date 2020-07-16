@@ -1,4 +1,5 @@
 open Lwt.Infix
+open Capnp_rpc_lwt
 
 module Metrics = struct
   open Prometheus
@@ -53,8 +54,8 @@ let or_die = function
   | Ok x -> x
   | Error `Msg m -> failwith m
 
-let run_capnp ~engine = function
-  | None -> Lwt.return_unit
+let run_capnp = function
+  | None -> Lwt.return (Capnp_rpc_unix.client_only_vat (), None)
   | Some public_address ->
     let config =
       Capnp_rpc_unix.Vat_config.create
@@ -62,12 +63,13 @@ let run_capnp ~engine = function
         ~secret_key:(`File Conf.Capnp.secret_key)
         (Capnp_rpc_unix.Network.Location.tcp ~host:"0.0.0.0" ~port:Conf.Capnp.internal_port)
     in
+    let rpc_engine, rpc_engine_resolver = Capability.promise () in
     let service_id = Capnp_rpc_unix.Vat_config.derived_id config "ci" in
-    let restore = Capnp_rpc_net.Restorer.single service_id (Api_impl.make_ci ~engine) in
+    let restore = Capnp_rpc_net.Restorer.single service_id rpc_engine in
     Capnp_rpc_unix.serve config ~restore >>= fun vat ->
     Capnp_rpc_unix.Cap_file.save_service vat service_id Conf.Capnp.cap_file |> or_die;
     Logs.app (fun f -> f "Wrote capability reference to %S" Conf.Capnp.cap_file);
-    Lwt.return_unit
+    Lwt.return (vat, Some rpc_engine_resolver)
 
 (* Access control policy. *)
 let has_role user = function
@@ -81,21 +83,23 @@ let has_role user = function
            ) -> true
     | _ -> false
 
-let main config mode app capnp_address github_auth =
-  let engine = Current.Engine.create ~config (Pipeline.v ~app ~solver) in
-  let authn = Option.map Current_github.Auth.make_login_uri github_auth in
-  let has_role =
-    if github_auth = None then Current_web.Site.allow_all
-    else has_role
-  in
-  let secure_cookies = github_auth <> None in
-  let routes =
-    Routes.(s "webhooks" / s "github" /? nil @--> Current_github.webhook) ::
-    Routes.(s "login" /? nil @--> Current_github.Auth.login github_auth) ::
-    Current_web.routes engine in
-  let site = Current_web.Site.v ?authn ~has_role ~secure_cookies ~name:"ocaml-ci" routes in
+let main config mode app capnp_address github_auth submission_uri =
   Logging.run begin
-    run_capnp ~engine capnp_address >>= fun () ->
+    run_capnp capnp_address >>= fun (vat, rpc_engine_resolver) ->
+    let ocluster = Option.map (Capnp_rpc_unix.Vat.import_exn vat) submission_uri in
+    let engine = Current.Engine.create ~config (Pipeline.v ?ocluster ~app ~solver) in
+    rpc_engine_resolver |> Option.iter (fun r -> Capability.resolve_ok r (Api_impl.make_ci ~engine));
+    let authn = Option.map Current_github.Auth.make_login_uri github_auth in
+    let has_role =
+      if github_auth = None then Current_web.Site.allow_all
+      else has_role
+    in
+    let secure_cookies = github_auth <> None in
+    let routes =
+      Routes.(s "webhooks" / s "github" /? nil @--> Current_github.webhook) ::
+      Routes.(s "login" /? nil @--> Current_github.Auth.login github_auth) ::
+      Current_web.routes engine in
+    let site = Current_web.Site.v ?authn ~has_role ~secure_cookies ~name:"ocaml-ci" routes in
     Lwt.choose [
       Current.Engine.thread engine;
       Current_web.run ~mode site;
@@ -114,10 +118,18 @@ let capnp_address =
     ~docv:"ADDR"
     ["capnp-address"]
 
+let submission_service =
+  Arg.value @@
+  Arg.opt Arg.(some Capnp_rpc_unix.sturdy_uri) None @@
+  Arg.info
+    ~doc:"The submission.cap file for the build scheduler service"
+    ~docv:"FILE"
+    ["submission-service"]
+
 let cmd =
   let doc = "Build OCaml projects on GitHub" in
   Term.(const main $ Current.Config.cmdliner $ Current_web.cmdliner $
-        Current_github.App.cmdliner $ capnp_address $ Current_github.Auth.cmdliner),
+        Current_github.App.cmdliner $ capnp_address $ Current_github.Auth.cmdliner $ submission_service),
   Term.info "ocaml-ci" ~doc
 
 let () = Term.(exit @@ eval cmd)
