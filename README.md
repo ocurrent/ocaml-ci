@@ -21,7 +21,7 @@ To add the CI to your own project:
 1. Go to https://github.com/apps/ocaml-ci and install the app for your GitHub user.
 2. Configure just the repositories you want to test (start with one!).
 3. Ask us to add you to the alpha-testers list by submitting a PR against this
-   repository adding yourself to `--github-account-whitelist` in `stack.yml`.
+   repository adding yourself to `--github-account-allowlist` in `stack.yml`.
 4. Report bugs :-)
 
 ## Installation
