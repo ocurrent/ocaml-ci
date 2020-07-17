@@ -28,7 +28,7 @@ let reporter =
     let src = Logs.Src.name src in
     Metrics.inc_messages level src;
     msgf @@ fun ?header ?tags:_ fmt ->
-    Fmt.kpf k Fmt.stdout ("%a %a %a @[" ^^ fmt ^^ "@]@.")
+    Fmt.kpf k Fmt.stderr ("%a %a %a @[" ^^ fmt ^^ "@]@.")
       pp_timestamp (Unix.gettimeofday ())
       Fmt.(styled `Magenta string) (Printf.sprintf "%14s" src)
       Logs_fmt.pp_header (level, header)
