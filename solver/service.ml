@@ -140,10 +140,11 @@ let v ~n_workers ~create_worker =
       match log with
       | None -> Service.fail "Missing log argument!"
       | Some log ->
+        Capnp_rpc_lwt.Service.return_lwt @@ fun () ->
+        Capability.with_ref log @@ fun log ->
         match Worker.Solve_request.of_yojson (Yojson.Safe.from_string request) with
-        | Error msg -> Service.fail "Bad JSON in request: %s" msg
+        | Error msg -> Lwt_result.fail (`Capnp (Capnp_rpc.Error.exn "Bad JSON in request: %s" msg))
         | Ok request ->
-          Capnp_rpc_lwt.Service.return_lwt @@ fun () ->
           Lwt.catch
             (fun () -> handle t ~log request >|= Result.ok)
             (function
