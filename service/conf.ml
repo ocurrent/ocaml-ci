@@ -30,11 +30,6 @@ module Builders = struct
     in
     { Ocaml_ci.Builder.docker_context; pool; build_timeout }
 
-  (* let amd1 = v "default" *)
-  let amd2 = v "laodoke"
-  let amd3 = v "phoebe"
-  let amd4 = v "m1-a"
-
   let local = { Ocaml_ci.Builder.docker_context = None; pool = dev_pool; build_timeout }
 end
 
@@ -49,31 +44,31 @@ type platform = {
 }
 
 let platforms =
-  let v label builder pool distro ocaml_version = { label; builder; pool; distro; ocaml_version } in
+  let v label pool distro ocaml_version = { label; builder = Builders.local; pool; distro; ocaml_version } in
   match profile with
   | `Production ->
     [
       (* Compiler versions:*)
-      v "4.10" Builders.amd4 "linux-x86_64" "debian-10" "4.10";       (* Note: first item is also used as lint platform *)
-      v "4.09" Builders.amd3 "linux-x86_64" "debian-10" "4.09";
-      v "4.08" Builders.amd4 "linux-x86_64" "debian-10" "4.08";
-      v "4.07" Builders.amd2 "linux-x86_64" "debian-10" "4.07";
-      v "4.06" Builders.amd2 "linux-x86_64" "debian-10" "4.06";
-      v "4.05" Builders.amd3 "linux-x86_64" "debian-10" "4.05";
-      v "4.04" Builders.amd3 "linux-x86_64" "debian-10" "4.04";
-      v "4.03" Builders.amd2 "linux-x86_64" "debian-10" "4.03";
-      v "4.02" Builders.amd2 "linux-x86_64" "debian-10" "4.02";
+      v "4.10" "linux-x86_64" "debian-10" "4.10";       (* Note: first item is also used as lint platform *)
+      v "4.09" "linux-x86_64" "debian-10" "4.09";
+      v "4.08" "linux-x86_64" "debian-10" "4.08";
+      v "4.07" "linux-x86_64" "debian-10" "4.07";
+      v "4.06" "linux-x86_64" "debian-10" "4.06";
+      v "4.05" "linux-x86_64" "debian-10" "4.05";
+      v "4.04" "linux-x86_64" "debian-10" "4.04";
+      v "4.03" "linux-x86_64" "debian-10" "4.03";
+      v "4.02" "linux-x86_64" "debian-10" "4.02";
       (* Distributions: *)
-      v "alpine"   Builders.amd4 "linux-x86_64" "alpine-3.11"   default_compiler;
-      v "ubuntu"   Builders.amd2 "linux-x86_64" "ubuntu-20.04"  default_compiler;
-      v "opensuse" Builders.amd2 "linux-x86_64" "opensuse-15.1" default_compiler;
-      v "centos"   Builders.amd3 "linux-x86_64" "centos-8"      default_compiler;
-      v "fedora"   Builders.amd3 "linux-x86_64" "fedora-31"     default_compiler;
+      v "alpine"   "linux-x86_64" "alpine-3.11"   default_compiler;
+      v "ubuntu"   "linux-x86_64" "ubuntu-20.04"  default_compiler;
+      v "opensuse" "linux-x86_64" "opensuse-15.1" default_compiler;
+      v "centos"   "linux-x86_64" "centos-8"      default_compiler;
+      v "fedora"   "linux-x86_64" "fedora-31"     default_compiler;
       (* oraclelinux doesn't work in opam 2 yet *)
     ]
   | `Dev ->
     [
-      v "4.10" Builders.local "linux-x86_64" "debian-10" "4.10";
-      v "4.09" Builders.local "linux-x86_64" "debian-10" "4.09";
-      v "4.02" Builders.local "linux-x86_64" "debian-10" "4.02";
+      v "4.10" "linux-x86_64" "debian-10" "4.10";
+      v "4.09" "linux-x86_64" "debian-10" "4.09";
+      v "4.02" "linux-x86_64" "debian-10" "4.02";
     ]

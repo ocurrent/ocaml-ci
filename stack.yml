@@ -5,8 +5,6 @@ volumes:
 secrets:
   ocaml-ci-github-key:
     external: true
-  ocaml-ci-ssh-key:
-    external: true
   ocaml-ci-oauth:
     external: true
   ocluster-submission.cap:
@@ -29,8 +27,6 @@ services:
       - 'ocaml-ci-oauth'
       - 'ocaml-ci-github-key'
       - 'ocluster-submission.cap'
-      - source: 'ocaml-ci-ssh-key'
-        mode: 0400
     sysctls:
       - 'net.ipv4.tcp_keepalive_time=60'
   web:

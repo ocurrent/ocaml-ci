@@ -38,8 +38,5 @@ RUN echo 'deb [arch=amd64] https://download.docker.com/linux/debian buster stabl
 RUN apt-get update && apt-get install docker-ce -y --no-install-recommends
 WORKDIR /var/lib/ocurrent
 ENTRYPOINT ["dumb-init", "/usr/local/bin/ocaml-ci-service"]
-RUN mkdir /root/.ssh && chmod 0700 /root/.ssh && ln -s /run/secrets/ocaml-ci-ssh-key /root/.ssh/id_rsa
 ENV OCAMLRUNPARAM=a=2
-COPY builder-config/known_hosts /root/.ssh/known_hosts
-COPY builder-config/docker /root/.docker
 COPY --from=build /src/_build/install/default/bin/ocaml-ci-service /src/_build/install/default/bin/ocaml-ci-solver /usr/local/bin/

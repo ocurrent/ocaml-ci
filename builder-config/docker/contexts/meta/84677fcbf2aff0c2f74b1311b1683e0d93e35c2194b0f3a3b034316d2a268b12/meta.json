@@ -1,1 +1,0 @@
-{"Name":"m1-a","Metadata":{"StackOrchestrator":"swarm"},"Endpoints":{"docker":{"Host":"ssh://root@147.75.33.203","SkipTLSVerify":false}}}
