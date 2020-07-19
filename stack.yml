@@ -9,10 +9,12 @@ secrets:
     external: true
   ocaml-ci-oauth:
     external: true
+  ocluster-submission.cap:
+    external: true
 services:
   ci:
     image: ocurrent/ocaml-ci-service:live
-    command: --github-app-id 39151 --github-private-key-file /run/secrets/ocaml-ci-github-key --github-account-allowlist "talex5,ocurrent,ocaml,mirage,avsm,samoht,kit-ty-kate,tarides,aantron,ocamllabs,realworldocaml,NathanReb,0install,gpetiot,ocaml-ppx,CraigFe,pascutto,julow,vocal-project,vbmithr,gs0510,magnuss,dune-universe,janestreet,emillon,capnproto,ocaml-opam,ocaml-dune,favonia" --confirm above-average --confirm-auto-release 120 --capnp-address=tcp:ci.ocamllabs.io:8102 --github-oauth /run/secrets/ocaml-ci-oauth
+    command: --github-app-id 39151 --github-private-key-file /run/secrets/ocaml-ci-github-key --github-account-allowlist "talex5,ocurrent,ocaml,mirage,avsm,samoht,kit-ty-kate,tarides,aantron,ocamllabs,realworldocaml,NathanReb,0install,gpetiot,ocaml-ppx,CraigFe,pascutto,julow,vocal-project,vbmithr,gs0510,magnuss,dune-universe,janestreet,emillon,capnproto,ocaml-opam,ocaml-dune,favonia" --confirm above-average --confirm-auto-release 120 --capnp-address=tcp:ci.ocamllabs.io:8102 --github-oauth /run/secrets/ocaml-ci-oauth --submission-service /run/secrets/ocluster-submission.cap
     environment:
       - "CI_PROFILE=production"
       - "DOCKER_BUILDKIT=1"
@@ -26,6 +28,7 @@ services:
     secrets:
       - 'ocaml-ci-oauth'
       - 'ocaml-ci-github-key'
+      - 'ocluster-submission.cap'
       - source: 'ocaml-ci-ssh-key'
         mode: 0400
     sysctls:

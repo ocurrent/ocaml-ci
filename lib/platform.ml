@@ -10,6 +10,7 @@ let docker_tag ~distro ~ocaml_version =
 type t = {
   label : string;
   builder : Builder.t;
+  pool : string;        (* OCluster pool *)
   variant : string;
   base : Current_docker.Raw.Image.t;
   vars : Worker.Vars.t;
@@ -104,11 +105,11 @@ let query builder ~variant image =
   let docker_context = builder.Builder.docker_context in
   QC.run Query.No_context { Query.Key.docker_context; variant } { Query.Value.image }
 
-let get ~label ~builder ~distro ~ocaml_version base =
+let get ~label ~builder ~pool ~distro ~ocaml_version base =
   let variant = docker_tag ~distro ~ocaml_version in
   let+ { Query.Outcome.vars; image } = query builder base ~variant in
   let base = Raw.Image.of_hash image in
-  { label; builder; variant; base; vars }
+  { label; builder; pool; variant; base; vars }
 
 let pull ~schedule ~builder ~distro ~ocaml_version =
   Current.component "pull@,%s %s" distro ocaml_version |>

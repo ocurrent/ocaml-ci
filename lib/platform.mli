@@ -3,6 +3,7 @@
 type t = {
   label : string;
   builder : Builder.t;
+  pool : string;        (* OCluster pool *)
   variant : string;                     (* e.g. "debian-10-ocaml-4.08" *)
   base : Current_docker.Raw.Image.t;
   vars : Ocaml_ci_api.Worker.Vars.t;
@@ -14,6 +15,7 @@ val compare : t -> t -> int
 val get :
   label:string ->
   builder:Builder.t ->
+  pool:string ->
   distro:string ->
   ocaml_version:string ->
   Current_docker.Raw.Image.t Current.t ->

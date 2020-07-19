@@ -32,6 +32,7 @@
   (capnp-rpc-unix (>= 0.7.0))
   ocaml-ci-api
   ocaml-ci-solver
+  ocluster-api
   conf-libev
   (dockerfile (>= 6.3.0))
   (ocaml-version (>= 2.4.0))

@@ -1,6 +1,6 @@
 FROM ocurrent/opam:debian-10-ocaml-4.10 AS build
 RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libsqlite3-dev libgmp-dev -y --no-install-recommends
-RUN cd ~/opam-repository && git pull origin master && git reset --hard dbd4c97fbe25d8179a416b7252957de2b53322ad && opam update
+RUN cd ~/opam-repository && git pull origin -q master && git reset --hard a5e373ef1d13748cb092ede3c5b74ce6b6c03349 && opam update
 COPY --chown=opam \
 	ocurrent/current_ansi.opam \
 	ocurrent/current_docker.opam \
@@ -12,6 +12,9 @@ COPY --chown=opam \
 	ocurrent/current_slack.opam \
 	ocurrent/current_web.opam \
 	/src/ocurrent/
+COPY --chown=opam \
+	ocluster/ocluster-api.opam \
+	/src/ocluster/
 WORKDIR /src
 RUN opam pin add -yn current_ansi.dev "./ocurrent" && \
     opam pin add -yn current_docker.dev "./ocurrent" && \
@@ -21,9 +24,9 @@ RUN opam pin add -yn current_ansi.dev "./ocurrent" && \
     opam pin add -yn current.dev "./ocurrent" && \
     opam pin add -yn current_rpc.dev "./ocurrent" && \
     opam pin add -yn current_slack.dev "./ocurrent" && \
-    opam pin add -yn current_web.dev "./ocurrent"
+    opam pin add -yn current_web.dev "./ocurrent" && \
+    opam pin add -yn ocluster-api.dev "./ocluster"
 COPY --chown=opam ocaml-ci-service.opam ocaml-ci-api.opam ocaml-ci-solver.opam /src/
-RUN opam pin add -n git 'https://github.com/mirage/ocaml-git.git#a89ab14ce5cc59531122627ef664a8aee03352f1'
 RUN opam install -y --deps-only .
 ADD --chown=opam . .
 RUN opam config exec -- dune build ./_build/install/default/bin/ocaml-ci-service
