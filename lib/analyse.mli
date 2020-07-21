@@ -6,14 +6,14 @@ module Analysis : sig
   val ocamlformat_source : t -> Analyse_ocamlformat.source option
 
   val selections : t -> [
-      | `Opam_build of Ocaml_ci_api.Worker.Selection.t list
-      | `Duniverse of string list               (* Variants to build on *)
+      | `Opam_build of Selection.t list
+      | `Duniverse of Variant.t list               (* Variants to build on *)
     ]
 
   val of_dir :
     solver:Ocaml_ci_api.Solver.t ->
     job:Current.Job.t ->
-    platforms:(string * Ocaml_ci_api.Worker.Vars.t) list ->
+    platforms:(Variant.t * Ocaml_ci_api.Worker.Vars.t) list ->
     opam_repository_commit:Current_git.Commit_id.t ->
     Fpath.t ->
     (t, [ `Msg of string ]) result Lwt.t

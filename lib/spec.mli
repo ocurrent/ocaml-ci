@@ -1,23 +1,23 @@
 type ty = [
-  | `Opam of [ `Build | `Lint of [ `Doc ]] * Ocaml_ci_api.Worker.Selection.t * string list
+  | `Opam of [ `Build | `Lint of [ `Doc ]] * Selection.t * string list
   | `Opam_fmt of Analyse_ocamlformat.source option
   | `Duniverse
 ] [@@deriving to_yojson, ord]
 
 type t = {
   label : string;
-  variant : string;
+  variant : Variant.t;
   ty : ty;
 }
 
 val opam :
   label:string ->
-  selection:Ocaml_ci_api.Worker.Selection.t ->
+  selection:Selection.t ->
   analysis:Analyse.Analysis.t ->
   [ `Build | `Lint of [ `Doc | `Fmt ] ] ->
   t
 
-val duniverse : label:string -> variant:string -> t
+val duniverse : label:string -> variant:Variant.t -> t
 
 val pp : t Fmt.t
 val compare : t -> t -> int

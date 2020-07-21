@@ -4,13 +4,12 @@ open Ocaml_ci
 module Git = Current_git
 module Github = Current_github
 module Docker = Current_docker.Default
-module Selection = Ocaml_ci_api.Worker.Selection
 
 let platforms =
   let schedule = Current_cache.Schedule.v ~valid_for:(Duration.of_day 30) () in
-  let v { Conf.label; builder; pool; distro; ocaml_version } =
-    let base = Platform.pull ~schedule ~builder ~distro ~ocaml_version in
-    Platform.get ~label ~builder ~pool ~distro ~ocaml_version base
+  let v { Conf.label; builder; pool; distro; ocaml_version; arch } =
+    let base = Platform.pull ~arch ~schedule ~builder ~distro ~ocaml_version in
+    Platform.get ~arch ~label ~builder ~pool ~distro ~ocaml_version base
   in
   Current.list_seq (List.map v Conf.platforms)
 
@@ -81,13 +80,13 @@ let build_with_docker ?ocluster ~repo ~analysis source =
       | `Duniverse variants ->
         variants
         |> List.rev_map (fun variant ->
-            Spec.duniverse ~label:variant ~variant
+            Spec.duniverse ~label:(Variant.to_string variant) ~variant
           )
       | `Opam_build selections ->
         let lint_selection = List.hd selections in
         let builds =
           selections |> List.map (fun selection ->
-              let label = selection.Selection.id in
+              let label = Variant.to_string selection.Selection.variant in
               Spec.opam ~label ~selection ~analysis `Build
             )
         and lint =

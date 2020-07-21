@@ -77,7 +77,7 @@ let dockerfile ~base ~repo ~variant ~for_user =
   build_platform @@
   from base @@
   install_platform @@
-  comment "%s" variant @@
+  comment "%s" (Variant.to_string variant) @@
   workdir "/src" @@
   run "sudo chown opam /src" @@
   copy ~chown:"opam" ~src:["dune-get"] ~dst:"/src/" () @@

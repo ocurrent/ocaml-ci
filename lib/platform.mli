@@ -4,7 +4,7 @@ type t = {
   label : string;
   builder : Builder.t;
   pool : string;        (* OCluster pool *)
-  variant : string;                     (* e.g. "debian-10-ocaml-4.08" *)
+  variant : Variant.t;  (* e.g. "debian-10-ocaml-4.08" *)
   base : Current_docker.Raw.Image.t;
   vars : Ocaml_ci_api.Worker.Vars.t;
 }
@@ -13,6 +13,7 @@ val pp : t Fmt.t
 val compare : t -> t -> int
 
 val get :
+  arch:Ocaml_version.arch option ->
   label:string ->
   builder:Builder.t ->
   pool:string ->
@@ -23,6 +24,7 @@ val get :
 (** [get ~label ~builder ~variant base] creates a [t] by getting the opam variables from [base]. *)
 
 val pull :
+  arch:Ocaml_version.arch option ->
   schedule:Current_cache.Schedule.t ->
   builder:Builder.t ->
   distro:string ->
