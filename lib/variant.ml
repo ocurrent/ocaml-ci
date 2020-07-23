@@ -37,12 +37,8 @@ module Ocaml_version = struct
 
 end
 
-let to_opam_arch = function
-  | None -> "%{arch}%"
-  | Some a -> Ocaml_version.to_opam_arch a
-
-let to_docker_arch a =
-  Option.map Ocaml_version.to_docker_arch a
+let to_opam_arch a = Option.map Ocaml_version.to_opam_arch a
+let to_docker_arch a = Option.map Ocaml_version.to_docker_arch a
 
 type t = string * Ocaml_version.arch option [@@deriving yojson, ord, eq]
 let v ~arch n = n, arch

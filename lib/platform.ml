@@ -80,7 +80,7 @@ module Query = struct
     let cmd = get_ocaml_version ~docker_context image in
     Current.Process.check_output ~cancellable:false ~job cmd >>!= fun vnum ->
     let ocaml_version = String.trim vnum in
-    let cmd = get_vars ~arch:(Variant.arch variant |> Variant.to_docker_arch) docker_context image in
+    let cmd = get_vars ~arch:(Variant.arch variant |> Variant.to_opam_arch) docker_context image in
     Current.Process.check_output ~cancellable:false ~job cmd >>!= fun vars ->
     let json =
       match Yojson.Safe.from_string vars with
@@ -114,7 +114,7 @@ let get ~arch ~label ~builder ~pool ~distro ~ocaml_version base =
   { label; builder; pool; variant; base; vars }
 
 let pull ~arch ~schedule ~builder ~distro ~ocaml_version =
-  let archl = match arch with None -> "" | Some _ -> " " ^ (Variant.to_opam_arch arch) in
+  let archl = Variant.to_opam_arch arch |> Option.value ~default:"" in
   Current.component "pull@,%s %s%s" distro ocaml_version archl |>
   let> () = Current.return () in
   let tag = docker_tag ~distro ~ocaml_version in
