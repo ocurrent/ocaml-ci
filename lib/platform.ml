@@ -118,4 +118,6 @@ let pull ~arch ~schedule ~builder ~distro ~ocaml_version =
   Current.component "pull@,%s %s%s" distro ocaml_version archl |>
   let> () = Current.return () in
   let tag = docker_tag ~distro ~ocaml_version in
-  Builder.pull ~schedule ?arch builder @@ "ocurrent/opam:" ^ tag
+  (* Always pull the x86_64 image as it runs on the main builder.
+   * The arch will be overridden in the config vars passed to [get] later *)
+  Builder.pull ~schedule builder @@ "ocurrent/opam:" ^ tag
