@@ -63,8 +63,7 @@ let install_project_deps ~base ~opam_files ~selection ~for_user =
     else
       empty
   in
-  (if for_user then empty
-   else comment "syntax = docker/dockerfile:experimental@sha256:ee85655c57140bd20a5ebc3bb802e7410ee9ac47ca92b193ed0ab17485024fe5") @@
+  (if for_user then empty else Buildkit_syntax.add (Variant.arch variant)) @@
   from base @@
   (match Variant.arch variant with
    | Some arch ->

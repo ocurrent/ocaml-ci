@@ -117,7 +117,7 @@ let get ~arch ~label ~builder ~pool ~distro ~ocaml_version base =
 
 let pull ~arch ~schedule ~builder ~distro ~ocaml_version =
   let archl = Variant.to_opam_arch arch |> Option.value ~default:"" in
-  Current.component "pull@,%s %s%s" distro ocaml_version archl |>
+  Current.component "pull@,%s %s %s" distro ocaml_version archl |>
   let> () = Current.return () in
   let tag = docker_tag ~distro ~ocaml_version in
   Builder.pull ~schedule ?arch builder @@ "ocurrent/opam:" ^ tag
