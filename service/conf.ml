@@ -69,6 +69,7 @@ let platforms =
       v ~arch:`I386 "4.10+x86_32" "linux-x86_64" "debian-10" "4.10";
       v ~arch:`Aarch32 "4.10+arm32" "linux-arm64" "debian-10" "4.10";
       v ~arch:`Aarch64 "4.10+arm64" "linux-arm64" "debian-10" "4.10";
+      v ~arch:`Ppc64le "4.10+ppc64le" "linux-ppc64" "debian-10" "4.10";
     ]
   | `Dev ->
     [
