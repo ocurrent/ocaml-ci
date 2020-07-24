@@ -9,7 +9,12 @@ let platforms =
   let schedule = Current_cache.Schedule.v ~valid_for:(Duration.of_day 30) () in
   let v { Conf.label; builder; pool; distro; ocaml_version; arch } =
     let base = Platform.pull ~arch ~schedule ~builder ~distro ~ocaml_version in
-    Platform.get ~arch ~label ~builder ~pool ~distro ~ocaml_version base
+    let host_base =
+      match arch with
+      | None | Some `X86_64 -> base
+      | _ -> Platform.pull ~arch:None ~schedule ~builder ~distro ~ocaml_version
+    in
+    Platform.get ~arch ~label ~builder ~pool ~distro ~ocaml_version (host_base, base)
   in
   Current.list_seq (List.map v Conf.platforms)
 

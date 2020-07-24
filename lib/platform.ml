@@ -38,6 +38,7 @@ module Query = struct
   module Value = struct
     type t = {
       image : string;
+      host_image: string;
     } [@@deriving to_yojson]
 
     let digest t = Yojson.Safe.to_string (to_yojson t)
@@ -75,12 +76,12 @@ module Query = struct
   let get_ocaml_version ~docker_context image =
     Raw.Cmd.docker ~docker_context ["run"; "-i"; image; "opam"; "exec"; "--"; "ocaml"; "-vnum"]
 
-  let run No_context job { Key.docker_context; variant } { Value.image } =
+  let run No_context job { Key.docker_context; variant } { Value.image; host_image } =
     Current.Job.start job ~level:Current.Level.Mostly_harmless >>= fun () ->
-    let cmd = get_ocaml_version ~docker_context image in
+    let cmd = get_ocaml_version ~docker_context host_image in
     Current.Process.check_output ~cancellable:false ~job cmd >>!= fun vnum ->
     let ocaml_version = String.trim vnum in
-    let cmd = get_vars ~arch:(Variant.arch variant |> Variant.to_opam_arch) docker_context image in
+    let cmd = get_vars ~arch:(Variant.arch variant |> Variant.to_opam_arch) docker_context host_image in
     Current.Process.check_output ~cancellable:false ~job cmd >>!= fun vars ->
     let json =
       match Yojson.Safe.from_string vars with
@@ -100,12 +101,13 @@ end
 
 module QC = Current_cache.Generic(Query)
 
-let query builder ~variant image =
+let query builder ~variant (host_image, image) =
   Current.component "opam-vars" |>
-  let> image = image in
+  let> host_image, image = Current.pair host_image image in
   let image = Raw.Image.hash image in
+  let host_image = Raw.Image.hash host_image in
   let docker_context = builder.Builder.docker_context in
-  QC.run Query.No_context { Query.Key.docker_context; variant } { Query.Value.image }
+  QC.run Query.No_context { Query.Key.docker_context; variant } { Query.Value.image; host_image }
 
 let get ~arch ~label ~builder ~pool ~distro ~ocaml_version base =
   let variant = Variant.v ~arch (docker_tag ~distro ~ocaml_version) in
@@ -118,6 +120,4 @@ let pull ~arch ~schedule ~builder ~distro ~ocaml_version =
   Current.component "pull@,%s %s%s" distro ocaml_version archl |>
   let> () = Current.return () in
   let tag = docker_tag ~distro ~ocaml_version in
-  (* Always pull the x86_64 image as it runs on the main builder.
-   * The arch will be overridden in the config vars passed to [get] later *)
-  Builder.pull ~schedule builder @@ "ocurrent/opam:" ^ tag
+  Builder.pull ~schedule ?arch builder @@ "ocurrent/opam:" ^ tag
