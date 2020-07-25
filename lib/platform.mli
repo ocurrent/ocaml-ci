@@ -19,10 +19,11 @@ val get :
   pool:string ->
   distro:string ->
   ocaml_version:string ->
-  Current_docker.Raw.Image.t Current.t *
+  host_base:Current_docker.Raw.Image.t Current.t ->
   Current_docker.Raw.Image.t Current.t ->
   t Current.t
-(** [get ~label ~builder ~variant base] creates a [t] by getting the opam variables from [base]. *)
+(** [get ~label ~builder ~variant ~host_base base] creates a [t] by getting the opam variables from [host_base]
+    and returning [base] for subsequent builds. *)
 
 val pull :
   arch:Ocaml_version.arch option ->

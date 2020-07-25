@@ -101,17 +101,18 @@ end
 
 module QC = Current_cache.Generic(Query)
 
-let query builder ~variant (host_image, image) =
+let query builder ~variant ~host_image image =
   Current.component "opam-vars" |>
-  let> host_image, image = Current.pair host_image image in
+  let> host_image = host_image
+  and> image = image in
   let image = Raw.Image.hash image in
   let host_image = Raw.Image.hash host_image in
   let docker_context = builder.Builder.docker_context in
   QC.run Query.No_context { Query.Key.docker_context; variant } { Query.Value.image; host_image }
 
-let get ~arch ~label ~builder ~pool ~distro ~ocaml_version base =
+let get ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base base =
   let variant = Variant.v ~arch (docker_tag ~distro ~ocaml_version) in
-  let+ { Query.Outcome.vars; image } = query builder base ~variant in
+  let+ { Query.Outcome.vars; image } = query builder ~variant ~host_image:host_base base in
   let base = Raw.Image.of_hash image in
   { label; builder; pool; variant; base; vars }
 

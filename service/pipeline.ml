@@ -14,7 +14,7 @@ let platforms =
       | None | Some `X86_64 -> base
       | _ -> Platform.pull ~arch:None ~schedule ~builder ~distro ~ocaml_version
     in
-    Platform.get ~arch ~label ~builder ~pool ~distro ~ocaml_version (host_base, base)
+    Platform.get ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base base
   in
   Current.list_seq (List.map v Conf.platforms)
 
