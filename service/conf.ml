@@ -51,6 +51,7 @@ let platforms =
     [
       (* Compiler versions:*)
       v "4.10" "linux-x86_64" "debian-10" "4.10";       (* Note: first item is also used as lint platform *)
+      v "4.11" "linux-x86_64" "debian-10" "4.11";
       v "4.09" "linux-x86_64" "debian-10" "4.09";
       v "4.08" "linux-x86_64" "debian-10" "4.08";
       v "4.07" "linux-x86_64" "debian-10" "4.07";
@@ -74,7 +75,7 @@ let platforms =
   | `Dev ->
     [
       v "4.10" "linux-x86_64" "debian-10" "4.10";
-      v "4.09" "linux-x86_64" "debian-10" "4.09";
+      v "4.11" "linux-x86_64" "debian-10" "4.11";
       v "4.02" "linux-x86_64" "debian-10" "4.02";
       v ~arch:`I386 "4.10+32bit" "linux-x86_64" "debian-10" "4.10";
     ]
