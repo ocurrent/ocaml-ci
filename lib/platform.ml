@@ -73,19 +73,27 @@ module Query = struct
   let get_vars ~arch docker_context image =
     Raw.Cmd.docker ~docker_context ["run"; "-i"; image; "opam"; "config"; "expand"; (opam_template arch)]
 
-  let get_ocaml_version ~docker_context image =
-    Raw.Cmd.docker ~docker_context ["run"; "-i"; image; "opam"; "exec"; "--"; "ocaml"; "-vnum"]
+  let get_ocaml_package ~docker_context image =
+    Raw.Cmd.docker ~docker_context ["run"; "-i"; image; "opam"; "list"; "-s"; "--base"; "--roots"; "--all-versions"; "ocaml-base-compiler"; "ocaml-variants"; "ocaml-system"]
 
   let run No_context job { Key.docker_context; variant } { Value.image; host_image } =
     Current.Job.start job ~level:Current.Level.Mostly_harmless >>= fun () ->
-    let cmd = get_ocaml_version ~docker_context host_image in
-    Current.Process.check_output ~cancellable:false ~job cmd >>!= fun vnum ->
-    let ocaml_version = String.trim vnum in
-    let cmd = get_vars ~arch:(Variant.arch variant |> Variant.to_opam_arch) docker_context host_image in
+    let cmd = get_ocaml_package ~docker_context host_image in
+    Current.Process.check_output ~cancellable:false ~job cmd >>!= fun ocaml_package ->
+    let ocaml_package = String.trim ocaml_package in
+    let ocaml_package_name, ocaml_version = match Astring.String.cut ~sep:"." ocaml_package with
+      | Some (name, version) -> (name, version)
+      | None -> Fmt.failwith "Unexpected opam package name: %s" ocaml_package
+    in
+    let cmd = get_vars ~arch:(Variant.(arch variant |> to_opam_arch)) docker_context host_image in
     Current.Process.check_output ~cancellable:false ~job cmd >>!= fun vars ->
     let json =
       match Yojson.Safe.from_string vars with
-      | `Assoc items -> `Assoc (("ocaml_version", `String ocaml_version) :: items)
+      | `Assoc items ->
+          `Assoc (
+            ("ocaml_package", `String ocaml_package_name) ::
+            ("ocaml_version", `String ocaml_version) ::
+            items)
       | json -> Fmt.failwith "Unexpected JSON: %a" Yojson.Safe.(pretty_print ~std:true) json
     in
     Current.Job.log job "@[<v2>Result:@,%a@]" Yojson.Safe.(pretty_print ~std:true) json;

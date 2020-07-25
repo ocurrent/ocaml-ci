@@ -8,6 +8,7 @@ module Vars = struct
     os_family : string;
     os_distribution : string;
     os_version : string;
+    ocaml_package : string;
     ocaml_version : string;
   } [@@deriving yojson]
 end

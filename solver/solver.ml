@@ -13,25 +13,24 @@ let env (vars : Worker.Vars.t) =
     ~os_family:vars.os_family
     ()
 
-let ocaml_name = OpamPackage.Name.of_string "ocaml"
-
 let parse_opam (name, contents) =
   let pkg = OpamPackage.of_string name in
   let opam = OpamFile.OPAM.read_from_string contents in
   OpamPackage.name pkg, (OpamPackage.version pkg, opam)
 
 let solve ~packages ~pins ~root_pkgs (vars : Worker.Vars.t) =
+  let ocaml_package = OpamPackage.Name.of_string vars.ocaml_package in
   let ocaml_version = OpamPackage.Version.of_string vars.ocaml_version in
   let context =
     Git_context.create
       ~packages
       ~pins
       ~env:(env vars)
-      ~constraints:(OpamPackage.Name.Map.singleton ocaml_name (`Eq, ocaml_version))
+      ~constraints:(OpamPackage.Name.Map.singleton ocaml_package (`Eq, ocaml_version))
       ~test:(OpamPackage.Name.Set.of_list root_pkgs)
   in
   let t0 = Unix.gettimeofday () in
-  let r = Solver.solve context root_pkgs in
+  let r = Solver.solve context (ocaml_package :: root_pkgs) in
   let t1 = Unix.gettimeofday () in
   Printf.printf "%.2f\n" (t1 -. t0);
   match r with
