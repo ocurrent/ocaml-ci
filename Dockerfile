@@ -1,6 +1,6 @@
 FROM ocurrent/opam:debian-10-ocaml-4.10 AS build
 RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libsqlite3-dev libgmp-dev -y --no-install-recommends
-RUN cd ~/opam-repository && git pull origin -q master && git reset --hard a5e373ef1d13748cb092ede3c5b74ce6b6c03349 && opam update
+RUN cd ~/opam-repository && git pull origin -q master && git reset --hard 0f1d4fba36adc2f86afc246a36e4d76224191b9f && opam update
 COPY --chown=opam \
 	ocurrent/current_ansi.opam \
 	ocurrent/current_docker.opam \
@@ -39,4 +39,6 @@ RUN apt-get update && apt-get install docker-ce -y --no-install-recommends
 WORKDIR /var/lib/ocurrent
 ENTRYPOINT ["dumb-init", "/usr/local/bin/ocaml-ci-service"]
 ENV OCAMLRUNPARAM=a=2
+# Enable experimental for docker manifest support
+ENV DOCKER_CLI_EXPERIMENTAL=enabled
 COPY --from=build /src/_build/install/default/bin/ocaml-ci-service /src/_build/install/default/bin/ocaml-ci-solver /usr/local/bin/

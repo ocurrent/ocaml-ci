@@ -12,8 +12,9 @@ let build { docker_context; pool; build_timeout } ~dockerfile source =
     ~timeout:build_timeout
     ~pull:false
 
-let pull { docker_context; pool = _; build_timeout = _ } tag =
-  Current_docker.Raw.pull tag
+let pull { docker_context; pool = _; build_timeout = _ } ?arch tag =
+  let arch = Variant.to_docker_arch arch in
+  Current_docker.Raw.pull ?arch tag
     ~docker_context
 
 let run { docker_context; pool; build_timeout = _ } ~args img =

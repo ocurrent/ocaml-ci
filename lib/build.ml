@@ -56,14 +56,14 @@ module Op = struct
     type t = {
       ty : Spec.ty;
       base : Raw.Image.t;                       (* The image with the OCaml compiler to use. *)
-      variant : string;                         (* Added as a comment in the Dockerfile *)
+      variant : Variant.t;                      (* Added as a comment in the Dockerfile *)
     }
 
     let to_json { base; ty; variant } =
       `Assoc [
         "base", `String (Raw.Image.digest base);
         "op", Spec.ty_to_yojson ty;
-        "variant", `String variant;
+        "variant", (Variant.to_yojson variant);
       ]
 
     let digest t = Yojson.Safe.to_string (to_json t)
@@ -128,12 +128,12 @@ let build ~platforms ~spec ~repo commit =
   and> commit = commit
   and> platforms = platforms
   and> repo = repo in
-  match List.find_opt (fun p -> p.Platform.variant = variant) platforms with
+  match List.find_opt (fun p -> Variant.equal p.Platform.variant variant) platforms with
   | Some { Platform.builder; variant; base; _ } ->
     BC.run builder { Op.Key.commit; repo; label } { Op.Value.base; ty; variant }
   | None ->
     (* We can only get here if there is a bug. If the set of platforms changes, [Analyse] should recalculate. *)
-    let msg = Fmt.strf "BUG: variant %S is not a supported platform" variant in
+    let msg = Fmt.strf "BUG: variant %a is not a supported platform" Variant.pp variant in
     Current_incr.const (Error (`Msg msg), None)
 
 let get_job_id x =

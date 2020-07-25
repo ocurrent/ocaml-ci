@@ -41,10 +41,11 @@ type platform = {
   pool : string;
   distro : string;
   ocaml_version : string;
+  arch: Ocaml_version.arch option;
 }
 
 let platforms =
-  let v label pool distro ocaml_version = { label; builder = Builders.local; pool; distro; ocaml_version } in
+  let v ?arch label pool distro ocaml_version = { arch; label; builder = Builders.local; pool; distro; ocaml_version } in
   match profile with
   | `Production ->
     [
@@ -65,10 +66,15 @@ let platforms =
       v "centos"   "linux-x86_64" "centos-8"      default_compiler;
       v "fedora"   "linux-x86_64" "fedora-31"     default_compiler;
       (* oraclelinux doesn't work in opam 2 yet *)
+      v ~arch:`I386 "4.10+x86_32" "linux-x86_64" "debian-10" "4.10";
+      v ~arch:`Aarch32 "4.10+arm32" "linux-arm64" "debian-10" "4.10";
+      v ~arch:`Aarch64 "4.10+arm64" "linux-arm64" "debian-10" "4.10";
+      v ~arch:`Ppc64le "4.10+ppc64le" "linux-ppc64" "debian-10" "4.10";
     ]
   | `Dev ->
     [
       v "4.10" "linux-x86_64" "debian-10" "4.10";
       v "4.09" "linux-x86_64" "debian-10" "4.09";
       v "4.02" "linux-x86_64" "debian-10" "4.02";
+      v ~arch:`I386 "4.10+32bit" "linux-x86_64" "debian-10" "4.10";
     ]

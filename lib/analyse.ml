@@ -45,7 +45,7 @@ module Analysis = struct
   type t = {
     opam_files : string list;
     ocamlformat_source : Analyse_ocamlformat.source option;
-    selections : [ `Opam_build of Worker.Selection.t list | `Duniverse of string list ];
+    selections : [ `Opam_build of Selection.t list | `Duniverse of Variant.t list ];
   }
   [@@deriving yojson]
 
@@ -176,6 +176,7 @@ module Analysis = struct
       (fun () -> handle_opam_files ~job ~root_pkgs ~pinned_pkgs)
       (fun pin_depends ->
          let pinned_pkgs = pin_depends @ pinned_pkgs in
+         let platforms = List.map (fun (variant,vars) -> Variant.to_string variant, vars) platforms in
          let request = { Ocaml_ci_api.Worker.Solve_request.
                          opam_repository_commit = Current_git.Commit_id.hash opam_repository_commit;
                          root_pkgs;
@@ -185,7 +186,7 @@ module Analysis = struct
          Capnp_rpc_lwt.Capability.with_ref (job_log job) @@ fun log ->
          Ocaml_ci_api.Solver.solve solver request ~log >>= function
          | Ok [] -> Lwt.return (Fmt.error_msg "No solution found for any supported platform")
-         | Ok x -> Lwt_result.return (`Opam_build x)
+         | Ok x -> Lwt_result.return (`Opam_build (List.map Selection.of_worker x))
          | Error (`Msg msg) -> Lwt.return (Fmt.error_msg "Error from solver: %s" msg)
       )
       (function
@@ -261,12 +262,12 @@ module Examine = struct
   module Value = struct
     type t = {
       opam_repository_commit : Current_git.Commit_id.t;
-      platforms : (string * Worker.Vars.t) list;
+      platforms : (Variant.t * Worker.Vars.t) list;
     }
 
     let platform_to_yojson (variant, vars) =
       `Assoc [
-        "variant", `String variant;
+        "variant", Variant.to_yojson variant;
         "vars", Worker.Vars.to_yojson vars
       ]
 

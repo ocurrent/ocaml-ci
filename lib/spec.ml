@@ -1,5 +1,3 @@
-module Selection = Ocaml_ci_api.Worker.Selection
-
 type opam_files = string list [@@deriving to_yojson, ord]
 
 type ty = [
@@ -10,12 +8,12 @@ type ty = [
 
 type t = {
   label : string;
-  variant : string;
+  variant : Variant.t;
   ty : ty;
 } [@@deriving ord]
 
 let opam ~label ~selection ~analysis op =
-  let variant = selection.Selection.id in
+  let variant = selection.Selection.variant in
   let ty =
     match op with
     | `Build | `Lint `Doc as x -> `Opam (x, selection, Analyse.Analysis.opam_files analysis)
