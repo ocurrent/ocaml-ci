@@ -39,5 +39,6 @@ RUN apt-get update && apt-get install docker-ce -y --no-install-recommends
 WORKDIR /var/lib/ocurrent
 ENTRYPOINT ["dumb-init", "/usr/local/bin/ocaml-ci-service"]
 ENV OCAMLRUNPARAM=a=2
+# Enable experimental for docker manifest support
 ENV DOCKER_CLI_EXPERIMENTAL=enabled
 COPY --from=build /src/_build/install/default/bin/ocaml-ci-service /src/_build/install/default/bin/ocaml-ci-solver /usr/local/bin/
