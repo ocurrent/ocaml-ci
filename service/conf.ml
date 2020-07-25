@@ -61,11 +61,11 @@ let platforms =
       v "4.03" "linux-x86_64" "debian-10" "4.03";
       v "4.02" "linux-x86_64" "debian-10" "4.02";
       (* Distributions: *)
-      v "alpine"   "linux-x86_64" "alpine-3.11"   default_compiler;
+      v "alpine"   "linux-x86_64" "alpine-3.12"   default_compiler;
       v "ubuntu"   "linux-x86_64" "ubuntu-20.04"  default_compiler;
-      v "opensuse" "linux-x86_64" "opensuse-15.1" default_compiler;
+      v "opensuse" "linux-x86_64" "opensuse-15.2" default_compiler;
       v "centos"   "linux-x86_64" "centos-8"      default_compiler;
-      v "fedora"   "linux-x86_64" "fedora-31"     default_compiler;
+      v "fedora"   "linux-x86_64" "fedora-32"     default_compiler;
       (* oraclelinux doesn't work in opam 2 yet *)
       v ~arch:`I386 "4.10+x86_32" "linux-x86_64" "debian-10" "4.10";
       v ~arch:`Aarch32 "4.10+arm32" "linux-arm64" "debian-10" "4.10";
