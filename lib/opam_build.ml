@@ -84,4 +84,4 @@ let dockerfile ~base ~opam_files ~selection ~for_user =
   let open Dockerfile in
   install_project_deps ~base ~opam_files ~selection ~for_user @@
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
-  run "opam exec -- dune build @install @runtest && rm -rf _build"
+  run "opam exec -- dune build @install @runtest && git diff --exit-code && rm -rf _build"
