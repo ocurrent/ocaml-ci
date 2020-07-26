@@ -12,3 +12,9 @@ val doc_dockerfile :
   for_user:bool ->
   Dockerfile.t
 (** A Dockerfile that checks that the documentation in [./src/] builds without warnings. *)
+
+val opam_lint_dockerfile :
+  base:string ->
+  opam_files:string list ->
+  for_user:bool ->
+  Dockerfile.t

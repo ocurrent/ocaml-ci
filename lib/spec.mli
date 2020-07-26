@@ -1,5 +1,5 @@
 type ty = [
-  | `Opam of [ `Build | `Lint of [ `Doc ]] * Selection.t * string list
+  | `Opam of [ `Build | `Lint of [ `Doc | `Opam ]] * Selection.t * string list
   | `Opam_fmt of Analyse_ocamlformat.source option
   | `Duniverse
 ] [@@deriving to_yojson, ord]
@@ -14,7 +14,7 @@ val opam :
   label:string ->
   selection:Selection.t ->
   analysis:Analyse.Analysis.t ->
-  [ `Build | `Lint of [ `Doc | `Fmt ] ] ->
+  [ `Build | `Lint of [ `Doc | `Fmt | `Opam ] ] ->
   t
 
 val duniverse : label:string -> variant:Variant.t -> t

@@ -98,6 +98,7 @@ let build_with_docker ?ocluster ~repo ~analysis source =
           [
             Spec.opam ~label:"(lint-fmt)" ~selection:lint_selection ~analysis (`Lint `Fmt);
             Spec.opam ~label:"(lint-doc)" ~selection:lint_selection ~analysis (`Lint `Doc);
+            Spec.opam ~label:"(lint-opam)" ~selection:lint_selection ~analysis (`Lint `Opam);
           ]
         in
         lint @ builds
