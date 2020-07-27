@@ -32,3 +32,10 @@ let doc_dockerfile ~base ~opam_files ~selection ~for_user =
   @@ run "%sopam depext -i dune odoc>=1.5.0" download_cache_prefix
   @@ run "ODOC_WARN_ERROR=true opam exec -- dune build @doc \
           || (echo \"dune build @doc failed\"; exit 2)"
+
+let opam_lint_dockerfile ~base ~opam_files ~for_user:_ =
+  let open Dockerfile in
+  from base
+  @@ workdir "src"
+  @@ copy ~chown:"opam" ~src:["./"] ~dst:"./" ()
+  @@ run "opam lint %s" (String.concat " " opam_files)

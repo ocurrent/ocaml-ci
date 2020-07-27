@@ -82,6 +82,7 @@ module Op = struct
       match ty with
       | `Opam (`Build, selection, opam_files) -> Opam_build.dockerfile ~base ~opam_files ~selection
       | `Opam (`Lint `Doc, selection, opam_files) -> Lint.doc_dockerfile ~base ~opam_files ~selection
+      | `Opam (`Lint `Opam, _selection, opam_files) -> Lint.opam_lint_dockerfile ~base ~opam_files
       | `Opam_fmt ocamlformat_source -> Lint.fmt_dockerfile ~base ~ocamlformat_source
       | `Duniverse -> Duniverse_build.dockerfile ~base ~repo ~variant
     in
@@ -152,7 +153,7 @@ let v ~platforms ~repo ~spec source =
     match spec.ty with
     | `Duniverse
     | `Opam (`Build, _, _) -> `Built
-    | `Opam (`Lint `Doc, _, _) -> `Checked
+    | `Opam (`Lint (`Doc|`Opam), _, _) -> `Checked
     | `Opam_fmt _ -> `Checked
   in
   result, job_id
