@@ -1,52 +1,3 @@
-let latest_patch_release_with_flambda compiler =
-  let open Ocaml_version in
-  of_string_exn compiler |> fun ov ->
-  Releases.all_patches |>
-  List.filter (fun ov' -> with_just_major_and_minor ov' = ov) |>
-  List.sort compare |> List.rev |> function
-  | [] -> failwith ("Unknown compiler release" ^ compiler)
-  | hd::_ -> Opam.V2.name @@ with_variant hd (Some "musl+flambda") (* TODO add `Musl to ocaml-version *)
-
-let install_bin ~compiler ~repo ~tag ~bins name =
-  let open Dockerfile in
-  let alias = Printf.sprintf "%s_binary" name in
-  let base = Printf.sprintf "ocurrent/opam:debian-10-ocaml-%s" compiler in
-  let opam_repo_hash = "9509aa5e87a7431329e26428db51707869a7e22a" in
-  let switch = latest_patch_release_with_flambda compiler in
-  let build =
-    from ~alias base @@
-    run "sudo apt-get -y install musl-tools" @@
-    run "git -C /home/opam/opam-repository pull origin master && git -C /home/opam/opam-repository checkout %s && opam update -uy" opam_repo_hash @@
-    run "opam switch create static %s" switch @@ (* TODO base-compilers should build this variant *)
-    run "opam install -y dune" @@
-    run "git clone --depth=1 --branch=%s https://github.com/%s.git /home/opam/src" tag repo @@
-    workdir "/home/opam/src" @@
-    run "echo \"(lang dune 2.0)\" > dune-workspace" @@
-    run "echo \"(env (_ (flags -cclib -static)))\" >> dune-workspace" @@
-    run "opam pin add -n ." @@
-    run "opam depext %s" name @@
-    run "opam install --deps-only %s" name @@
-    run "opam exec -- dune build @install" @@@
-    (List.map (fun (bin, target) ->
-       run "sudo install -m 0755 -o root _build/install/default/%s %s" bin target) bins)
-  in
-  let use = copy ~from:alias ~src:(List.map snd bins) ~dst:"/usr/bin/" () in
-  build, use
-
-let install_platform ~compiler =
-  let duniverse = install_bin ~compiler
-    ~repo:"ocamllabs/duniverse" ~tag:"dev-ocaml-ci-4"
-    ~bins:["bin/duniverse", "/usr/bin/duniverse"] "duniverse" in
-  let dune = install_bin ~compiler
-    ~repo:"ocaml/dune" ~tag:"2.5.1"
-    ~bins:["bin/dune", "/usr/bin/dune"] "dune" in
-  let ocamlformat = install_bin ~compiler
-    ~repo:"ocaml-ppx/ocamlformat" ~tag:"0.14.2"
-    ~bins:["bin/ocamlformat", "/usr/bin/ocamlformat"] "ocamlformat" in
-  let open Dockerfile in
-  List.fold_left (fun (b, u) (b',u') -> (b @@ b'), (u @@ u')) (empty, empty)
-    [ duniverse; dune; ocamlformat ]
-
 let safe_char = function
   | 'A'..'Z' | 'a'..'z' | '0'..'9' | '-' | '_' -> true
   | _ -> false
@@ -65,24 +16,30 @@ let build_cache repo =
 
 let download_cache = "--mount=type=cache,target=/home/opam/.opam/download-cache,uid=1000"
 
+let install_opam_tools =
+  let opam_tools_hash = "6c56ab9fedd7b3f6c143cb606a0ea6fe6a384013" in
+  let open Dockerfile in
+     run "opam pin add -n https://github.com/avsm/opam-tools.git#%s" opam_tools_hash
+  @@ run "opam depext -iy opam-tools"
+
 let dockerfile ~base ~repo ~variant ~for_user =
   let caches =
     if for_user then ""
     else Printf.sprintf "%s %s" download_cache (build_cache repo)
   in
-  let build_platform, install_platform = install_platform ~compiler:"4.10" in
   let open Dockerfile in
   (if for_user then empty else Buildkit_syntax.add (Variant.arch variant)) @@
-  build_platform @@
   from base @@
-  install_platform @@
   comment "%s" (Variant.to_string variant) @@
+  install_opam_tools @@
   workdir "/src" @@
   run "sudo chown opam /src" @@
+  copy ~chown:"opam" ~src:["*.opam"] ~dst:"/src/" () @@
+  run "opam tools --no-install --compiler `opam exec -- ocamlc -version` -vv" @@
   copy ~chown:"opam" ~src:["dune-get"] ~dst:"/src/" () @@
   (* TODO make duniverse depext install the package as opam-depext does *)
-  run "sudo apt-get update && sudo apt-get -y install build-essential `duniverse depext`" @@
-  run "duniverse pull" @@
+  run "sudo apt-get update && sudo apt-get -y install build-essential `opam exec -- duniverse depext`" @@
+  run "opam exec -- duniverse pull" @@
   copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
   run "%s opam exec -- dune build @install" caches @@
   run "%s opam exec -- dune runtest" caches
