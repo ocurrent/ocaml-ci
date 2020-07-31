@@ -2,6 +2,7 @@ type opam_files = string list [@@deriving to_yojson, ord]
 
 type ty = [
   | `Opam of [ `Build | `Lint of [ `Doc | `Opam ]] * Selection.t * opam_files
+  | `Ocaml_compiler
   | `Opam_fmt of Analyse_ocamlformat.source option
   | `Duniverse
 ] [@@deriving to_yojson, ord]
@@ -24,6 +25,9 @@ let opam ~label ~selection ~analysis op =
 let duniverse ~label ~variant =
   { label; variant; ty = `Duniverse }
 
+let ocaml_compiler ~label ~variant =
+  { label; variant; ty = `Ocaml_compiler}
+
 let pp f t = Fmt.string f t.label
 
 let label t = t.label
@@ -35,3 +39,4 @@ let pp_summary f = function
   | `Opam_fmt v -> Fmt.pf f "ocamlformat version: %a"
                      Fmt.(option ~none:(unit "none") Analyse_ocamlformat.pp_source) v
   | `Duniverse -> Fmt.string f "Duniverse build"
+  | `Ocaml_compiler -> Fmt.string f "OCaml compiler build"

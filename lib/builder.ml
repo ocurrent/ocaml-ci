@@ -12,8 +12,8 @@ let build { docker_context; pool; build_timeout } ~dockerfile source =
     ~timeout:build_timeout
     ~pull:false
 
-let pull { docker_context; pool = _; build_timeout = _ } ?arch tag =
-  let arch = Variant.to_docker_arch arch in
+let pull { docker_context; pool = _; build_timeout = _ } ~arch tag =
+  let arch = if Ocaml_version.arch_is_32bit arch then Some (Ocaml_version.to_docker_arch arch) else None in
   Current_docker.Raw.pull ?arch tag
     ~docker_context
 

@@ -33,49 +33,67 @@ module Builders = struct
   let local = { Ocaml_ci.Builder.docker_context = None; pool = dev_pool; build_timeout }
 end
 
-let default_compiler = "4.10"
+module OV = Ocaml_version
+
+let default_compiler = OV.(Releases.latest |> without_patch)
+let trunk_compiler = OV.(Sources.trunk |> without_patch)
 
 type platform = {
   label : string;
   builder : Ocaml_ci.Builder.t;
   pool : string;
   distro : string;
-  ocaml_version : string;
-  arch: Ocaml_version.arch option;
+  ocaml_version : OV.t;
+  arch: OV.arch;
 }
 
 let platforms =
-  let v ?arch label pool distro ocaml_version = { arch; label; builder = Builders.local; pool; distro; ocaml_version } in
+  let make ?(arch=`X86_64) label distro ocaml_version =
+    let pool = match arch with
+      | `X86_64 | `I386 -> "linux-x86_64"
+      | `Aarch32 | `Aarch64 -> "linux-arm64"
+      | `Ppc64le -> "linux-ppc64" in
+    { arch; label; builder = Builders.local; pool; distro; ocaml_version }
+  in
+  let make_distro_variants arch label distro =
+    (* expand out a distro to the latest default version and trunk *)
+    let trunk =
+      List.map (make ~arch label distro)
+        (List.map OV.without_patch (OV.trunk_variants arch)) in
+    let default = make ~arch label distro default_compiler in
+    default :: trunk in
+  let make_distro arch label distro =
+    [ make ~arch label distro default_compiler;
+      make ~arch label distro trunk_compiler] in
+  let distros l = List.map (fun (arch, distro, variants) ->
+    let label = Dockerfile_distro.latest_tag_of_distro distro in
+    let distro = Dockerfile_distro.tag_of_distro distro in
+    if variants then
+      make_distro_variants arch label distro
+    else
+      make_distro arch label distro) l |> List.flatten
+  in
+  let v ?arch ov =
+    let distro = Dockerfile_distro.tag_of_distro (`Debian `V10) in
+    make ?arch (OV.to_string ov) distro ov in
+  let releases ?arch l = List.map (v ?arch) l in
   match profile with
   | `Production ->
-    [
       (* Compiler versions:*)
-      v "4.10" "linux-x86_64" "debian-10" "4.10";       (* Note: first item is also used as lint platform *)
-      v "4.11" "linux-x86_64" "debian-10" "4.11";
-      v "4.09" "linux-x86_64" "debian-10" "4.09";
-      v "4.08" "linux-x86_64" "debian-10" "4.08";
-      v "4.07" "linux-x86_64" "debian-10" "4.07";
-      v "4.06" "linux-x86_64" "debian-10" "4.06";
-      v "4.05" "linux-x86_64" "debian-10" "4.05";
-      v "4.04" "linux-x86_64" "debian-10" "4.04";
-      v "4.03" "linux-x86_64" "debian-10" "4.03";
-      v "4.02" "linux-x86_64" "debian-10" "4.02";
+      releases (List.map OV.without_patch OV.Releases.recent) @
       (* Distributions: *)
-      v "alpine"   "linux-x86_64" "alpine-3.12"   default_compiler;
-      v "ubuntu"   "linux-x86_64" "ubuntu-20.04"  default_compiler;
-      v "opensuse" "linux-x86_64" "opensuse-15.2" default_compiler;
-      v "centos"   "linux-x86_64" "centos-8"      default_compiler;
-      v "fedora"   "linux-x86_64" "fedora-32"     default_compiler;
-      (* oraclelinux doesn't work in opam 2 yet *)
-      v ~arch:`I386 "4.10+x86_32" "linux-x86_64" "debian-10" "4.10";
-      v ~arch:`Aarch32 "4.10+arm32" "linux-arm64" "debian-10" "4.10";
-      v ~arch:`Aarch64 "4.10+arm64" "linux-arm64" "debian-10" "4.10";
-      v ~arch:`Ppc64le "4.10+ppc64le" "linux-ppc64" "debian-10" "4.10";
-    ]
+      distros [
+        `X86_64,  `Debian `V10, true;
+        `I386,    `Debian `V10, true;
+        `Aarch64, `Debian `V10, true;
+        `Aarch32, `Debian `V10, true;
+        `Ppc64le, `Debian `V10, true;
+        `X86_64,  `Alpine `V3_12, false;
+        `X86_64,  `Ubuntu `V20_04, false;
+        `X86_64,  `Ubuntu `V18_04, false;
+        `X86_64,  `OpenSUSE `V15_2, false;
+        `X86_64,  `CentOS `V8, false;
+        `X86_64,  `Fedora `V32, false ]
   | `Dev ->
-    [
-      v "4.10" "linux-x86_64" "debian-10" "4.10";
-      v "4.11" "linux-x86_64" "debian-10" "4.11";
-      v "4.02" "linux-x86_64" "debian-10" "4.02";
-      v ~arch:`I386 "4.10+32bit" "linux-x86_64" "debian-10" "4.10";
-    ]
+      releases (List.map OV.of_string_exn ["4.10"; "4.11"; "4.12"; "4.03"])
+    @ releases ~arch:`I386 [OV.of_string_exn "4.10"]

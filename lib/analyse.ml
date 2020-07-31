@@ -45,7 +45,10 @@ module Analysis = struct
   type t = {
     opam_files : string list;
     ocamlformat_source : Analyse_ocamlformat.source option;
-    selections : [ `Opam_build of Selection.t list | `Duniverse of Variant.t list ];
+    selections : [
+       `Opam_build of Selection.t list
+     | `Ocaml_compiler of Variant.t list
+     | `Duniverse of Variant.t list ];
   }
   [@@deriving yojson]
 
@@ -61,7 +64,7 @@ module Analysis = struct
   let is_duniverse t =
     match t.selections with
     | `Duniverse _ -> true
-    | `Opam_build _ -> false
+    | `Opam_build _  | `Ocaml_compiler _ -> false
 
   let ocamlformat_source t = t.ocamlformat_source
 
@@ -113,6 +116,17 @@ module Analysis = struct
     if variants = [] then failwith "No supported compilers found!";
     Lwt_result.return (`Duniverse variants)
 
+  (* Select trunk compilers and variants to build different flavours
+     of OCaml *)
+  let ocaml_compiler_selections ~platforms =
+    let module OV = Ocaml_version in
+    let variants =
+      List.filter_map (fun (variant,_) ->
+        let ov1 = OV.with_just_major_and_minor OV.Sources.trunk in
+        let ov2 = OV.without_variant (Variant.ocaml_version variant) in
+        if OV.compare ov1 ov2 = 0 then Some variant else None) platforms in
+    Lwt_result.return (`Ocaml_compiler variants)
+
   let check_opam_version =
     let version_2 = OpamVersion.of_string "2" in
     fun name opam ->
@@ -158,6 +172,11 @@ module Analysis = struct
       )
 
   let opam_selections ~solver ~job ~platforms ~opam_repository_commit ~opam_files dir =
+    (* Filter out variants in the platforms. TODO scan the opam files for a x- field
+       to allow specific packages to try and build using some variants. *)
+    let platforms = List.filter_map (fun (v,vars) ->
+      if (Variant.ocaml_version v |> Ocaml_version.extra) <> None then
+        None else Some (v, vars)) platforms in
     let src = Fpath.to_string dir in
     let ( / ) = Filename.concat in
     begin
@@ -194,8 +213,27 @@ module Analysis = struct
         | ex -> Lwt.fail ex
       )
 
+  let type_of_dir dir =
+    let p x = (Filename.concat (Fpath.to_string dir) x) in
+    let is_ocaml_compiler () =
+      let dune_project_path = p "dune-project" in
+      let open Sexplib.Sexp in
+      match load_sexps dune_project_path with
+      | (List _) :: (List [ Atom "using"; Atom "experimental_building_ocaml_compiler_with_dune"; _]) ::_ -> true
+      | _ -> false
+      | exception _ -> false
+    in
+    let is_duniverse () = Sys.file_exists (p "dune-get") in
+    let is_opam_repo () = Sys.file_exists (p "opam.opam") in
+    let is_dune_repo () = Sys.file_exists (p "dune.opam") in
+    if is_ocaml_compiler () then `Ocaml_compiler
+    else if is_opam_repo () then `Opam
+    else if is_dune_repo () then `Dune
+    else if is_duniverse () then `Duniverse
+    else `Ocaml_repo
+
   let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
-    let is_duniverse = Sys.file_exists (Filename.concat (Fpath.to_string dir) "dune-get") in
+    let ty = type_of_dir dir in
     let cmd = "", [| "find"; "."; "-maxdepth"; "3"; "-name"; "*.opam" |] in
     Current.Process.check_output ~cwd:dir ~cancellable:true ~job cmd >>!= fun output ->
     let opam_files =
@@ -213,7 +251,7 @@ module Analysis = struct
               match Fpath.v path |> Fpath.segs with
               | [_file] -> true
               | ["duniverse"; _pkg; _file] -> true
-              | _ when is_duniverse ->
+              | _ when ty = `Duniverse ->
                 Current.Job.log job "WARNING: ignoring opam file %S as not in root or duniverse subdir" path; false
               | segs when List.exists is_test_dir segs ->
                 Current.Job.log job "Ignoring test directory %S" path;
@@ -236,8 +274,11 @@ module Analysis = struct
     else if List.filter is_toplevel opam_files = [] then Lwt_result.fail (`Msg "No top-level opam files found!")
     else (
       begin
-        if is_duniverse then duniverse_selections ~job ~platforms dir
-        else opam_selections ~solver ~job ~platforms ~opam_repository_commit ~opam_files dir
+        match ty with
+        | `Duniverse -> duniverse_selections ~job ~platforms dir
+        | `Ocaml_repo -> opam_selections ~solver ~job ~platforms ~opam_repository_commit ~opam_files dir
+        | `Ocaml_compiler -> ocaml_compiler_selections ~platforms
+        | `Opam | `Dune -> failwith "TODO"
       end >>!= fun selections ->
       let r = { opam_files; ocamlformat_source; selections } in
       Current.Job.log job "@[<v2>Results:@,%a@]" Yojson.Safe.(pretty_print ~std:true) (to_yojson r);

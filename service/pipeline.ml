@@ -11,8 +11,8 @@ let platforms =
     let base = Platform.pull ~arch ~schedule ~builder ~distro ~ocaml_version in
     let host_base =
       match arch with
-      | None | Some `X86_64 -> base
-      | _ -> Platform.pull ~arch:None ~schedule ~builder ~distro ~ocaml_version
+      | `X86_64 -> base
+      | _ -> Platform.pull ~arch:`X86_64 ~schedule ~builder ~distro ~ocaml_version
     in
     Platform.get ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base base
   in
@@ -82,6 +82,12 @@ let build_with_docker ?ocluster ~repo ~analysis source =
         []
     | Ok analysis ->
       match Analyse.Analysis.selections analysis with
+      | `Ocaml_compiler vs ->
+        vs
+        |>  List.rev_map (fun variant ->
+           let label = Variant.to_string variant in
+           Spec.ocaml_compiler ~label ~variant
+          )
       | `Duniverse variants ->
         variants
         |> List.rev_map (fun variant ->

@@ -4,9 +4,6 @@ open Current.Syntax
 module Raw = Current_docker.Raw
 module Worker = Ocaml_ci_api.Worker
 
-let docker_tag ~distro ~ocaml_version =
-  Printf.sprintf "%s-ocaml-%s" distro ocaml_version
-
 type t = {
   label : string;
   builder : Builder.t;
@@ -85,7 +82,8 @@ module Query = struct
       | Some (name, version) -> (name, version)
       | None -> Fmt.failwith "Unexpected opam package name: %s" ocaml_package
     in
-    let cmd = get_vars ~arch:(Variant.(arch variant |> to_opam_arch)) docker_context host_image in
+    let arch = if Variant.arch variant |> Ocaml_version.arch_is_32bit then Some (Variant.arch variant |> Ocaml_version.to_opam_arch) else None in
+    let cmd = get_vars ~arch docker_context host_image in
     Current.Process.check_output ~cancellable:false ~job cmd >>!= fun vars ->
     let json =
       match Yojson.Safe.from_string vars with
@@ -119,14 +117,19 @@ let query builder ~variant ~host_image image =
   QC.run Query.No_context { Query.Key.docker_context; variant } { Query.Value.image; host_image }
 
 let get ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base base =
-  let variant = Variant.v ~arch (docker_tag ~distro ~ocaml_version) in
+  match Variant.v ~arch ~distro ~ocaml_version with
+  | Error (`Msg m) -> Current.fail m
+  | Ok variant ->
   let+ { Query.Outcome.vars; image } = query builder ~variant ~host_image:host_base base in
   let base = Raw.Image.of_hash image in
   { label; builder; pool; variant; base; vars }
 
 let pull ~arch ~schedule ~builder ~distro ~ocaml_version =
-  let archl = Variant.to_opam_arch arch |> Option.value ~default:"" in
-  Current.component "pull@,%s %s %s" distro ocaml_version archl |>
+  match Variant.v ~arch ~distro ~ocaml_version with
+  | Error (`Msg m) -> Current.fail m
+  | Ok variant ->
+  let archl = Ocaml_version.to_opam_arch arch in
+  Current.component "pull@,%s %a %s" distro Ocaml_version.pp ocaml_version archl |>
   let> () = Current.return () in
-  let tag = docker_tag ~distro ~ocaml_version in
-  Builder.pull ~schedule ?arch builder @@ "ocurrent/opam:" ^ tag
+  let tag = Variant.docker_tag variant in
+  Builder.pull ~schedule ~arch builder @@ "ocurrent/opam:" ^ tag

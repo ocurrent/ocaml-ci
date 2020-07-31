@@ -65,11 +65,8 @@ let install_project_deps ~base ~opam_files ~selection ~for_user =
   in
   (if for_user then empty else Buildkit_syntax.add (Variant.arch variant)) @@
   from base @@
-  (match Variant.arch variant with
-   | Some arch ->
-       if Ocaml_version.arch_is_32bit arch then
-         shell ["/usr/bin/linux32"; "/bin/sh"; "-c"] else empty
-   | None -> empty) @@
+  (if Variant.arch variant |> Ocaml_version.arch_is_32bit then
+     shell ["/usr/bin/linux32"; "/bin/sh"; "-c"] else empty) @@
   comment "%s" (Fmt.strf "%a" Variant.pp variant) @@
   distro_extras @@
   workdir "/src" @@

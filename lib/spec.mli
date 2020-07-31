@@ -1,5 +1,6 @@
 type ty = [
   | `Opam of [ `Build | `Lint of [ `Doc | `Opam ]] * Selection.t * string list
+  | `Ocaml_compiler
   | `Opam_fmt of Analyse_ocamlformat.source option
   | `Duniverse
 ] [@@deriving to_yojson, ord]
@@ -18,6 +19,8 @@ val opam :
   t
 
 val duniverse : label:string -> variant:Variant.t -> t
+
+val ocaml_compiler : label:string -> variant:Variant.t -> t
 
 val pp : t Fmt.t
 val compare : t -> t -> int
