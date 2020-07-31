@@ -14,7 +14,7 @@ let install_ocamlformat =
 let fmt_dockerfile ~base ~ocamlformat_source ~for_user =
   let download_cache_prefix = if for_user then "" else Opam_build.download_cache ^ " " in
   let open Dockerfile in
-  (if for_user then empty else Buildkit_syntax.add None) @@
+  (if for_user then empty else Buildkit_syntax.add `X86_64) @@
   from base
   @@ run "%sopam install dune" download_cache_prefix (* Not necessarily the dune version used by the project *)
   @@ workdir "src"

@@ -11,8 +11,8 @@ let platforms =
     let base = Platform.pull ~arch ~schedule ~builder ~distro ~ocaml_version in
     let host_base =
       match arch with
-      | None | Some `X86_64 -> base
-      | _ -> Platform.pull ~arch:None ~schedule ~builder ~distro ~ocaml_version
+      | `X86_64 -> base
+      | _ -> Platform.pull ~arch:`X86_64 ~schedule ~builder ~distro ~ocaml_version
     in
     Platform.get ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base base
   in

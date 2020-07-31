@@ -33,49 +33,54 @@ module Builders = struct
   let local = { Ocaml_ci.Builder.docker_context = None; pool = dev_pool; build_timeout }
 end
 
-let default_compiler = "4.10"
+module OV = Ocaml_version
+module DD = Dockerfile_distro
+
+let default_compiler = OV.(Releases.latest |> without_patch)
+let trunk_compiler = OV.(Sources.trunk |> without_patch)
 
 type platform = {
   label : string;
   builder : Ocaml_ci.Builder.t;
   pool : string;
   distro : string;
-  ocaml_version : string;
-  arch: Ocaml_version.arch option;
+  ocaml_version : OV.t;
+  arch: OV.arch;
 }
 
+let pool_of_arch = function
+| `X86_64 | `I386 -> "linux-x86_64"
+| `Aarch32 | `Aarch64 -> "linux-arm64"
+| `Ppc64le -> "linux-ppc64"
+
 let platforms =
-  let v ?arch label pool distro ocaml_version = { arch; label; builder = Builders.local; pool; distro; ocaml_version } in
+  let v ?(arch=`X86_64) label distro ocaml_version =
+    { arch; label; builder = Builders.local; pool = pool_of_arch arch; distro; ocaml_version }
+  in
+  let make_distro distro =
+    let label = DD.latest_tag_of_distro distro in
+    let tag = DD.tag_of_distro distro in
+    let ov = OV.(Releases.latest |> with_just_major_and_minor) in
+    if distro = `Debian `V10 then
+      v label tag (OV.with_variant ov (Some "flambda")) ::
+      List.map (fun arch -> v ~arch label tag ov) (DD.distro_arches ov distro)
+    else
+      [v label tag ov]
+  in
+  let make_release ?arch ov =
+    let distro = DD.tag_of_distro (`Debian `V10) in
+    let ov = OV.with_just_major_and_minor ov in
+    v ?arch (OV.to_string ov) distro ov in
   match profile with
   | `Production ->
-    [
-      (* Compiler versions:*)
-      v "4.10" "linux-x86_64" "debian-10" "4.10";       (* Note: first item is also used as lint platform *)
-      v "4.11" "linux-x86_64" "debian-10" "4.11";
-      v "4.09" "linux-x86_64" "debian-10" "4.09";
-      v "4.08" "linux-x86_64" "debian-10" "4.08";
-      v "4.07" "linux-x86_64" "debian-10" "4.07";
-      v "4.06" "linux-x86_64" "debian-10" "4.06";
-      v "4.05" "linux-x86_64" "debian-10" "4.05";
-      v "4.04" "linux-x86_64" "debian-10" "4.04";
-      v "4.03" "linux-x86_64" "debian-10" "4.03";
-      v "4.02" "linux-x86_64" "debian-10" "4.02";
-      (* Distributions: *)
-      v "alpine"   "linux-x86_64" "alpine-3.12"   default_compiler;
-      v "ubuntu"   "linux-x86_64" "ubuntu-20.04"  default_compiler;
-      v "opensuse" "linux-x86_64" "opensuse-15.2" default_compiler;
-      v "centos"   "linux-x86_64" "centos-8"      default_compiler;
-      v "fedora"   "linux-x86_64" "fedora-32"     default_compiler;
-      (* oraclelinux doesn't work in opam 2 yet *)
-      v ~arch:`I386 "4.10+x86_32" "linux-x86_64" "debian-10" "4.10";
-      v ~arch:`Aarch32 "4.10+arm32" "linux-arm64" "debian-10" "4.10";
-      v ~arch:`Aarch64 "4.10+arm64" "linux-arm64" "debian-10" "4.10";
-      v ~arch:`Ppc64le "4.10+ppc64le" "linux-ppc64" "debian-10" "4.10";
-    ]
+      let distros = List.map make_distro [
+        `Debian `V10; `Alpine `V3_12; `Ubuntu `V20_04;
+        `Ubuntu `V18_04; `OpenSUSE `V15_2; `CentOS `V8;
+        `Fedora `V32 ] |> List.flatten
+      in
+      (* The first one in this list is used for lint actions *)
+      let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas in
+      List.map make_release ovs @ distros
   | `Dev ->
-    [
-      v "4.10" "linux-x86_64" "debian-10" "4.10";
-      v "4.11" "linux-x86_64" "debian-10" "4.11";
-      v "4.02" "linux-x86_64" "debian-10" "4.02";
-      v ~arch:`I386 "4.10+32bit" "linux-x86_64" "debian-10" "4.10";
-    ]
+      let ovs = List.map OV.of_string_exn ["4.10"; "4.11"; "4.03"] in
+      List.map make_release ovs @ [make_release ~arch:`I386 (List.hd ovs)]

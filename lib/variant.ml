@@ -12,51 +12,61 @@ module Ocaml_version = struct
 
   let compare_arch = Stdlib.compare
   let equal_arch = (=)
-
-  let to_opam_arch = function
-  | `I386 -> "x86_32"
-  | `X86_64 -> "x86_64"
-  | `Ppc64le -> "ppc64"
-  | `Aarch32 -> "arm32"
-  | `Aarch64 -> "arm64"
-
-  let to_docker_arch = function
-   | `I386 -> "386"
-   | `X86_64 -> "amd64"
-   | `Ppc64le -> "ppc64le"
-   | `Aarch32 -> "arm"
-   | `Aarch64 -> "arm64"
-
-  let of_opam_arch = function
-  | "x86_32" -> Some `I386
-  | "x86_64" -> Some `X86_64
-  | "ppc64" -> Some `Ppc64le
-  | "arm32" -> Some `Aarch32
-  | "arm64" -> Some `Aarch64
-  | _ -> None
-
+  let to_yojson t = `String (to_string t)
+  let of_yojson j =
+    match j with
+    |`String a -> begin
+      match of_string a with
+      | Ok v -> Ok v
+      | Error _ -> Error ("unknown ocaml version " ^ a)
+    end
+    | _ -> Error "unknown json for ocaml version"
 end
 
-let to_opam_arch a = Option.map Ocaml_version.to_opam_arch a
-let to_docker_arch a = Option.map Ocaml_version.to_docker_arch a
+type t = {
+  distro: string;
+  ocaml_version: Ocaml_version.t;
+  arch: Ocaml_version.arch;
+} [@@deriving yojson, ord, eq]
 
-type t = string * Ocaml_version.arch option [@@deriving yojson, ord, eq]
-let v ~arch n = n, arch
-let arch = snd
-let id = fst
+let v ~arch ~distro ~ocaml_version =
+  (* Just check we understand all the variants first *)
+  match Ocaml_version.Configure_options.of_t ocaml_version with
+  | Ok _ -> Ok { arch; distro; ocaml_version }
+  | Error e -> Error e
 
-let pp f (id,arch) =
-  Fmt.pf f "%s%s" id
-    (match arch with
-     | None -> ""
-     | Some a -> "_" ^ (Ocaml_version.to_opam_arch a))
+let arch { arch; _ } = arch
+let distro { distro; _ } = distro
+let ocaml_version { ocaml_version; _ } = ocaml_version
+let with_ocaml_version ocaml_version t = { t with ocaml_version }
+
+let id { distro; ocaml_version; _ } =
+  Fmt.strf "%s-%a" distro Ocaml_version.pp ocaml_version
+
+let docker_tag { distro; ocaml_version; _ } =
+  Fmt.strf "%s-ocaml-%s" distro (Ocaml_version.to_string ~sep:'-' ocaml_version
+    |> String.map (function | '+' -> '-' | x -> x))
+
+let id_of_string s =
+  match Astring.String.cut ~rev:true ~sep:"-" s with
+  | Some (distro, ov) -> Some (distro, (Ocaml_version.of_string_exn ov))
+  | None -> None
+
+let pp f t =
+  Fmt.pf f "%s%s" (id t)
+    (match t.arch with
+     | `X86_64 -> ""
+     | a -> "_" ^ (Ocaml_version.to_opam_arch a))
 
 let to_string =
   Fmt.strf "%a" pp
 
 let of_string s =
+  let id, arch =
    match Astring.String.cut ~sep:"_" s with
-   | None -> s, None
-   | Some (s, a) -> s, (Ocaml_version.of_opam_arch a)
-
-
+   | None -> s, `X86_64
+   | Some (s, a) -> s, (Ocaml_version.of_opam_arch a |> Option.value ~default:`X86_64)
+  in
+  match id_of_string id with
+  | None -> raise (Failure ("internal error: unknown variant " ^ id))
+  | Some (distro, ocaml_version) -> { arch; distro; ocaml_version }

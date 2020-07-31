@@ -226,7 +226,7 @@ module Op = struct
       | `Opam (`Build, selection, _) -> hash_packages selection.packages
       | `Opam (`Lint (`Doc|`Opam), selection, _) -> hash_packages selection.packages
       | `Opam_fmt _ -> "ocamlformat"
-      | `Duniverse -> "duniverse"
+      | `Duniverse -> "duniverse-" ^ (Variant.to_string variant)
     in
     Fmt.strf "%s/%s-%s-%a-%s"
       owner name

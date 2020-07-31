@@ -8,7 +8,7 @@ let hash_for = function
 
 let add arch =
   let hash = hash_for (match arch with
-    | None | Some `X86_64 | Some `I386 -> `X86_64
-    | Some `Aarch64 | Some `Aarch32 -> `Aarch64
-    | Some `Ppc64le -> `Ppc64le) in
+    | `X86_64 | `I386 -> `X86_64
+    | `Aarch64 | `Aarch32 -> `Aarch64
+    | `Ppc64le -> `Ppc64le) in
   Dockerfile.comment "syntax = docker/dockerfile:experimental@%s" hash
