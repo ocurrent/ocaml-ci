@@ -1,6 +1,6 @@
 FROM ocurrent/opam:debian-10-ocaml-4.10 AS build
 RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libgmp-dev -y --no-install-recommends
-RUN cd ~/opam-repository && git pull origin master && git reset --hard 0f1d4fba36adc2f86afc246a36e4d76224191b9f && opam update
+RUN cd ~/opam-repository && git pull origin master && git reset --hard c332c82dc33e39c4d23fd4c8179d953ac2fddcc6 && opam update
 COPY --chown=opam \
 	ocurrent/current_rpc.opam \
 	ocurrent/current_ansi.opam \

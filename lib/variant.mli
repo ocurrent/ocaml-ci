@@ -1,16 +1,17 @@
 type t [@@deriving eq,ord,yojson]
 
-val v : arch:Ocaml_version.arch option -> string -> t
+val v : arch:Ocaml_version.arch ->
+        distro:string -> ocaml_version:Ocaml_version.t ->
+        (t, [> `Msg of string ]) result
 
-val arch : t -> Ocaml_version.arch option
+val arch : t -> Ocaml_version.arch
+val distro : t -> string
+val ocaml_version : t -> Ocaml_version.t
+val with_ocaml_version : Ocaml_version.t -> t -> t
+
 val id : t -> string
+val docker_tag : t -> string
 val pp : t Fmt.t
 
 val to_string : t -> string
 val of_string : string -> t
-
-(** [to_opam_arch t] outputs a string suitable for use in opam files as the [%{arch}%] variable *)
-val to_opam_arch : Ocaml_version.arch option -> string option
-
-(** [to_docker_arch t] outputs a string suitable for mapping to docker multiarch manifests *)
-val to_docker_arch : Ocaml_version.arch option -> string option
