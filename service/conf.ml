@@ -80,7 +80,7 @@ let platforms =
   match profile with
   | `Production ->
       (* Compiler versions:*)
-      releases (List.map OV.without_patch OV.Releases.recent) @
+      releases (List.map OV.without_patch (OV.Releases.recent |> List.rev)) @
       (* Distributions: *)
       distros [
         `X86_64,  `Debian `V10, true;
