@@ -79,8 +79,6 @@ let platforms =
   let releases ?arch l = List.map (v ?arch) l in
   match profile with
   | `Production ->
-      (* Compiler versions:*)
-      releases (List.map OV.without_patch (OV.Releases.recent |> List.rev)) @
       (* Distributions: *)
       distros [
         `X86_64,  `Debian `V10, true;
@@ -93,7 +91,9 @@ let platforms =
         `X86_64,  `Ubuntu `V18_04, false;
         `X86_64,  `OpenSUSE `V15_2, false;
         `X86_64,  `CentOS `V8, false;
-        `X86_64,  `Fedora `V32, false ]
+        `X86_64,  `Fedora `V32, false ] @
+      (* Compiler versions:*)
+      releases (List.map OV.without_patch (OV.Releases.recent |> List.rev))
   | `Dev ->
       releases (List.map OV.of_string_exn ["4.10"; "4.11"; "4.12"; "4.03"])
     @ releases ~arch:`I386 [OV.of_string_exn "4.10"]
