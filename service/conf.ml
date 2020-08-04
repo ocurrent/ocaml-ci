@@ -93,7 +93,9 @@ let platforms =
         `X86_64,  `CentOS `V8, false;
         `X86_64,  `Fedora `V32, false ] @
       (* Compiler versions:*)
-      releases (List.map OV.without_patch (OV.Releases.recent |> List.rev))
+      (* The first one in this list is used for lint actions *)
+      let rels = (List.rev OV.Releases.recent) @ OV.Releases.unreleased_betas in
+      releases (List.map OV.without_patch rels)
   | `Dev ->
       releases (List.map OV.of_string_exn ["4.10"; "4.11"; "4.12"; "4.03"])
     @ releases ~arch:`I386 [OV.of_string_exn "4.10"]
