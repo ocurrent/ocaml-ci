@@ -124,7 +124,7 @@ module Analysis = struct
       List.filter_map (fun (variant,_) ->
         let ov1 = OV.with_just_major_and_minor OV.Sources.trunk in
         let ov2 = OV.without_variant (Variant.ocaml_version variant) in
-        if OV.compare ov1 ov2 = 0 then Some variant else None) platforms in
+        if OV.equal ov1 ov2 then Some variant else None) platforms in
     Lwt_result.return (`Ocaml_compiler variants)
 
   let check_opam_version =
@@ -172,11 +172,19 @@ module Analysis = struct
       )
 
   let opam_selections ~solver ~job ~platforms ~opam_repository_commit ~opam_files dir =
-    (* Filter out variants in the platforms. TODO scan the opam files for a x- field
-       to allow specific packages to try and build using some variants. *)
-    let platforms = List.filter_map (fun (v,vars) ->
-      if (Variant.ocaml_version v |> Ocaml_version.extra) <> None then
-        None else Some (v, vars)) platforms in
+    let platforms =
+      List.filter (fun (v, _) ->
+        let ov = Variant.ocaml_version v in
+        (* Filter out variants in the platforms. TODO scan the opam files for a x- field
+          to allow specific packages to try and build using some variants. *)
+        (ov |> Ocaml_version.extra = None) &&
+        (* Filter out non-x86_64 for trunk compiler builds. These architectures are
+           scarcer resources than x86_64, and should be tested on stable compilers.
+           If a package has a special reason for wanting this, we could expose it via
+           an x- opam field flag in the future. *)
+        (not ((Ocaml_version.Releases.is_dev ov) && (Variant.arch v <> `X86_64)))
+      ) platforms
+    in
     let src = Fpath.to_string dir in
     let ( / ) = Filename.concat in
     begin
