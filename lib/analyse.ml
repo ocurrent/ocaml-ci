@@ -258,9 +258,10 @@ module Analysis = struct
             let check_whitelist_path path =
               match Fpath.v path |> Fpath.segs with
               | [_file] -> true
-              | ["duniverse"; _pkg; _file] -> true
+              | ["duniverse"; _pkg; _file] when ty = `Duniverse -> true
+              | ["duniverse"; _pkg; _file] -> false
               | _ when ty = `Duniverse ->
-                Current.Job.log job "WARNING: ignoring opam file %S as not in root or duniverse subdir" path; false
+                Current.Job.log job "WARNING: ignoring opam file %S as not in root subdir" path; false
               | segs when List.exists is_test_dir segs ->
                 Current.Job.log job "Ignoring test directory %S" path;
                 false
