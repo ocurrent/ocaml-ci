@@ -74,7 +74,7 @@ let install_project_deps ~base ~opam_files ~selection ~for_user =
   distro_extras @@
   workdir "/src" @@
   run "sudo chown opam /src" @@
-  run "cd ~/opam-repository && (git reset --hard %s || (git pull origin master && git reset --hard %s)) && opam update -u" commit commit @@
+  run "cd ~/opam-repository && (git reset --hard %s || (git fetch origin master && git reset --hard %s)) && opam update -u" commit commit @@
   pin_opam_files groups @@
   env ["DEPS", String.concat " " non_root_pkgs] @@
   run "%sopam depext --update -y %s $DEPS" download_cache_prefix (String.concat " " root_pkgs) @@
