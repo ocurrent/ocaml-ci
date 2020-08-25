@@ -160,12 +160,16 @@ module Op = struct
       conn.sched
 
   (* Limit how many items we queue up at the scheduler (including assigned to workers). *)
-  let rate_limit =
-    let rate_limit_high = Lwt_pool.create 200 Lwt.return in
-    let rate_limit_low = Lwt_pool.create 200 Lwt.return in
-    function
-    | `High -> rate_limit_high
-    | `Low -> rate_limit_low
+  let rate_limits = Hashtbl.create 10
+
+  let rate_limit pool prio =
+    let key = (pool, prio) in
+    match Hashtbl.find_opt rate_limits key with
+    | Some limiter -> limiter
+    | None ->
+      let limiter = Lwt_pool.create 200 Lwt.return in
+      Hashtbl.add rate_limits key limiter;
+      limiter
 
   (* This is called by [Current.Job] once the confirmation threshold allows the job to be submitted. *)
   let submit ~job ~pool ~action ~cache_hint ?src t ~priority ~switch:_ =
@@ -184,7 +188,7 @@ module Op = struct
       Prometheus.Gauge.dec_one Metrics.queue_connect;
       let urgent = (priority = `High) in
       Prometheus.Gauge.inc_one Metrics.queue_rate_limit;
-      Lwt_pool.use (rate_limit priority) (fun () ->
+      Lwt_pool.use (rate_limit pool priority) (fun () ->
           Prometheus.Gauge.dec_one Metrics.queue_rate_limit;
           let ticket = Cluster_api.Submission.submit ~urgent ?src sched ~pool ~action ~cache_hint in
           let build_job = Cluster_api.Ticket.job ticket in
