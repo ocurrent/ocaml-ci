@@ -185,8 +185,8 @@ module Analysis = struct
                        } in
          Capnp_rpc_lwt.Capability.with_ref (job_log job) @@ fun log ->
          Ocaml_ci_api.Solver.solve solver request ~log >>= function
-         | Ok [] -> Lwt.return (Fmt.error_msg "No solution found for any supported platform")
          | Ok x -> Lwt_result.return (`Opam_build (List.map Selection.of_worker x))
+         | Error `No_solution -> Lwt.return (Fmt.error_msg "No solution found for any supported platform")
          | Error (`Msg msg) -> Lwt.return (Fmt.error_msg "Error from solver: %s" msg)
       )
       (function

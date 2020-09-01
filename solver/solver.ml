@@ -2,6 +2,21 @@ module Worker = Ocaml_ci_api.Worker
 module Solver = Opam_0install.Solver.Make(Git_context)
 module Store = Git_unix.Store
 
+module Response = struct
+  type ('a, 'b) result = ('a, 'b) Stdlib.result =
+    | Ok of 'a
+    | Error of 'b
+  [@@deriving yojson]
+
+  type selection = {
+    packages : string list;
+    post_packages : string list;
+  }
+  [@@deriving yojson]
+
+  type t = (selection, [`Solve of string]) result [@@deriving yojson]
+end
+
 open Lwt.Infix
 
 let env (vars : Worker.Vars.t) =
@@ -34,11 +49,28 @@ let solve ~packages ~pins ~root_pkgs (vars : Worker.Vars.t) =
   let t1 = Unix.gettimeofday () in
   Printf.printf "%.2f\n" (t1 -. t0);
   match r with
-  | Ok sels ->
-    let pkgs = Solver.packages_of_result sels in
-    Ok (List.map OpamPackage.to_string pkgs)
+  | Ok sels -> Ok (Solver.packages_of_result sels)
   | Error diagnostics ->
     Error (Solver.diagnostics diagnostics)
+
+(** Name of dependencies with the 'post' flag *)
+let post_dependencies p : OpamPackage.Name.t list =
+  let post_var = OpamVariable.Full.of_string "post" in
+  let is_post f =
+    OpamFormula.fold_left (fun acc -> function
+        | OpamTypes.Filter f -> acc || List.mem post_var (OpamFilter.variables f)
+        | _ -> acc) false f
+  in
+  OpamFormula.fold_left (fun acc (name, f) ->
+      if is_post f then name :: acc else acc
+    ) [] p.OpamFile.OPAM.depends
+
+let process ~post_packages_names pkgs =
+  let is_post pkg = List.mem pkg.OpamPackage.name post_packages_names in
+  let serialize = List.map OpamPackage.to_string in
+  let post_packages, packages = List.partition is_post pkgs in
+  let packages, post_packages = serialize packages, serialize post_packages in
+  { Response.packages; post_packages }
 
 let main commit =
   let packages =
@@ -63,12 +95,18 @@ let main commit =
         root_pkgs @ pinned_pkgs
         |> OpamPackage.Name.Map.of_list
       in
+      let post_packages_names =
+        List.fold_left (fun acc (_, (_, p)) -> post_dependencies p @ acc) [] root_pkgs
+      in
       let root_pkgs = List.map fst root_pkgs in
       platforms |> List.iter (fun (_id, platform) ->
-          let msg =
+          let resp =
             match solve ~packages ~pins ~root_pkgs platform with
-            | Ok packages -> "+" ^ String.concat " " packages
-            | Error msg -> "-" ^ msg
+            | Ok pkgs -> Ok (process ~post_packages_names pkgs)
+            | Error msg -> Error (`Solve msg)
+          in
+          let msg =
+            Response.to_yojson resp |> Yojson.Safe.to_string
           in
           Printf.printf "%d\n%s%!" (String.length msg) msg;
         );

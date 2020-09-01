@@ -2,6 +2,7 @@
 type t = {
   variant : Variant.t;                (** The variant image to build on. *)
   packages : string list;             (** The selected packages ("name.version"). *)
+  post_packages : string list;        (** To be installed last, dependencies with flag "post". *)
   commit : string;                    (** A commit in opam-repository to use. *)
 } [@@deriving yojson, ord]
 

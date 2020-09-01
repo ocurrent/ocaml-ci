@@ -18,6 +18,7 @@ module Selection = struct
   type t = {
     id : string;                        (** The platform ID from the request. *)
     packages : string list;             (** The selected packages ("name.version"). *)
+    post_packages : string list;        (** To be installed last, dependencies with flag "post". *)
     commit : string;                    (** A commit in opam-repository to use. *)
   } [@@deriving yojson, ord]
 end
@@ -39,5 +40,5 @@ module Solve_response = struct
     | Error of 'b
   [@@deriving yojson]
 
-  type t = (Selection.t list, [`Msg of string]) result [@@deriving yojson]
+  type t = (Selection.t list, [`No_solution | `Msg of string]) result [@@deriving yojson]
 end

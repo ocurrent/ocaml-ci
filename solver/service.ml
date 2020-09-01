@@ -62,23 +62,12 @@ end = struct
       let buf = Bytes.create len in
       Lwt_io.read_into_exactly worker#stdout buf 0 len >|= fun () ->
       let results = Bytes.unsafe_to_string buf in
-      match results.[0] with
-      | '+' ->
+      match Solver.Response.of_yojson (Yojson.Safe.from_string results) with
+      | Ok response ->
         Log.info log "%s: found solution in %s s" id time;
-        let packages =
-          Astring.String.with_range ~first:1 results
-          |> Astring.String.cuts ~sep:" "
-        in
-        Ok packages
-      | '-' ->
-        Log.info log "%s: eliminated all possibilities in %s s" id time;
-        let msg = results |> Astring.String.with_range ~first:1 in
-        Error msg
-      | '!' ->
-        let msg = results |> Astring.String.with_range ~first:1 in
-        Fmt.failwith "BUG: solver worker failed: %s" msg;
-      | _ ->
-        Fmt.failwith "BUG: bad output: %s" results
+        response
+      | Error msg ->
+        Fmt.failwith "BUG: bad response from solver: %s\n%s" msg results
 
   let handle ~log request t =
     let { Worker.Solve_request.opam_repository_commit; platforms; root_pkgs; pinned_pkgs } = request in
@@ -96,7 +85,7 @@ end = struct
         let slice = { request with platforms = [p] } in
         Lwt_pool.use t (process ~log ~id slice) >>= function
         | Error _ as e -> Lwt.return (id, e)
-        | Ok packages ->
+        | Ok { Solver.Response.packages; post_packages } ->
           let repo_packages =
             packages |> List.filter_map (fun pkg ->
                 let pkg = OpamPackage.of_string pkg in
@@ -105,7 +94,7 @@ end = struct
               )
           in
           Opam_repository.oldest_commit_with repo_packages ~from:opam_repository_commit >|= fun commit ->
-          id, Ok { Worker.Selection.id; packages; commit }
+          id, Ok { Worker.Selection.id; packages; post_packages; commit }
       )
     >|= List.filter_map (fun (id, result) ->
         Log.info log "= %s =" id;
@@ -114,7 +103,7 @@ end = struct
           Log.info log "-> @[<hov>%a@]" Fmt.(list ~sep:sp string) result.Selection.packages;
           Log.info log "(valid since opam-repository commit %s)" result.Selection.commit;
           Some result
-        | Error msg ->
+        | Error (`Solve msg) ->
           Log.info log "%s" msg;
           None
       )
@@ -146,10 +135,13 @@ let v ~n_workers ~create_worker =
         | Error msg -> Lwt_result.fail (`Capnp (Capnp_rpc.Error.exn "Bad JSON in request: %s" msg))
         | Ok request ->
           Lwt.catch
-            (fun () -> handle t ~log request >|= Result.ok)
+            (fun () ->
+               handle t ~log request
+               >|= function [] -> Error `No_solution | x -> Ok x
+            )
             (function
               | Failure msg -> Lwt_result.fail (`Msg msg)
-              | ex -> Lwt.return (Fmt.error_msg "%a" Fmt.exn ex)
+              | ex -> Lwt.return_error (`Msg (Fmt.strf "%a" Fmt.exn ex))
             )
           >|= fun selections ->
           let json = Yojson.Safe.to_string (Worker.Solve_response.to_yojson selections) in
