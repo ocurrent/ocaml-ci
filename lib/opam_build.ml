@@ -63,7 +63,7 @@ let install_project_deps ~base ~opam_files ~selection ~for_user =
     else
       empty
   in
-  let post_deps =
+  let install_post_deps =
     if post_packages <> [] then
       run "%sopam install $POST_DEPS" download_cache_prefix
     else
@@ -78,12 +78,13 @@ let install_project_deps ~base ~opam_files ~selection ~for_user =
   workdir "/src" @@
   run "sudo chown opam /src" @@
   run "cd ~/opam-repository && (git cat-file -e %s || git fetch origin master) && git reset -q --hard %s && git log --no-decorate -n1 --oneline && opam update -u" commit commit @@
-  pin_opam_files groups @@
   env ["DEPS", String.concat " " non_root_pkgs] @@
   env ["POST_DEPS", String.concat " " post_packages] @@
-  run "%sopam depext --update -y %s $DEPS $POST_DEPS" download_cache_prefix (String.concat " " root_pkgs) @@
+  run "%sopam depext --update -y $DEPS $POST_DEPS" download_cache_prefix @@
   run "%sopam install $DEPS" download_cache_prefix @@
-  post_deps
+  install_post_deps @@
+  pin_opam_files groups @@
+  run "%sopam depext --update -y %s" download_cache_prefix (String.concat " " root_pkgs)
 
 let dockerfile ~base ~opam_files ~selection ~for_user =
   let open Dockerfile in
