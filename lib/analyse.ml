@@ -121,7 +121,7 @@ module Analysis = struct
         Fmt.failwith "Package %S uses unsupported opam version %s (need >= 2)" name (OpamVersion.to_string opam_version)
 
   (* For each package in [root_pkgs], parse the opam file and check whether it uses pin-depends.
-     Fetch and return all pinned opam files. Also, ensure we're using opam format version 2. *)
+     Also, ensure we're using opam format version 2. *)
   let handle_opam_files ~job ~root_pkgs ~pinned_pkgs =
     pinned_pkgs |> List.iter (fun (name, contents) ->
         check_opam_version name (OpamFile.OPAM.read_from_string contents)
@@ -145,6 +145,10 @@ module Analysis = struct
         )
       |> List.concat
     in
+    pin_depends
+
+  (** Fetch and return all pinned opam files. *)
+  let fetch_opam_files ~job pin_depends =
     pin_depends |> Lwt_list.map_s (fun (root_pkg, pkg, url) ->
         Lwt.catch
           (fun () ->
@@ -173,9 +177,17 @@ module Analysis = struct
         ) ([], [])
     end >>= fun (root_pkgs, pinned_pkgs) ->
     Lwt.try_bind
-      (fun () -> handle_opam_files ~job ~root_pkgs ~pinned_pkgs)
-      (fun pin_depends ->
-         let pinned_pkgs = pin_depends @ pinned_pkgs in
+      (fun () ->
+         let pin_depends = handle_opam_files ~job ~root_pkgs ~pinned_pkgs in
+         fetch_opam_files ~job pin_depends >>= fun fetched_pin_depends ->
+         let pin_depends =
+           pin_depends |> List.map (fun (_, pkg, url) ->
+               OpamPackage.to_string pkg, OpamUrl.to_string url
+             )
+         in
+         Lwt.return (pin_depends, fetched_pin_depends @ pinned_pkgs)
+      )
+      (fun (pin_depends, pinned_pkgs) ->
          let platforms = List.map (fun (variant,vars) -> Variant.to_string variant, vars) platforms in
          let request = { Ocaml_ci_api.Worker.Solve_request.
                          opam_repository_commit = Current_git.Commit_id.hash opam_repository_commit;
@@ -185,7 +197,8 @@ module Analysis = struct
                        } in
          Capnp_rpc_lwt.Capability.with_ref (job_log job) @@ fun log ->
          Ocaml_ci_api.Solver.solve solver request ~log >>= function
-         | Ok x -> Lwt_result.return (`Opam_build (List.map Selection.of_worker x))
+         | Ok x ->
+             Lwt_result.return (`Opam_build (List.map (Selection.make ~pin_depends) x))
          | Error `No_solution -> Lwt.return (Fmt.error_msg "No solution found for any supported platform")
          | Error (`Msg msg) -> Lwt.return (Fmt.error_msg "Error from solver: %s" msg)
       )

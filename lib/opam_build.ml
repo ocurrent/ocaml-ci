@@ -42,6 +42,13 @@ let pin_opam_files groups =
       )
   )
 
+let install_pin_depends ~download_cache_prefix pin_depends =
+  let open Dockerfile in
+  let pin_add acc (pkg, uri) =
+    acc @@ run "%sopam pin add -yn %s %S" download_cache_prefix pkg uri
+  in
+  List.fold_left pin_add empty pin_depends
+
 (* Get the packages directly in "." *)
 let rec get_root_opam_packages = function
   | [] -> []
@@ -51,7 +58,7 @@ let rec get_root_opam_packages = function
 let download_cache = "--mount=type=cache,target=/home/opam/.opam/download-cache,uid=1000"
 
 let install_project_deps ~base ~opam_files ~selection ~for_user =
-  let { Selection.packages; post_packages; commit; variant } = selection in
+  let { Selection.packages; post_packages; commit; variant; pin_depends } = selection in
   let groups = group_opam_files opam_files in
   let root_pkgs = get_root_opam_packages groups in
   let non_root_pkgs = packages |> List.filter (fun pkg -> not (List.mem pkg root_pkgs)) in
@@ -80,6 +87,7 @@ let install_project_deps ~base ~opam_files ~selection ~for_user =
   distro_extras @@
   workdir "/src" @@
   run "sudo chown opam /src" @@
+  install_pin_depends ~download_cache_prefix pin_depends @@
   run "cd ~/opam-repository && (git cat-file -e %s || git fetch origin master) && git reset -q --hard %s && git log --no-decorate -n1 --oneline && opam update -u" commit commit @@
   env ["DEPS", String.concat " " non_root_pkgs] @@
   env ["POST_DEPS", match post_packages with [] -> "\"\"" | p -> String.concat " " p] @@
