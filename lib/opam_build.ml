@@ -56,6 +56,9 @@ let install_project_deps ~base ~opam_files ~selection ~for_user =
   let root_pkgs = get_root_opam_packages groups in
   let non_root_pkgs = packages |> List.filter (fun pkg -> not (List.mem pkg root_pkgs)) in
   let download_cache_prefix = if for_user then "" else download_cache ^ " " in
+  (* Remove root packages from post packages. This can happen when a package
+     has a 'post' dependency on an other root package. *)
+  let post_packages = List.filter (fun p -> not (List.mem p root_pkgs)) post_packages in
   let open Dockerfile in
   let distro_extras =
     if Astring.String.is_prefix ~affix:"fedora" (Variant.id variant) then
@@ -79,7 +82,7 @@ let install_project_deps ~base ~opam_files ~selection ~for_user =
   run "sudo chown opam /src" @@
   run "cd ~/opam-repository && (git cat-file -e %s || git fetch origin master) && git reset -q --hard %s && git log --no-decorate -n1 --oneline && opam update -u" commit commit @@
   env ["DEPS", String.concat " " non_root_pkgs] @@
-  env ["POST_DEPS", String.concat " " post_packages] @@
+  env ["POST_DEPS", match post_packages with [] -> "\"\"" | p -> String.concat " " p] @@
   run "%sopam depext --update -y $DEPS $POST_DEPS" download_cache_prefix @@
   run "%sopam install $DEPS" download_cache_prefix @@
   install_post_deps @@
