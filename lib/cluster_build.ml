@@ -268,7 +268,7 @@ module Op = struct
       @@ with_commit_lock ~job commit variant
       @@ submit ~job ~pool ~action ~cache_hint ~src t in
     Current.Job.start_with ~pool:build_pool job ?timeout:t.timeout ~level:Current.Level.Average >>= fun build_job ->
-    Current.Job.write job (Fmt.strf "Using BuildKit Dockerfile:@.%s@." dockerfile);
+    Current.Job.write job (Fmt.strf "@.Using BuildKit Dockerfile:@.%s@.@." dockerfile);
     Capability.with_ref build_job @@ fun build_job ->
     let on_cancel _ =
       Cluster_api.Job.cancel build_job >|= function
