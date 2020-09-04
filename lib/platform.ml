@@ -125,6 +125,10 @@ let get ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base base =
   | Error (`Msg m) -> Current.fail m
   | Ok variant ->
   let+ { Query.Outcome.vars; image } = query builder ~variant ~host_image:host_base base in
+  (* It would be better to run the opam query on the platform itself, but for
+     now we run everything on x86_64 and then assume that the other
+     architectures are the same except for the arch flag. *)
+  let vars = { vars with arch = Ocaml_version.to_opam_arch arch } in
   let base = Raw.Image.of_hash image in
   { label; builder; pool; variant; base; vars }
 
