@@ -7,7 +7,7 @@ module Analysis : sig
 
   val selections : t -> [
       | `Opam_build of Selection.t list
-      | `Duniverse of Variant.t list               (* Variants to build on *)
+      | `Duniverse of Variant.t list
     ]
 
   val of_dir :

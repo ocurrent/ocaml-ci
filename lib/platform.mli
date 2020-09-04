@@ -13,12 +13,12 @@ val pp : t Fmt.t
 val compare : t -> t -> int
 
 val get :
-  arch:Ocaml_version.arch option ->
+  arch:Ocaml_version.arch ->
   label:string ->
   builder:Builder.t ->
   pool:string ->
   distro:string ->
-  ocaml_version:string ->
+  ocaml_version:Ocaml_version.t ->
   host_base:Current_docker.Raw.Image.t Current.t ->
   Current_docker.Raw.Image.t Current.t ->
   t Current.t
@@ -26,10 +26,10 @@ val get :
     and returning [base] for subsequent builds. *)
 
 val pull :
-  arch:Ocaml_version.arch option ->
+  arch:Ocaml_version.arch ->
   schedule:Current_cache.Schedule.t ->
   builder:Builder.t ->
   distro:string ->
-  ocaml_version:string ->
+  ocaml_version:Ocaml_version.t ->
   Current_docker.Raw.Image.t Current.t
 (** [pull ~schedule ~builder ~distro ~ocaml_version] pulls "ocurrent/opam:{distro}-ocaml-{version}" on [schedule]. *)

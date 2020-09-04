@@ -194,8 +194,13 @@ module Analysis = struct
         | ex -> Lwt.fail ex
       )
 
+  let type_of_dir dir =
+    let p x = (Filename.concat (Fpath.to_string dir) x) in
+    let is_duniverse () = Sys.file_exists (p "dune-get") in
+    if is_duniverse () then `Duniverse else `Ocaml_repo
+
   let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
-    let is_duniverse = Sys.file_exists (Filename.concat (Fpath.to_string dir) "dune-get") in
+    let ty = type_of_dir dir in
     let cmd = "", [| "find"; "."; "-maxdepth"; "3"; "-name"; "*.opam" |] in
     Current.Process.check_output ~cwd:dir ~cancellable:true ~job cmd >>!= fun output ->
     let opam_files =
@@ -212,9 +217,10 @@ module Analysis = struct
             let check_whitelist_path path =
               match Fpath.v path |> Fpath.segs with
               | [_file] -> true
-              | ["duniverse"; _pkg; _file] -> true
-              | _ when is_duniverse ->
-                Current.Job.log job "WARNING: ignoring opam file %S as not in root or duniverse subdir" path; false
+              | ["duniverse"; _pkg; _file] when ty = `Duniverse -> true
+              | ["duniverse"; _pkg; _file] -> false
+              | _ when ty = `Duniverse ->
+                Current.Job.log job "WARNING: ignoring opam file %S as not in root subdir" path; false
               | segs when List.exists is_test_dir segs ->
                 Current.Job.log job "Ignoring test directory %S" path;
                 false
@@ -236,8 +242,9 @@ module Analysis = struct
     else if List.filter is_toplevel opam_files = [] then Lwt_result.fail (`Msg "No top-level opam files found!")
     else (
       begin
-        if is_duniverse then duniverse_selections ~job ~platforms dir
-        else opam_selections ~solver ~job ~platforms ~opam_repository_commit ~opam_files dir
+        match ty with
+        | `Duniverse -> duniverse_selections ~job ~platforms dir
+        | `Ocaml_repo -> opam_selections ~solver ~job ~platforms ~opam_repository_commit ~opam_files dir
       end >>!= fun selections ->
       let r = { opam_files; ocamlformat_source; selections } in
       Current.Job.log job "@[<v2>Results:@,%a@]" Yojson.Safe.(pretty_print ~std:true) (to_yojson r);

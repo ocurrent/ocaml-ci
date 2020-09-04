@@ -34,8 +34,9 @@
   ocaml-ci-solver
   ocluster-api
   conf-libev
-  (dockerfile (>= 6.6.0))
-  (ocaml-version (>= 2.4.0))
+  (dockerfile (>= 7.0.0))
+  (dockerfile-opam (>= 7.0.0))
+  (ocaml-version (>= 3.0.0))
   (alcotest (and (>= 1.0.0) :with-test))
   (alcotest-lwt (and (>= 1.0.1) :with-test))
 ))
