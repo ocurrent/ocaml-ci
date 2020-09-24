@@ -29,7 +29,8 @@ let doc_dockerfile ~base ~opam_files ~selection ~for_user =
   let open Dockerfile in
   Opam_build.install_project_deps ~base ~opam_files ~selection ~for_user
   (* Warnings-as-errors was introduced in Odoc.1.5.0 *)
-  @@ run "%sopam depext -i dune odoc>=1.5.0" download_cache_prefix
+  @@ run "%sopam depext -i dune 'odoc>=1.5.0'" download_cache_prefix
+  @@ copy ~chown:"opam" ~src:["."] ~dst:"/src/" ()
   @@ run "ODOC_WARN_ERROR=true opam exec -- dune build @doc \
           || (echo \"dune build @doc failed\"; exit 2)"
 
