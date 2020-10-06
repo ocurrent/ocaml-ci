@@ -1,20 +1,17 @@
-val fmt_dockerfile :
+val fmt_spec :
   base:string ->
   ocamlformat_source:Analyse_ocamlformat.source option ->
-  for_user:bool ->
-  Dockerfile.t
-(** A Dockerfile that checks the formatting. *)
+  Obuilder_spec.stage
+(** A build spec that checks the formatting. *)
 
-val doc_dockerfile :
+val doc_spec :
   base:string ->
   opam_files:string list ->
   selection:Selection.t ->
-  for_user:bool ->
-  Dockerfile.t
-(** A Dockerfile that checks that the documentation in [./src/] builds without warnings. *)
+  Obuilder_spec.stage
+(** A build spec that checks that the documentation in [./src/] builds without warnings. *)
 
-val opam_lint_dockerfile :
+val opam_lint_spec :
   base:string ->
   opam_files:string list ->
-  for_user:bool ->
-  Dockerfile.t
+  Obuilder_spec.stage

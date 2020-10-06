@@ -3,4 +3,4 @@
   (preprocess (pps ppx_deriving.std ppx_deriving_yojson))
   (libraries logs current current_docker current_github current.term ocaml-ci-api str capnp-rpc-unix
              current.cache dockerfile ppx_deriving_yojson.runtime ocaml-version opam-0install
-             ocluster-api))
+             ocluster-api obuilder-spec))

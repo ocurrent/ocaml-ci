@@ -1,5 +1,3 @@
-let crunch_list items = Dockerfile.(crunch (empty @@@ items))
-
 (* If the package's directory name doesn't contain a dot then opam will default to
    using the last known version, which is usually wrong. In particular, if a multi-project
    repostory adds a new package with a constraint "{ =version }" on an existing one,
@@ -26,21 +24,22 @@ let group_opam_files =
 (* Generate Dockerfile instructions to copy all the files in [items] into the
    image, creating the necessary directories first, and then pin them all. *)
 let pin_opam_files groups =
-  let open Dockerfile in
+  let open Obuilder_spec in
   let dirs = groups |> List.map (fun (dir, _, _) -> Printf.sprintf "%S" (Fpath.to_string dir)) |> String.concat " " in
-  (run "mkdir -p %s" dirs @@@ (
+  run "mkdir -p %s" dirs :: (
     groups |> List.map (fun (dir, files, _) ->
-        copy ~src:files ~dst:(Fpath.to_string dir) ()
+        copy files ~dst:(Fpath.to_string dir)
       )
-  )) @@ crunch_list (
-    groups |> List.map (fun (dir, _, pkgs) ->
+  ) @ [
+    groups |> List.concat_map (fun (dir, _, pkgs) ->
         pkgs
         |> List.map (fun pkg ->
-            run "opam pin add -yn %s %S" pkg (Fpath.to_string dir)
+            Printf.sprintf "opam pin add -yn %s %S" pkg (Fpath.to_string dir)
           )
-        |> crunch_list
       )
-  )
+    |> String.concat " && \\\n  "
+    |> run "%s"
+  ]
 
 (* Get the packages directly in "." *)
 let rec get_root_opam_packages = function
@@ -48,37 +47,40 @@ let rec get_root_opam_packages = function
   | (dir, _, pkgs) ::_ when Fpath.is_current_dir dir -> pkgs
   | _ :: rest -> get_root_opam_packages rest
 
-let download_cache = "--mount=type=cache,target=/home/opam/.opam/download-cache,uid=1000"
+let download_cache = "opam-archives"
 
-let install_project_deps ~base ~opam_files ~selection ~for_user =
+let install_project_deps ~opam_files ~selection =
   let { Selection.packages; commit; variant } = selection in
   let groups = group_opam_files opam_files in
   let root_pkgs = get_root_opam_packages groups in
   let non_root_pkgs = packages |> List.filter (fun pkg -> not (List.mem pkg root_pkgs)) in
-  let download_cache_prefix = if for_user then "" else download_cache ^ " " in
-  let open Dockerfile in
+  let open Obuilder_spec in
+  let cache = [ Obuilder_spec.Cache.v download_cache ~target:"/home/opam/.opam/download-cache" ] in
   let distro_extras =
     if Astring.String.is_prefix ~affix:"fedora" (Variant.id variant) then
-      run "sudo dnf install -y findutils" (* (we need xargs) *)
+      [run "sudo dnf install -y findutils"] (* (we need xargs) *)
     else
-      empty
+      []
   in
-  (if for_user then empty else Buildkit_syntax.add (Variant.arch variant)) @@
-  from base @@
   (if Variant.arch variant |> Ocaml_version.arch_is_32bit then
-     shell ["/usr/bin/linux32"; "/bin/sh"; "-c"] else empty) @@
-  comment "%s" (Fmt.strf "%a" Variant.pp variant) @@
-  distro_extras @@
-  workdir "/src" @@
-  run "sudo chown opam /src" @@
-  run "cd ~/opam-repository && (git cat-file -e %s || git fetch origin master) && git reset -q --hard %s && git log --no-decorate -n1 --oneline && opam update -u" commit commit @@
-  pin_opam_files groups @@
-  env ["DEPS", String.concat " " non_root_pkgs] @@
-  run "%sopam depext --update -y %s $DEPS" download_cache_prefix (String.concat " " root_pkgs) @@
-  run "%sopam install $DEPS" download_cache_prefix
+     [shell ["/usr/bin/linux32"; "/bin/sh"; "-c"]] else []) @ [
+    comment "%s" (Fmt.strf "%a" Variant.pp variant);
+  ] @ distro_extras @ [
+    workdir "/src";
+    run "sudo chown opam /src";
+    run "cd ~/opam-repository && (git cat-file -e %s || git fetch origin master) && git reset -q --hard %s && git log --no-decorate -n1 --oneline && opam update -u" commit commit;
+  ] @ pin_opam_files groups @ [
+    env "DEPS" (String.concat " " non_root_pkgs);
+    run ~cache "opam depext --update -y %s $DEPS" (String.concat " " root_pkgs);
+    run ~cache "opam install $DEPS"
+  ]
 
-let dockerfile ~base ~opam_files ~selection ~for_user =
-  let open Dockerfile in
-  install_project_deps ~base ~opam_files ~selection ~for_user @@
-  copy ~chown:"opam" ~src:["."] ~dst:"/src/" () @@
-  run "opam exec -- dune build @install @runtest && rm -rf _build"
+let spec ~base ~opam_files ~selection =
+  let open Obuilder_spec in
+  stage ~from:base (
+    user ~uid:1000 ~gid:1000 ::
+    install_project_deps ~opam_files ~selection @ [
+      copy ["."] ~dst:"/src/";
+      run "opam exec -- dune build @install @runtest && rm -rf _build"
+    ]
+  )
