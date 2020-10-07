@@ -33,6 +33,7 @@
   ocaml-ci-api
   ocaml-ci-solver
   ocluster-api
+  obuilder-spec
   conf-libev
   (dockerfile (>= 7.0.0))
   (dockerfile-opam (>= 7.0.0))

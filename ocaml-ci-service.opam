@@ -16,6 +16,7 @@ depends: [
   "ocaml-ci-api"
   "ocaml-ci-solver"
   "ocluster-api"
+  "obuilder-spec"
   "conf-libev"
   "dockerfile" {>= "7.0.0"}
   "dockerfile-opam" {>= "7.0.0"}
@@ -41,3 +42,6 @@ build: [
   ]
 ]
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
+pin-depends: [
+  ["obuilder-spec.dev" "git+https://github.com/ocurrent/obuilder.git#a43d2132312e46f0b0aa1f9d0da24b9f1e5574e2"]
+]

@@ -1,1 +1,1 @@
-val dockerfile : base:string -> repo:Current_github.Repo_id.t -> variant:Variant.t -> for_user:bool -> Dockerfile.t
+val spec : base:string -> repo:Current_github.Repo_id.t -> variant:Variant.t -> Obuilder_spec.stage

@@ -77,14 +77,19 @@ module Op = struct
 
   let run { Builder.docker_context; pool; build_timeout } job
       { Key.commit; label = _; repo } { Value.base; variant; ty } =
-    let make_dockerfile =
+    let build_spec =
       let base = Raw.Image.hash base in
       match ty with
-      | `Opam (`Build, selection, opam_files) -> Opam_build.dockerfile ~base ~opam_files ~selection
-      | `Opam (`Lint `Doc, selection, opam_files) -> Lint.doc_dockerfile ~base ~opam_files ~selection
-      | `Opam (`Lint `Opam, _selection, opam_files) -> Lint.opam_lint_dockerfile ~base ~opam_files
-      | `Opam_fmt ocamlformat_source -> Lint.fmt_dockerfile ~base ~ocamlformat_source
-      | `Duniverse -> Duniverse_build.dockerfile ~base ~repo ~variant
+      | `Opam (`Build, selection, opam_files) -> Opam_build.spec ~base ~opam_files ~selection
+      | `Opam (`Lint `Doc, selection, opam_files) -> Lint.doc_spec ~base ~opam_files ~selection
+      | `Opam (`Lint `Opam, _selection, opam_files) -> Lint.opam_lint_spec ~base ~opam_files
+      | `Opam_fmt ocamlformat_source -> Lint.fmt_spec ~base ~ocamlformat_source
+      | `Duniverse -> Duniverse_build.spec ~base ~repo ~variant
+    in
+    let make_dockerfile ~for_user =
+      let open Dockerfile in
+      (if for_user then empty else Buildkit_syntax.add (Variant.arch variant)) @@
+      Obuilder_spec.Docker.dockerfile_of_spec ~buildkit:(not for_user) build_spec
     in
     Current.Job.write job
       (Fmt.strf "@[<v>Base: %a@,%a@]@."
