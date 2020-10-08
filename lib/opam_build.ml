@@ -25,7 +25,11 @@ let group_opam_files =
    image, creating the necessary directories first, and then pin them all. *)
 let pin_opam_files groups =
   let open Obuilder_spec in
-  let dirs = groups |> List.map (fun (dir, _, _) -> Printf.sprintf "%S" (Fpath.to_string dir)) |> String.concat " " in
+  let dirs =
+    groups
+    |> List.map (fun (dir, _, _) -> Filename.quote (Fpath.to_string dir))
+    |> String.concat " "
+  in
   run "mkdir -p %s" dirs :: (
     groups |> List.map (fun (dir, files, _) ->
         copy files ~dst:(Fpath.to_string dir)
@@ -34,10 +38,10 @@ let pin_opam_files groups =
     groups |> List.concat_map (fun (dir, _, pkgs) ->
         pkgs
         |> List.map (fun pkg ->
-            Printf.sprintf "opam pin add -yn %s %S" pkg (Fpath.to_string dir)
+            Printf.sprintf "opam pin add -yn %s %s" pkg (Filename.quote (Fpath.to_string dir))
           )
       )
-    |> String.concat " && \\\n  "
+    |> String.concat " && \n"
     |> run "%s"
   ]
 
