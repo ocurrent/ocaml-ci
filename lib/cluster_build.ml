@@ -244,11 +244,6 @@ module Op = struct
       | `Opam_fmt ocamlformat_source -> Lint.fmt_spec ~base ~ocamlformat_source
       | `Duniverse -> Duniverse_build.spec ~base ~repo ~variant
     in
-    let make_dockerfile ~for_user =
-      let open Dockerfile in
-      (if for_user then empty else Buildkit_syntax.add (Variant.arch variant)) @@
-      Obuilder_spec.Docker.dockerfile_of_spec ~buildkit:(not for_user) build_spec
-    in
     Current.Job.write job
       (Fmt.strf "@[<v>Base: %a@,%a@]@."
          Image.pp base
@@ -262,18 +257,17 @@ module Op = struct
                  END-OF-DOCKERFILE@.\
                  docker build .@.@."
          Current_git.Commit_id.pp_user_clone commit
-         Dockerfile.pp (make_dockerfile ~for_user:true));
-    let dockerfile = Dockerfile.string_of_t (make_dockerfile ~for_user:false) in
-    let options = { Cluster_api.Docker.Spec.defaults with buildkit = true } in
-    let action = Cluster_api.Submission.docker_build ~options (`Contents dockerfile) in
+         Dockerfile.pp (Obuilder_spec.Docker.dockerfile_of_spec ~buildkit:false build_spec));
+    let spec_sexp = Obuilder_spec.sexp_of_stage build_spec in
+    let action = Cluster_api.Submission.obuilder_build (Sexplib.Sexp.to_string_hum spec_sexp) in
     let src = (Git.Commit_id.repo commit, [Git.Commit_id.hash commit]) in
     let cache_hint = get_cache_hint repo spec in
     Current.Job.log job "Using cache hint %S" cache_hint;
+    Current.Job.log job "Using OBuilder spec:@.%a@." Sexplib.Sexp.pp_hum spec_sexp;
     let build_pool = Current.Pool.of_fn ~label:"OCluster"
       @@ with_commit_lock ~job commit variant
       @@ submit ~job ~pool ~action ~cache_hint ~src t in
     Current.Job.start_with ~pool:build_pool job ?timeout:t.timeout ~level:Current.Level.Average >>= fun build_job ->
-    Current.Job.write job (Fmt.strf "@.Using BuildKit Dockerfile:@.%s@.@." dockerfile);
     Capability.with_ref build_job @@ fun build_job ->
     let on_cancel _ =
       Cluster_api.Job.cancel build_job >|= function
