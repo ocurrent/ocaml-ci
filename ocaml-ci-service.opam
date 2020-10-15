@@ -42,6 +42,3 @@ build: [
   ]
 ]
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
-pin-depends: [
-  ["obuilder-spec.dev" "git+https://github.com/ocurrent/obuilder.git#4d579495f34d258d5623a32025614d7cb3e3c3a8"]
-]
