@@ -74,7 +74,7 @@ let install_project_deps ~opam_files ~selection =
   ] @ distro_extras @ [
     workdir "/src";
     run "sudo chown opam /src";
-    run ~network
+    run ~network ~cache
       "cd ~/opam-repository && \
        (git cat-file -e %s || git fetch origin master) && \
        git reset -q --hard %s && git log --no-decorate -n1 --oneline \
