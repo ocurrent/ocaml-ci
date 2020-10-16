@@ -21,9 +21,9 @@ let group_opam_files =
       | _ -> (dir, [x], [pkg]) :: acc
     )
 
-(* Generate Dockerfile instructions to copy all the files in [items] into the
+(* Generate instructions to copy all the files in [items] into the
    image, creating the necessary directories first, and then pin them all. *)
-let pin_opam_files groups =
+let pin_opam_files ~network groups =
   let open Obuilder_spec in
   let dirs =
     groups
@@ -42,7 +42,7 @@ let pin_opam_files groups =
           )
       )
     |> String.concat " && \n"
-    |> run "%s"
+    |> run ~network "%s"
   ]
 
 (* Get the packages directly in "." *)
@@ -60,23 +60,29 @@ let install_project_deps ~opam_files ~selection =
   let non_root_pkgs = packages |> List.filter (fun pkg -> not (List.mem pkg root_pkgs)) in
   let open Obuilder_spec in
   let cache = [ Obuilder_spec.Cache.v download_cache ~target:"/home/opam/.opam/download-cache" ] in
+  let network = ["host"] in
   let distro_extras =
     if Astring.String.is_prefix ~affix:"fedora" (Variant.id variant) then
-      [run "sudo dnf install -y findutils"] (* (we need xargs) *)
+      [run ~network "sudo dnf install -y findutils"] (* (we need xargs) *)
     else
       []
   in
+  let network = ["host"] in
   (if Variant.arch variant |> Ocaml_version.arch_is_32bit then
      [shell ["/usr/bin/linux32"; "/bin/sh"; "-c"]] else []) @ [
     comment "%s" (Fmt.strf "%a" Variant.pp variant);
   ] @ distro_extras @ [
     workdir "/src";
     run "sudo chown opam /src";
-    run "cd ~/opam-repository && (git cat-file -e %s || git fetch origin master) && git reset -q --hard %s && git log --no-decorate -n1 --oneline && opam update -u" commit commit;
-  ] @ pin_opam_files groups @ [
+    run ~network ~cache
+      "cd ~/opam-repository && \
+       (git cat-file -e %s || git fetch origin master) && \
+       git reset -q --hard %s && git log --no-decorate -n1 --oneline \
+       && opam update -u" commit commit;
+  ] @ pin_opam_files ~network groups @ [
     env "DEPS" (String.concat " " non_root_pkgs);
-    run ~cache "opam depext --update -y %s $DEPS" (String.concat " " root_pkgs);
-    run ~cache "opam install $DEPS"
+    run ~network ~cache "opam depext --update -y %s $DEPS" (String.concat " " root_pkgs);
+    run ~network ~cache "opam install $DEPS"
   ]
 
 let spec ~base ~opam_files ~selection =

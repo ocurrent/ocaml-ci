@@ -16,7 +16,6 @@ module Metrics = struct
     Gauge.v_label ~label_name:"state" ~help ~namespace ~subsystem "queue_state_total"
 
   let queue_connect = queue "connect"
-  let queue_commit_lock = queue "commit-lock"
   let queue_rate_limit = queue "rate-limit"
   let queue_get_ticket = queue "get-ticket"
   let queue_get_worker = queue "get-worker"
@@ -26,48 +25,6 @@ module Image = Current_docker.Raw.Image
 module Git = Current_git
 
 let ( >>!= ) = Lwt_result.bind
-
-(* Make sure we never build the same (commit, variant) twice at the same time, as this is likely
-   to trigger BuildKit bug https://github.com/moby/buildkit/issues/1456.
-   While a build is in progress, this contains a promise for the build finishing. *)
-let commit_locks = Hashtbl.create 1000
-
-let with_commit_lock ~job commit variant fn ~priority ~switch =
-  let cancel = ref Lwt.return in
-  let rec aux () =
-    let key = (Current_git.Commit_id.hash commit, variant) in
-    match Hashtbl.find_opt commit_locks key with
-    | Some lock ->
-      Current.Job.log job "Waiting for a similar build to finish...";
-      let cancelled, set_cancelled = Lwt.wait () in
-      cancel := (fun () ->
-          if Lwt.is_sleeping cancelled then (
-            Current.Job.log job "Cancelling with_commit_lock";
-            Lwt.wakeup_exn set_cancelled Lwt.Canceled;
-          );
-          Lwt.return_unit
-        );
-      Prometheus.Gauge.inc_one Metrics.queue_commit_lock;
-      Lwt.finalize
-        (fun () -> Lwt.choose [lock; cancelled])
-        (fun () -> Prometheus.Gauge.dec_one Metrics.queue_commit_lock; Lwt.return_unit)
-      >>= aux
-    | None ->
-      let finished, set_finished = Lwt.wait () in
-      Hashtbl.add commit_locks key finished;
-      Lwt.finalize
-        (fun () ->
-           let th, fn_cancel = fn ~priority ~switch in
-           cancel := fn_cancel;
-           th
-        )
-        (fun () ->
-           Hashtbl.remove commit_locks key;
-           Lwt.wakeup set_finished ();
-           Lwt.return_unit
-        )
-  in
-  aux (), (fun () -> !cancel ())
 
 type connection = {
   sr : [`Submission_f4e8a768b32a7c42] Sturdy_ref.t;
@@ -244,11 +201,6 @@ module Op = struct
       | `Opam_fmt ocamlformat_source -> Lint.fmt_spec ~base ~ocamlformat_source
       | `Duniverse -> Duniverse_build.spec ~base ~repo ~variant
     in
-    let make_dockerfile ~for_user =
-      let open Dockerfile in
-      (if for_user then empty else Buildkit_syntax.add (Variant.arch variant)) @@
-      Obuilder_spec.Docker.dockerfile_of_spec ~buildkit:(not for_user) build_spec
-    in
     Current.Job.write job
       (Fmt.strf "@[<v>Base: %a@,%a@]@."
          Image.pp base
@@ -262,18 +214,16 @@ module Op = struct
                  END-OF-DOCKERFILE@.\
                  docker build .@.@."
          Current_git.Commit_id.pp_user_clone commit
-         Dockerfile.pp (make_dockerfile ~for_user:true));
-    let dockerfile = Dockerfile.string_of_t (make_dockerfile ~for_user:false) in
-    let options = { Cluster_api.Docker.Spec.defaults with buildkit = true } in
-    let action = Cluster_api.Submission.docker_build ~options (`Contents dockerfile) in
+         Dockerfile.pp (Obuilder_spec.Docker.dockerfile_of_spec ~buildkit:false build_spec));
+    let spec_sexp = Obuilder_spec.sexp_of_stage build_spec in
+    let action = Cluster_api.Submission.obuilder_build (Sexplib.Sexp.to_string_hum spec_sexp) in
     let src = (Git.Commit_id.repo commit, [Git.Commit_id.hash commit]) in
     let cache_hint = get_cache_hint repo spec in
     Current.Job.log job "Using cache hint %S" cache_hint;
+    Current.Job.log job "Using OBuilder spec:@.%a@." Sexplib.Sexp.pp_hum spec_sexp;
     let build_pool = Current.Pool.of_fn ~label:"OCluster"
-      @@ with_commit_lock ~job commit variant
       @@ submit ~job ~pool ~action ~cache_hint ~src t in
     Current.Job.start_with ~pool:build_pool job ?timeout:t.timeout ~level:Current.Level.Average >>= fun build_job ->
-    Current.Job.write job (Fmt.strf "@.Using BuildKit Dockerfile:@.%s@.@." dockerfile);
     Capability.with_ref build_job @@ fun build_job ->
     let on_cancel _ =
       Cluster_api.Job.cancel build_job >|= function
