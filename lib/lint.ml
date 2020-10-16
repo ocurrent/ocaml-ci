@@ -38,7 +38,8 @@ let doc_spec ~base ~opam_files ~selection =
     user ~uid:1000 ~gid:1000 ::
     Opam_build.install_project_deps ~opam_files ~selection @ [
       (* Warnings-as-errors was introduced in Odoc.1.5.0 *)
-      run ~network ~cache "opam depext -i dune 'odoc>=1.5.0'";
+      (* conf-m4 is a work-around for https://github.com/ocaml-opam/opam-depext/pull/132 *)
+      run ~network ~cache "opam depext -i conf-m4 && opam depext -i dune 'odoc>=1.5.0'";
       copy ["."] ~dst:"/src/";
       run "ODOC_WARN_ERROR=true opam exec -- dune build @doc \
            || (echo \"dune build @doc failed\"; exit 2)";
