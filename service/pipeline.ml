@@ -85,7 +85,10 @@ let build_with_docker ?ocluster ~repo ~analysis source =
       | `Duniverse variants ->
         variants
         |> List.rev_map (fun variant ->
-            Spec.duniverse ~label:(Variant.to_string variant) ~variant
+            let opam_files = Analyse.Analysis.opam_files analysis
+                             |> List.filter (fun x -> not (String.contains x '/'))
+            in
+            Spec.duniverse ~label:(Variant.to_string variant) ~opam_files ~variant
           )
       | `Opam_build selections ->
         let lint_selection = List.hd selections in
