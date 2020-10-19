@@ -31,6 +31,7 @@ let spec ~base ~repo ~opam_files ~variant =
     user ~uid:1000 ~gid:1000
   ] @ install_opam_tools ~network ~cache:[download_cache] @ [
     workdir "/src";
+    run "sudo chown opam /src";
     copy opam_files ~dst:"/src/";
     run ~network ~cache:[download_cache] "opam tools --no-install --compiler `opam exec -- ocamlc -version` -vv";
     copy ["dune-get"] ~dst:"/src/";
