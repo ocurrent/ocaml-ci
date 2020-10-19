@@ -183,7 +183,7 @@ module Op = struct
       | `Opam (`Build, selection, _) -> hash_packages selection.packages
       | `Opam (`Lint (`Doc|`Opam), selection, _) -> hash_packages selection.packages
       | `Opam_fmt _ -> "ocamlformat"
-      | `Duniverse -> "duniverse-" ^ (Variant.to_string variant)
+      | `Duniverse _ -> "duniverse-" ^ (Variant.to_string variant)
     in
     Fmt.strf "%s/%s-%s-%a-%s"
       owner name
@@ -199,7 +199,7 @@ module Op = struct
       | `Opam (`Lint `Doc, selection, opam_files) -> Lint.doc_spec ~base ~opam_files ~selection
       | `Opam (`Lint `Opam, _selection, opam_files) -> Lint.opam_lint_spec ~base ~opam_files
       | `Opam_fmt ocamlformat_source -> Lint.fmt_spec ~base ~ocamlformat_source
-      | `Duniverse -> Duniverse_build.spec ~base ~repo ~variant
+      | `Duniverse opam_files -> Duniverse_build.spec ~base ~repo ~opam_files ~variant
     in
     Current.Job.write job
       (Fmt.strf "@[<v>Base: %a@,%a@]@."
@@ -282,7 +282,7 @@ let v t ~platforms ~repo ~spec source =
   let result =
     state |> Result.map @@ fun () ->
     match spec.ty with
-    | `Duniverse
+    | `Duniverse _
     | `Opam (`Build, _, _) -> `Built
     | `Opam (`Lint (`Doc|`Opam), _, _) -> `Checked
     | `Opam_fmt _ -> `Checked

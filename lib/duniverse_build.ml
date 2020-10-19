@@ -21,7 +21,7 @@ let install_opam_tools ~network ~cache =
     run ~network ~cache "opam depext -iy opam-tools"
   ]
 
-let spec ~base ~repo ~variant =
+let spec ~base ~repo ~opam_files ~variant =
   let download_cache = Obuilder_spec.Cache.v Opam_build.download_cache ~target:"/home/opam/.opam/download-cache" in
   let network = ["host"] in
   let dune_cache = build_cache repo in
@@ -31,7 +31,7 @@ let spec ~base ~repo ~variant =
     user ~uid:1000 ~gid:1000
   ] @ install_opam_tools ~network ~cache:[download_cache] @ [
     workdir "/src";
-    copy ["*.opam"] ~dst:"/src/";
+    copy opam_files ~dst:"/src/";
     run ~network ~cache:[download_cache] "opam tools --no-install --compiler `opam exec -- ocamlc -version` -vv";
     copy ["dune-get"] ~dst:"/src/";
     (* TODO make duniverse depext install the package as opam-depext does *)
