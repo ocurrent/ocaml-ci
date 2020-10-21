@@ -14,6 +14,7 @@ COPY --chown=opam \
 	/src/ocurrent/
 COPY --chown=opam \
 	ocluster/ocluster-api.opam \
+	ocluster/current_ocluster.opam \
 	/src/ocluster/
 COPY --chown=opam \
 	ocluster/obuilder/obuilder-spec.opam \
@@ -29,6 +30,7 @@ RUN opam pin add -yn current_ansi.dev "./ocurrent" && \
     opam pin add -yn current_slack.dev "./ocurrent" && \
     opam pin add -yn current_web.dev "./ocurrent" && \
     opam pin add -yn obuilder-spec.dev "./ocluster/obuilder" && \
+    opam pin add -yn current_ocluster.dev "./ocluster" && \
     opam pin add -yn ocluster-api.dev "./ocluster"
 COPY --chown=opam ocaml-ci-service.opam ocaml-ci-api.opam ocaml-ci-solver.opam /src/
 RUN opam install -y --deps-only .
