@@ -29,6 +29,7 @@
   current_docker
   current_web
   current_rpc
+  current_ocluster
   (capnp-rpc-unix (>= 0.7.0))
   ocaml-ci-api
   ocaml-ci-solver

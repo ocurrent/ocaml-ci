@@ -5,46 +5,15 @@ open Lwt.Infix
 let src = Logs.Src.create "ocaml_ci.cluster_build" ~doc:"ocaml-ci ocluster builder"
 module Log = (val Logs.src_log src : Logs.LOG)
 
-module Metrics = struct
-  open Prometheus
-
-  let namespace = "ocamlci"
-  let subsystem = "ocluster"
-
-  let queue =
-    let help = "Items in cluster queue by state" in
-    Gauge.v_label ~label_name:"state" ~help ~namespace ~subsystem "queue_state_total"
-
-  let queue_connect = queue "connect"
-  let queue_rate_limit = queue "rate-limit"
-  let queue_get_ticket = queue "get-ticket"
-  let queue_get_worker = queue "get-worker"
-end
-
 module Image = Current_docker.Raw.Image
 module Git = Current_git
 
 let ( >>!= ) = Lwt_result.bind
 
-type connection = {
-  sr : [`Submission_f4e8a768b32a7c42] Sturdy_ref.t;
-  mutable sched : Cluster_api.Submission.t Lwt.t;
-}
-
 type t = {
-  connection : connection;
+  connection : Current_ocluster.Connection.t;
   timeout : Duration.t option;
 }
-
-let tail ~job build_job =
-  let rec aux start =
-    Cluster_api.Job.log build_job start >>= function
-    | Error (`Capnp e) -> Lwt.return @@ Fmt.error_msg "%a" Capnp_rpc.Error.pp e
-    | Ok ("", _) -> Lwt_result.return ()
-    | Ok (data, next) ->
-      Current.Job.write job data;
-      aux next
-  in aux 0L
 
 module Op = struct
   type nonrec t = t
@@ -88,91 +57,6 @@ module Op = struct
   end
 
   module Outcome = Current.Unit
-
-  (* Return a proxy to the scheduler, starting a new connection if we don't
-     currently have a working one. *)
-  let sched ~job t =
-    let conn = t.connection in
-    match Lwt.state conn.sched with
-    | Lwt.Return cap when Capability.problem cap = None -> Lwt.return cap
-    | Lwt.Sleep ->
-      Current.Job.log job "Connecting to build cluster...";
-      conn.sched      (* Already connecting; join that effort *)
-    | _ ->
-      Current.Job.log job "Connecting to build cluster...";
-      let rec aux () =
-        Lwt.catch
-          (fun () ->
-             Sturdy_ref.connect_exn conn.sr >>= fun cap ->
-             Capability.wait_until_settled cap >|= fun () ->
-             cap
-          )
-          (fun ex ->
-             Log.warn (fun f -> f "Error connecting to build cluster (will retry): %a" Fmt.exn ex);
-             Lwt_unix.sleep 10.0 >>= fun () ->
-             aux ()
-          )
-      in
-      conn.sched <- aux ();
-      conn.sched
-
-  (* Limit how many items we queue up at the scheduler (including assigned to workers). *)
-  let rate_limits = Hashtbl.create 10
-
-  let rate_limit pool prio =
-    let key = (pool, prio) in
-    match Hashtbl.find_opt rate_limits key with
-    | Some limiter -> limiter
-    | None ->
-      let limiter = Lwt_pool.create 200 Lwt.return in
-      Hashtbl.add rate_limits key limiter;
-      limiter
-
-  (* This is called by [Current.Job] once the confirmation threshold allows the job to be submitted. *)
-  let submit ~job ~pool ~action ~cache_hint ?src t ~priority ~switch:_ =
-    let ticket_ref = ref None in
-    let cancel () =
-      match !ticket_ref with
-      | None -> Lwt.return_unit
-      | Some ticket ->
-        Cluster_api.Ticket.cancel ticket >|= function
-        | Ok () -> ()
-        | Error (`Capnp e) -> Current.Job.log job "Cancel ticket failed: %a" Capnp_rpc.Error.pp e
-    in
-    let rec aux () =
-      Prometheus.Gauge.inc_one Metrics.queue_connect;
-      sched ~job t >>= fun sched ->
-      Prometheus.Gauge.dec_one Metrics.queue_connect;
-      let urgent = (priority = `High) in
-      Prometheus.Gauge.inc_one Metrics.queue_rate_limit;
-      Lwt_pool.use (rate_limit pool priority) (fun () ->
-          Prometheus.Gauge.dec_one Metrics.queue_rate_limit;
-          let ticket = Cluster_api.Submission.submit ~urgent ?src sched ~pool ~action ~cache_hint in
-          let build_job = Cluster_api.Ticket.job ticket in
-          ticket_ref := Some ticket;        (* Allow the user to cancel it now. *)
-          Prometheus.Gauge.inc_one Metrics.queue_get_ticket;
-          Capability.wait_until_settled ticket >>= fun () ->
-          Prometheus.Gauge.dec_one Metrics.queue_get_ticket;
-          Current.Job.log job "Waiting for worker...";
-          Prometheus.Gauge.inc_one Metrics.queue_get_worker;
-          Capability.wait_until_settled build_job >>= fun () ->
-          Prometheus.Gauge.dec_one Metrics.queue_get_worker;
-          ticket_ref := None;
-          Capability.dec_ref ticket;
-          Lwt.return build_job
-        ) >>= fun build_job ->
-      Lwt.pause () >>= fun () ->
-      match Capability.problem build_job with
-      | None -> Lwt.return build_job
-      | Some err ->
-        if Capability.problem sched = None then (
-          (* The job failed but we're still connected to the scheduler. Report the error. *)
-          Lwt.fail_with (Fmt.strf "%a" Capnp_rpc.Exception.pp err)
-        ) else (
-          aux ()
-        )
-    in
-    aux (), cancel
 
   let hash_packages packages =
     Digest.string (String.concat "," packages) |> Digest.to_hex
@@ -221,22 +105,10 @@ module Op = struct
     let cache_hint = get_cache_hint repo spec in
     Current.Job.log job "Using cache hint %S" cache_hint;
     Current.Job.log job "Using OBuilder spec:@.%a@." Sexplib.Sexp.pp_hum spec_sexp;
-    let build_pool = Current.Pool.of_fn ~label:"OCluster"
-      @@ submit ~job ~pool ~action ~cache_hint ~src t in
+    let build_pool = Current_ocluster.Connection.pool ~job ~pool ~action ~cache_hint ~src t.connection in
     Current.Job.start_with ~pool:build_pool job ?timeout:t.timeout ~level:Current.Level.Average >>= fun build_job ->
-    Capability.with_ref build_job @@ fun build_job ->
-    let on_cancel _ =
-      Cluster_api.Job.cancel build_job >|= function
-      | Ok () -> ()
-      | Error (`Capnp e) -> Current.Job.log job "Cancel failed: %a" Capnp_rpc.Error.pp e
-    in
-    Current.Job.with_handler job ~on_cancel @@ fun () ->
-    let result = Cluster_api.Job.result build_job in
-    tail ~job build_job >>!= fun () ->
-    result >>= function
-    | Error (`Capnp e) -> Lwt_result.fail (`Msg (Fmt.to_to_string Capnp_rpc.Error.pp e))
-    | Ok _ ->
-      Lwt_result.return ()
+    Capability.with_ref build_job (Current_ocluster.Connection.run_job ~job) >>!= fun (_ : string) ->
+    Lwt_result.return ()
 
   let pp f ({ Key.pool; repo; commit; label }, _) =
     Fmt.pf f "test %a %a (%s:%s)"
@@ -251,7 +123,7 @@ end
 module BC = Current_cache.Generic(Op)
 
 let config ?timeout sr =
-  let connection = { sr; sched = Lwt.fail_with "init" } in
+  let connection = Current_ocluster.Connection.create sr in
   { connection; timeout }
 
 let build t ~platforms ~spec ~repo commit =
