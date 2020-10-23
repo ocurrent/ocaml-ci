@@ -21,6 +21,7 @@ let fmt_spec ~base ~ocamlformat_source =
   let network = ["host"] in
   stage ~from:base @@ [
     user ~uid:1000 ~gid:1000;
+    run ~network ~cache "opam depext dune";
     run ~network ~cache "opam install dune";  (* Not necessarily the dune version used by the project *)
     workdir "src";
   ] @ (match ocamlformat_source with
