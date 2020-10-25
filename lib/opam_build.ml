@@ -85,12 +85,22 @@ let install_project_deps ~opam_files ~selection =
     run ~network ~cache "opam install $DEPS"
   ]
 
+let is_latest_ocaml v =
+  Ocaml_version.equal Ocaml_version.Releases.latest v
+
+let get_dune_option selection =
+  if is_latest_ocaml (Variant.ocaml_version selection.Selection.variant) then
+    "" (* default options *)
+  else
+    " --profile=release" (* Disable warnings-as-errors on older compilers *)
+
 let spec ~base ~opam_files ~selection =
   let open Obuilder_spec in
+  let option = get_dune_option selection in
   stage ~from:base (
     user ~uid:1000 ~gid:1000 ::
     install_project_deps ~opam_files ~selection @ [
       copy ["."] ~dst:"/src/";
-      run "opam exec -- dune build @install @runtest && rm -rf _build"
+      run "opam exec -- dune build%s @install @runtest && rm -rf _build" option
     ]
   )
