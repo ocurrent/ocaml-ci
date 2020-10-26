@@ -9,7 +9,7 @@ let install_ocamlformat =
       copy [ opam_file ] ~dst:opam_file;
       run "opam pin add -k path -n ocamlformat %S" path;
       (* Pinned to a directory containing only the .opam file *)
-      run ~network ~cache "opam depext ocamlformat";
+      run ~network "opam depext ocamlformat";
       run ~network ~cache "opam install --deps-only -y ocamlformat";
     ]
   | Opam { version } ->
@@ -21,7 +21,8 @@ let fmt_spec ~base ~ocamlformat_source =
   let network = ["host"] in
   stage ~from:base @@ [
     user ~uid:1000 ~gid:1000;
-    run ~network ~cache "opam install dune";  (* Not necessarily the dune version used by the project *)
+    run ~network ~cache "opam depext -i dune";  (* Necessary in case current compiler < 4.08 *)
+                                                (* Not necessarily the dune version used by the project *)
     workdir "src";
   ] @ (match ocamlformat_source with
       | Some src -> install_ocamlformat src
