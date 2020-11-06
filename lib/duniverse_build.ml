@@ -25,6 +25,8 @@ let spec ~base ~repo ~opam_files ~variant =
   let download_cache = Obuilder_spec.Cache.v Opam_build.download_cache ~target:"/home/opam/.opam/download-cache" in
   let network = ["host"] in
   let dune_cache = build_cache repo in
+  let duniverse_hash = "375e5a2feeace010dd3ba4b54058a28f2bdf32ab" in
+  let tools = "ocamlformat,merlin,mdx,dune.2.6.2,odoc,ocaml-lsp-server,dune-release,duniverse" in
   let open Obuilder_spec in
   stage ~from:base @@ [
     comment "%s" (Variant.to_string variant);
@@ -33,7 +35,8 @@ let spec ~base ~repo ~opam_files ~variant =
     workdir "/src";
     run "sudo chown opam /src";
     copy opam_files ~dst:"/src/";
-    run ~network ~cache:[download_cache] "opam tools --no-install --compiler `opam exec -- ocamlc -version` -vv";
+    run ~network ~cache:[download_cache] "sudo apt-get update && sudo apt-get -y install pkg-config";
+    run ~network ~cache:[download_cache] "opam tools --no-install --pin-tool=duniverse,https://github.com/ocamllabs/duniverse.git#%s --tools=%s --compiler `opam exec -- ocamlc -version` -vv" duniverse_hash tools;
     copy ["dune-get"] ~dst:"/src/";
     (* TODO make duniverse depext install the package as opam-depext does *)
     run ~network ~cache:[download_cache] "sudo apt-get update && sudo apt-get -y install build-essential `opam exec -- duniverse depext`";
