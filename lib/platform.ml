@@ -140,4 +140,4 @@ let pull ~arch ~schedule ~builder ~distro ~ocaml_version =
   Current.component "pull@,%s %a %s" distro Ocaml_version.pp ocaml_version archl |>
   let> () = Current.return () in
   let tag = Variant.docker_tag variant in
-  Builder.pull ~schedule ~arch builder @@ "ocurrent/opam:" ^ tag
+  Builder.pull ~schedule ~arch builder @@ "ocaml/opam:" ^ tag
