@@ -10,3 +10,6 @@
 [submodule "ocaml-version"]
 	path = ocaml-version
 	url = git://github.com/ocurrent/ocaml-version.git
+[submodule "ocaml-dockerfile"]
+	path = ocaml-dockerfile
+	url = https://github.com/avsm/ocaml-dockerfile.git

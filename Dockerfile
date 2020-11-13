@@ -22,6 +22,9 @@ COPY --chown=opam \
 COPY --chown=opam \
 	ocaml-version/ocaml-version.opam \
 	/src/ocaml-version/
+COPY --chown=opam \
+	ocaml-dockerfile/dockerfile*.opam \
+	/src/ocaml-dockerfile/
 WORKDIR /src
 RUN opam pin add -yn current_ansi.dev "./ocurrent" && \
     opam pin add -yn current_docker.dev "./ocurrent" && \
@@ -35,6 +38,8 @@ RUN opam pin add -yn current_ansi.dev "./ocurrent" && \
     opam pin add -yn obuilder-spec.dev "./ocluster/obuilder" && \
     opam pin add -yn current_ocluster.dev "./ocluster" && \
     opam pin add -yn ocaml-version.dev "./ocaml-version" && \
+    opam pin add -yn dockerfile.dev "./ocaml-dockerfile" && \
+    opam pin add -yn dockerfile-opam.dev "./ocaml-dockerfile" && \
     opam pin add -yn ocluster-api.dev "./ocluster"
 COPY --chown=opam ocaml-ci-service.opam ocaml-ci-api.opam ocaml-ci-solver.opam /src/
 RUN opam install -y --deps-only .
