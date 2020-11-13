@@ -7,3 +7,6 @@
 [submodule "ocluster"]
 	path = ocluster
 	url = https://github.com/ocurrent/ocluster.git
+[submodule "ocaml-version"]
+	path = ocaml-version
+	url = git://github.com/ocurrent/ocaml-version.git
