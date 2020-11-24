@@ -45,7 +45,11 @@ module Analysis = struct
   type t = {
     opam_files : string list;
     ocamlformat_source : Analyse_ocamlformat.source option;
-    selections : [ `Opam_build of Selection.t list | `Duniverse of Variant.t list ];
+    selections :
+      [ `Opam_build of Selection.t list
+      | `Duniverse of Variant.t list
+      | `Opam_monorepo of Opam_monorepo.selection
+      ];
   }
   [@@deriving yojson]
 
@@ -58,18 +62,13 @@ module Analysis = struct
 
   let opam_files t = t.opam_files
 
-  let is_duniverse t =
-    match t.selections with
-    | `Duniverse _ -> true
-    | `Opam_build _ -> false
-
   let ocamlformat_source t = t.ocamlformat_source
 
   let selections t = t.selections
 
   let is_test_dir = Astring.String.is_prefix ~affix:"test"
 
-  let get_ocaml_versions dir =
+  let duniverse_get_ocaml_versions dir =
     (* TODO Just manual right now to avoid a build dep on Duniverse_lib *)
     let dune_get_path = Filename.concat (Fpath.to_string dir) "dune-get" in
     let open Sexplib.Sexp in
@@ -90,26 +89,17 @@ module Analysis = struct
   let pp_ocaml_version f (_variant, vars) =
     Fmt.string f vars.Worker.Vars.ocaml_version
 
-  let ocaml_major_version vars =
-    Ocaml_version.with_just_major_and_minor (Ocaml_version.of_string_exn vars.Worker.Vars.ocaml_version)
-
   let duniverse_selections ~job ~platforms dir =
-    let vs = get_ocaml_versions dir in
+    let vs = duniverse_get_ocaml_versions dir in
     if vs = [] then failwith "No OCaml compilers specified!";
-    let find_compiler v =
-      let v = Ocaml_version.with_just_major_and_minor (Ocaml_version.of_string_exn v) in
-      let matches_compiler (_variant, vars) =
-        Ocaml_version.compare v (ocaml_major_version vars) = 0
-      in
-      match List.find_opt matches_compiler platforms with
-      | None ->
-        Current.Job.log job "WARNING: Unsupported compiler version %a (have: %a)"
-          Ocaml_version.pp v Fmt.(Dump.list pp_ocaml_version) platforms;
-        None
-      | Some (variant, _vars) ->
-        Some variant
+    let find_a_compiler version =
+      let r = Opam_monorepo.find_compiler ~version ~platforms in
+      if Option.is_none r then
+        Current.Job.log job "WARNING: Unsupported compiler version %s (have: %a)"
+          version Fmt.(Dump.list pp_ocaml_version) platforms;
+      r
     in
-    let variants = List.filter_map find_compiler vs in
+    let variants = List.filter_map find_a_compiler vs in
     if variants = [] then failwith "No supported compilers found!";
     Lwt_result.return (`Duniverse variants)
 
@@ -195,9 +185,15 @@ module Analysis = struct
       )
 
   let type_of_dir dir =
-    let p x = (Filename.concat (Fpath.to_string dir) x) in
-    let is_duniverse () = Sys.file_exists (p "dune-get") in
-    if is_duniverse () then `Duniverse else `Ocaml_repo
+    let has_dune_get =
+      Sys.file_exists (Filename.concat (Fpath.to_string dir) "dune-get")
+    in
+    if has_dune_get then
+      `Duniverse
+    else
+      match Opam_monorepo.detect ~dir with
+      | Some info -> `Opam_monorepo info
+      | None -> `Ocaml_repo
 
   let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
     let ty = type_of_dir dir in
@@ -243,6 +239,12 @@ module Analysis = struct
     else (
       begin
         match ty with
+        | `Opam_monorepo info ->
+          begin
+            match Opam_monorepo.selections ~platforms ~info with
+            | Some s -> Lwt_result.return (`Opam_monorepo s)
+            | None -> failwith "No supported compilers found!"
+          end
         | `Duniverse -> duniverse_selections ~job ~platforms dir
         | `Ocaml_repo -> opam_selections ~solver ~job ~platforms ~opam_repository_commit ~opam_files dir
       end >>!= fun selections ->

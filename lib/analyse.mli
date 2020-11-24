@@ -2,12 +2,12 @@ module Analysis : sig
   type t [@@deriving yojson]
 
   val opam_files : t -> string list
-  val is_duniverse : t -> bool
   val ocamlformat_source : t -> Analyse_ocamlformat.source option
 
   val selections : t -> [
       | `Opam_build of Selection.t list
       | `Duniverse of Variant.t list
+      | `Opam_monorepo of Opam_monorepo.selection
     ]
 
   val of_dir :

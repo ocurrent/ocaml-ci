@@ -4,3 +4,5 @@ val spec :
   opam_files:string list ->
   variant:Variant.t ->
   Obuilder_spec.stage
+
+val build_cache : Current_github.Repo_id.t -> Obuilder_spec.Cache.t

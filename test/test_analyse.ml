@@ -14,10 +14,16 @@ module Analysis = struct
 
   let set_equality = Alcotest.(equal (slist string String.compare))
 
+  let selection_type (t:t) =
+    match selections t with
+    | `Duniverse _ -> "duniverse"
+    | `Opam_monorepo _ -> "opam-monorepo"
+    | `Opam_build _ -> "opam"
+
   (* Make the [t] type concrete from the observable fields for easier testing *)
   type t = {
     opam_files : string list; [@equal set_equality]
-    is_duniverse : bool;
+    selection_type : string;
     ocamlformat_source : ocamlformat_source option;
   }
   [@@deriving eq, yojson]
@@ -33,7 +39,7 @@ module Analysis = struct
     |> Lwt_result.map (fun t ->
            {
              opam_files = opam_files t;
-             is_duniverse = is_duniverse t;
+             selection_type = selection_type t;
              ocamlformat_source = ocamlformat_source t;
            })
 
@@ -134,7 +140,7 @@ let test_simple =
     let open Analysis in
     {
       opam_files = [ "example.opam" ];
-      is_duniverse = false;
+      selection_type = "opam";
       ocamlformat_source = Some (Opam { version = "0.12" });
     }
   in
@@ -162,7 +168,7 @@ let test_multiple_opam =
     let open Analysis in
     {
       opam_files = [ "example.opam"; "example-foo.opam"; "example-bar.opam" ];
-      is_duniverse = false;
+      selection_type = "opam";
       ocamlformat_source = None;
     }
   in
@@ -177,11 +183,49 @@ let test_duniverse =
     let open Analysis in
     {
       opam_files = [ "example.opam"; "duniverse/alcotest.0.8.5/alcotest.opam" ];
-      is_duniverse = true;
+      selection_type = "duniverse";
       ocamlformat_source = None;
     }
   in
   expect_test "duniverse" ~project ~expected
+
+let test_opam_monorepo =
+  let project =
+    let open Gen_project in
+    [ File ("example.opam", opam_monorepo_spec_file);
+      File ("example.opam.locked",
+            opam_monorepo_lock_file ~monorepo_version:(Some "0.1.0"));
+      File ("dune-project", empty_file);
+    ]
+  in
+  let expected =
+    let open Analysis in
+    {
+      opam_files = [ "example.opam" ];
+      selection_type = "opam-monorepo";
+      ocamlformat_source = None;
+    }
+  in
+  expect_test "opam-monorepo" ~project ~expected
+
+let test_opam_monorepo_no_version =
+  let project =
+    let open Gen_project in
+    [ File ("example.opam", opam_monorepo_spec_file);
+      File ("example.opam.locked",
+            opam_monorepo_lock_file ~monorepo_version:None);
+      File ("dune-project", empty_file);
+    ]
+  in
+  let expected =
+    let open Analysis in
+    {
+      opam_files = [ "example.opam" ];
+      selection_type = "opam";
+      ocamlformat_source = None;
+    }
+  in
+  expect_test "opam-monorepo-no-version" ~project ~expected
 
 let test_ocamlformat_vendored =
   let project =
@@ -200,7 +244,7 @@ let test_ocamlformat_vendored =
     let open Analysis in
     {
       opam_files = [ "example.opam"; "duniverse/ocamlformat/ocamlformat.opam" ];
-      is_duniverse = true;
+      selection_type = "duniverse";
       ocamlformat_source = Some (Vendored { path = "duniverse/ocamlformat" });
     }
   in
@@ -215,7 +259,7 @@ let test_ocamlformat_self =
     let open Analysis in
     {
       opam_files = [ "ocamlformat.opam" ];
-      is_duniverse = false;
+      selection_type = "opam";
       ocamlformat_source = Some (Vendored { path = "." });
     }
   in
@@ -226,6 +270,8 @@ let tests =
     test_simple;
     test_multiple_opam;
     test_duniverse;
+    test_opam_monorepo;
+    test_opam_monorepo_no_version;
     test_ocamlformat_vendored;
     test_ocamlformat_self;
   ]
