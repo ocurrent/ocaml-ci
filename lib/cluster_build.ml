@@ -101,12 +101,12 @@ module Op = struct
                  docker build .@.@."
          Current_git.Commit_id.pp_user_clone commit
          Dockerfile.pp (Obuilder_spec.Docker.dockerfile_of_spec ~buildkit:false build_spec));
-    let spec_sexp = Obuilder_spec.sexp_of_stage build_spec in
-    let action = Cluster_api.Submission.obuilder_build (Sexplib.Sexp.to_string_hum spec_sexp) in
+    let spec_str = Fmt.to_to_string Obuilder_spec.pp_stage build_spec in
+    let action = Cluster_api.Submission.obuilder_build spec_str in
     let src = (Git.Commit_id.repo commit, [Git.Commit_id.hash commit]) in
     let cache_hint = get_cache_hint repo spec in
     Current.Job.log job "Using cache hint %S" cache_hint;
-    Current.Job.log job "Using OBuilder spec:@.%a@." Sexplib.Sexp.pp_hum spec_sexp;
+    Current.Job.log job "Using OBuilder spec:@.%s@." spec_str;
     let build_pool = Current_ocluster.Connection.pool ~job ~pool ~action ~cache_hint ~src t.connection in
     Current.Job.start_with ~pool:build_pool job ?timeout:t.timeout ~level:Current.Level.Average >>= fun build_job ->
     Capability.with_ref build_job (Current_ocluster.Connection.run_job ~job) >>!= fun (_ : string) ->
