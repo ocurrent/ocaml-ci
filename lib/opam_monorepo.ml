@@ -115,7 +115,7 @@ let install_depexts ~network ~cache ~package =
   [
     run ~network ~cache "opam pin -n add %s . --locked" package;
     run ~network ~cache "opam depext --update -y %s" package;
-    run ~network ~cache "opam pin remove %s" package;
+    run ~network ~cache "opam pin -n remove %s" package;
   ]
 
 let spec ~base ~repo ~spec ~variant =
