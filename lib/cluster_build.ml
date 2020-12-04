@@ -68,6 +68,7 @@ module Op = struct
       | `Opam (`Lint (`Doc|`Opam), selection, _) -> hash_packages selection.packages
       | `Opam_fmt _ -> "ocamlformat"
       | `Duniverse _ -> "duniverse-" ^ (Variant.to_string variant)
+      | `Opam_monorepo _ -> "opam-monorepo-" ^ (Variant.to_string variant)
     in
     Fmt.strf "%s/%s-%s-%a-%s"
       owner name
@@ -84,6 +85,7 @@ module Op = struct
       | `Opam (`Lint `Opam, _selection, opam_files) -> Lint.opam_lint_spec ~base ~opam_files
       | `Opam_fmt ocamlformat_source -> Lint.fmt_spec ~base ~ocamlformat_source
       | `Duniverse opam_files -> Duniverse_build.spec ~base ~repo ~opam_files ~variant
+      | `Opam_monorepo spec -> Opam_monorepo.spec ~base ~repo ~spec ~variant
     in
     Current.Job.write job
       (Fmt.strf "@[<v>Base: %a@,%a@]@."
@@ -155,6 +157,7 @@ let v t ~platforms ~repo ~spec source =
     state |> Result.map @@ fun () ->
     match spec.ty with
     | `Duniverse _
+    | `Opam_monorepo _
     | `Opam (`Build, _, _) -> `Built
     | `Opam (`Lint (`Doc|`Opam), _, _) -> `Checked
     | `Opam_fmt _ -> `Checked
