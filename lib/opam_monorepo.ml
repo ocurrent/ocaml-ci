@@ -91,12 +91,12 @@ let selections ~platforms ~info:(package, lock_file) =
 let install_opam_monorepo ~network ~cache ~monorepo_version =
   match monorepo_version with
   | "0.1" ->
-      let monorepo_commit = "6b6c1b8173afab88933762f6b5ee82a070b2d715" in
+      let ref = "0.1.0" in
       let open Obuilder_spec in
       [
         run ~network ~cache
-          "opam pin add -n https://github.com/ocamllabs/duniverse.git#%s"
-          monorepo_commit;
+          "opam pin add -n https://github.com/ocamllabs/opam-monorepo.git#%s"
+          ref;
         run ~network ~cache "opam depext --update -y opam-monorepo";
         run ~network ~cache "opam install opam-monorepo";
       ]
