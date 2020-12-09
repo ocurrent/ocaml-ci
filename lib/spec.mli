@@ -20,10 +20,7 @@ val opam :
 
 val duniverse : label:string -> variant:Variant.t -> opam_files:string list -> t
 
-val opam_monorepo :
-  variant:Variant.t ->
-  spec:Opam_monorepo.config ->
-  t
+val opam_monorepo : config:Opam_monorepo.config -> t
 
 val pp : t Fmt.t
 val compare : t -> t -> int

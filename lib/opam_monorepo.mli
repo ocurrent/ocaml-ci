@@ -11,19 +11,20 @@ val find_compiler :
 
 type config [@@deriving yojson, ord]
 
-type selection = Variant.t * config [@@deriving yojson]
+val variant_of_config : config -> Variant.t
 
 (** Determine configuration for a build
     (which machine to run on, dune version, etc) *)
 val selections :
   platforms:(Variant.t * Ocaml_ci_api.Worker.Vars.t) list ->
   info:info ->
-  selection option
+  opam_repository_commit:Current_git.Commit_id.t ->
+  config option
 
 (** Describe build steps *)
 val spec :
   base:string ->
   repo:Current_github.Repo_id.t ->
-  spec:config ->
+  config:config ->
   variant:Variant.t ->
   Obuilder_spec.stage

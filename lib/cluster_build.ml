@@ -85,7 +85,7 @@ module Op = struct
       | `Opam (`Lint `Opam, _selection, opam_files) -> Lint.opam_lint_spec ~base ~opam_files
       | `Opam_fmt ocamlformat_source -> Lint.fmt_spec ~base ~ocamlformat_source
       | `Duniverse opam_files -> Duniverse_build.spec ~base ~repo ~opam_files ~variant
-      | `Opam_monorepo spec -> Opam_monorepo.spec ~base ~repo ~spec ~variant
+      | `Opam_monorepo config -> Opam_monorepo.spec ~base ~repo ~config ~variant
     in
     Current.Job.write job
       (Fmt.strf "@[<v>Base: %a@,%a@]@."

@@ -48,7 +48,7 @@ module Analysis = struct
     selections :
       [ `Opam_build of Selection.t list
       | `Duniverse of Variant.t list
-      | `Opam_monorepo of Opam_monorepo.selection
+      | `Opam_monorepo of Opam_monorepo.config
       ];
   }
   [@@deriving yojson]
@@ -241,8 +241,8 @@ module Analysis = struct
         match ty with
         | `Opam_monorepo info ->
           begin
-            match Opam_monorepo.selections ~platforms ~info with
-            | Some s -> Lwt_result.return (`Opam_monorepo s)
+            match Opam_monorepo.selections ~platforms ~info ~opam_repository_commit with
+            | Some config -> Lwt_result.return (`Opam_monorepo config)
             | None -> failwith "No supported compilers found!"
           end
         | `Duniverse -> duniverse_selections ~job ~platforms dir

@@ -21,16 +21,22 @@ let group_opam_files =
       | _ -> (dir, [x], [pkg]) :: acc
     )
 
+let mkdir dirs =
+  if dirs = [] then
+    []
+  else
+    let dirs =
+      dirs
+      |> List.map (fun (dir, _, _) -> Filename.quote (Fpath.to_string dir))
+      |> String.concat " "
+    in
+    [Obuilder_spec.run "mkdir -p %s" dirs]
+
 (* Generate instructions to copy all the files in [items] into the
    image, creating the necessary directories first, and then pin them all. *)
 let pin_opam_files ~network groups =
   let open Obuilder_spec in
-  let dirs =
-    groups
-    |> List.map (fun (dir, _, _) -> Filename.quote (Fpath.to_string dir))
-    |> String.concat " "
-  in
-  run "mkdir -p %s" dirs :: (
+  mkdir groups @ (
     groups |> List.map (fun (dir, files, _) ->
         copy files ~dst:(Fpath.to_string dir)
       )

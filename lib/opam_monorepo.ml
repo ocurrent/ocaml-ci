@@ -2,12 +2,12 @@ type info = string * OpamFile.OPAM.t
 
 type config = {
   package : string;
-  dune_version : string;
-  monorepo_version : string;
+  selection: Selection.t;
 }
 [@@deriving yojson, ord]
 
-type selection = Variant.t * config [@@deriving yojson]
+let variant_of_config c =
+  c.selection.variant
 
 let only_lockfile_in ~dir =
   let opam_locked = ".opam.locked" in
@@ -79,33 +79,31 @@ let find_compiler ~platforms ~version =
   in
   List.find_map matches_compiler platforms
 
-let selections ~platforms ~info:(package, lock_file) =
-  let ocaml_version = opam_monorepo_dep_version ~lock_file ~package:"ocaml" in
-  let dune_version = opam_monorepo_dep_version ~lock_file ~package:"dune" in
-  let monorepo_version = x_opam_monorepo_version lock_file |> Option.get in
-  let spec = { package; dune_version; monorepo_version } in
-  Option.map
-    (fun variant -> (variant, spec))
-    (find_compiler ~platforms ~version:ocaml_version)
-
-let install_opam_monorepo ~network ~cache ~monorepo_version =
-  match monorepo_version with
-  | "0.1" ->
-      let version = "0.1.0" in
-      let open Obuilder_spec in
-      [
-        run ~network ~cache "opam depext --update -y opam-monorepo.%s" version;
-        run ~network ~cache "opam install opam-monorepo.%s" version;
-      ]
+let plugin_version = function
+  | "0.1" -> "0.1.0"
   | v -> Printf.ksprintf failwith "unknown opam-monorepo version %S" v
 
-let install_dune ~network ~cache ~dune_version =
-  let open Obuilder_spec in
-  [ run ~network ~cache "opam install dune.%s" dune_version ]
-
-let install_tools ~network ~cache ~dune_version ~monorepo_version =
-  install_dune ~network ~cache ~dune_version
-  @ install_opam_monorepo ~network ~cache ~monorepo_version
+let selections ~platforms ~info:(package, lock_file) ~opam_repository_commit
+  =
+  let ocaml_version = opam_monorepo_dep_version ~lock_file ~package:"ocaml" in
+  let dune_version = opam_monorepo_dep_version ~lock_file ~package:"dune" in
+  let monorepo_version = x_opam_monorepo_version lock_file |> Option.get |>
+                         plugin_version in
+  let packages =
+    [ "dune." ^ dune_version
+    ; "opam-monorepo." ^ monorepo_version
+    ]
+  in
+  Option.map
+    (fun variant ->
+       let selection =
+         {Selection.commit = Current_git.Commit_id.hash opam_repository_commit 
+         ; variant
+         ; packages
+         }
+        in
+        { package; selection })
+    (find_compiler ~platforms ~version:ocaml_version)
 
 let install_depexts ~network ~cache ~package =
   let open Obuilder_spec in
@@ -115,8 +113,8 @@ let install_depexts ~network ~cache ~package =
     run ~network ~cache "opam pin -n remove %s" package;
   ]
 
-let spec ~base ~repo ~spec ~variant =
-  let { package; dune_version; monorepo_version } = spec in
+let spec ~base ~repo ~config ~variant =
+  let { package; selection } = config in
   let opam_file = package ^ ".opam" in
   let lock_file = package ^ ".opam.locked" in
   let download_cache =
@@ -129,8 +127,7 @@ let spec ~base ~repo ~spec ~variant =
   let open Obuilder_spec in
   stage ~from:base
   @@ [ comment "%s" (Variant.to_string variant); user ~uid:1000 ~gid:1000 ]
-  @ install_tools ~network ~cache:[ download_cache ] ~dune_version
-      ~monorepo_version
+  @ Opam_build.install_project_deps ~opam_files:[] ~selection
   @ [
       workdir "/src";
       run "sudo chown opam /src";
