@@ -97,7 +97,8 @@ let selection ~info:(package, lock_file) ~solve =
           ] );
     ]
   in
-  solve ~root_pkgs ~pinned_pkgs:[] >|= fun workers ->
+  solve ~version_filter:(Some ocaml_version) ~root_pkgs ~pinned_pkgs:[]
+  >|= fun workers ->
   let selection =
     List.hd workers |> Selection.remove_package ~package:deps_package
   in

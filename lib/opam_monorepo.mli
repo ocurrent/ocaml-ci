@@ -12,7 +12,8 @@ val variant_of_config : config -> Variant.t
 val selection :
   info:info ->
   solve:
-    (root_pkgs:(string * string) list ->
+    (version_filter:string option ->
+    root_pkgs:(string * string) list ->
     pinned_pkgs:(string * string) list ->
     (Selection.t list, Rresult.R.msg) Lwt_result.t) ->
   ([> `Opam_monorepo of config ], Rresult.R.msg) Lwt_result.t

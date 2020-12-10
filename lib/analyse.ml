@@ -89,20 +89,27 @@ module Analysis = struct
   let pp_ocaml_version f (_variant, vars) =
     Fmt.string f vars.Worker.Vars.ocaml_version
 
-  let ocaml_major_version vars =
+  let ocaml_major_version var =
     Ocaml_version.with_just_major_and_minor
-      (Ocaml_version.of_string_exn vars.Ocaml_ci_api.Worker.Vars.ocaml_version)
+      (Ocaml_version.of_string_exn var)
+
+  let platform_has_compiler vars ~version =
+    Ocaml_version.equal
+      (ocaml_major_version version)
+      (ocaml_major_version vars.Ocaml_ci_api.Worker.Vars.ocaml_version)
 
   let find_compiler ~platforms ~version =
-    let v =
-      Ocaml_version.with_just_major_and_minor
-        (Ocaml_version.of_string_exn version)
-    in
     let matches_compiler (variant, vars) =
-      if Ocaml_version.equal v (ocaml_major_version vars) then Some variant
+      if platform_has_compiler vars ~version then Some variant
       else None
     in
     List.find_map matches_compiler platforms
+
+  let apply_version_filter ~version_filter platforms =
+    match version_filter with
+    | Some version ->
+      List.filter (fun (_, vars) -> platform_has_compiler ~version vars) platforms
+    | None -> platforms
 
   let duniverse_selections ~job ~platforms dir =
     let vs = duniverse_get_ocaml_versions dir in
@@ -183,7 +190,7 @@ module Analysis = struct
          let pinned_pkgs = pin_depends @ pinned_pkgs in
          Lwt_result.map
             (fun selections -> `Opam_build selections)
-            (solve ~root_pkgs ~pinned_pkgs)
+            (solve ~version_filter:None ~root_pkgs ~pinned_pkgs)
       )
       (function
         | Failure msg -> Lwt_result.fail (`Msg msg)
@@ -201,23 +208,33 @@ module Analysis = struct
       | Some info -> `Opam_monorepo info
       | None -> `Ocaml_repo
 
-  let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
-    let solve ~root_pkgs ~pinned_pkgs =
-      let platforms = List.map (fun (variant,vars) -> Variant.to_string variant, vars) platforms in
-      let request =
-        { Ocaml_ci_api.Worker.Solve_request.
-          opam_repository_commit = Current_git.Commit_id.hash opam_repository_commit;
-          root_pkgs;
-          pinned_pkgs;
-          platforms
-        }
-      in
-      Capnp_rpc_lwt.Capability.with_ref (job_log job) @@ fun log ->
-      Ocaml_ci_api.Solver.solve solver request ~log >|= function
-      | Ok [] -> Fmt.error_msg "No solution found for any supported platform"
-      | Ok x -> Ok (List.map Selection.of_worker x)
-      | Error (`Msg msg) -> Fmt.error_msg "Error from solver: %s" msg
+  (** Call the solver with a request containing this packages.
+      If [version_filter] is [None], query all platforms. Otherwise, only
+      consider those with the corresponding compiler.
+      When it returns a list, it is nonempty. *)
+  let solve ~version_filter ~root_pkgs ~pinned_pkgs ~platforms
+      ~opam_repository_commit ~job ~solver =
+    let platforms =
+      platforms
+      |> List.map (fun (variant,vars) -> Variant.to_string variant, vars)
+      |> apply_version_filter ~version_filter
     in
+    let request =
+      { Ocaml_ci_api.Worker.Solve_request.
+        opam_repository_commit = Current_git.Commit_id.hash opam_repository_commit;
+        root_pkgs;
+        pinned_pkgs;
+        platforms
+      }
+    in
+    Capnp_rpc_lwt.Capability.with_ref (job_log job) @@ fun log ->
+    Ocaml_ci_api.Solver.solve solver request ~log >|= function
+    | Ok [] -> Fmt.error_msg "No solution found for any supported platform"
+    | Ok x -> Ok (List.map Selection.of_worker x)
+    | Error (`Msg msg) -> Fmt.error_msg "Error from solver: %s" msg
+
+  let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
+    let solve = solve ~platforms ~opam_repository_commit ~job ~solver in
     let ty = type_of_dir dir in
     let cmd = "", [| "find"; "."; "-maxdepth"; "3"; "-name"; "*.opam" |] in
     Current.Process.check_output ~cwd:dir ~cancellable:true ~job cmd >>!= fun output ->
