@@ -75,9 +75,8 @@ let install_project_deps ~opam_files ~selection =
   in
   let network = ["host"] in
   (if Variant.arch variant |> Ocaml_version.arch_is_32bit then
-     [shell ["/usr/bin/linux32"; "/bin/sh"; "-c"]] else []) @ [
-    comment "%s" (Fmt.strf "%a" Variant.pp variant);
-  ] @ distro_extras @ [
+     [shell ["/usr/bin/linux32"; "/bin/sh"; "-c"]] else [])
+  @ distro_extras @ [
     workdir "/src";
     run "sudo chown opam /src";
     run ~network ~cache
@@ -94,6 +93,7 @@ let install_project_deps ~opam_files ~selection =
 let spec ~base ~opam_files ~selection =
   let open Obuilder_spec in
   stage ~from:base (
+    comment "%s" (Fmt.strf "%a" Variant.pp selection.Selection.variant) ::
     user ~uid:1000 ~gid:1000 ::
     install_project_deps ~opam_files ~selection @ [
       copy ["."] ~dst:"/src/";
