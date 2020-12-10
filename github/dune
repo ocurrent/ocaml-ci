@@ -1,0 +1,29 @@
+(executables
+ (names main)
+ (libraries logs.fmt
+            fmt.tty
+            current
+            current_web
+            current_docker
+            current_git
+            current_github
+            current_rpc
+            dockerfile-opam
+            ocluster-api
+            capnp-rpc-unix
+            mirage-crypto-rng.unix
+            ocaml_ci
+            ocaml-ci-api
+            prometheus
+            github-workflow)
+ (preprocess (pps ppx_deriving_yojson)))
+
+(install
+ (section bin)
+ (package ocaml-ci-service)
+ (files (main-copy.exe as ocaml-ci-github)))
+
+ (rule
+  (target main-copy.exe)
+  (deps (package ocaml-ci-solver))
+  (action (copy main.exe main-copy.exe)))
