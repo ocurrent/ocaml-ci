@@ -27,3 +27,13 @@ val examine :
   Analysis.t Current.t
 (** [examine ~solver ~platforms ~opam_repository_commit src] analyses the source code [src] and selects
     package versions to test using [opam_repository_commit]. *)
+
+val examine_vars :
+  solver:Ocaml_ci_api.Solver.t ->
+  vars:(Variant.t * Ocaml_ci_api.Worker.Vars.t) list Current.t ->
+  opam_repository_commit:Current_git.Commit_id.t Current.t ->
+  Current_git.Commit.t Current.t ->
+  Analysis.t Current.t
+(** [examine_vars ~solver ~vars ~opam_repository_commit src] analyses the source code [src] and selects
+    package versions to test using [opam_repository_commit] -- it cuts out all of the platform information
+    that is required by [examine]. *)

@@ -313,3 +313,10 @@ let examine ~solver ~platforms ~opam_repository_commit src =
   and> platforms = platforms in
   let platforms = platforms |> List.map (fun { Platform.variant; vars; _ } -> (variant, vars)) in
   Examine_cache.run solver src { Examine.Value.opam_repository_commit; platforms }
+
+let examine_vars ~solver ~vars ~opam_repository_commit src =
+  Current.component "Analyse" |>
+  let> src = src
+  and> opam_repository_commit = opam_repository_commit
+  and> vars = vars in
+  Examine_cache.run solver src { Examine.Value.opam_repository_commit; platforms = vars }
