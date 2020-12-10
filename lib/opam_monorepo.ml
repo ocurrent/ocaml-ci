@@ -78,7 +78,7 @@ let opam_dep_file packages =
   in
   lines |> List.map (fun s -> s ^ "\n") |> String.concat ""
 
-let selection ~info:(package, lock_file) ~solve =
+let selection ~info:(package, lock_file) ~platforms ~solve =
   let open Lwt_result.Infix in
   let ocaml_version = opam_monorepo_dep_version ~lock_file ~package:"ocaml" in
   let dune_version = opam_monorepo_dep_version ~lock_file ~package:"dune" in
@@ -97,7 +97,13 @@ let selection ~info:(package, lock_file) ~solve =
           ] );
     ]
   in
-  solve ~version_filter:(Some ocaml_version) ~root_pkgs ~pinned_pkgs:[]
+  let platforms =
+    let version = Ocaml_version.of_string_exn ocaml_version in
+    platforms |> List.filter (fun (_, vars) ->
+        Platform.compiler_matches_major_and_minor ~version vars
+      )
+  in
+  solve ~root_pkgs ~pinned_pkgs:[] ~platforms
   >|= fun workers ->
   let selection =
     List.hd workers |> Selection.remove_package ~package:deps_package

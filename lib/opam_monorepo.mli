@@ -11,11 +11,12 @@ val variant_of_config : config -> Variant.t
     (which machine to run on, dune version, etc) *)
 val selection :
   info:info ->
+  platforms:(Variant.t * Ocaml_ci_api.Worker.Vars.t) list ->
   solve:
-    (version_filter:string option ->
-    root_pkgs:(string * string) list ->
-    pinned_pkgs:(string * string) list ->
-    (Selection.t list, Rresult.R.msg) Lwt_result.t) ->
+    (root_pkgs:(string * string) list ->
+     pinned_pkgs:(string * string) list ->
+     platforms:(Variant.t * Ocaml_ci_api.Worker.Vars.t) list ->
+     (Selection.t list, Rresult.R.msg) Lwt_result.t) ->
   ([> `Opam_monorepo of config ], Rresult.R.msg) Lwt_result.t
 
 (** Describe build steps *)

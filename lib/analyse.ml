@@ -80,7 +80,7 @@ module Analysis = struct
                 | List (Atom "ocaml_compilers" :: List os :: _) ->
                   Some (List.filter_map (function Atom s -> Some s | _ -> None) os)
                 | _ -> None) cs |> List.flatten
-          end
+          end |> List.map Ocaml_version.of_string_exn
         | _ -> []
       end
     | exception exn ->
@@ -89,27 +89,12 @@ module Analysis = struct
   let pp_ocaml_version f (_variant, vars) =
     Fmt.string f vars.Worker.Vars.ocaml_version
 
-  let ocaml_major_version var =
-    Ocaml_version.with_just_major_and_minor
-      (Ocaml_version.of_string_exn var)
-
-  let platform_has_compiler vars ~version =
-    Ocaml_version.equal
-      (ocaml_major_version version)
-      (ocaml_major_version vars.Ocaml_ci_api.Worker.Vars.ocaml_version)
-
   let find_compiler ~platforms ~version =
     let matches_compiler (variant, vars) =
-      if platform_has_compiler vars ~version then Some variant
+      if Platform.compiler_matches_major_and_minor vars ~version then Some variant
       else None
     in
     List.find_map matches_compiler platforms
-
-  let apply_version_filter ~version_filter platforms =
-    match version_filter with
-    | Some version ->
-      List.filter (fun (_, vars) -> platform_has_compiler ~version vars) platforms
-    | None -> platforms
 
   let duniverse_selections ~job ~platforms dir =
     let vs = duniverse_get_ocaml_versions dir in
@@ -117,8 +102,8 @@ module Analysis = struct
     let find_a_compiler version =
       let r = find_compiler ~version ~platforms in
       if Option.is_none r then
-        Current.Job.log job "WARNING: Unsupported compiler version %s (have: %a)"
-          version Fmt.(Dump.list pp_ocaml_version) platforms;
+        Current.Job.log job "WARNING: Unsupported compiler version %a (have: %a)"
+          Ocaml_version.pp version Fmt.(Dump.list pp_ocaml_version) platforms;
       r
     in
     let variants = List.filter_map find_a_compiler vs in
@@ -169,7 +154,7 @@ module Analysis = struct
           )
       )
 
-  let opam_selections ~solve ~job ~opam_files dir =
+  let opam_selections ~solve ~job ~platforms ~opam_files dir =
     let src = Fpath.to_string dir in
     let ( / ) = Filename.concat in
     begin
@@ -190,7 +175,7 @@ module Analysis = struct
          let pinned_pkgs = pin_depends @ pinned_pkgs in
          Lwt_result.map
             (fun selections -> `Opam_build selections)
-            (solve ~version_filter:None ~root_pkgs ~pinned_pkgs)
+            (solve ~root_pkgs ~pinned_pkgs ~platforms)
       )
       (function
         | Failure msg -> Lwt_result.fail (`Msg msg)
@@ -208,17 +193,10 @@ module Analysis = struct
       | Some info -> `Opam_monorepo info
       | None -> `Ocaml_repo
 
-  (** Call the solver with a request containing this packages.
-      If [version_filter] is [None], query all platforms. Otherwise, only
-      consider those with the corresponding compiler.
+  (** Call the solver with a request containing these packages.
       When it returns a list, it is nonempty. *)
-  let solve ~version_filter ~root_pkgs ~pinned_pkgs ~platforms
-      ~opam_repository_commit ~job ~solver =
-    let platforms =
-      platforms
-      |> List.map (fun (variant,vars) -> Variant.to_string variant, vars)
-      |> apply_version_filter ~version_filter
-    in
+  let solve ~root_pkgs ~pinned_pkgs ~platforms ~opam_repository_commit ~job ~solver =
+    let platforms = List.map (fun (variant,vars) -> Variant.to_string variant, vars) platforms in
     let request =
       { Ocaml_ci_api.Worker.Solve_request.
         opam_repository_commit = Current_git.Commit_id.hash opam_repository_commit;
@@ -234,7 +212,7 @@ module Analysis = struct
     | Error (`Msg msg) -> Fmt.error_msg "Error from solver: %s" msg
 
   let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
-    let solve = solve ~platforms ~opam_repository_commit ~job ~solver in
+    let solve = solve ~opam_repository_commit ~job ~solver in
     let ty = type_of_dir dir in
     let cmd = "", [| "find"; "."; "-maxdepth"; "3"; "-name"; "*.opam" |] in
     Current.Process.check_output ~cwd:dir ~cancellable:true ~job cmd >>!= fun output ->
@@ -278,9 +256,9 @@ module Analysis = struct
     else (
       begin
         match ty with
-        | `Opam_monorepo info -> Opam_monorepo.selection ~info ~solve
+        | `Opam_monorepo info -> Opam_monorepo.selection ~info ~solve ~platforms
         | `Duniverse -> duniverse_selections ~job ~platforms dir
-        | `Ocaml_repo -> opam_selections ~solve ~job ~opam_files dir
+        | `Ocaml_repo -> opam_selections ~solve ~job ~platforms ~opam_files dir
       end >>!= fun selections ->
       let r = { opam_files; ocamlformat_source; selections } in
       Current.Job.log job "@[<v2>Results:@,%a@]" Yojson.Safe.(pretty_print ~std:true) (to_yojson r);

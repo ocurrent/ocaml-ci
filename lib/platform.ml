@@ -18,6 +18,14 @@ let compare a b = compare a.label b.label
 
 let ( >>!= ) = Lwt_result.bind
 
+let compiler_matches_major_and_minor vars ~version =
+  let vars_version =
+    Ocaml_version.with_just_major_and_minor
+      (Ocaml_version.of_string_exn vars.Worker.Vars.ocaml_version)
+  in
+  Ocaml_version.equal vars_version
+    (Ocaml_version.with_just_major_and_minor version)
+
 module Query = struct
   let id = "opam-vars"
 
