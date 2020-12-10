@@ -6,3 +6,5 @@ type t = {
 } [@@deriving yojson, ord]
 
 val of_worker : Ocaml_ci_api.Worker.Selection.t -> t
+
+val remove_package : t -> package:string -> t

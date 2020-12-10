@@ -2,7 +2,7 @@ type info = string * OpamFile.OPAM.t
 
 type config = {
   package : string;
-  selection: Selection.t;
+  selection : Selection.t
 }
 [@@deriving yojson, ord]
 
@@ -64,46 +64,44 @@ let opam_monorepo_dep_version ~lock_file ~package =
   |> List.assoc (OpamPackage.Name.of_string package)
   |> version_of_equal_constraint
 
-let ocaml_major_version vars =
-  Ocaml_version.with_just_major_and_minor
-    (Ocaml_version.of_string_exn vars.Ocaml_ci_api.Worker.Vars.ocaml_version)
-
-let find_compiler ~platforms ~version =
-  let v =
-    Ocaml_version.with_just_major_and_minor
-      (Ocaml_version.of_string_exn version)
-  in
-  let matches_compiler (variant, vars) =
-    if Ocaml_version.equal v (ocaml_major_version vars) then Some variant
-    else None
-  in
-  List.find_map matches_compiler platforms
-
 let plugin_version = function
   | "0.1" -> "0.1.0"
   | v -> Printf.ksprintf failwith "unknown opam-monorepo version %S" v
 
-let selections ~platforms ~info:(package, lock_file) ~opam_repository_commit
-  =
+let opam_dep_file packages =
+  let lines =
+    [ {|opam-version: "2.0"|}; {|depends: [|} ]
+    @ List.map
+        (fun (pkg, ver) -> Printf.sprintf {|  "%s" { = "%s" }|} pkg ver)
+        packages
+    @ [ {|]|} ]
+  in
+  lines |> List.map (fun s -> s ^ "\n") |> String.concat ""
+
+let selection ~info:(package, lock_file) ~solve =
+  let open Lwt_result.Infix in
   let ocaml_version = opam_monorepo_dep_version ~lock_file ~package:"ocaml" in
   let dune_version = opam_monorepo_dep_version ~lock_file ~package:"dune" in
-  let monorepo_version = x_opam_monorepo_version lock_file |> Option.get |>
-                         plugin_version in
-  let packages =
-    [ "dune." ^ dune_version
-    ; "opam-monorepo." ^ monorepo_version
+  let monorepo_version =
+    x_opam_monorepo_version lock_file |> Option.get |> plugin_version
+  in
+  let deps_package = "opam-monorepo-deps.dev" in
+  let root_pkgs =
+    [
+      ( deps_package,
+        opam_dep_file
+          [
+            ("ocaml", ocaml_version);
+            ("dune", dune_version);
+            ("opam-monorepo", monorepo_version);
+          ] );
     ]
   in
-  Option.map
-    (fun variant ->
-       let selection =
-         {Selection.commit = Current_git.Commit_id.hash opam_repository_commit 
-         ; variant
-         ; packages
-         }
-        in
-        { package; selection })
-    (find_compiler ~platforms ~version:ocaml_version)
+  solve ~root_pkgs ~pinned_pkgs:[] >|= fun workers ->
+  let selection =
+    List.hd workers |> Selection.remove_package ~package:deps_package
+  in
+  `Opam_monorepo { package; selection }
 
 let install_depexts ~network ~cache ~package =
   let open Obuilder_spec in

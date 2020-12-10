@@ -70,6 +70,7 @@ let expect_test name ~project ~expected =
                 dummy_package "fmt" [ "1.0" ];
                 dummy_package "logs" [ "1.0" ];
                 dummy_package "alcotest" [ "1.0" ];
+                dummy_package "opam-monorepo" [ "0.1.0" ];
               ];
           ];
       let opam_repository = Fpath.v repo in
@@ -194,7 +195,7 @@ let test_opam_monorepo =
     let open Gen_project in
     [ File ("example.opam", opam_monorepo_spec_file);
       File ("example.opam.locked",
-            opam_monorepo_lock_file ~monorepo_version:(Some "0.1.0"));
+            opam_monorepo_lock_file ~monorepo_version:(Some "0.1"));
       File ("dune-project", empty_file);
     ]
   in

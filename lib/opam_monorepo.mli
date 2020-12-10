@@ -3,23 +3,19 @@ type info
 (** Detect whether a project uses opam-monorepo or something else. *)
 val detect : dir:Fpath.t -> info option
 
-(** Find a machine that can build for a given compiler. *)
-val find_compiler :
-  platforms:(Variant.t * Ocaml_ci_api.Worker.Vars.t) list ->
-  version:string ->
-  Variant.t option
-
 type config [@@deriving yojson, ord]
 
 val variant_of_config : config -> Variant.t
 
 (** Determine configuration for a build
     (which machine to run on, dune version, etc) *)
-val selections :
-  platforms:(Variant.t * Ocaml_ci_api.Worker.Vars.t) list ->
+val selection :
   info:info ->
-  opam_repository_commit:Current_git.Commit_id.t ->
-  config option
+  solve:
+    (root_pkgs:(string * string) list ->
+    pinned_pkgs:(string * string) list ->
+    (Selection.t list, Rresult.R.msg) Lwt_result.t) ->
+  ([> `Opam_monorepo of config ], Rresult.R.msg) Lwt_result.t
 
 (** Describe build steps *)
 val spec :

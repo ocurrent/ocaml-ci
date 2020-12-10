@@ -89,11 +89,26 @@ module Analysis = struct
   let pp_ocaml_version f (_variant, vars) =
     Fmt.string f vars.Worker.Vars.ocaml_version
 
+  let ocaml_major_version vars =
+    Ocaml_version.with_just_major_and_minor
+      (Ocaml_version.of_string_exn vars.Ocaml_ci_api.Worker.Vars.ocaml_version)
+
+  let find_compiler ~platforms ~version =
+    let v =
+      Ocaml_version.with_just_major_and_minor
+        (Ocaml_version.of_string_exn version)
+    in
+    let matches_compiler (variant, vars) =
+      if Ocaml_version.equal v (ocaml_major_version vars) then Some variant
+      else None
+    in
+    List.find_map matches_compiler platforms
+
   let duniverse_selections ~job ~platforms dir =
     let vs = duniverse_get_ocaml_versions dir in
     if vs = [] then failwith "No OCaml compilers specified!";
     let find_a_compiler version =
-      let r = Opam_monorepo.find_compiler ~version ~platforms in
+      let r = find_compiler ~version ~platforms in
       if Option.is_none r then
         Current.Job.log job "WARNING: Unsupported compiler version %s (have: %a)"
           version Fmt.(Dump.list pp_ocaml_version) platforms;
@@ -147,7 +162,7 @@ module Analysis = struct
           )
       )
 
-  let opam_selections ~solver ~job ~platforms ~opam_repository_commit ~opam_files dir =
+  let opam_selections ~solve ~job ~opam_files dir =
     let src = Fpath.to_string dir in
     let ( / ) = Filename.concat in
     begin
@@ -166,18 +181,9 @@ module Analysis = struct
       (fun () -> handle_opam_files ~job ~root_pkgs ~pinned_pkgs)
       (fun pin_depends ->
          let pinned_pkgs = pin_depends @ pinned_pkgs in
-         let platforms = List.map (fun (variant,vars) -> Variant.to_string variant, vars) platforms in
-         let request = { Ocaml_ci_api.Worker.Solve_request.
-                         opam_repository_commit = Current_git.Commit_id.hash opam_repository_commit;
-                         root_pkgs;
-                         pinned_pkgs;
-                         platforms
-                       } in
-         Capnp_rpc_lwt.Capability.with_ref (job_log job) @@ fun log ->
-         Ocaml_ci_api.Solver.solve solver request ~log >>= function
-         | Ok [] -> Lwt.return (Fmt.error_msg "No solution found for any supported platform")
-         | Ok x -> Lwt_result.return (`Opam_build (List.map Selection.of_worker x))
-         | Error (`Msg msg) -> Lwt.return (Fmt.error_msg "Error from solver: %s" msg)
+         Lwt_result.map
+            (fun selections -> `Opam_build selections)
+            (solve ~root_pkgs ~pinned_pkgs)
       )
       (function
         | Failure msg -> Lwt_result.fail (`Msg msg)
@@ -196,6 +202,22 @@ module Analysis = struct
       | None -> `Ocaml_repo
 
   let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
+    let solve ~root_pkgs ~pinned_pkgs =
+      let platforms = List.map (fun (variant,vars) -> Variant.to_string variant, vars) platforms in
+      let request =
+        { Ocaml_ci_api.Worker.Solve_request.
+          opam_repository_commit = Current_git.Commit_id.hash opam_repository_commit;
+          root_pkgs;
+          pinned_pkgs;
+          platforms
+        }
+      in
+      Capnp_rpc_lwt.Capability.with_ref (job_log job) @@ fun log ->
+      Ocaml_ci_api.Solver.solve solver request ~log >|= function
+      | Ok [] -> Fmt.error_msg "No solution found for any supported platform"
+      | Ok x -> Ok (List.map Selection.of_worker x)
+      | Error (`Msg msg) -> Fmt.error_msg "Error from solver: %s" msg
+    in
     let ty = type_of_dir dir in
     let cmd = "", [| "find"; "."; "-maxdepth"; "3"; "-name"; "*.opam" |] in
     Current.Process.check_output ~cwd:dir ~cancellable:true ~job cmd >>!= fun output ->
@@ -239,14 +261,9 @@ module Analysis = struct
     else (
       begin
         match ty with
-        | `Opam_monorepo info ->
-          begin
-            match Opam_monorepo.selections ~platforms ~info ~opam_repository_commit with
-            | Some config -> Lwt_result.return (`Opam_monorepo config)
-            | None -> failwith "No supported compilers found!"
-          end
+        | `Opam_monorepo info -> Opam_monorepo.selection ~info ~solve
         | `Duniverse -> duniverse_selections ~job ~platforms dir
-        | `Ocaml_repo -> opam_selections ~solver ~job ~platforms ~opam_repository_commit ~opam_files dir
+        | `Ocaml_repo -> opam_selections ~solve ~job ~opam_files dir
       end >>!= fun selections ->
       let r = { opam_files; ocamlformat_source; selections } in
       Current.Job.log job "@[<v2>Results:@,%a@]" Yojson.Safe.(pretty_print ~std:true) (to_yojson r);
