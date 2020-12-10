@@ -12,6 +12,11 @@ type t = {
 val pp : t Fmt.t
 val compare : t -> t -> int
 
+val compiler_matches_major_and_minor : Ocaml_ci_api.Worker.Vars.t -> version:Ocaml_version.t -> bool
+(** [compiler_matches_major_and_minor vars ~version] is [true] iff the compiler
+    version in [vars] matches [version], considering only the major and minor
+    parts of the version number. *)
+
 val get :
   arch:Ocaml_version.arch ->
   label:string ->

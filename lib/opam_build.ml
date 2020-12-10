@@ -21,16 +21,22 @@ let group_opam_files =
       | _ -> (dir, [x], [pkg]) :: acc
     )
 
+let mkdir dirs =
+  if dirs = [] then
+    []
+  else
+    let dirs =
+      dirs
+      |> List.map (fun (dir, _, _) -> Filename.quote (Fpath.to_string dir))
+      |> String.concat " "
+    in
+    [Obuilder_spec.run "mkdir -p %s" dirs]
+
 (* Generate instructions to copy all the files in [items] into the
    image, creating the necessary directories first, and then pin them all. *)
 let pin_opam_files ~network groups =
   let open Obuilder_spec in
-  let dirs =
-    groups
-    |> List.map (fun (dir, _, _) -> Filename.quote (Fpath.to_string dir))
-    |> String.concat " "
-  in
-  run "mkdir -p %s" dirs :: (
+  mkdir groups @ (
     groups |> List.map (fun (dir, files, _) ->
         copy files ~dst:(Fpath.to_string dir)
       )
@@ -69,9 +75,8 @@ let install_project_deps ~opam_files ~selection =
   in
   let network = ["host"] in
   (if Variant.arch variant |> Ocaml_version.arch_is_32bit then
-     [shell ["/usr/bin/linux32"; "/bin/sh"; "-c"]] else []) @ [
-    comment "%s" (Fmt.strf "%a" Variant.pp variant);
-  ] @ distro_extras @ [
+     [shell ["/usr/bin/linux32"; "/bin/sh"; "-c"]] else [])
+  @ distro_extras @ [
     workdir "/src";
     run "sudo chown opam /src";
     run ~network ~cache
@@ -88,6 +93,7 @@ let install_project_deps ~opam_files ~selection =
 let spec ~base ~opam_files ~selection =
   let open Obuilder_spec in
   stage ~from:base (
+    comment "%s" (Fmt.strf "%a" Variant.pp selection.Selection.variant) ::
     user ~uid:1000 ~gid:1000 ::
     install_project_deps ~opam_files ~selection @ [
       copy ["."] ~dst:"/src/";

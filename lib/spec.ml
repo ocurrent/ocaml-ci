@@ -25,11 +25,12 @@ let opam ~label ~selection ~analysis op =
 let duniverse ~label ~variant ~opam_files =
   { label; variant; ty = `Duniverse opam_files }
 
-let opam_monorepo ~variant ~spec =
+let opam_monorepo ~config =
+  let variant = Opam_monorepo.variant_of_config config in
   {
     label = Variant.to_string variant;
     variant;
-    ty = `Opam_monorepo spec
+    ty = `Opam_monorepo config
   }
 
 let pp f t = Fmt.string f t.label

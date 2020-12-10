@@ -90,8 +90,8 @@ let build_with_docker ?ocluster ~repo ~analysis source =
             in
             Spec.duniverse ~label:(Variant.to_string variant) ~opam_files ~variant
           )
-      | `Opam_monorepo (variant, spec) ->
-        [Spec.opam_monorepo ~variant ~spec]
+      | `Opam_monorepo config ->
+        [Spec.opam_monorepo ~config]
       | `Opam_build selections ->
         let lint_selection = List.hd selections in
         let builds =

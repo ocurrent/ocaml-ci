@@ -10,3 +10,10 @@ let of_worker w =
   let { W.id; packages; commit } = w in
   let variant = Variant.of_string id in
   { variant; packages; commit }
+
+let remove_package t ~package =
+  {
+    t with
+    packages =
+      List.filter (fun p -> not (String.equal p package)) t.packages;
+  }
