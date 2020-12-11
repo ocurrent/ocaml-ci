@@ -7,6 +7,9 @@ homepage: "https://github.com/ocurrent/ocaml-ci"
 bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
   "dune" {>= "2.0"}
+  "yojson" {>= "1.7.0"}
+  "logs" {>= "0.7.0"}
+  "fmt" {>= "0.8.9"}
   "current_rpc"
   "current_ansi"
   "prometheus-app"

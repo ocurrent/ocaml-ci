@@ -7,6 +7,8 @@ homepage: "https://github.com/ocurrent/ocaml-ci"
 bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
   "dune" {>= "2.0"}
+  "ppx_deriving_yojson" {>= "3.6.1"}
+  "ppx_deriving" {>= "5.1"}
   "yojson"
   "lwt"
   "logs"
