@@ -47,7 +47,6 @@ module Analysis = struct
     ocamlformat_source : Analyse_ocamlformat.source option;
     selections :
       [ `Opam_build of Selection.t list
-      | `Duniverse of Variant.t list
       | `Opam_monorepo of Opam_monorepo.config
       ];
   }
@@ -67,48 +66,6 @@ module Analysis = struct
   let selections t = t.selections
 
   let is_test_dir = Astring.String.is_prefix ~affix:"test"
-
-  let duniverse_get_ocaml_versions dir =
-    (* TODO Just manual right now to avoid a build dep on Duniverse_lib *)
-    let dune_get_path = Filename.concat (Fpath.to_string dir) "dune-get" in
-    let open Sexplib.Sexp in
-    match load_sexp dune_get_path with
-    | sxp -> begin
-        match sxp with
-        | List (List (Atom "config" :: List cs :: _) :: _) -> begin
-            List.filter_map (function
-                | List (Atom "ocaml_compilers" :: List os :: _) ->
-                  Some (List.filter_map (function Atom s -> Some s | _ -> None) os)
-                | _ -> None) cs |> List.flatten
-          end |> List.map Ocaml_version.of_string_exn
-        | _ -> []
-      end
-    | exception exn ->
-      Fmt.failwith "Exception parsing dune-get: %a" Fmt.exn exn
-
-  let pp_ocaml_version f (_variant, vars) =
-    Fmt.string f vars.Worker.Vars.ocaml_version
-
-  let find_compiler ~platforms ~version =
-    let matches_compiler (variant, vars) =
-      if Platform.compiler_matches_major_and_minor vars ~version then Some variant
-      else None
-    in
-    List.find_map matches_compiler platforms
-
-  let duniverse_selections ~job ~platforms dir =
-    let vs = duniverse_get_ocaml_versions dir in
-    if vs = [] then failwith "No OCaml compilers specified!";
-    let find_a_compiler version =
-      let r = find_compiler ~version ~platforms in
-      if Option.is_none r then
-        Current.Job.log job "WARNING: Unsupported compiler version %a (have: %a)"
-          Ocaml_version.pp version Fmt.(Dump.list pp_ocaml_version) platforms;
-      r
-    in
-    let variants = List.filter_map find_a_compiler vs in
-    if variants = [] then failwith "No supported compilers found!";
-    Lwt_result.return (`Duniverse variants)
 
   let check_opam_version =
     let version_2 = OpamVersion.of_string "2" in
@@ -183,15 +140,9 @@ module Analysis = struct
       )
 
   let type_of_dir dir =
-    let has_dune_get =
-      Sys.file_exists (Filename.concat (Fpath.to_string dir) "dune-get")
-    in
-    if has_dune_get then
-      `Duniverse
-    else
-      match Opam_monorepo.detect ~dir with
-      | Some info -> `Opam_monorepo info
-      | None -> `Ocaml_repo
+    match Opam_monorepo.detect ~dir with
+    | Some info -> `Opam_monorepo info
+    | None -> `Ocaml_repo
 
   (** Call the solver with a request containing these packages.
       When it returns a list, it is nonempty. *)
@@ -227,13 +178,10 @@ module Analysis = struct
                 Astring.String.with_range ~first:2 path
               else path
             in
-            let check_whitelist_path path =
+            let consider_opam_file path =
               match Fpath.v path |> Fpath.segs with
               | [_file] -> true
-              | ["duniverse"; _pkg; _file] when ty = `Duniverse -> true
               | ["duniverse"; _pkg; _file] -> false
-              | _ when ty = `Duniverse ->
-                Current.Job.log job "WARNING: ignoring opam file %S as not in root subdir" path; false
               | segs when List.exists is_test_dir segs ->
                 Current.Job.log job "Ignoring test directory %S" path;
                 false
@@ -243,13 +191,11 @@ module Analysis = struct
             if is_empty_file full_path then (
               Current.Job.log job "WARNING: ignoring empty opam file %S" path;
               None
-            ) else if check_whitelist_path path then
+            ) else if consider_opam_file path then
               Some path
             else None
         )
     in
-    (* [opam_files] are used to detect vendored OCamlformat but this only works
-       with duniverse, as other opam files are filtered above. *)
     Analyse_ocamlformat.get_ocamlformat_source job ~opam_files ~root:dir >>!= fun ocamlformat_source ->
     if opam_files = [] then Lwt_result.fail (`Msg "No opam files found!")
     else if List.filter is_toplevel opam_files = [] then Lwt_result.fail (`Msg "No top-level opam files found!")
@@ -257,7 +203,6 @@ module Analysis = struct
       begin
         match ty with
         | `Opam_monorepo info -> Opam_monorepo.selection ~info ~solve ~platforms
-        | `Duniverse -> duniverse_selections ~job ~platforms dir
         | `Ocaml_repo -> opam_selections ~solve ~job ~platforms ~opam_files dir
       end >>!= fun selections ->
       let r = { opam_files; ocamlformat_source; selections } in

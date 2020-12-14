@@ -8,9 +8,6 @@ val file : string -> contents -> file
 
 val folder : string -> file list -> file
 
-val dune_get : contents
-(** Contents of an example [dune-get] file *)
-
 val opam_monorepo_spec_file : contents
 (** Contents of an example [.opam] file for opam-monorepo *)
 
