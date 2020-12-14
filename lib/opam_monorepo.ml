@@ -1,6 +1,6 @@
 type info = string * OpamFile.OPAM.t
 
-type lock_file_version = V0_1 [@@deriving yojson, ord]
+type lock_file_version = V0_1 | V0_2 [@@deriving yojson, ord]
 
 type config = {
   package : string;
@@ -68,9 +68,10 @@ let opam_monorepo_dep_version ~lock_file ~package =
 
 let lock_file_version_of_string = function
   | "0.1" -> V0_1
+  | "0.2" -> V0_2
   | v -> Printf.ksprintf failwith "unknown x-opam-monorepo-version %S" v
 
-let plugin_version = function V0_1 -> "0.1.0"
+let plugin_version = function V0_1 -> "0.1.0" | V0_2 -> "0.1.0"
 
 let opam_dep_file packages =
   let lines =
@@ -124,6 +125,23 @@ let install_depexts ~network ~cache ~package ~lock_file_version =
         run ~network ~cache "opam depext --update -y %s" package;
         run ~network ~cache "opam pin -n remove %s" package;
       ]
+  | V0_2 ->
+      [
+        run ~network ~cache
+          "sudo apt-get -y update && sudo apt-get -y install $(opam show -f \
+           depexts ./%s.opam.locked)"
+          package;
+      ]
+
+let downgrade_lock_file ~lock_file_version ~package =
+  match lock_file_version with
+  | V0_1 -> []
+  | V0_2 ->
+      [
+        Obuilder_spec.run
+          {|sed -i -e '/x-opam-monorepo-version:/ s/"0.2"/"0.1"/' %s.opam.locked|}
+          package;
+      ]
 
 let spec ~base ~repo ~config ~variant =
   let { package; selection; lock_file_version } = config in
@@ -147,6 +165,7 @@ let spec ~base ~repo ~config ~variant =
     ]
   @ install_depexts ~network ~cache:[ download_cache ] ~package
       ~lock_file_version
+  @ downgrade_lock_file ~lock_file_version ~package
   @ [
       run ~network ~cache:[ download_cache ] "opam exec -- opam monorepo pull";
       copy [ "." ] ~dst:"/src/";
