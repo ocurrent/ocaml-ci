@@ -82,5 +82,5 @@ let platforms =
       let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas in
       List.map make_release ovs @ distros
   | `Dev ->
-      let ovs = List.map OV.of_string_exn ["4.10"; "4.11"; "4.03"] in
+      let ovs = List.map OV.of_string_exn ["4.11"; "4.10"; "4.03"] in
       List.map make_release ovs @ [make_release ~arch:`I386 (List.hd ovs)]

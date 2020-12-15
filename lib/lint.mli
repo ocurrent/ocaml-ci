@@ -14,4 +14,5 @@ val doc_spec :
 val opam_lint_spec :
   base:string ->
   opam_files:string list ->
+  selection:Selection.t ->
   Obuilder_spec.t
