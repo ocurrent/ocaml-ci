@@ -13,7 +13,7 @@ let install_ocamlformat =
       run ~network ~cache "opam install --deps-only -y ocamlformat";
     ]
   | Opam { version } ->
-    [ run ~network ~cache "opam depext -it ocamlformat=%s" version ]
+    [ run ~network ~cache "opam depext -i ocamlformat=%s" version ]
 
 let fmt_spec ~base ~ocamlformat_source =
   let open Obuilder_spec in
