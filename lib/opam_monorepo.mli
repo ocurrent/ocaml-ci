@@ -25,4 +25,4 @@ val spec :
   repo:Current_github.Repo_id.t ->
   config:config ->
   variant:Variant.t ->
-  Obuilder_spec.stage
+  Obuilder_spec.t

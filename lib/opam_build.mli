@@ -9,4 +9,4 @@ val spec :
   base:string ->
   opam_files:string list ->
   selection:Selection.t ->
-  Obuilder_spec.stage
+  Obuilder_spec.t
