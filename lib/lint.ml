@@ -50,7 +50,7 @@ let doc_spec ~base ~opam_files ~selection =
 let install_opam_dune_lint ~cache ~network ~base =
   let open Obuilder_spec in
   stage ~from:base [
-    run ~cache ~network "opam pin add -yn opam-dune-lint.dev https://github.com/ocurrent/opam-dune-lint.git#1f638ddc2f20bd7a47212098f495d1c1e2b8b889";
+    run ~cache ~network "opam pin add -yn opam-dune-lint.dev https://github.com/ocurrent/opam-dune-lint.git#349a243d217f36e7d309aaa821be3ea3390b308b";
     run ~cache ~network "opam depext -i opam-dune-lint";
     run "sudo cp $(opam exec -- which opam-dune-lint) /usr/local/bin/";
   ]
