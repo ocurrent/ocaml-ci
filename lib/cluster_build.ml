@@ -82,7 +82,7 @@ module Op = struct
       match ty with
       | `Opam (`Build, selection, opam_files) -> Opam_build.spec ~base ~opam_files ~selection
       | `Opam (`Lint `Doc, selection, opam_files) -> Lint.doc_spec ~base ~opam_files ~selection
-      | `Opam (`Lint `Opam, _selection, opam_files) -> Lint.opam_lint_spec ~base ~opam_files
+      | `Opam (`Lint `Opam, selection, opam_files) -> Lint.opam_lint_spec ~base ~opam_files ~selection
       | `Opam_fmt ocamlformat_source -> Lint.fmt_spec ~base ~ocamlformat_source
       | `Duniverse opam_files -> Duniverse_build.spec ~base ~repo ~opam_files ~variant
       | `Opam_monorepo config -> Opam_monorepo.spec ~base ~repo ~config ~variant
@@ -101,7 +101,7 @@ module Op = struct
                  docker build .@.@."
          Current_git.Commit_id.pp_user_clone commit
          Dockerfile.pp (Obuilder_spec.Docker.dockerfile_of_spec ~buildkit:false build_spec));
-    let spec_str = Fmt.to_to_string Obuilder_spec.pp_stage build_spec in
+    let spec_str = Fmt.to_to_string Obuilder_spec.pp build_spec in
     let action = Cluster_api.Submission.obuilder_build spec_str in
     let src = (Git.Commit_id.repo commit, [Git.Commit_id.hash commit]) in
     let cache_hint = get_cache_hint repo spec in

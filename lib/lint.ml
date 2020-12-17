@@ -36,6 +36,7 @@ let doc_spec ~base ~opam_files ~selection =
   let network = ["host"] in
   let open Obuilder_spec in
   stage ~from:base @@
+    comment "%s" (Fmt.strf "%a" Variant.pp selection.Selection.variant) ::
     user ~uid:1000 ~gid:1000 ::
     Opam_build.install_project_deps ~opam_files ~selection @ [
       (* Warnings-as-errors was introduced in Odoc.1.5.0 *)
@@ -46,11 +47,29 @@ let doc_spec ~base ~opam_files ~selection =
            || (echo \"dune build @doc failed\"; exit 2)";
     ]
 
-let opam_lint_spec ~base ~opam_files =
+let install_opam_dune_lint ~cache ~network ~base =
   let open Obuilder_spec in
   stage ~from:base [
-    user ~uid:1000 ~gid:1000;
-    workdir "src";
-    copy ["./"] ~dst:"./";
-    run "opam lint %s" (String.concat " " opam_files);
+    run ~cache ~network "opam pin add -yn opam-dune-lint.dev https://github.com/ocurrent/opam-dune-lint.git#1f638ddc2f20bd7a47212098f495d1c1e2b8b889";
+    run ~cache ~network "opam depext -i opam-dune-lint";
+    run "sudo cp $(opam exec -- which opam-dune-lint) /usr/local/bin/";
   ]
+
+let opam_lint_spec ~base ~opam_files ~selection =
+  let cache = [ Obuilder_spec.Cache.v Opam_build.download_cache ~target:"/home/opam/.opam/download-cache" ] in
+  let network = ["host"] in
+  let open Obuilder_spec in
+  stage
+    ~child_builds:["opam-dune-lint", install_opam_dune_lint ~cache ~network ~base]
+    ~from:base @@
+    comment "%s" (Fmt.strf "%a" Variant.pp selection.Selection.variant) ::
+    user ~uid:1000 ~gid:1000 ::
+    Opam_build.install_project_deps ~opam_files ~selection @ [
+      workdir "src";
+      copy ["./"] ~dst:"./";
+      run "opam lint %s" (String.concat " " opam_files);
+      copy ["/usr/local/bin/opam-dune-lint"]
+        ~from:(`Build "opam-dune-lint")
+        ~dst:"/usr/local/bin/";
+      run "opam exec -- opam-dune-lint";
+    ]

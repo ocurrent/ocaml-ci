@@ -82,7 +82,7 @@ module Op = struct
       match ty with
       | `Opam (`Build, selection, opam_files) -> Opam_build.spec ~base ~opam_files ~selection
       | `Opam (`Lint `Doc, selection, opam_files) -> Lint.doc_spec ~base ~opam_files ~selection
-      | `Opam (`Lint `Opam, _selection, opam_files) -> Lint.opam_lint_spec ~base ~opam_files
+      | `Opam (`Lint `Opam, selection, opam_files) -> Lint.opam_lint_spec ~base ~opam_files ~selection
       | `Opam_fmt ocamlformat_source -> Lint.fmt_spec ~base ~ocamlformat_source
       | `Duniverse opam_files -> Duniverse_build.spec ~base ~repo ~opam_files ~variant
       | `Opam_monorepo config -> Opam_monorepo.spec ~base ~repo ~config ~variant
