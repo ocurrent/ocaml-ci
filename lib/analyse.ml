@@ -181,7 +181,6 @@ module Analysis = struct
             let consider_opam_file path =
               match Fpath.v path |> Fpath.segs with
               | [_file] -> true
-              | ["duniverse"; _pkg; _file] -> false
               | segs when List.exists is_test_dir segs ->
                 Current.Job.log job "Ignoring test directory %S" path;
                 false
