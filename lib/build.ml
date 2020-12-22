@@ -87,8 +87,7 @@ module Op = struct
       | `Opam_monorepo config -> Opam_monorepo.spec ~base ~repo ~config ~variant
     in
     let make_dockerfile ~for_user =
-      let open Dockerfile in
-      (if for_user then empty else Buildkit_syntax.add (Variant.arch variant)) @@
+      (if for_user then "" else Buildkit_syntax.add (Variant.arch variant)) ^
       Obuilder_spec.Docker.dockerfile_of_spec ~buildkit:(not for_user) build_spec
     in
     Current.Job.write job
@@ -100,12 +99,12 @@ module Op = struct
                  To reproduce locally:@.@.\
                  %a@.\
                  cat > Dockerfile <<'END-OF-DOCKERFILE'@.\
-                 \o033[34m%a\o033[0m@.\
+                 \o033[34m%s\o033[0m\
                  END-OF-DOCKERFILE@.\
                  docker build .@.@."
          Current_git.Commit_id.pp_user_clone (Current_git.Commit.id commit)
-         Dockerfile.pp (make_dockerfile ~for_user:true));
-    let dockerfile = Dockerfile.string_of_t (make_dockerfile ~for_user:false) in
+         (make_dockerfile ~for_user:true));
+    let dockerfile = make_dockerfile ~for_user:false in
     Current.Job.start ~timeout:build_timeout ~pool job ~level:Current.Level.Average >>= fun () ->
     with_commit_lock ~job commit variant @@ fun () ->
     Current_git.with_checkout ~pool:checkout_pool ~job commit @@ fun dir ->

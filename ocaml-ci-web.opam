@@ -20,7 +20,6 @@ depends: [
   "capnp-rpc-unix"
   "ocaml-ci-api"
   "conf-libev"
-  "dockerfile"
   "ppx_deriving_yojson"
 ]
 conflicts: [
