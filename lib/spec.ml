@@ -3,7 +3,6 @@ type opam_files = string list [@@deriving to_yojson, ord]
 type ty = [
   | `Opam of [ `Build | `Lint of [ `Doc | `Opam ]] * Selection.t * opam_files
   | `Opam_fmt of Analyse_ocamlformat.source option
-  | `Duniverse of opam_files
   | `Opam_monorepo of Opam_monorepo.config
 ] [@@deriving to_yojson, ord]
 
@@ -21,9 +20,6 @@ let opam ~label ~selection ~analysis op =
     | `Lint `Fmt -> `Opam_fmt (Analyse.Analysis.ocamlformat_source analysis)
   in
   { label; variant; ty }
-
-let duniverse ~label ~variant ~opam_files =
-  { label; variant; ty = `Duniverse opam_files }
 
 let opam_monorepo ~config =
   let variant = Opam_monorepo.variant_of_config config in
@@ -43,5 +39,4 @@ let pp_summary f = function
   | `Opam (`Lint `Opam, _, _) -> Fmt.string f "Opam files lint"
   | `Opam_fmt v -> Fmt.pf f "ocamlformat version: %a"
                      Fmt.(option ~none:(unit "none") Analyse_ocamlformat.pp_source) v
-  | `Duniverse _ -> Fmt.string f "Duniverse build"
   | `Opam_monorepo _ -> Fmt.string f "opam-monorepo build"

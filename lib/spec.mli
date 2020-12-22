@@ -1,7 +1,6 @@
 type ty = [
   | `Opam of [ `Build | `Lint of [ `Doc | `Opam ]] * Selection.t * string list
   | `Opam_fmt of Analyse_ocamlformat.source option
-  | `Duniverse of string list
   | `Opam_monorepo of Opam_monorepo.config
 ] [@@deriving to_yojson, ord]
 
@@ -17,8 +16,6 @@ val opam :
   analysis:Analyse.Analysis.t ->
   [ `Build | `Lint of [ `Doc | `Fmt | `Opam ] ] ->
   t
-
-val duniverse : label:string -> variant:Variant.t -> opam_files:string list -> t
 
 val opam_monorepo : config:Opam_monorepo.config -> t
 

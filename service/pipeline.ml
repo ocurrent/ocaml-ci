@@ -82,14 +82,6 @@ let build_with_docker ?ocluster ~repo ~analysis source =
         []
     | Ok analysis ->
       match Analyse.Analysis.selections analysis with
-      | `Duniverse variants ->
-        variants
-        |> List.rev_map (fun variant ->
-            let opam_files = Analyse.Analysis.opam_files analysis
-                             |> List.filter (fun x -> not (String.contains x '/'))
-            in
-            Spec.duniverse ~label:(Variant.to_string variant) ~opam_files ~variant
-          )
       | `Opam_monorepo config ->
         [Spec.opam_monorepo ~config]
       | `Opam_build selections ->

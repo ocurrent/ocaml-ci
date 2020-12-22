@@ -16,7 +16,6 @@ module Analysis = struct
 
   let selection_type (t:t) =
     match selections t with
-    | `Duniverse _ -> "duniverse"
     | `Opam_monorepo _ -> "opam-monorepo"
     | `Opam_build _ -> "opam"
 
@@ -175,21 +174,6 @@ let test_multiple_opam =
   in
   expect_test "multiple_opam" ~project ~expected
 
-let test_duniverse =
-  let project =
-    let open Gen_project in
-    [ File ("dune-get", dune_get); File ("example.opam", opam); duniverse ]
-  in
-  let expected =
-    let open Analysis in
-    {
-      opam_files = [ "example.opam"; "duniverse/alcotest.0.8.5/alcotest.opam" ];
-      selection_type = "duniverse";
-      ocamlformat_source = None;
-    }
-  in
-  expect_test "duniverse" ~project ~expected
-
 let test_opam_monorepo =
   let project =
     let open Gen_project in
@@ -228,29 +212,6 @@ let test_opam_monorepo_no_version =
   in
   expect_test "opam-monorepo-no-version" ~project ~expected
 
-let test_ocamlformat_vendored =
-  let project =
-    let open Gen_project in
-    [
-      File ("dune-get", dune_get);
-      File ("example.opam", opam);
-      (* This file is not parsed if ocamlformat is vendored *)
-      File (".ocamlformat", empty_file);
-      Folder
-        ( "duniverse",
-          [ Folder ("ocamlformat", [ File ("ocamlformat.opam", opam) ]) ] );
-    ]
-  in
-  let expected =
-    let open Analysis in
-    {
-      opam_files = [ "example.opam"; "duniverse/ocamlformat/ocamlformat.opam" ];
-      selection_type = "duniverse";
-      ocamlformat_source = Some (Vendored { path = "duniverse/ocamlformat" });
-    }
-  in
-  expect_test "ocamlformat_vendored" ~project ~expected
-
 let test_ocamlformat_self =
   let project =
     let open Gen_project in
@@ -270,9 +231,7 @@ let tests =
   [
     test_simple;
     test_multiple_opam;
-    test_duniverse;
     test_opam_monorepo;
     test_opam_monorepo_no_version;
-    test_ocamlformat_vendored;
     test_ocamlformat_self;
   ]

@@ -6,7 +6,6 @@ module Analysis : sig
 
   val selections : t -> [
       | `Opam_build of Selection.t list
-      | `Duniverse of Variant.t list
       | `Opam_monorepo of Opam_monorepo.config
     ]
 

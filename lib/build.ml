@@ -84,7 +84,6 @@ module Op = struct
       | `Opam (`Lint `Doc, selection, opam_files) -> Lint.doc_spec ~base ~opam_files ~selection
       | `Opam (`Lint `Opam, selection, opam_files) -> Lint.opam_lint_spec ~base ~opam_files ~selection
       | `Opam_fmt ocamlformat_source -> Lint.fmt_spec ~base ~ocamlformat_source
-      | `Duniverse opam_files -> Duniverse_build.spec ~base ~repo ~opam_files ~variant
       | `Opam_monorepo config -> Opam_monorepo.spec ~base ~repo ~config ~variant
     in
     let make_dockerfile ~for_user =
@@ -157,7 +156,6 @@ let v ~platforms ~repo ~spec source =
   let result =
     state |> Result.map @@ fun () ->
     match spec.ty with
-    | `Duniverse _
     | `Opam_monorepo _
     | `Opam (`Build, _, _) -> `Built
     | `Opam (`Lint (`Doc|`Opam), _, _) -> `Checked

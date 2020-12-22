@@ -126,7 +126,7 @@ let spec ~base ~repo ~config ~variant =
     Obuilder_spec.Cache.v Opam_build.download_cache
       ~target:"/home/opam/.opam/download-cache"
   in
-  let dune_cache = Duniverse_build.build_cache repo in
+  let dune_cache = Dune_build_cache.for_repo repo in
   let network = [ "host" ] in
   let dune_project = "dune-project" in
   let open Obuilder_spec in
