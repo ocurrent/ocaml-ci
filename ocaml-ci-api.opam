@@ -10,7 +10,6 @@ depends: [
   "current_rpc"
   "capnp" {>= "3.4.0"}
   "capnp-rpc-lwt"
-  "dockerfile"
   "ppx_deriving"
   "ppx_deriving_yojson"
 ]

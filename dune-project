@@ -12,7 +12,6 @@
   current_rpc
   (capnp (>= 3.4.0))
   capnp-rpc-lwt
-  dockerfile
   ppx_deriving
   ppx_deriving_yojson))
 (package
@@ -40,7 +39,6 @@
   ocluster-api
   obuilder-spec
   conf-libev
-  (dockerfile (>= 7.0.0))
   (dockerfile-opam (>= 7.0.0))
   (ocaml-version (>= 3.0.0))
   (alcotest (and (>= 1.0.0) :with-test))
@@ -78,7 +76,6 @@
   capnp-rpc-unix
   ocaml-ci-api
   conf-libev
-  dockerfile
   ppx_deriving_yojson))
 (package
  (name ocaml-ci-client)

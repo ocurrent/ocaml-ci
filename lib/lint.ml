@@ -23,12 +23,12 @@ let fmt_spec ~base ~ocamlformat_source =
     user ~uid:1000 ~gid:1000;
     run ~network ~cache "opam depext -i dune";  (* Necessary in case current compiler < 4.08 *)
                                                 (* Not necessarily the dune version used by the project *)
-    workdir "src";
+    workdir "/src";
   ] @ (match ocamlformat_source with
       | Some src -> install_ocamlformat src
       | None -> []) @ [
-    copy ["./"] ~dst:"./";
-    run "opam exec -- dune build @fmt || (echo \"dune build @fmt failed\"; exit 2)";
+      copy ["."] ~dst:"/src/";
+      run "opam exec -- dune build @fmt || (echo \"dune build @fmt failed\"; exit 2)";
   ]
 
 let doc_spec ~base ~opam_files ~selection =
@@ -50,6 +50,7 @@ let doc_spec ~base ~opam_files ~selection =
 let install_opam_dune_lint ~cache ~network ~base =
   let open Obuilder_spec in
   stage ~from:base [
+    user ~uid:1000 ~gid:1000;
     run ~cache ~network "opam pin add -yn opam-dune-lint.dev https://github.com/ocurrent/opam-dune-lint.git#349a243d217f36e7d309aaa821be3ea3390b308b";
     run ~cache ~network "opam depext -i opam-dune-lint";
     run "sudo cp $(opam exec -- which opam-dune-lint) /usr/local/bin/";
@@ -65,8 +66,8 @@ let opam_lint_spec ~base ~opam_files ~selection =
     comment "%s" (Fmt.strf "%a" Variant.pp selection.Selection.variant) ::
     user ~uid:1000 ~gid:1000 ::
     Opam_build.install_project_deps ~opam_files ~selection @ [
-      workdir "src";
-      copy ["./"] ~dst:"./";
+      workdir "/src";
+      copy ["."] ~dst:"/src/";
       run "opam lint %s" (String.concat " " opam_files);
       copy ["/usr/local/bin/opam-dune-lint"]
         ~from:(`Build "opam-dune-lint")

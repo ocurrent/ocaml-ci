@@ -27,7 +27,6 @@ depends: [
   "ocluster-api"
   "obuilder-spec"
   "conf-libev"
-  "dockerfile" {>= "7.0.0"}
   "dockerfile-opam" {>= "7.0.0"}
   "ocaml-version" {>= "3.0.0"}
   "alcotest" {>= "1.0.0" & with-test}
