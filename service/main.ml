@@ -43,7 +43,7 @@ end
 let solver = Ocaml_ci.Solver_pool.spawn_local ()
 
 let () =
-  Logging.init ();
+  Prometheus_unix.Logging.init ();
   Mirage_crypto_rng_unix.initialize ();
   Prometheus.CollectorRegistry.(register_pre_collect default) Metrics.update;
   match Conf.profile with

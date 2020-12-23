@@ -2,7 +2,7 @@ open Lwt.Infix
 open Astring
 
 let () =
-  Logging.init ()
+  Prometheus_unix.Logging.init ()
 
 module Server = Cohttp_lwt_unix.Server
 
