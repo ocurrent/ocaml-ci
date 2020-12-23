@@ -172,7 +172,7 @@ let v ?ocluster ~app ~solver () =
   installations |> Current.list_iter ~collapse_key:"org" (module Github.Installation) @@ fun installation ->
   let repos = Github.Installation.repositories installation |> set_active_repos ~installation in
   repos |> Current.list_iter ~collapse_key:"repo" (module Github.Api.Repo) @@ fun repo ->
-  let refs = Github.Api.Repo.ci_refs repo |> set_active_refs ~repo in
+  let refs = Github.Api.Repo.ci_refs ~staleness:Conf.max_staleness repo |> set_active_refs ~repo in
   refs |> Current.list_iter (module Github.Api.Commit) @@ fun head ->
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
   let analysis = Analyse.examine ~solver ~platforms ~opam_repository_commit src in

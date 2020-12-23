@@ -4,6 +4,10 @@ let profile =
   | Some "dev" | None -> `Dev
   | Some x -> Fmt.failwith "Unknown $PROFILE setting %S" x
 
+(* GitHub defines a stale branch as more than 3 months old.
+   Don't bother testing these. *)
+let max_staleness = Duration.of_day 93
+
 module Capnp = struct
   (* Cap'n Proto RPC is enabled by passing --capnp-public-address. These values are hard-coded
      (because they're just internal to the Docker container). *)
