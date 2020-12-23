@@ -1,13 +1,15 @@
 type info = string * OpamFile.OPAM.t
 
+type lock_file_version = V0_1 | V0_2 [@@deriving yojson, ord]
+
 type config = {
   package : string;
-  selection : Selection.t
+  selection : Selection.t;
+  lock_file_version : lock_file_version;
 }
 [@@deriving yojson, ord]
 
-let variant_of_config c =
-  c.selection.variant
+let variant_of_config c = c.selection.variant
 
 let only_lockfile_in ~dir =
   let opam_locked = ".opam.locked" in
@@ -64,9 +66,12 @@ let opam_monorepo_dep_version ~lock_file ~package =
   |> List.assoc (OpamPackage.Name.of_string package)
   |> version_of_equal_constraint
 
-let plugin_version = function
-  | "0.1" -> "0.1.0"
-  | v -> Printf.ksprintf failwith "unknown opam-monorepo version %S" v
+let lock_file_version_of_string = function
+  | "0.1" -> V0_1
+  | "0.2" -> V0_2
+  | v -> Printf.ksprintf failwith "unknown x-opam-monorepo-version %S" v
+
+let plugin_version = function V0_1 -> "0.1.0" | V0_2 -> "0.1.0"
 
 let opam_dep_file packages =
   let lines =
@@ -82,9 +87,11 @@ let selection ~info:(package, lock_file) ~platforms ~solve =
   let open Lwt_result.Infix in
   let ocaml_version = opam_monorepo_dep_version ~lock_file ~package:"ocaml" in
   let dune_version = opam_monorepo_dep_version ~lock_file ~package:"dune" in
-  let monorepo_version =
-    x_opam_monorepo_version lock_file |> Option.get |> plugin_version
+  let lock_file_version =
+    x_opam_monorepo_version lock_file
+    |> Option.get |> lock_file_version_of_string
   in
+  let monorepo_version = plugin_version lock_file_version in
   let deps_package = "opam-monorepo-deps.dev" in
   let root_pkgs =
     [
@@ -99,27 +106,45 @@ let selection ~info:(package, lock_file) ~platforms ~solve =
   in
   let platforms =
     let version = Ocaml_version.of_string_exn ocaml_version in
-    platforms |> List.filter (fun (_, vars) ->
-        Platform.compiler_matches_major_and_minor ~version vars
-      )
+    platforms
+    |> List.filter (fun (_, vars) ->
+           Platform.compiler_matches_major_and_minor ~version vars)
   in
-  solve ~root_pkgs ~pinned_pkgs:[] ~platforms
-  >|= fun workers ->
+  solve ~root_pkgs ~pinned_pkgs:[] ~platforms >|= fun workers ->
   let selection =
     List.hd workers |> Selection.remove_package ~package:deps_package
   in
-  `Opam_monorepo { package; selection }
+  `Opam_monorepo { package; selection; lock_file_version }
 
-let install_depexts ~network ~cache ~package =
+let install_depexts ~network ~cache ~package ~lock_file_version =
   let open Obuilder_spec in
-  [
-    run ~network ~cache "opam pin -n add %s . --locked" package;
-    run ~network ~cache "opam depext --update -y %s" package;
-    run ~network ~cache "opam pin -n remove %s" package;
-  ]
+  match lock_file_version with
+  | V0_1 ->
+      [
+        run ~network ~cache "opam pin -n add %s . --locked" package;
+        run ~network ~cache "opam depext --update -y %s" package;
+        run ~network ~cache "opam pin -n remove %s" package;
+      ]
+  | V0_2 ->
+      [
+        run ~network ~cache
+          "sudo apt-get -y update && sudo apt-get -y install $(opam show -f \
+           depexts ./%s.opam.locked)"
+          package;
+      ]
+
+let downgrade_lock_file ~lock_file_version ~package =
+  match lock_file_version with
+  | V0_1 -> []
+  | V0_2 ->
+      [
+        Obuilder_spec.run
+          {|sed -i -e '/x-opam-monorepo-version:/ s/"0.2"/"0.1"/' %s.opam.locked|}
+          package;
+      ]
 
 let spec ~base ~repo ~config ~variant =
-  let { package; selection } = config in
+  let { package; selection; lock_file_version } = config in
   let opam_file = package ^ ".opam" in
   let lock_file = package ^ ".opam.locked" in
   let download_cache =
@@ -139,6 +164,8 @@ let spec ~base ~repo ~config ~variant =
       copy [ dune_project; opam_file; lock_file ] ~dst:"/src/";
     ]
   @ install_depexts ~network ~cache:[ download_cache ] ~package
+      ~lock_file_version
+  @ downgrade_lock_file ~lock_file_version ~package
   @ [
       run ~network ~cache:[ download_cache ] "opam exec -- opam monorepo pull";
       copy [ "." ] ~dst:"/src/";
