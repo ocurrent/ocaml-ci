@@ -22,34 +22,34 @@ let group_opam_files =
     )
 
 let mkdir dirs =
-  if dirs = [] then
-    []
-  else
-    let dirs =
-      dirs
-      |> List.map (fun (dir, _, _) -> Filename.quote (Fpath.to_string dir))
-      |> String.concat " "
-    in
-    [Obuilder_spec.run "mkdir -p %s" dirs]
+  let dirs =
+    dirs
+    |> List.map (fun (dir, _, _) -> Filename.quote (Fpath.to_string dir))
+    |> String.concat " "
+  in
+  [Obuilder_spec.run "mkdir -p %s" dirs]
 
 (* Generate instructions to copy all the files in [items] into the
    image, creating the necessary directories first, and then pin them all. *)
 let pin_opam_files ~network groups =
-  let open Obuilder_spec in
-  mkdir groups @ (
-    groups |> List.map (fun (dir, files, _) ->
-        copy files ~dst:(Fpath.to_string dir)
-      )
-  ) @ [
-    groups |> List.concat_map (fun (dir, _, pkgs) ->
-        pkgs
-        |> List.map (fun pkg ->
-            Printf.sprintf "opam pin add -yn %s %s" pkg (Filename.quote (Fpath.to_string dir))
-          )
-      )
-    |> String.concat " && \n"
-    |> run ~network "%s"
-  ]
+  if groups = [] then
+    []
+  else
+    let open Obuilder_spec in
+    mkdir groups @ (
+      groups |> List.map (fun (dir, files, _) ->
+          copy files ~dst:(Fpath.to_string dir)
+        )
+    ) @ [
+      groups |> List.concat_map (fun (dir, _, pkgs) ->
+          pkgs
+          |> List.map (fun pkg ->
+              Printf.sprintf "opam pin add -yn %s %s" pkg (Filename.quote (Fpath.to_string dir))
+            )
+        )
+      |> String.concat " && \n"
+      |> run ~network "%s"
+    ]
 
 (* Get the packages directly in "." *)
 let rec get_root_opam_packages = function
