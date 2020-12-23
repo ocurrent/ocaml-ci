@@ -5,7 +5,7 @@ let solver = Ocaml_ci.Solver_pool.spawn_local ()
 let () =
   Unix.putenv "DOCKER_BUILDKIT" "1";
   Unix.putenv "PROGRESS_NO_TRUNC" "1";
-  Logging.init ()
+  Prometheus_unix.Logging.init ()
 
 let main config mode repo : ('a, [`Msg of string]) result =
   let repo = Current_git.Local.v (Fpath.v repo) in
