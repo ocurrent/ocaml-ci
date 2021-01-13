@@ -71,14 +71,18 @@ let lock_file_version_of_string = function
   | "0.2" -> V0_2
   | v -> Printf.ksprintf failwith "unknown x-opam-monorepo-version %S" v
 
-let plugin_version = function V0_1 -> "0.1.0" | V0_2 -> "0.1.0"
+let exactly v = Printf.sprintf {|{ = "%s" }|} v
+
+let between a b = Printf.sprintf {|{ >= "%s" & < "%s" }|} a b
+
+let plugin_version = function
+  | V0_1 -> between "0.1.0" "0.3.0"
+  | V0_2 -> between "0.2.0" "0.3.0"
 
 let opam_dep_file packages =
   let lines =
     [ {|opam-version: "2.0"|}; {|depends: [|} ]
-    @ List.map
-        (fun (pkg, ver) -> Printf.sprintf {|  "%s" { = "%s" }|} pkg ver)
-        packages
+    @ List.map (fun (pkg, ver) -> Printf.sprintf {|  "%s" %s|} pkg ver) packages
     @ [ {|]|} ]
   in
   lines |> List.map (fun s -> s ^ "\n") |> String.concat ""
@@ -98,8 +102,8 @@ let selection ~info:(package, lock_file) ~platforms ~solve =
       ( deps_package,
         opam_dep_file
           [
-            ("ocaml", ocaml_version);
-            ("dune", dune_version);
+            ("ocaml", exactly ocaml_version);
+            ("dune", exactly dune_version);
             ("opam-monorepo", monorepo_version);
           ] );
     ]
@@ -133,16 +137,6 @@ let install_depexts ~network ~cache ~package ~lock_file_version =
           package;
       ]
 
-let downgrade_lock_file ~lock_file_version ~package =
-  match lock_file_version with
-  | V0_1 -> []
-  | V0_2 ->
-      [
-        Obuilder_spec.run
-          {|sed -i -e '/x-opam-monorepo-version:/ s/"0.2"/"0.1"/' %s.opam.locked|}
-          package;
-      ]
-
 let spec ~base ~repo ~config ~variant =
   let { package; selection; lock_file_version } = config in
   let opam_file = package ^ ".opam" in
@@ -165,7 +159,6 @@ let spec ~base ~repo ~config ~variant =
     ]
   @ install_depexts ~network ~cache:[ download_cache ] ~package
       ~lock_file_version
-  @ downgrade_lock_file ~lock_file_version ~package
   @ [
       run ~network ~cache:[ download_cache ] "opam exec -- opam monorepo pull";
       copy [ "." ] ~dst:"/src/";
