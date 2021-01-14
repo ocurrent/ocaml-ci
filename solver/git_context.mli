@@ -12,4 +12,4 @@ val create :
   constraints:OpamFormula.version_constraint OpamPackage.Name.Map.t ->
   env:(string -> OpamVariable.variable_contents option) ->
   packages:OpamFile.OPAM.t OpamPackage.Version.Map.t OpamPackage.Name.Map.t ->
-  t
+  unit -> t

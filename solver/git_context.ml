@@ -134,5 +134,5 @@ let read_packages store commit =
             | Some versions -> OpamPackage.Name.Map.add name versions acc
         ) OpamPackage.Name.Map.empty
 
-let create ?(test=OpamPackage.Name.Set.empty) ?(pins=OpamPackage.Name.Map.empty) ~constraints ~env ~packages =
+let create ?(test=OpamPackage.Name.Set.empty) ?(pins=OpamPackage.Name.Map.empty) ~constraints ~env ~packages () =
   { env; packages; pins; constraints; test }
