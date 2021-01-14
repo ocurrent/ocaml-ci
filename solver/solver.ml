@@ -22,7 +22,7 @@ let solve ~packages ~pins ~root_pkgs (vars : Worker.Vars.t) =
   let ocaml_package = OpamPackage.Name.of_string vars.ocaml_package in
   let ocaml_version = OpamPackage.Version.of_string vars.ocaml_version in
   let context =
-    Git_context.create
+    Git_context.create ()
       ~packages
       ~pins
       ~env:(env vars)
