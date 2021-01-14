@@ -26,6 +26,10 @@ let compiler_matches_major_and_minor vars ~version =
   Ocaml_version.equal vars_version
     (Ocaml_version.with_just_major_and_minor version)
 
+let set_compiler_version vars ~version =
+  let ocaml_version = Ocaml_version.to_string version in
+  { vars with Worker.Vars.ocaml_version }
+
 module Query = struct
   let id = "opam-vars"
 

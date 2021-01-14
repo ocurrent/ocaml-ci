@@ -17,6 +17,11 @@ val compiler_matches_major_and_minor : Ocaml_ci_api.Worker.Vars.t -> version:Oca
     version in [vars] matches [version], considering only the major and minor
     parts of the version number. *)
 
+val set_compiler_version :
+  Ocaml_ci_api.Worker.Vars.t ->
+  version:Ocaml_version.t ->
+  Ocaml_ci_api.Worker.Vars.t
+
 val get :
   arch:Ocaml_version.arch ->
   label:string ->
