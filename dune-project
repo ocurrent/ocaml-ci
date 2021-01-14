@@ -56,7 +56,7 @@
   ocaml-ci-api
   conf-libev
   (opam-0install (>= "0.2"))
-  git-unix
+  (git-unix (< 3.0.0))
   (capnp-rpc-unix (>= 0.7.0))))
 (package
  (name ocaml-ci-web)
