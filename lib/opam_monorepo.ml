@@ -33,9 +33,8 @@ let file_exists_in ~dir ~name =
 
 let x_opam_monorepo_version opam =
   try
-    OpamFile.OPAM.extended opam "x-opam-monorepo-version" (function
-      | String (_, s) -> s
-      | _ -> assert false)
+    OpamFile.OPAM.extended opam "x-opam-monorepo-version"
+      (OpamPp.parse OpamFormat.V.string ~pos:OpamTypesBase.pos_null)
   with Invalid_argument _ -> None
 
 let detect ~dir =
