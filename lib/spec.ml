@@ -22,7 +22,7 @@ let opam ~label ~selection ~analysis op =
   { label; variant; ty }
 
 let opam_monorepo ~config =
-  let variant = Opam_monorepo.variant_of_config config in
+  let {Selection.variant; _} = Opam_monorepo.selection_of_config config in
   {
     label = Variant.to_string variant;
     variant;

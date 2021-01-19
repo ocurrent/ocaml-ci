@@ -9,7 +9,7 @@ type config = {
 }
 [@@deriving yojson, ord]
 
-let variant_of_config c = c.selection.variant
+let selection_of_config c = c.selection
 
 let only_lockfile_in ~dir =
   let opam_locked = ".opam.locked" in
