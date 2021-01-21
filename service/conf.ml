@@ -61,27 +61,27 @@ let platforms =
   let v ?(arch=`X86_64) label distro ocaml_version =
     { arch; label; builder = Builders.local; pool = pool_of_arch arch; distro; ocaml_version }
   in
+  let master_distro = DD.resolve_alias DD.master_distro in
   let make_distro distro =
+    let distro = DD.resolve_alias distro in
     let label = DD.latest_tag_of_distro distro in
     let tag = DD.tag_of_distro distro in
     let ov = OV.(Releases.latest |> with_just_major_and_minor) in
-    if distro = `Debian `V10 then
+    if distro = master_distro then
       v label tag (OV.with_variant ov (Some "flambda")) ::
       List.map (fun arch -> v ~arch label tag ov) (DD.distro_arches ov distro)
     else
       [v label tag ov]
   in
   let make_release ?arch ov =
-    let distro = DD.tag_of_distro (`Debian `V10) in
+    let distro = DD.tag_of_distro master_distro in
     let ov = OV.with_just_major_and_minor ov in
     v ?arch (OV.to_string ov) distro ov in
   match profile with
   | `Production ->
-      let distros = List.map make_distro [
-        `Debian `V10; `Alpine `V3_12; `Ubuntu `V20_04;
-        `Ubuntu `V18_04; `OpenSUSE `V15_2; `CentOS `V8;
-        `Fedora `V32 ] |> List.flatten
-      in
+      let distros =
+        DD.active_tier1_distros `X86_64 @ DD.active_tier2_distros `X86_64 |>
+        List.map make_distro |> List.flatten in
       (* The first one in this list is used for lint actions *)
       let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas in
       List.map make_release ovs @ distros
