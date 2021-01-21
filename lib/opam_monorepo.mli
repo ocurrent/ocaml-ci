@@ -5,7 +5,7 @@ val detect : dir:Fpath.t -> info option
 
 type config [@@deriving yojson, ord]
 
-val variant_of_config : config -> Variant.t
+val selection_of_config : config -> Selection.t
 
 (** Determine configuration for a build
     (which machine to run on, dune version, etc) *)
