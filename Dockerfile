@@ -1,6 +1,6 @@
 FROM ocaml/opam:debian-10-ocaml-4.10 AS build
 RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libsqlite3-dev libgmp-dev graphviz -y --no-install-recommends
-RUN cd ~/opam-repository && git pull origin -q master && git reset --hard 9bbd0b24881972dc797346d711598d22e54edf0b && opam update
+RUN cd ~/opam-repository && git pull origin -q master && git reset --hard e32892d86bd77052cb042ef08dfa15646563ec99 && opam update
 COPY --chown=opam \
 	ocurrent/current_ansi.opam \
 	ocurrent/current_docker.opam \
@@ -17,9 +17,6 @@ COPY --chown=opam \
 	ocluster/current_ocluster.opam \
 	/src/ocluster/
 COPY --chown=opam \
-	ocluster/obuilder/obuilder-spec.opam \
-	/src/ocluster/obuilder/
-COPY --chown=opam \
 	ocaml-version/ocaml-version.opam \
 	/src/ocaml-version/
 COPY --chown=opam \
@@ -35,7 +32,6 @@ RUN opam pin add -yn current_ansi.dev "./ocurrent" && \
     opam pin add -yn current_rpc.dev "./ocurrent" && \
     opam pin add -yn current_slack.dev "./ocurrent" && \
     opam pin add -yn current_web.dev "./ocurrent" && \
-    opam pin add -yn obuilder-spec.dev "./ocluster/obuilder" && \
     opam pin add -yn current_ocluster.dev "./ocluster" && \
     opam pin add -yn ocaml-version.dev "./ocaml-version" && \
     opam pin add -yn dockerfile.dev "./ocaml-dockerfile" && \
