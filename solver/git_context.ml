@@ -1,5 +1,5 @@
 module Store = Git_unix.Store
-module Search = Git.Search.Make(Store)
+module Search = Git.Search.Make (Digestif.SHA1) (Store)
 
 open Lwt.Infix
 
@@ -91,7 +91,7 @@ let pp_rejection f = function
 let read_dir store hash =
   Store.read store hash >|= function
   | Error e -> Fmt.failwith "Failed to read tree: %a" Store.pp_error e
-  | Ok (Store.Value.Tree tree) -> Some tree
+  | Ok (Git.Value.Tree tree) -> Some tree
   | Ok _ -> None
 
 let read_package store pkg hash =
@@ -99,7 +99,7 @@ let read_package store pkg hash =
   | None -> Fmt.failwith "opam file not found for %s" (OpamPackage.to_string pkg)
   | Some hash ->
     Store.read store hash >|= function
-    | Ok (Store.Value.Blob blob) -> OpamFile.OPAM.read_from_string (Store.Value.Blob.to_string blob)
+    | Ok (Git.Value.Blob blob) -> OpamFile.OPAM.read_from_string (Store.Value.Blob.to_string blob)
     | _ -> Fmt.failwith "Bad Git object type for %s!" (OpamPackage.to_string pkg)
 
 (* Get a map of the versions inside [entry] (an entry under "packages") *)
