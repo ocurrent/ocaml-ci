@@ -8,4 +8,4 @@
 (rule
  (targets schema.ml schema.mli ocurrent.ml ocurrent.mli)
  (deps schema.capnp ocurrent.capnp)
- (action (run capnpc -o %{bin:capnpc-ocaml} %{deps})))
+ (action (run capnp compile -o %{bin:capnpc-ocaml} %{deps})))
