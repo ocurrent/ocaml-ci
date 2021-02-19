@@ -10,8 +10,6 @@ let is_empty_file x =
   | Unix.{ st_kind = S_REG; st_size = 0; _ } -> true
   | _ -> false
 
-let is_toplevel path = not (String.contains path '/')
-
 let ( >>!= ) = Lwt_result.bind
 
 let read_file ~max_len path =
@@ -162,47 +160,52 @@ module Analysis = struct
     | Ok x -> Ok (List.map Selection.of_worker x)
     | Error (`Msg msg) -> Fmt.error_msg "Error from solver: %s" msg
 
-  let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
-    let solve = solve ~opam_repository_commit ~job ~solver in
-    let ty = type_of_dir dir in
-    let cmd = "", [| "find"; "."; "-maxdepth"; "3"; "-name"; "*.opam" |] in
-    Current.Process.check_output ~cwd:dir ~cancellable:true ~job cmd >>!= fun output ->
-    let opam_files =
-      String.split_on_char '\n' output
-      |> List.sort String.compare
-      |> List.filter_map (function
-          | "" -> None
-          | path ->
-            let path =
-              if Astring.String.is_prefix ~affix:"./" path then
-                Astring.String.with_range ~first:2 path
-              else path
-            in
-            let consider_opam_file path =
-              match Fpath.v path |> Fpath.segs with
-              | [_file] -> true
-              | segs when List.exists is_test_dir segs ->
-                Current.Job.log job "Ignoring test directory %S" path;
-                false
-              | _ -> true
-            in
-            let full_path = Filename.concat (Fpath.to_string dir) path in
-            if is_empty_file full_path then (
-              Current.Job.log job "WARNING: ignoring empty opam file %S" path;
-              None
-            ) else if consider_opam_file path then
-              Some path
-            else None
-        )
+  let of_dir ~solver ~job ~platforms ~opam_repository_commit root =
+    let f () =
+      let opam_files path =
+        let test_pathv = Option.get (Fpath.rem_prefix root path) in
+        let test_path = Fpath.to_string test_pathv in
+        let consider_opam_file =
+          match Fpath.segs test_pathv with
+          | [_file] -> true
+          | segs when List.exists is_test_dir segs ->
+             Current.Job.log job "Ignoring test directory %S" test_path;
+             false
+          | _ -> true
+        in
+        if is_empty_file (Fpath.to_string path) then (
+          Current.Job.log job "WARNING: ignoring empty opam file %S" test_path;
+          None
+        ) else if consider_opam_file then
+          Some test_path
+        else None
+      in
+      let traverse path =
+        match Fpath.rem_prefix root path with (* maxdepth=3 *)
+        | None when Fpath.equal root path -> Ok true
+        | Some suffix -> Ok (List.length (Fpath.segs suffix) <= 3)
+        | None -> Fmt.error_msg "%S is not a prefix of %S"
+                    (Fpath.to_string root) (Fpath.to_string path)
+      in
+      let module S = Set.Make (String) in
+      Bos.OS.Path.fold
+        ~elements:(`Sat (fun path -> Ok (Fpath.has_ext "opam" path)))
+        ~traverse:(`Sat traverse)
+        (fun path acc ->
+          Option.fold ~none:acc ~some:(fun path -> S.add path acc) (opam_files path))
+        S.empty [root]
+      |> Result.map S.elements
     in
-    Analyse_ocamlformat.get_ocamlformat_source job ~opam_files ~root:dir >>!= fun ocamlformat_source ->
+    Lwt_preemptive.detach f () >>!= fun opam_files ->
+    Analyse_ocamlformat.get_ocamlformat_source job ~opam_files ~root >>!= fun ocamlformat_source ->
     if opam_files = [] then Lwt_result.fail (`Msg "No opam files found!")
-    else if List.filter is_toplevel opam_files = [] then Lwt_result.fail (`Msg "No top-level opam files found!")
+    else if List.filter Fpath.is_seg opam_files = [] then Lwt_result.fail (`Msg "No top-level opam files found!")
     else (
       begin
-        match ty with
+        let solve = solve ~opam_repository_commit ~job ~solver in
+        match type_of_dir root with
         | `Opam_monorepo info -> Opam_monorepo.selection ~info ~solve ~platforms
-        | `Ocaml_repo -> opam_selections ~solve ~job ~platforms ~opam_files dir
+        | `Ocaml_repo -> opam_selections ~solve ~job ~platforms ~opam_files root
       end >>!= fun selections ->
       let r = { opam_files; ocamlformat_source; selections } in
       Current.Job.log job "@[<v2>Results:@,%a@]" Yojson.Safe.(pretty_print ~std:true) (to_yojson r);
