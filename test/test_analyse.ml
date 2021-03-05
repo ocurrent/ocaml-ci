@@ -110,7 +110,7 @@ let expect_test name ~project ~expected =
                   Current.Job.(log_path (id job))
                   |> Result.get_ok |> Fpath.to_string
                 in
-                let ch = open_in path in
+                let ch = open_in_bin path in
                 let len = in_channel_length ch in
                 let log = really_input_string ch len in
                 close_in ch;
