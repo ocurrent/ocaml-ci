@@ -7,8 +7,12 @@ type t = {
 
 let of_worker w =
   let module W = Ocaml_ci_api.Worker.Selection in
-  let { W.id; packages; commit } = w in
+  let { W.id; packages; commits } = w in
   let variant = Variant.of_string id in
+  (* The primary opam-repository commit is required to be the first in the list.
+     We only pass this one through to the worker because the Docker container
+     for the build has only this one cloned to local storage. *)
+  let commit = List.(hd commits |> snd) in
   { variant; packages; commit }
 
 let remove_package t ~package =

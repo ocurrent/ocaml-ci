@@ -1,6 +1,7 @@
 include Opam_0install.S.CONTEXT
 
 val read_packages :
+  ?acc:OpamFile.OPAM.t OpamPackage.Version.Map.t OpamPackage.Name.Map.t ->
   Git_unix.Store.t ->
   Git_unix.Store.Hash.t ->
   OpamFile.OPAM.t OpamPackage.Version.Map.t OpamPackage.Name.Map.t Lwt.t

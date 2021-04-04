@@ -146,11 +146,14 @@ module Analysis = struct
 
   (** Call the solver with a request containing these packages.
       When it returns a list, it is nonempty. *)
-  let solve ~root_pkgs ~pinned_pkgs ~platforms ~opam_repository_commit ~job ~solver =
+  let solve ~root_pkgs ~pinned_pkgs ~platforms ~opam_repository_commits ~job ~solver =
     let platforms = List.map (fun (variant,vars) -> Variant.to_string variant, vars) platforms in
+    let opam_commits_as_strs = opam_repository_commits |> List.map (fun commit ->
+      Current_git.Commit_id.(repo commit, hash commit)
+    ) in
     let request =
       { Ocaml_ci_api.Worker.Solve_request.
-        opam_repository_commit = Current_git.Commit_id.hash opam_repository_commit;
+        opam_repository_commits = opam_commits_as_strs;
         root_pkgs;
         pinned_pkgs;
         platforms
@@ -162,8 +165,8 @@ module Analysis = struct
     | Ok x -> Ok (List.map Selection.of_worker x)
     | Error (`Msg msg) -> Fmt.error_msg "Error from solver: %s" msg
 
-  let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
-    let solve = solve ~opam_repository_commit ~job ~solver in
+  let of_dir ~solver ~job ~platforms ~opam_repository_commits dir =
+    let solve = solve ~opam_repository_commits ~job ~solver in
     let ty = type_of_dir dir in
     let cmd = "", [| "find"; "."; "-maxdepth"; "3"; "-name"; "*.opam" |] in
     Current.Process.check_output ~cwd:dir ~cancellable:true ~job cmd >>!= fun output ->
@@ -226,7 +229,7 @@ module Examine = struct
 
   module Value = struct
     type t = {
-      opam_repository_commit : Current_git.Commit_id.t;
+      opam_repository_commits : Current_git.Commit_id.t list;
       platforms : (Variant.t * Worker.Vars.t) list;
     }
 
@@ -236,9 +239,11 @@ module Examine = struct
         "vars", Worker.Vars.to_yojson vars
       ]
 
-    let digest { opam_repository_commit; platforms } =
+    let digest { opam_repository_commits; platforms } =
       let json = `Assoc [
-          "opam-repository", `String (Current_git.Commit_id.hash opam_repository_commit);
+          "opam-repositories", `List (
+            opam_repository_commits |> List.map (fun x -> `String (Current_git.Commit_id.digest x))
+          );
           "platforms", `List (List.map platform_to_yojson platforms);
         ]
       in
@@ -249,10 +254,10 @@ module Examine = struct
 
   let id = "ci-analyse"
 
-  let run solver job src { Value.opam_repository_commit; platforms } =
+  let run solver job src { Value.opam_repository_commits; platforms } =
     Current.Job.start job ~pool ~level:Current.Level.Harmless >>= fun () ->
     Current_git.with_checkout ~job src @@ fun src ->
-    Analysis.of_dir ~solver ~platforms ~opam_repository_commit ~job src
+    Analysis.of_dir ~solver ~platforms ~opam_repository_commits ~job src
 
   let pp f _ = Fmt.string f "Analyse"
 
@@ -262,10 +267,10 @@ end
 
 module Examine_cache = Current_cache.Generic(Examine)
 
-let examine ~solver ~platforms ~opam_repository_commit src =
+let examine ~solver ~platforms ~opam_repository_commits src =
   Current.component "Analyse" |>
   let> src = src
-  and> opam_repository_commit = opam_repository_commit
+  and> opam_repository_commits = opam_repository_commits
   and> platforms = platforms in
   let platforms = platforms |> List.map (fun { Platform.variant; vars; _ } -> (variant, vars)) in
-  Examine_cache.run solver src { Examine.Value.opam_repository_commit; platforms }
+  Examine_cache.run solver src { Examine.Value.opam_repository_commits; platforms }

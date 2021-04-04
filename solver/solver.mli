@@ -1,3 +1,3 @@
-val main : Git_unix.Store.Hash.t -> unit
+val main : Remote_commit.t list -> unit
 (** [main hash] runs a worker process that reads requests from stdin and writes results to stdout,
-    using commit [hash] in opam-repository. *)
+    using the given commit(s) from opam-repository repos. *)
