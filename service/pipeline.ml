@@ -25,6 +25,8 @@ let opam_repository_commit =
   let repo = { Github.Repo_id.owner = "ocaml"; name = "opam-repository" } in
   Github.Api.Anonymous.head_of repo @@ `Ref "refs/heads/master"
 
+let opam_repository_commits = [opam_repository_commit] |> Current.list_seq
+
 let github_status_of_state ~head result =
   let+ head = head
   and+ result = result in
@@ -158,7 +160,7 @@ let summarise results =
 let local_test ~solver repo () =
   let src = Git.Local.head_commit repo in
   let repo = Current.return { Github.Repo_id.owner = "local"; name = "test" }
-  and analysis = Analyse.examine ~solver ~platforms ~opam_repository_commit src in
+  and analysis = Analyse.examine ~solver ~platforms ~opam_repository_commits src in
   Current.component "summarise" |>
   let> results = build_with_docker ~repo ~analysis src in
   let result =
@@ -170,7 +172,7 @@ let local_test ~solver repo () =
 
 let v ?ocluster ~app ~solver () =
   let ocluster = Option.map (Cluster_build.config ~timeout:(Duration.of_hour 1)) ocluster in
-  Current.with_context opam_repository_commit @@ fun () ->
+  Current.with_context opam_repository_commits @@ fun () ->
   Current.with_context platforms @@ fun () ->
   let installations = Github.App.installations app |> set_active_installations in
   installations |> Current.list_iter ~collapse_key:"org" (module Github.Installation) @@ fun installation ->
@@ -179,7 +181,7 @@ let v ?ocluster ~app ~solver () =
   let refs = Github.Api.Repo.ci_refs ~staleness:Conf.max_staleness repo |> set_active_refs ~repo in
   refs |> Current.list_iter (module Github.Api.Commit) @@ fun head ->
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
-  let analysis = Analyse.examine ~solver ~platforms ~opam_repository_commit src in
+  let analysis = Analyse.examine ~solver ~platforms ~opam_repository_commits src in
   let builds =
     let repo = Current.map Github.Api.Repo.id repo in
     build_with_docker ?ocluster ~repo ~analysis src in

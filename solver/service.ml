@@ -10,7 +10,7 @@ module Epoch : sig
   type t
   (* An Epoch handles all requests for a single opam-repository HEAD commit. *)
 
-  val create : n_workers:int -> create_worker:(Git_unix.Store.Hash.t -> Lwt_process.process) -> Store.Hash.t -> t Lwt.t
+  val create : n_workers:int -> create_worker:(Remote_commit.t list -> Lwt_process.process) -> Remote_commit.t list -> t Lwt.t
   val handle : log:Ocaml_ci_api.Solver.Log.t -> Worker.Solve_request.t -> t -> Selection.t list Lwt.t
   val dispose : t -> unit Lwt.t
 end = struct
@@ -31,20 +31,25 @@ end = struct
     worker#status >|= fun _ ->
     Fmt.epr "Worker %d finished@." pid
 
-  let create ~n_workers ~create_worker hash =
-    begin
-      Opam_repository.open_store () >>= fun store ->
-      Store.mem store hash >>= function
+  let update_opam_repository_to_commit commit =
+    let repo_url = commit.Remote_commit.repo in
+    let hash = Store.Hash.of_hex commit.Remote_commit.hash in
+    Opam_repository.open_store ~repo_url () >>= fun store ->
+    Store.mem store hash >>= function
+    | true -> Lwt.return_unit
+    | false ->
+      Fmt.pr "Need to update %s to get new commit %a@." repo_url Store.Hash.pp hash;
+      Opam_repository.fetch ~repo_url () >>= fun () ->
+      Opam_repository.open_store ~repo_url () >>= fun new_store ->
+      Store.mem new_store hash >>= function
+      | false -> Fmt.failwith "Still missing commit after update!"
       | true -> Lwt.return_unit
-      | false ->
-        Fmt.pr "Need to update opam-repository to get new commit %a@." Store.Hash.pp hash;
-        Opam_repository.fetch () >>= fun () ->
-        Opam_repository.open_store () >>= fun new_store ->
-        Store.mem new_store hash >>= function
-        | false -> Fmt.failwith "Still missing commit after update!"
-        | true -> Lwt.return_unit
+
+  let create ~n_workers ~create_worker commits =
+    begin
+      Lwt_list.iter_p update_opam_repository_to_commit commits
     end >|= fun () ->
-    Lwt_pool.create n_workers ~validate ~dispose (fun () -> Lwt.return (create_worker hash))
+    Lwt_pool.create n_workers ~validate ~dispose (fun () -> Lwt.return (create_worker commits))
 
   let dispose = Lwt_pool.clear
 
@@ -81,8 +86,7 @@ end = struct
         Fmt.failwith "BUG: bad output: %s" results
 
   let handle ~log request t =
-    let { Worker.Solve_request.opam_repository_commit; platforms; root_pkgs; pinned_pkgs } = request in
-    let opam_repository_commit = Store.Hash.of_hex opam_repository_commit in
+    let { Worker.Solve_request.opam_repository_commits; platforms; root_pkgs; pinned_pkgs } = request in
     let root_pkgs = List.map fst root_pkgs in
     let pinned_pkgs = List.map fst pinned_pkgs in
     let pins =
@@ -104,15 +108,15 @@ end = struct
                 else Some pkg
               )
           in
-          Opam_repository.oldest_commit_with repo_packages ~from:opam_repository_commit >|= fun commit ->
-          id, Ok { Worker.Selection.id; packages; commit }
+          Opam_repository.oldest_commits_with repo_packages ~from:opam_repository_commits >|= fun commits ->
+          id, Ok { Worker.Selection.id; packages; commits }
       )
     >|= List.filter_map (fun (id, result) ->
         Log.info log "= %s =" id;
         match result with
         | Ok result ->
           Log.info log "-> @[<hov>%a@]" Fmt.(list ~sep:sp string) result.Selection.packages;
-          Log.info log "(valid since opam-repository commit %s)" result.Selection.commit;
+          Log.info log "(valid since opam-repository commit %s)" (String.concat ";" (List.map snd result.Selection.commits));
           Some result
         | Error msg ->
           Log.info log "%s" msg;
@@ -122,14 +126,16 @@ end
 
 (* Handle a request by distributing it among the worker processes and then aggregating their responses. *)
 let handle t ~log (request : Worker.Solve_request.t) =
-  Epoch_lock.with_epoch t request.opam_repository_commit (Epoch.handle ~log request)
+  let commits = request.opam_repository_commits |> List.map (fun (repo, hash) -> Remote_commit.v ~repo ~hash) in
+  Epoch_lock.with_epoch t commits (Epoch.handle ~log request)
 
 let v ~n_workers ~create_worker =
-  Opam_repository.clone () >|= fun () ->
-  let create hash = Epoch.create ~n_workers ~create_worker (Store.Hash.of_hex hash) in
+  let create commits =
+    Epoch.create ~n_workers ~create_worker commits
+  in
   let t = Epoch_lock.v ~create ~dispose:Epoch.dispose () in
   let module X = Ocaml_ci_api.Raw.Service.Solver in
-  X.local @@ object
+  Lwt.return @@ X.local @@ object
     inherit X.service
 
     method solve_impl params release_param_caps =
