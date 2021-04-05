@@ -76,14 +76,7 @@ module Op = struct
 
   let run t job { Key.pool; commit; label = _; repo } spec =
     let { Value.base; variant; ty } = spec in
-    let build_spec =
-      let base = Image.hash base in
-      match ty with
-      | `Opam (`Build, selection, opam_files) -> Opam_build.spec ~base ~opam_files ~selection
-      | `Opam (`Lint `Doc, selection, opam_files) -> Lint.doc_spec ~base ~opam_files ~selection
-      | `Opam (`Lint `Opam, selection, opam_files) -> Lint.opam_lint_spec ~base ~opam_files ~selection
-      | `Opam_fmt ocamlformat_source -> Lint.fmt_spec ~base ~ocamlformat_source
-      | `Opam_monorepo config -> Opam_monorepo.spec ~base ~repo ~config ~variant
+    let build_spec = Build.make_build_spec ~base ~repo ~variant ~ty
     in
     Current.Job.write job
       (Fmt.strf "@[<v>Base: %a@,%a@]@."
