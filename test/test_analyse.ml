@@ -46,6 +46,22 @@ module Analysis = struct
     Alcotest.testable (Fmt.using to_yojson Yojson.Safe.pretty_print) equal
 end
 
+let unwrap_result ~job = function
+  | Ok x -> x
+  | Error (`Msg m) ->
+    print_endline "---job log---";
+    let id = Current.Job.id job in
+    begin match Current.Job.log_path id with
+      | Error (`Msg m) -> print_endline m
+      | Ok path ->
+        let ch = open_in_bin (Fpath.to_string path) in
+        let len = in_channel_length ch in
+        print_endline @@ really_input_string ch len;
+        close_in ch
+    end;
+    print_endline "---end job log---";
+    failwith m
+
 let expect_test name ~project ~expected =
   Alcotest_lwt.test_case name `Quick (fun _switch () ->
       let ( // ) = Filename.concat in
@@ -75,23 +91,23 @@ let expect_test name ~project ~expected =
       let opam_repository = Fpath.v repo in
       Current.Process.exec ~job ~cancellable:true ~cwd:opam_repository
         ("", [| "git"; "init" |])
-      >|= Result.get_ok
+      >|= unwrap_result ~job
       >>= fun () ->
       Current.Process.exec ~job ~cancellable:true ~cwd:opam_repository
         ("", [| "git"; "add"; "." |])
-      >|= Result.get_ok
+      >|= unwrap_result ~job
       >>= fun () ->
       Current.Process.exec ~job ~cancellable:true ~cwd:opam_repository
         ("", [| "git"; "commit"; "-m"; "init" |])
-      >|= Result.get_ok
+      >|= unwrap_result ~job
       >>= fun () ->
       Current.Process.check_output ~job ~cancellable:true ~cwd:opam_repository
         ("", [| "git"; "rev-parse"; "HEAD" |])
-      >|= Result.get_ok
+      >|= unwrap_result ~job
       >>= fun hash ->
       Current.Process.exec ~job ~cancellable:true ~cwd:(Fpath.v solver_dir)
         ("", [| "git"; "clone"; "--bare"; "opam-repository-builder"; "opam-repository" |])
-      >|= Result.get_ok
+      >|= unwrap_result ~job
       >>= fun () ->
       let opam_repository_commit =
         Current_git.Commit_id.v
