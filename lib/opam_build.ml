@@ -97,6 +97,7 @@ let spec ~base ~opam_files ~selection =
     user ~uid:1000 ~gid:1000 ::
     install_project_deps ~opam_files ~selection @ [
       copy ["."] ~dst:"/src/";
-      run "opam exec -- dune build @install @runtest && rm -rf _build"
+      run "opam exec -- dune build @install @runtest && rm -rf _build";
+      run "opam install .";
     ]
   )
