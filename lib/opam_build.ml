@@ -90,6 +90,14 @@ let install_project_deps ~opam_files ~selection =
     run ~network ~cache "opam install $DEPS"
   ]
 
+let cat_all_logs =
+  let open Obuilder_spec in
+  run "find _build -type f -a -name '*.log' -a '!' -empty -exec /bin/sh -c 'echo {}:; echo; cat {}; echo' ';' || true"
+
+let rmrf_build =
+  let open Obuilder_spec in
+  run "rm -rf _build"
+
 let spec ~base ~opam_files ~selection =
   let open Obuilder_spec in
   stage ~from:base (
@@ -97,6 +105,8 @@ let spec ~base ~opam_files ~selection =
     user ~uid:1000 ~gid:1000 ::
     install_project_deps ~opam_files ~selection @ [
       copy ["."] ~dst:"/src/";
-      run "opam exec -- dune build @install @runtest && rm -rf _build"
+      run "opam exec -- dune build @install @runtest";
+      cat_all_logs;
+      rmrf_build
     ]
   )
