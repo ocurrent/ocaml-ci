@@ -28,6 +28,15 @@ let rec with_commit_lock ~job commit variant fn =
          Lwt.return_unit
       )
 
+let make_build_spec ~base ~repo ~variant ~ty =
+    let base = Raw.Image.hash base in
+    match ty with
+    | `Opam (`Build, selection, opam_files) -> Opam_build.spec ~base ~opam_files ~selection
+    | `Opam (`Lint `Doc, selection, opam_files) -> Lint.doc_spec ~base ~opam_files ~selection
+    | `Opam (`Lint `Opam, selection, opam_files) -> Lint.opam_lint_spec ~base ~opam_files ~selection
+    | `Opam_fmt ocamlformat_source -> Lint.fmt_spec ~base ~ocamlformat_source
+    | `Opam_monorepo config -> Opam_monorepo.spec ~base ~repo ~config ~variant
+
 module Op = struct
   type t = Builder.t
 
@@ -77,14 +86,7 @@ module Op = struct
 
   let run { Builder.docker_context; pool; build_timeout } job
       { Key.commit; label = _; repo } { Value.base; variant; ty } =
-    let build_spec =
-      let base = Raw.Image.hash base in
-      match ty with
-      | `Opam (`Build, selection, opam_files) -> Opam_build.spec ~base ~opam_files ~selection
-      | `Opam (`Lint `Doc, selection, opam_files) -> Lint.doc_spec ~base ~opam_files ~selection
-      | `Opam (`Lint `Opam, selection, opam_files) -> Lint.opam_lint_spec ~base ~opam_files ~selection
-      | `Opam_fmt ocamlformat_source -> Lint.fmt_spec ~base ~ocamlformat_source
-      | `Opam_monorepo config -> Opam_monorepo.spec ~base ~repo ~config ~variant
+    let build_spec = make_build_spec ~base ~repo ~variant ~ty
     in
     let make_dockerfile ~for_user =
       (if for_user then "" else Buildkit_syntax.add (Variant.arch variant)) ^
