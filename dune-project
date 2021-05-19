@@ -57,7 +57,10 @@
   conf-libev
   (opam-0install (>= "0.2"))
   (git-unix (>= 3.2.0))
-  (capnp-rpc-unix (>= 0.7.0))))
+  (capnp-rpc-unix (>= 0.7.0)))
+ (conflicts
+  (carton (< 0.4.2))) ; workaround for mirage/ocaml-git#514
+)
 (package
  (name ocaml-ci-web)
  (synopsis "Web-server frontend for ocaml-ci")
