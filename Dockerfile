@@ -1,6 +1,6 @@
 FROM ocaml/opam:debian-10-ocaml-4.10 AS build
 RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libsqlite3-dev libgmp-dev graphviz -y --no-install-recommends
-RUN cd ~/opam-repository && git pull origin -q master && git reset --hard 1d088847ed8e4e6329c1f4a79961eb647fac0aea && opam update
+RUN cd ~/opam-repository && git pull origin -q master && git reset --hard c731a125bc8f1483494f44b5f9a85be92e022f9d && opam update
 COPY --chown=opam \
 	ocurrent/current_ansi.opam \
 	ocurrent/current_docker.opam \
@@ -38,7 +38,7 @@ RUN opam pin add -yn current_ansi.dev "./ocurrent" && \
     opam pin add -yn dockerfile-opam.dev "./ocaml-dockerfile" && \
     opam pin add -yn ocluster-api.dev "./ocluster"
 COPY --chown=opam ocaml-ci-service.opam ocaml-ci-api.opam ocaml-ci-solver.opam /src/
-RUN opam install -y --deps-only .
+RUN opam-2.1 install -y --deps-only .
 ADD --chown=opam . .
 RUN opam config exec -- dune build ./_build/install/default/bin/ocaml-ci-service
 
