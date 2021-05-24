@@ -25,7 +25,12 @@ let opam_repository_commit =
   let repo = { Github.Repo_id.owner = "ocaml"; name = "opam-repository" } in
   Github.Api.Anonymous.head_of repo @@ `Ref "refs/heads/master"
 
-let opam_repository_commits = [opam_repository_commit] |> Current.list_seq
+let multicore_repository_commit =
+  let repo = { Github.Repo_id.owner = "ocaml-multicore"; name = "multicore-opam" } in
+  Github.Api.Anonymous.head_of repo @@ `Ref "refs/heads/master"
+
+let opam_repository_commits =
+  [opam_repository_commit; multicore_repository_commit] |> Current.list_seq
 
 let github_status_of_state ~head result =
   let+ head = head

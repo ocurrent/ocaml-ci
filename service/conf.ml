@@ -77,14 +77,19 @@ let platforms =
     let distro = DD.tag_of_distro master_distro in
     let ov = OV.with_just_major_and_minor ov in
     v ?arch (OV.to_string ov) distro ov in
+  let make_multicore variant =
+    let distro = DD.tag_of_distro master_distro in
+    let ov = OV.of_string_exn "4.12" |> fun ov -> OV.with_variant ov (Some variant) in
+    v ~arch:`X86_64 (OV.to_string ov) distro ov in
   match profile with
   | `Production ->
       let distros =
         DD.active_tier1_distros `X86_64 @ DD.active_tier2_distros `X86_64 |>
         List.map make_distro |> List.flatten in
       (* The first one in this list is used for lint actions *)
-      let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas in
-      List.map make_release ovs @ distros
+      let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas |> List.map make_release in
+      let multicore_ovs = List.map make_multicore ["domains"; "domains+effects"] in
+      ovs @ distros @ multicore_ovs
   | `Dev ->
-      let ovs = List.map OV.of_string_exn ["4.11"; "4.10"; "4.03"] in
+      let ovs = List.map OV.of_string_exn ["4.12"; "4.11"; "4.03"] in
       List.map make_release ovs @ [make_release ~arch:`I386 (List.hd ovs)]
