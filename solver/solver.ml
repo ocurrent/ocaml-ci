@@ -38,7 +38,7 @@ let solve ~packages ~pins ~root_pkgs (vars : Worker.Vars.t) =
     let pkgs = Solver.packages_of_result sels in
     Ok (List.map OpamPackage.to_string pkgs)
   | Error diagnostics ->
-    Error (Solver.diagnostics diagnostics)
+    Error (Solver.diagnostics diagnostics ~verbose:true)
 
 let main commit =
   let packages =
