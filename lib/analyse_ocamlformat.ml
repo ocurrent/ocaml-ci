@@ -1,3 +1,5 @@
+let ( >>!= ) = Lwt_result.Infix.( >>= )
+
 type source =
   | Opam of { version : string }
   | Vendored of { path : string }
@@ -29,25 +31,40 @@ let ocamlformat_version_from_string =
       | Some g -> Some (Re.Group.get g 1)
       | None -> None
 
-let ocamlformat_version_from_file job path =
-  let ( let+ ) = Lwt.Infix.( >|= ) in
+let ocamlformat_version_from_file ~root job path =
+  let ( let* ) = Lwt.Infix.( >>= ) in
   if not (Sys.file_exists path) then
     let () = Current.Job.log job "No .ocamlformat file found" in
     Lwt.return (Ok None)
   else
-    let+ versions = Lwt_io.with_file ~mode:Lwt_io.input path (fun channel ->
+    let* lines = Lwt_io.with_file ~mode:Lwt_io.input path (fun channel ->
         Lwt_io.read_lines channel
-        |> Lwt_stream.filter_map ocamlformat_version_from_string
         |> Lwt_stream.to_list
       )
     in
+    let versions = List.filter_map ocamlformat_version_from_string lines in
     match versions with
     | [ v ] ->
         let () =
           Current.Job.log job "Found OCamlformat version '%s' in dotfile" v
         in
-        Ok (Some v)
-    | _ -> Error (`Msg "Missing 'version=' line in .ocamlformat")
+        Lwt.return (Ok (Some v))
+    | [] ->
+        (* Search for any .ocamlformat-enable files as a disabled ocamlformat would
+           still format things if a ocamlformat-enable file is present *)
+        let cmd = "", [| "git"; "ls-files"; "**/.ocamlformat-enable"; ".ocamlformat-enable" |] in
+        Current.Process.check_output ~cwd:root ~cancellable:true ~job cmd >>!= begin function
+        | "" ->
+            if List.mem "disable" lines then
+              Lwt.return (Ok None)
+            else
+              Lwt.return (Error (`Msg "Missing 'version=' line in .ocamlformat"))
+        | _ ->
+            Lwt.return (Error (`Msg "Missing 'version=' line in .ocamlformat \
+                                     (disabled, but some .ocamlformat-enable files are present)"))
+        end
+    | _::_::_ ->
+        Lwt.return (Error (`Msg "Multiple 'version=' lines in .ocamlformat"))
 
 let get_ocamlformat_source job ~opam_files ~root =
   let proj_is_ocamlformat p = String.equal (Filename.basename p) "ocamlformat.opam" in
@@ -56,5 +73,5 @@ let get_ocamlformat_source job ~opam_files ~root =
     let path = Filename.dirname opam_file in
     Lwt_result.return (Some (Vendored { path }))
   | None ->
-    Fpath.(to_string (root / ".ocamlformat")) |> ocamlformat_version_from_file job
+    Fpath.(to_string (root / ".ocamlformat")) |> ocamlformat_version_from_file ~root job
     |> Lwt_result.map (Option.map (fun version -> Opam { version }))
