@@ -2,10 +2,17 @@ type info = string * OpamFile.OPAM.t
 
 type lock_file_version = V0_1 | V0_2 [@@deriving yojson, ord]
 
+(** The kind of switch the package will be built in. *)
+type switch_type =
+  | Base  (** When the locked version is present in a base image, use it. *)
+  | Create of { compiler_package : string }  (** Otherwise, create a switch. *)
+[@@deriving yojson, ord]
+
 type config = {
   package : string;
   selection : Selection.t;
   lock_file_version : lock_file_version;
+  switch_type : switch_type;
 }
 [@@deriving yojson, ord]
 
@@ -86,6 +93,28 @@ let opam_dep_file packages =
   in
   lines |> List.map (fun s -> s ^ "\n") |> String.concat ""
 
+let switch_type ~platforms requested_ocaml_version =
+  let has_exact_match =
+    platforms
+    |> List.exists (fun (_, (vars : Ocaml_ci_api.Worker.Vars.t)) ->
+           let platform_version =
+             Ocaml_version.of_string_exn vars.ocaml_version
+           in
+           Ocaml_version.equal platform_version requested_ocaml_version)
+  in
+  if has_exact_match then Base
+  else
+    let compiler_package = Ocaml_version.Opam.V2.name requested_ocaml_version in
+    Create { compiler_package }
+
+(** Eliminate platforms with an incompatible version and force the patch version
+    if that matches (it will be fulfilled for any [switch_type]). *)
+let adjust_ocaml_version platform ~version =
+  let p, vars = platform in
+  if Platform.compiler_matches_major_and_minor ~version vars then
+    Some (p, Platform.set_compiler_version ~version vars)
+  else None
+
 let selection ~info:(package, lock_file) ~platforms ~solve =
   let open Lwt_result.Infix in
   let ocaml_version = opam_monorepo_dep_version ~lock_file ~package:"ocaml" in
@@ -96,6 +125,13 @@ let selection ~info:(package, lock_file) ~platforms ~solve =
   in
   let monorepo_version = plugin_version lock_file_version in
   let deps_package = "opam-monorepo-deps.dev" in
+  let requested_ocaml_version = Ocaml_version.of_string_exn ocaml_version in
+  let switch_type = switch_type ~platforms requested_ocaml_version in
+  let platforms =
+    List.filter_map
+      (adjust_ocaml_version ~version:requested_ocaml_version)
+      platforms
+  in
   let root_pkgs =
     [
       ( deps_package,
@@ -107,17 +143,11 @@ let selection ~info:(package, lock_file) ~platforms ~solve =
           ] );
     ]
   in
-  let platforms =
-    let version = Ocaml_version.of_string_exn ocaml_version in
-    platforms
-    |> List.filter (fun (_, vars) ->
-           Platform.compiler_matches_major_and_minor ~version vars)
-  in
   solve ~root_pkgs ~pinned_pkgs:[] ~platforms >|= fun workers ->
   let selection =
     List.hd workers |> Selection.remove_package ~package:deps_package
   in
-  `Opam_monorepo { package; selection; lock_file_version }
+  `Opam_monorepo { package; selection; lock_file_version; switch_type }
 
 let install_depexts ~network ~cache ~package ~lock_file_version =
   let open Obuilder_spec in
@@ -136,8 +166,14 @@ let install_depexts ~network ~cache ~package ~lock_file_version =
           package;
       ]
 
+let initialize_switch ~network = function
+  | Base -> []
+  | Create { compiler_package } ->
+      let open Obuilder_spec in
+      [ run ~network "opam switch create %s" compiler_package ]
+
 let spec ~base ~repo ~config ~variant =
-  let { package; selection; lock_file_version } = config in
+  let { package; selection; lock_file_version; switch_type } = config in
   let opam_file = package ^ ".opam" in
   let lock_file = package ^ ".opam.locked" in
   let download_cache =
@@ -150,6 +186,7 @@ let spec ~base ~repo ~config ~variant =
   let open Obuilder_spec in
   stage ~from:base
   @@ [ comment "%s" (Variant.to_string variant); user ~uid:1000 ~gid:1000 ]
+  @ initialize_switch ~network switch_type
   @ Opam_build.install_project_deps ~opam_files:[] ~selection
   @ [
       workdir "/src";
