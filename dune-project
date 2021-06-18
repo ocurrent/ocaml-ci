@@ -33,7 +33,7 @@
   current_web
   current_rpc
   current_ocluster
-  (capnp-rpc-unix (>= 0.7.0))
+  (capnp-rpc-unix (>= 1.2))
   ocaml-ci-api
   ocaml-ci-solver
   ocluster-api
@@ -57,7 +57,7 @@
   conf-libev
   (opam-0install (>= "0.2"))
   (git-unix (>= 3.2.0))
-  (capnp-rpc-unix (>= 0.7.0)))
+  (capnp-rpc-unix (>= 1.2)))
  (conflicts
   (carton (< 0.4.2))) ; workaround for mirage/ocaml-git#514
 )
@@ -76,7 +76,7 @@
   lwt
   (cohttp-lwt-unix (>= 2.2.0))
   tyxml
-  capnp-rpc-unix
+  (capnp-rpc-unix (>= 1.2))
   ocaml-ci-api
   conf-libev
   ppx_deriving_yojson))
@@ -87,6 +87,6 @@
   (logs (>= 0.7.0))
   (fmt (>= 0.8.9))
   current_rpc
-  capnp-rpc-unix
+  (capnp-rpc-unix (>= 1.2))
   ocaml-ci-api
   dockerfile))

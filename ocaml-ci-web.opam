@@ -17,7 +17,7 @@ depends: [
   "lwt"
   "cohttp-lwt-unix" {>= "2.2.0"}
   "tyxml"
-  "capnp-rpc-unix"
+  "capnp-rpc-unix" {>= "1.2"}
   "ocaml-ci-api"
   "conf-libev"
   "ppx_deriving_yojson"
