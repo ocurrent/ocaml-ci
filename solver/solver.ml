@@ -40,11 +40,17 @@ let solve ~packages ~pins ~root_pkgs (vars : Worker.Vars.t) =
   | Error diagnostics ->
     Error (Solver.diagnostics diagnostics)
 
-let main commit =
+let main commits =
   let packages =
     Lwt_main.run begin
-      Opam_repository.open_store () >>= fun store ->
-      Git_context.read_packages store commit
+      (* Read all the packages from all the given opam-repository repos,
+         and collate them into a single Map. *)
+      Lwt_list.fold_left_s (fun acc commit ->
+        let repo_url = commit.Remote_commit.repo in
+        let hash = Store.Hash.of_hex commit.Remote_commit.hash in
+        Opam_repository.open_store ~repo_url () >>= fun store ->
+        Git_context.read_packages ~acc store hash
+      ) OpamPackage.Name.Map.empty commits
     end
   in
   let rec aux () =
@@ -54,9 +60,8 @@ let main commit =
       let len = int_of_string len in
       let data = really_input_string stdin len in
       let request = Worker.Solve_request.of_yojson (Yojson.Safe.from_string data) |> Result.get_ok in
-      let { Worker.Solve_request.opam_repository_commit; root_pkgs; pinned_pkgs; platforms } = request in
-      let opam_repository_commit = Store.Hash.of_hex opam_repository_commit in
-      assert (Store.Hash.equal opam_repository_commit commit);
+      let { Worker.Solve_request.opam_repository_commits; root_pkgs; pinned_pkgs; platforms } = request in
+      assert (List.for_all (fun (repo, hash) -> List.mem (Remote_commit.v ~repo ~hash) commits) opam_repository_commits);
       let root_pkgs = List.map parse_opam root_pkgs in
       let pinned_pkgs = List.map parse_opam pinned_pkgs in
       let pins =

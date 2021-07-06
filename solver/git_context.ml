@@ -116,7 +116,7 @@ let read_versions store (entry : Store.Value.Tree.entry) =
       ) OpamPackage.Version.Map.empty
     >|= fun versions -> Some versions
 
-let read_packages store commit =
+let read_packages ?(acc = OpamPackage.Name.Map.empty) store commit =
   Search.find store commit (`Commit (`Path ["packages"])) >>= function
   | None -> Fmt.failwith "Failed to find packages directory!"
   | Some tree_hash ->
@@ -132,7 +132,7 @@ let read_packages store commit =
             read_versions store entry >|= function
             | None -> acc
             | Some versions -> OpamPackage.Name.Map.add name versions acc
-        ) OpamPackage.Name.Map.empty
+        ) acc
 
 let create ?(test=OpamPackage.Name.Set.empty) ?(pins=OpamPackage.Name.Map.empty) ~constraints ~env ~packages () =
   { env; packages; pins; constraints; test }

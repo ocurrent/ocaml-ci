@@ -1,14 +1,14 @@
 open Lwt.Infix
 
-type 'a t = {
+type ('a, 'key) t = {
   mutable current : [
     | `Idle
     | `Activating of unit Lwt.t                      (* Promise resolves after moving to [`Active] *)
-    | `Active of string * 'a
+    | `Active of 'key * 'a
     | `Draining of unit Lwt.t * unit Lwt_condition.t (* Promise resolves after moving back to [`Active] *)
   ];
   mutable users : int;          (* Zero unless active or draining *)
-  create : string -> 'a Lwt.t;
+  create : 'key -> 'a Lwt.t;
   dispose : 'a -> unit Lwt.t;
 }
 

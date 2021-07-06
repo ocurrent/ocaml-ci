@@ -44,12 +44,12 @@ let () =
   match Sys.argv with
   | [| prog |] ->
     Lwt_main.run begin
-      let create_worker hash =
-        let cmd = ("", [| prog; "--worker"; Git_unix.Store.Hash.to_hex hash |]) in
+      let create_worker commits =
+        let cmd = ("", [| prog; "--worker"; Remote_commit.list_to_string commits |]) in
         Lwt_process.open_process cmd
       in
       Service.v ~n_workers ~create_worker >>= fun service ->
       export service ~on:Lwt_unix.stdin
     end
-  | [| _prog; "--worker"; hash |] -> Solver.main (Git_unix.Store.Hash.of_hex hash)
+  | [| _prog; "--worker"; commits_str |] -> Solver.main (Remote_commit.list_of_string_or_fail commits_str)
   | args -> Fmt.failwith "Usage: ocaml-ci-solver (got %a)" Fmt.(array (quote string)) args
