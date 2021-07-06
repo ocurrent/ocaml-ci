@@ -69,6 +69,7 @@ let platforms =
     let ov = OV.(Releases.latest |> with_just_major_and_minor) in
     if distro = master_distro then
       v label tag (OV.with_variant ov (Some "flambda")) ::
+      v label tag (OV.with_variant ov (Some "domains")) ::
       List.map (fun arch -> v ~arch label tag ov) (DD.distro_arches ov distro)
     else
       [v label tag ov]
