@@ -27,6 +27,7 @@
   (mirage-crypto-rng (>= 0.8.7))
   (logs (>= 0.7.0))
   (fmt (>= 0.8.9))
+  bos
   current_git
   current_github
   current_docker
