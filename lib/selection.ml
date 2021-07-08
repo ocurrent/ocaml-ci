@@ -1,9 +1,10 @@
-(** A set of packages for a single build. *)
 type t = {
-  variant : Variant.t;                (** The variant image to build on. *)
-  packages : string list;             (** The selected packages ("name.version"). *)
-  commit : string;                    (** A commit in opam-repository to use. *)
-} [@@deriving yojson, ord]
+  variant : Variant.t;  (** The variant image to build on. *)
+  packages : string list;  (** The selected packages ("name.version"). *)
+  commit : string;  (** A commit in opam-repository to use. *)
+}
+[@@deriving yojson, ord]
+(** A set of packages for a single build. *)
 
 let of_worker w =
   let module W = Ocaml_ci_api.Worker.Selection in
@@ -12,8 +13,4 @@ let of_worker w =
   { variant; packages; commit }
 
 let remove_package t ~package =
-  {
-    t with
-    packages =
-      List.filter (fun p -> not (String.equal p package)) t.packages;
-  }
+  { t with packages = List.filter (fun p -> not (String.equal p package)) t.packages }

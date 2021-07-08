@@ -3,7 +3,8 @@
     - A map from project builds ([owner * name * hash)] triples) to statuses.
     - A (persisted) map from each Git commit hash to its last known OCurrent job ID. *)
 
-type job_state = [`Not_started | `Active | `Failed of string | `Passed | `Aborted ] [@@deriving show]
+type job_state = [ `Not_started | `Active | `Failed of string | `Passed | `Aborted ]
+[@@deriving show]
 
 type build_status = [ `Not_started | `Pending | `Failed | `Passed ]
 
@@ -21,20 +22,26 @@ val record :
 val get_jobs : owner:string -> name:string -> string -> (string * job_state) list
 (** [get_jobs ~owner ~name commit] is the last known set of OCurrent jobs for hash [commit] in repository [owner/name]. *)
 
-val get_job : owner:string -> name:string -> hash:string -> variant:string -> (string option, [> `No_such_variant]) result
-(** [get_job ~owner ~name ~variant] is the last known job ID for this combination. *)
-
-val get_status:
+val get_job :
   owner:string ->
   name:string ->
   hash:string ->
-  build_status
+  variant:string ->
+  (string option, [> `No_such_variant ]) result
+(** [get_job ~owner ~name ~variant] is the last known job ID for this combination. *)
+
+val get_status : owner:string -> name:string -> hash:string -> build_status
 (** [get_status ~owner ~name ~hash] is the latest status for this combination. *)
 
-val get_full_hash : owner:string -> name:string -> string -> (string, [> `Ambiguous | `Unknown | `Invalid]) result
+val get_full_hash :
+  owner:string ->
+  name:string ->
+  string ->
+  (string, [> `Ambiguous | `Unknown | `Invalid ]) result
 (** [get_full_hash ~owner ~name short_hash] returns the full hash for [short_hash]. *)
 
 module Owner_set : Set.S with type elt = string
+
 module Repo_set : Set.S with type elt = string
 
 val set_active_owners : Owner_set.t -> unit

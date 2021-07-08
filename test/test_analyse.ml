@@ -14,7 +14,7 @@ module Analysis = struct
 
   let set_equality = Alcotest.(equal (slist string String.compare))
 
-  let selection_type (t:t) =
+  let selection_type (t : t) =
     match selections t with
     | `Opam_monorepo _ -> "opam-monorepo"
     | `Opam_build _ -> "opam"
@@ -27,13 +27,11 @@ module Analysis = struct
   }
   [@@deriving eq, yojson]
 
-
   let of_dir ~switch ~job ~platforms ~solver_dir ~opam_repository_commit d =
     let solver = Ocaml_ci.Solver_pool.spawn_local ~solver_dir () in
     Lwt_switch.add_hook (Some switch) (fun () ->
         Capnp_rpc_lwt.Capability.dec_ref solver;
-        Lwt.return_unit
-      );
+        Lwt.return_unit);
     of_dir ~solver ~job ~platforms ~opam_repository_commit d
     |> Lwt_result.map (fun t ->
            {
@@ -49,18 +47,17 @@ end
 let unwrap_result ~job = function
   | Ok x -> x
   | Error (`Msg m) ->
-    print_endline "---job log---";
-    let id = Current.Job.id job in
-    begin match Current.Job.log_path id with
+      print_endline "---job log---";
+      let id = Current.Job.id job in
+      (match Current.Job.log_path id with
       | Error (`Msg m) -> print_endline m
       | Ok path ->
-        let ch = open_in_bin (Fpath.to_string path) in
-        let len = in_channel_length ch in
-        print_endline @@ really_input_string ch len;
-        close_in ch
-    end;
-    print_endline "---end job log---";
-    failwith m
+          let ch = open_in_bin (Fpath.to_string path) in
+          let len = in_channel_length ch in
+          print_endline @@ really_input_string ch len;
+          close_in ch);
+      print_endline "---end job log---";
+      failwith m
 
 let expect_test name ~project ~expected =
   Alcotest_lwt.test_case name `Quick (fun _switch () ->
@@ -80,12 +77,12 @@ let expect_test name ~project ~expected =
           [
             folder "packages"
               [
-                dummy_package "dune" [ "1.0" ];
-                dummy_package "ocaml" [ "4.10.0"; "4.09.0" ];
-                dummy_package "fmt" [ "1.0" ];
-                dummy_package "logs" [ "1.0" ];
-                dummy_package "alcotest" [ "1.0" ];
-                dummy_package "opam-monorepo" [ "0.1.0" ];
+                dummy_package "dune" ["1.0"];
+                dummy_package "ocaml" ["4.10.0"; "4.09.0"];
+                dummy_package "fmt" ["1.0"];
+                dummy_package "logs" ["1.0"];
+                dummy_package "alcotest" ["1.0"];
+                dummy_package "opam-monorepo" ["0.1.0"];
               ];
           ];
       let opam_repository = Fpath.v repo in
@@ -110,21 +107,17 @@ let expect_test name ~project ~expected =
       >|= unwrap_result ~job
       >>= fun () ->
       let opam_repository_commit =
-        Current_git.Commit_id.v
-          ~repo:"opam-repository"
-          ~hash:(String.trim hash)
+        Current_git.Commit_id.v ~repo:"opam-repository" ~hash:(String.trim hash)
           ~gref:"master"
       in
       Lwt_switch.with_switch (fun switch ->
-          Analysis.of_dir ~switch ~job ~platforms:Test_platforms.v ~solver_dir ~opam_repository_commit
-            (Fpath.v root)
-        )
+          Analysis.of_dir ~switch ~job ~platforms:Test_platforms.v ~solver_dir
+            ~opam_repository_commit (Fpath.v root))
       >|= (function
             | Ok o -> o
             | Error (`Msg e) ->
                 let path =
-                  Current.Job.(log_path (id job))
-                  |> Result.get_ok |> Fpath.to_string
+                  Current.Job.(log_path (id job)) |> Result.get_ok |> Fpath.to_string
                 in
                 let ch = open_in_bin path in
                 let len = in_channel_length ch in
@@ -133,29 +126,22 @@ let expect_test name ~project ~expected =
                 Printf.printf "Log:\n%s\n%!" log;
                 Alcotest.failf "Analysis stage failed: %s" e)
       >|= Alcotest.(check Analysis.t) name expected
-      >|= fun () ->
-      Gc.full_major ()
-    )
+      >|= fun () -> Gc.full_major ())
 
 (* example duniverse containing a single package *)
 let duniverse =
   let open Gen_project in
-  Folder
-    ( "duniverse",
-      [ Folder ("alcotest.0.8.5", [ File ("alcotest.opam", opam) ]) ] )
+  Folder ("duniverse", [Folder ("alcotest.0.8.5", [File ("alcotest.opam", opam)])])
 
 let test_simple =
   let project =
     let open Gen_project in
-    [
-      File ("example.opam", opam);
-      File (".ocamlformat", ocamlformat ~version:"0.12");
-    ]
+    [File ("example.opam", opam); File (".ocamlformat", ocamlformat ~version:"0.12")]
   in
   let expected =
     let open Analysis in
     {
-      opam_files = [ "example.opam" ];
+      opam_files = ["example.opam"];
       selection_type = "opam";
       ocamlformat_source = Some (Opam { version = "0.12" });
     }
@@ -176,14 +162,14 @@ let test_multiple_opam =
             File ("ignored.opam", opam);
             (* vendored duniverse should not be attributed to the project
                (including internal .opam files) *)
-            Folder ("vendored", [ duniverse ]);
+            Folder ("vendored", [duniverse]);
           ] );
     ]
   in
   let expected =
     let open Analysis in
     {
-      opam_files = [ "example.opam"; "example-foo.opam"; "example-bar.opam" ];
+      opam_files = ["example.opam"; "example-foo.opam"; "example-bar.opam"];
       selection_type = "opam";
       ocamlformat_source = None;
     }
@@ -193,16 +179,16 @@ let test_multiple_opam =
 let test_opam_monorepo =
   let project =
     let open Gen_project in
-    [ File ("example.opam", opam_monorepo_spec_file);
-      File ("example.opam.locked",
-            opam_monorepo_lock_file ~monorepo_version:(Some "0.1"));
+    [
+      File ("example.opam", opam_monorepo_spec_file);
+      File ("example.opam.locked", opam_monorepo_lock_file ~monorepo_version:(Some "0.1"));
       File ("dune-project", empty_file);
     ]
   in
   let expected =
     let open Analysis in
     {
-      opam_files = [ "example.opam" ];
+      opam_files = ["example.opam"];
       selection_type = "opam-monorepo";
       ocamlformat_source = None;
     }
@@ -212,31 +198,27 @@ let test_opam_monorepo =
 let test_opam_monorepo_no_version =
   let project =
     let open Gen_project in
-    [ File ("example.opam", opam_monorepo_spec_file);
-      File ("example.opam.locked",
-            opam_monorepo_lock_file ~monorepo_version:None);
+    [
+      File ("example.opam", opam_monorepo_spec_file);
+      File ("example.opam.locked", opam_monorepo_lock_file ~monorepo_version:None);
       File ("dune-project", empty_file);
     ]
   in
   let expected =
     let open Analysis in
-    {
-      opam_files = [ "example.opam" ];
-      selection_type = "opam";
-      ocamlformat_source = None;
-    }
+    { opam_files = ["example.opam"]; selection_type = "opam"; ocamlformat_source = None }
   in
   expect_test "opam-monorepo-no-version" ~project ~expected
 
 let test_ocamlformat_self =
   let project =
     let open Gen_project in
-    [ File ("ocamlformat.opam", opam); File (".ocamlformat", empty_file) ]
+    [File ("ocamlformat.opam", opam); File (".ocamlformat", empty_file)]
   in
   let expected =
     let open Analysis in
     {
-      opam_files = [ "ocamlformat.opam" ];
+      opam_files = ["ocamlformat.opam"];
       selection_type = "opam";
       ocamlformat_source = Some (Vendored { path = "." });
     }

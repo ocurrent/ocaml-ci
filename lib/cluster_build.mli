@@ -1,6 +1,7 @@
 type t
 
-val config : ?timeout:int64 -> [ `Submission_f4e8a768b32a7c42 ] Capnp_rpc_lwt.Sturdy_ref.t -> t
+val config :
+  ?timeout:int64 -> [ `Submission_f4e8a768b32a7c42 ] Capnp_rpc_lwt.Sturdy_ref.t -> t
 
 val v :
   t ->

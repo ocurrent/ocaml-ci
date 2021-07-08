@@ -1,16 +1,9 @@
 (executable
-  (name main)
-  (public_name ocaml-ci-web)
-  (package ocaml-ci-web)
-  (libraries lwt.unix
-             logs.fmt
-             fmt.tty
-             current_ansi
-             cohttp-lwt-unix
-             tyxml
-             prometheus-app.unix
-             ocaml-ci-api
-             capnp-rpc-unix
-             yojson
-             ppx_deriving_yojson.runtime)
-(preprocess (pps ppx_deriving_yojson)))
+ (name main)
+ (public_name ocaml-ci-web)
+ (package ocaml-ci-web)
+ (libraries lwt.unix logs.fmt fmt.tty current_ansi cohttp-lwt-unix tyxml
+   prometheus-app.unix ocaml-ci-api capnp-rpc-unix yojson
+   ppx_deriving_yojson.runtime)
+ (preprocess
+  (pps ppx_deriving_yojson)))

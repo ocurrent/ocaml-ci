@@ -2,7 +2,7 @@ type contents = Format.formatter -> unit
 
 let opam_monorepo_spec_file ppf =
   Fmt.pf ppf
-      {|
+    {|
 opam-version: "2.0"
 synopsis: "spec file"
 maintainer: "opam-monorepo"
@@ -12,9 +12,7 @@ depends: [
 ] |}
 
 let opam_monorepo_lock_file ~monorepo_version ppf =
-  let pp_version_field ppf s =
-    Fmt.pf ppf "x-opam-monorepo-version: \"%s\"\n" s
-  in
+  let pp_version_field ppf s = Fmt.pf ppf "x-opam-monorepo-version: \"%s\"\n" s in
   Fmt.pf ppf
     {|
 opam-version: "2.0"
@@ -29,7 +27,6 @@ x-opam-monorepo-root-packages: [ "test-opam-monorepo" ]
 x-opam-monorepo-duniverse-dirs: [ ]
     |}
     (Fmt.option pp_version_field) monorepo_version
-
 
 let dummy_opam ppf =
   Fmt.pf ppf
@@ -112,8 +109,6 @@ let rec instantiate ~root =
 
 let dummy_package name versions =
   folder name
-    ( versions
+    (versions
     |> List.map (fun version ->
-           folder
-             (Printf.sprintf "%s.%s" name version)
-             [ file "opam" dummy_opam ]) )
+           folder (Printf.sprintf "%s.%s" name version) [file "opam" dummy_opam]))

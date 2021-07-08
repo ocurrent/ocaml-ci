@@ -21,10 +21,7 @@ module State : sig
   val pp : t Fmt.t
 end
 
-type job_info = {
-  variant : variant;
-  outcome : State.t;
-}
+type job_info = { variant : variant; outcome : State.t }
 
 module Commit : sig
   type t = Raw.Client.Commit.t Capability.t
@@ -38,7 +35,11 @@ module Commit : sig
   val refs : t -> (git_ref list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
   (** [refs t] is the list of Git references that have this commit as their head. *)
 
-  val status : t -> ([ `Not_started | `Pending | `Failed | `Passed ], [> `Capnp of Capnp_rpc.Error.t | `Msg of string]) Lwt_result.t
+  val status :
+    t ->
+    ( [ `Not_started | `Pending | `Failed | `Passed ],
+      [> `Capnp of Capnp_rpc.Error.t | `Msg of string ] )
+    Lwt_result.t
   (** [status t] is the result of the most-recent 'summarise' step on this commit. *)
 end
 
@@ -46,7 +47,9 @@ module Repo : sig
   type t = Raw.Client.Repo.t Capability.t
   (** A GitHub repository that is tested by ocaml-ci. *)
 
-  val refs : t -> ((git_hash * Build_status.t) Ref_map.t, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
+  val refs :
+    t ->
+    ((git_hash * Build_status.t) Ref_map.t, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
   (** [refs t] returns the known Git references (branches and pull requests) that ocaml-ci
       is monitoring, along with the current head of each one. *)
 
@@ -61,10 +64,7 @@ module Org : sig
   type t = Raw.Client.Org.t Capability.t
   (** A GitHub organisation. *)
 
-  type repo_info = {
-    name : string;
-    master_status : Build_status.t;
-  }
+  type repo_info = { name : string; master_status : Build_status.t }
 
   val repo : t -> string -> Repo.t
   (** [repo t name] is the GitHub organisation at "https://github.com/$owner/$name".

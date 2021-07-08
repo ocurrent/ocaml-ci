@@ -2,12 +2,11 @@ module Analysis : sig
   type t [@@deriving yojson]
 
   val opam_files : t -> string list
+
   val ocamlformat_source : t -> Analyse_ocamlformat.source option
 
-  val selections : t -> [
-      | `Opam_build of Selection.t list
-      | `Opam_monorepo of Opam_monorepo.config
-    ]
+  val selections :
+    t -> [ `Opam_build of Selection.t list | `Opam_monorepo of Opam_monorepo.config ]
 
   val of_dir :
     solver:Ocaml_ci_api.Solver.t ->

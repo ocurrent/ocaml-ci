@@ -1,11 +1,14 @@
 (library
-  (name ocaml_ci_api)
-  (public_name ocaml-ci-api)
-  (libraries capnp-rpc-lwt current_rpc ppx_deriving_yojson.runtime)
-  (flags (:standard -w -53-55))
-  (preprocess (pps ppx_deriving.std ppx_deriving_yojson)))
+ (name ocaml_ci_api)
+ (public_name ocaml-ci-api)
+ (libraries capnp-rpc-lwt current_rpc ppx_deriving_yojson.runtime)
+ (flags
+  (:standard -w -53-55))
+ (preprocess
+  (pps ppx_deriving.std ppx_deriving_yojson)))
 
 (rule
  (targets schema.ml schema.mli ocurrent.ml ocurrent.mli)
  (deps schema.capnp ocurrent.capnp)
- (action (run capnp compile -o %{bin:capnpc-ocaml} %{deps})))
+ (action
+  (run capnp compile -o %{bin:capnpc-ocaml} %{deps})))

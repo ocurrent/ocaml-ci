@@ -1,12 +1,14 @@
 open Capnp_rpc_lwt
 open Lwt.Infix
 
-let retry_delay = 5.0   (* Time to wait after a failed connection before retrying. *)
+let retry_delay = 5.0
+(* Time to wait after a failed connection before retrying. *)
 
 module Metrics = struct
   open Prometheus
 
   let namespace = "ocamlci"
+
   let subsystem = "web"
 
   let backend_down =
@@ -26,31 +28,29 @@ let rec reconnect t =
   let delay = t.last_failed +. retry_delay -. now in
   t.last_failed <- now;
   Lwt.async (fun () ->
-      begin if delay > 0.0 then Lwt_unix.sleep delay else Lwt.return_unit end
-      >>= fun () ->
+      (if delay > 0.0 then Lwt_unix.sleep delay else Lwt.return_unit) >>= fun () ->
       Log.info (fun f -> f "Reconnecting to backend");
       let ci =
-        try Sturdy_ref.connect_exn t.sr
-        with ex -> Lwt.fail ex    (* (just in case) *)
+        try Sturdy_ref.connect_exn t.sr with ex -> Lwt.fail ex
+        (* (just in case) *)
       in
       t.ci <- ci;
       monitor t;
-      Lwt.return_unit
-    )
+      Lwt.return_unit)
+
 and monitor t =
   Lwt.on_any t.ci
     (fun ci ->
-       (* Connected OK - now watch for failure. *)
-       Prometheus.Gauge.set Metrics.backend_down 0.0;
-       ci |> Capability.when_broken @@ fun ex ->
-       Log.warn (fun f -> f "Lost connection to backend: %a" Capnp_rpc.Exception.pp ex);
-       reconnect t
-    )
+      (* Connected OK - now watch for failure. *)
+      Prometheus.Gauge.set Metrics.backend_down 0.0;
+      ci
+      |> Capability.when_broken @@ fun ex ->
+         Log.warn (fun f -> f "Lost connection to backend: %a" Capnp_rpc.Exception.pp ex);
+         reconnect t)
     (fun ex ->
-       (* Failed to connect. *)
-       Log.warn (fun f -> f "Failed to connect to backend: %a" Fmt.exn ex);
-       reconnect t
-    )
+      (* Failed to connect. *)
+      Log.warn (fun f -> f "Failed to connect to backend: %a" Fmt.exn ex);
+      reconnect t)
 
 let make sr =
   let ci = Sturdy_ref.connect_exn sr in

@@ -3,10 +3,8 @@ type schema = {
   label : string;
   message : string;
   color : string option; [@default None]  (** default: "lightgrey" *)
-  label_color : string option; [@key "labelColor"] [@default None]
-      (** default: "grey" *)
-  is_error : bool option; [@key "isError"] [@default None]
-      (** default: false *)
+  label_color : string option; [@key "labelColor"] [@default None]  (** default: "grey" *)
+  is_error : bool option; [@key "isError"] [@default None]  (** default: false *)
   named_logo : string option; [@key "namedLogo"] [@default None]
   logo_svg : string option; [@key "logoSvg"] [@default None]
   logo_color : string option; [@key "logoColor"] [@default None]
@@ -18,8 +16,8 @@ type schema = {
 [@@deriving yojson]
 (** Extracted from https://shields.io/endpoint. *)
 
-let v ~label ~message ?color ?label_color ?is_error ?named_logo ?logo_svg
-    ?logo_color ?logo_width ?logo_position ?style ?cache_seconds () =
+let v ~label ~message ?color ?label_color ?is_error ?named_logo ?logo_svg ?logo_color
+    ?logo_width ?logo_position ?style ?cache_seconds () =
   {
     schema_version = 1;
     label;
@@ -60,8 +58,7 @@ let respond_error status body =
 let ( let*! ) x f =
   let respond_error msg =
     Logs.warn (fun m -> m "Failed to retrieve badge state: %s" msg);
-    respond_error `Internal_server_error
-      "ocaml-ci error: failed to retrieve badge state."
+    respond_error `Internal_server_error "ocaml-ci error: failed to retrieve badge state."
   in
   x >>= function
   | Error (`Capnp ex) -> respond_error (Fmt.strf "%a" Capnp_rpc.Error.pp ex)
@@ -71,12 +68,11 @@ let ( let*! ) x f =
 let handle ~backend ~path =
   let* ci = Backend.ci backend in
   match path with
-  | [ org_name; repo_name; branch_name ] ->
+  | [org_name; repo_name; branch_name] ->
       let ref_name = Fmt.str "refs/heads/%s" branch_name in
       Capability.with_ref (Client.CI.org ci org_name) @@ fun org ->
       Capability.with_ref (Client.Org.repo org repo_name) @@ fun repo ->
-      Capability.with_ref (Client.Repo.commit_of_ref repo ref_name)
-      @@ fun commit ->
+      Capability.with_ref (Client.Repo.commit_of_ref repo ref_name) @@ fun commit ->
       let*! status = Client.Commit.status commit in
       let body =
         status |> schema_of_status |> schema_to_yojson |> Yojson.Safe.to_string

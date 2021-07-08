@@ -3,6 +3,7 @@ open Capnp_rpc_lwt
 
 module Log = struct
   module X = Raw.Client.Log
+
   type t = X.t Capability.t
 
   let pp_timestamp f x =
@@ -22,7 +23,8 @@ module Log = struct
     let now = Unix.gettimeofday () in
     let k msg =
       let thread = write t msg in
-      Lwt.on_failure thread (fun ex -> Format.eprintf "Log.info(%S) failed: %a@." msg Fmt.exn ex)
+      Lwt.on_failure thread (fun ex ->
+          Format.eprintf "Log.info(%S) failed: %a@." msg Fmt.exn ex)
     in
     Fmt.kstr k ("%a [INFO] @[" ^^ fmt ^^ "@]@.") pp_timestamp now
 end
@@ -36,7 +38,8 @@ let solve t ~log reqs =
   let request, params = Capability.Request.create Params.init_pointer in
   Params.request_set params (Worker.Solve_request.to_yojson reqs |> Yojson.Safe.to_string);
   Params.log_set params (Some log);
-  Capability.call_for_value_exn t method_id request >|= Results.response_get >|= fun json ->
+  Capability.call_for_value_exn t method_id request >|= Results.response_get
+  >|= fun json ->
   match Worker.Solve_response.of_yojson (Yojson.Safe.from_string json) with
   | Ok x -> x
   | Error ex -> failwith ex

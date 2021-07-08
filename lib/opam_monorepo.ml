@@ -26,7 +26,7 @@ let only_lockfile_in ~dir =
     |> List.filter (Astring.String.is_suffix ~affix:opam_locked)
   in
   match lock_files with
-  | [ lock_file ] ->
+  | [lock_file] ->
       let last = String.length lock_file - String.length opam_locked - 1 in
       let base = Astring.String.with_index_range ~last lock_file in
       Some (base, lock_file)
@@ -87,9 +87,9 @@ let plugin_version = function
 
 let opam_dep_file packages =
   let lines =
-    [ {|opam-version: "2.0"|}; {|depends: [|} ]
+    [{|opam-version: "2.0"|}; {|depends: [|}]
     @ List.map (fun (pkg, ver) -> Printf.sprintf {|  "%s" %s|} pkg ver) packages
-    @ [ {|]|} ]
+    @ [{|]|}]
   in
   lines |> List.map (fun s -> s ^ "\n") |> String.concat ""
 
@@ -97,9 +97,7 @@ let switch_type ~platforms requested_ocaml_version =
   let has_exact_match =
     platforms
     |> List.exists (fun (_, (vars : Ocaml_ci_api.Worker.Vars.t)) ->
-           let platform_version =
-             Ocaml_version.of_string_exn vars.ocaml_version
-           in
+           let platform_version = Ocaml_version.of_string_exn vars.ocaml_version in
            Ocaml_version.equal platform_version requested_ocaml_version)
   in
   if has_exact_match then Base
@@ -120,17 +118,14 @@ let selection ~info:(package, lock_file) ~platforms ~solve =
   let ocaml_version = opam_monorepo_dep_version ~lock_file ~package:"ocaml" in
   let dune_version = opam_monorepo_dep_version ~lock_file ~package:"dune" in
   let lock_file_version =
-    x_opam_monorepo_version lock_file
-    |> Option.get |> lock_file_version_of_string
+    x_opam_monorepo_version lock_file |> Option.get |> lock_file_version_of_string
   in
   let monorepo_version = plugin_version lock_file_version in
   let deps_package = "opam-monorepo-deps.dev" in
   let requested_ocaml_version = Ocaml_version.of_string_exn ocaml_version in
   let switch_type = switch_type ~platforms requested_ocaml_version in
   let platforms =
-    List.filter_map
-      (adjust_ocaml_version ~version:requested_ocaml_version)
-      platforms
+    List.filter_map (adjust_ocaml_version ~version:requested_ocaml_version) platforms
   in
   let root_pkgs =
     [
@@ -144,9 +139,7 @@ let selection ~info:(package, lock_file) ~platforms ~solve =
     ]
   in
   solve ~root_pkgs ~pinned_pkgs:[] ~platforms >|= fun workers ->
-  let selection =
-    List.hd workers |> Selection.remove_package ~package:deps_package
-  in
+  let selection = List.hd workers |> Selection.remove_package ~package:deps_package in
   `Opam_monorepo { package; selection; lock_file_version; switch_type }
 
 let install_depexts ~network ~cache ~package ~lock_file_version =
@@ -161,8 +154,8 @@ let install_depexts ~network ~cache ~package ~lock_file_version =
   | V0_2 ->
       [
         run ~network ~cache
-          "sudo apt-get -y update && sudo apt-get -y install $(opam show -f \
-           depexts ./%s.opam.locked)"
+          "sudo apt-get -y update && sudo apt-get -y install $(opam show -f depexts \
+           ./%s.opam.locked)"
           package;
       ]
 
@@ -170,7 +163,7 @@ let initialize_switch ~network = function
   | Base -> []
   | Create { compiler_package } ->
       let open Obuilder_spec in
-      [ run ~network "opam switch create %s" compiler_package ]
+      [run ~network "opam switch create %s" compiler_package]
 
 let spec ~base ~repo ~config ~variant =
   let { package; selection; lock_file_version; switch_type } = config in
@@ -181,23 +174,22 @@ let spec ~base ~repo ~config ~variant =
       ~target:"/home/opam/.opam/download-cache"
   in
   let dune_cache = Dune_build_cache.for_repo repo in
-  let network = [ "host" ] in
+  let network = ["host"] in
   let dune_project = "dune-project" in
   let open Obuilder_spec in
   stage ~from:base
-  @@ [ comment "%s" (Variant.to_string variant); user ~uid:1000 ~gid:1000 ]
+  @@ [comment "%s" (Variant.to_string variant); user ~uid:1000 ~gid:1000]
   @ initialize_switch ~network switch_type
   @ Opam_build.install_project_deps ~opam_files:[] ~selection
   @ [
       workdir "/src";
       run "sudo chown opam /src";
-      copy [ dune_project; opam_file; lock_file ] ~dst:"/src/";
+      copy [dune_project; opam_file; lock_file] ~dst:"/src/";
     ]
-  @ install_depexts ~network ~cache:[ download_cache ] ~package
-      ~lock_file_version
+  @ install_depexts ~network ~cache:[download_cache] ~package ~lock_file_version
   @ [
-      run ~network ~cache:[ download_cache ] "opam exec -- opam monorepo pull";
-      copy [ "." ] ~dst:"/src/";
-      run ~cache:[ dune_cache ] "opam exec -- dune build @install";
-      run ~cache:[ dune_cache ] "opam exec -- dune runtest";
+      run ~network ~cache:[download_cache] "opam exec -- opam monorepo pull";
+      copy ["."] ~dst:"/src/";
+      run ~cache:[dune_cache] "opam exec -- dune build @install";
+      run ~cache:[dune_cache] "opam exec -- dune runtest";
     ]

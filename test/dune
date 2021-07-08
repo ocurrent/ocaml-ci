@@ -1,10 +1,14 @@
 (executable
  (name test)
- (libraries ocaml_ci alcotest alcotest-lwt ppx_deriving_yojson.runtime logs.fmt)
- (preprocess (pps ppx_deriving.eq ppx_deriving_yojson)))
+ (libraries ocaml_ci alcotest alcotest-lwt ppx_deriving_yojson.runtime
+   logs.fmt)
+ (preprocess
+  (pps ppx_deriving.eq ppx_deriving_yojson)))
 
 (rule
-  (alias runtest)
-  (package ocaml-ci-service)
-  (deps (package ocaml-ci-solver))
-  (action (run ./test.exe)))
+ (alias runtest)
+ (package ocaml-ci-service)
+ (deps
+  (package ocaml-ci-solver))
+ (action
+  (run ./test.exe)))

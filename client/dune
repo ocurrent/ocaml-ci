@@ -2,9 +2,4 @@
  (public_name ocaml-ci)
  (package ocaml-ci-client)
  (name main)
- (libraries
-  ocaml-ci-api
-  current_rpc
-  capnp-rpc-unix
-  logs.fmt
-  fmt.tty))
+ (libraries ocaml-ci-api current_rpc capnp-rpc-unix logs.fmt fmt.tty))
