@@ -84,7 +84,7 @@ let platforms =
         DD.active_tier1_distros `X86_64 @ DD.active_tier2_distros `X86_64 |>
         List.map make_distro |> List.flatten in
       (* The first one in this list is used for lint actions *)
-      let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas in
+      let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas @ [OV.Releases.v4_13] in
       List.map make_release ovs @ distros
   | `Dev ->
       let ovs = List.map OV.of_string_exn ["4.12"; "4.11"; "4.03"] in

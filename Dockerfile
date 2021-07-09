@@ -40,7 +40,7 @@ RUN opam pin add -yn current_ansi.dev "./ocurrent" && \
 COPY --chown=opam ocaml-ci-service.opam ocaml-ci-api.opam ocaml-ci-solver.opam /src/
 RUN opam-2.1 install -y --deps-only .
 ADD --chown=opam . .
-RUN opam config exec -- dune build ./_build/install/default/bin/ocaml-ci-service
+RUN opam-2.1 exec -- dune build ./_build/install/default/bin/ocaml-ci-service
 
 FROM debian:10
 RUN apt-get update && apt-get install libev4 openssh-client curl gnupg2 dumb-init git graphviz libsqlite3-dev ca-certificates netbase -y --no-install-recommends
