@@ -7,7 +7,7 @@ let install_ocamlformat =
     let opam_file = Filename.concat path "ocamlformat.opam" in
     [
       copy [ opam_file ] ~dst:opam_file;
-      run ~network "opam pin add -k path -n ocamlformat %S" path;
+      run ~network "git -C ~/opam-repository pull origin master && opam update && opam pin add -k path -n ocamlformat %S" path;
       (* Pinned to a directory containing only the .opam file *)
       run ~network "opam depext ocamlformat";
       run ~network ~cache "opam install --deps-only -y ocamlformat";
