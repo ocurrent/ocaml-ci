@@ -154,7 +154,7 @@ let install_depexts ~network ~cache ~package ~lock_file_version =
   match lock_file_version with
   | V0_1 ->
       [
-        run ~network ~cache "opam pin -n add %s . --locked" package;
+        run ~network ~cache "opam pin -n add %s . --locked --ignore-pin-depends" package;
         run ~network ~cache "opam depext --update -y %s" package;
         run ~network ~cache "opam pin -n remove %s" package;
       ]
