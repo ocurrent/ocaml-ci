@@ -66,7 +66,7 @@ module Op = struct
       match ty with
       | `Opam (`Build, selection, _) -> hash_packages selection.packages
       | `Opam (`Lint (`Doc|`Opam), selection, _) -> hash_packages selection.packages
-      | `Opam_fmt _ -> "ocamlformat"
+      | `Opam_fmt (selection, _) -> "ocamlformat-" ^ selection.Selection.commit
       | `Opam_monorepo _ -> "opam-monorepo-" ^ (Variant.to_string variant)
     in
     Fmt.strf "%s/%s-%s-%a-%s"

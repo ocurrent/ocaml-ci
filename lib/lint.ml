@@ -7,7 +7,7 @@ let install_ocamlformat =
     let opam_file = Filename.concat path "ocamlformat.opam" in
     [
       copy [ opam_file ] ~dst:opam_file;
-      run ~network "git -C ~/opam-repository pull origin master && opam update && opam pin add -k path -n ocamlformat %S" path;
+      run ~network "opam pin add -k path -n ocamlformat %S" path;
       (* Pinned to a directory containing only the .opam file *)
       run ~network "opam depext ocamlformat";
       run ~network ~cache "opam install --deps-only -y ocamlformat";
@@ -15,12 +15,18 @@ let install_ocamlformat =
   | Opam { version } ->
     [ run ~network ~cache "opam depext -i ocamlformat=%s" version ]
 
-let fmt_spec ~base ~ocamlformat_source =
+let fmt_spec ~base ~ocamlformat_source ~selection =
   let open Obuilder_spec in
+  let { Selection.packages = _; commit; variant = _ } = selection in
   let cache = [ Obuilder_spec.Cache.v Opam_build.download_cache ~target:"/home/opam/.opam/download-cache" ] in
   let network = ["host"] in
   stage ~from:base @@ [
     user ~uid:1000 ~gid:1000;
+    run ~network ~cache
+      "cd ~/opam-repository && \
+       (git cat-file -e %s || git fetch origin master) && \
+       git reset -q --hard %s && git log --no-decorate -n1 --oneline \
+       && opam update -u" commit commit;
     run ~network ~cache "opam depext -i dune";  (* Necessary in case current compiler < 4.08 *)
                                                 (* Not necessarily the dune version used by the project *)
     workdir "/src";
