@@ -32,9 +32,9 @@ let github_status_of_state ~head result =
   let hash = Github.Api.Commit.hash head in
   let url = url ~owner ~name ~hash in
   match result with
-  | Ok _              -> Github.Api.Status.v ~url `Success ~description:"Passed"
-  | Error (`Active _) -> Github.Api.Status.v ~url `Pending
-  | Error (`Msg m)    -> Github.Api.Status.v ~url `Failure ~description:m
+  | Ok _              -> Github.Api.CheckRunStatus.v ~url (`Completed `Success) ~description:"Passed"
+  | Error (`Active _) -> Github.Api.CheckRunStatus.v ~url `Queued
+  | Error (`Msg m)    -> Github.Api.CheckRunStatus.v ~url (`Completed (`Failure m)) ~description:m
 
 let set_active_installations installations =
   let+ installations = installations in
@@ -206,6 +206,6 @@ let v ?ocluster ~app ~solver () =
   and set_github_status =
     summary
     |> github_status_of_state ~head
-    |> Github.Api.Commit.set_status head "ocaml-ci"
+    |> Github.Api.CheckRun.set_status head "ocaml-ci"
   in
   Current.all [index; set_github_status]
