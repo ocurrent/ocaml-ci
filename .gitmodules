@@ -13,3 +13,6 @@
 [submodule "ocaml-dockerfile"]
 	path = ocaml-dockerfile
 	url = https://github.com/avsm/ocaml-dockerfile.git
+[submodule "ocaml-git"]
+	path = ocaml-git
+	url = https://github.com/mirage/ocaml-git.git
