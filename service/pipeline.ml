@@ -21,20 +21,41 @@ let platforms =
 (* Link for GitHub statuses. *)
 let url ~owner ~name ~hash = Uri.of_string (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s" owner name hash)
 
+(* Link for GitHub CheckRun details. *)
+let url_variant ~owner ~name ~hash ~variant =
+  Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s/variant/%s" owner name hash variant
+
 let opam_repository_commit =
   let repo = { Github.Repo_id.owner = "ocaml"; name = "opam-repository" } in
   Github.Api.Anonymous.head_of repo @@ `Ref "refs/heads/master"
 
-let github_status_of_state ~head result =
+let github_status_of_state ~head result results =
   let+ head = head
-  and+ result = result in
+  and+ result = result
+  and+ results = results in
   let { Github.Repo_id.owner; name } = Github.Api.Commit.repo_id head in
   let hash = Github.Api.Commit.hash head in
   let url = url ~owner ~name ~hash in
+  let summary = List.fold_left (fun acc (variant, (build, _job_id)) ->
+      let job_url = url_variant ~owner ~name ~hash ~variant in
+      let result_of_build = match build with
+        | Ok `Checked | Ok `Built-> Fmt.str "%s [%s (%s)](%s)" "✅" variant "passed" job_url
+        | Error `Msg m when Astring.String.is_prefix ~affix:"[SKIP]" m -> 
+          Fmt.str "%s [%s (%s)](%s)" "¯\\_(ツ)_/¯" variant "skipped" job_url
+        | Error `Msg m -> 
+          Fmt.str "%s [%s (%s)](%s)" "❌" variant ("failed: " ^ m) job_url
+        | Error `Active _ -> 
+          Fmt.str "%s [%s (%s)](%s)" "❌" variant "active" job_url in
+      acc ^ (Fmt.str "\n - %s" result_of_build)) "" results in
   match result with
-  | Ok _              -> Github.Api.CheckRunStatus.v ~url (`Completed `Success) ~description:"Passed"
-  | Error (`Active _) -> Github.Api.CheckRunStatus.v ~url `Queued
-  | Error (`Msg m)    -> Github.Api.CheckRunStatus.v ~url (`Completed (`Failure m)) ~description:m
+  | Ok _ -> 
+     Github.Api.CheckRunStatus.v ~url (`Completed `Success) ~summary
+  | Error (`Active _) -> 
+     Github.Api.CheckRunStatus.v ~url `Queued ~summary
+  | Error (`Msg m) when Astring.String.is_prefix ~affix:"[SKIP]" m ->
+     Github.Api.CheckRunStatus.v ~url (`Completed (`Skipped m)) ~summary
+  | Error (`Msg m) -> 
+     Github.Api.CheckRunStatus.v ~url (`Completed (`Failure m)) ~summary
 
 let set_active_installations installations =
   let+ installations = installations in
@@ -204,8 +225,8 @@ let v ?ocluster ~app ~solver () =
     let jobs = builds |> List.map (fun (variant, (_, job_id)) -> (variant, job_id)) in
     Index.record ~repo ~hash ~status jobs
   and set_github_status =
-    summary
-    |> github_status_of_state ~head
+    builds
+    |> github_status_of_state ~head summary
     |> Github.Api.CheckRun.set_status head "ocaml-ci"
   in
   Current.all [index; set_github_status]
