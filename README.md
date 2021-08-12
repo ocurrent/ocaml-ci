@@ -3,6 +3,9 @@
 [![OCaml-CI Build Status](https://img.shields.io/endpoint?url=https%3A%2F%2Fci.ocamllabs.io%2Fbadge%2Focurrent%2Focaml-ci%2Fmaster&logo=ocaml)](https://ci.ocamllabs.io/github/ocurrent/ocaml-ci)
 
 This is an [OCurrent][] pipeline that provides CI for OCaml projects hosted on GitHub.
+It uses metadata from the project’s opam and dune files to work out what to build,
+and uses caching to make builds fast. It automatically tests projects against
+multiple OCaml versions and OS platforms.
 
 The pipeline is defined in [pipeline.ml][]. It:
 
@@ -19,9 +22,9 @@ previously cached build step as long as the opam files don't change.
 To add the CI to your own project:
 
 1. Go to https://github.com/apps/ocaml-ci and install the app for your GitHub user.
-2. Configure just the repositories you want to test (start with one!).
+2. Configure just the repositories you want to test (start with one!). If you select `All Repositories` we won't build anything.
 3. Ask us to add you to the alpha-testers list by submitting a PR against this
-   repository adding yourself to `--github-account-allowlist` in `stack.yml`.
+   repository adding yourself to `--github-account-allowlist` in `stack.yml`. eg https://github.com/ocurrent/ocaml-ci/pull/346
 4. Report bugs :-)
 
 ## Installation

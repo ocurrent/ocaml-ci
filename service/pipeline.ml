@@ -36,25 +36,27 @@ let github_status_of_state ~head result results =
   let { Github.Repo_id.owner; name } = Github.Api.Commit.repo_id head in
   let hash = Github.Api.Commit.hash head in
   let url = url ~owner ~name ~hash in
-  let summary = List.fold_left (fun acc (variant, (build, _job_id)) ->
-      let job_url = url_variant ~owner ~name ~hash ~variant in
-      let result_of_build = match build with
-        | Ok `Checked | Ok `Built-> Fmt.str "%s [%s (%s)](%s)" "✅" variant "passed" job_url
-        | Error `Msg m when Astring.String.is_prefix ~affix:"[SKIP]" m -> 
-          Fmt.str "%s [%s (%s)](%s)" "¯\\_(ツ)_/¯" variant "skipped" job_url
-        | Error `Msg m -> 
-          Fmt.str "%s [%s (%s)](%s)" "❌" variant ("failed: " ^ m) job_url
-        | Error `Active _ -> 
-          Fmt.str "%s [%s (%s)](%s)" "❌" variant "active" job_url in
-      acc ^ (Fmt.str "\n - %s" result_of_build)) "" results in
+  let pp_status f = function (variant, (build, _job_id)) ->
+    let job_url = url_variant ~owner ~name ~hash ~variant in
+    match build with
+      | Ok `Checked | Ok `Built->
+        Fmt.pf f "%s [%s (%s)](%s)" "✅" variant "passed" job_url
+      | Error `Msg m when Astring.String.is_prefix ~affix:"[SKIP]" m ->
+        Fmt.pf f "%s [%s (%s)](%s)" "¯\\_(ツ)_/¯" variant "skipped" job_url
+      | Error `Msg m ->
+        Fmt.pf f "%s [%s (%s)](%s)" "❌" variant ("failed: " ^ m) job_url
+      | Error `Active _ ->
+        Fmt.pf f "%s [%s (%s)](%s)" "🟠" variant "active" job_url in
+  let summary = Fmt.str "@[<v>%a@]" (Fmt.list ~sep:Fmt.cut pp_status)
+      (List.sort (fun (x, _) (y,_) -> String.compare x y) results) in
   match result with
-  | Ok _ -> 
+  | Ok _ ->
      Github.Api.CheckRunStatus.v ~url (`Completed `Success) ~summary
-  | Error (`Active _) -> 
+  | Error (`Active _) ->
      Github.Api.CheckRunStatus.v ~url `Queued ~summary
   | Error (`Msg m) when Astring.String.is_prefix ~affix:"[SKIP]" m ->
      Github.Api.CheckRunStatus.v ~url (`Completed (`Skipped m)) ~summary
-  | Error (`Msg m) -> 
+  | Error (`Msg m) ->
      Github.Api.CheckRunStatus.v ~url (`Completed (`Failure m)) ~summary
 
 let set_active_installations installations =
