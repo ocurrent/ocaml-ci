@@ -13,3 +13,6 @@
 [submodule "ocaml-dockerfile"]
 	path = ocaml-dockerfile
 	url = https://github.com/avsm/ocaml-dockerfile.git
+[submodule "ocaml-matrix"]
+	path = ocaml-matrix
+	url = https://github.com/clecat/ocaml-matrix.git
