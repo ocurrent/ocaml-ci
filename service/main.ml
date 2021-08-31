@@ -84,11 +84,11 @@ let has_role user = function
            ) -> true
     | _ -> false
 
-let main config mode app capnp_address github_auth submission_uri : ('a, [`Msg of string]) result =
+let main config mode app capnp_address github_auth submission_uri matrix : ('a, [`Msg of string]) result =
   Lwt_main.run begin
     run_capnp capnp_address >>= fun (vat, rpc_engine_resolver) ->
     let ocluster = Option.map (Capnp_rpc_unix.Vat.import_exn vat) submission_uri in
-    let engine = Current.Engine.create ~config (Pipeline.v ?ocluster ~app ~solver) in
+    let engine = Current.Engine.create ~config (Pipeline.v ?ocluster ?matrix ~app ~solver) in
     rpc_engine_resolver |> Option.iter (fun r -> Capability.resolve_ok r (Api_impl.make_ci ~engine));
     let authn = Option.map Current_github.Auth.make_login_uri github_auth in
     let has_role =
@@ -130,7 +130,8 @@ let submission_service =
 let cmd =
   let doc = "Build OCaml projects on GitHub" in
   Term.(term_result (const main $ Current.Config.cmdliner $ Current_web.cmdliner $
-                     Current_github.App.cmdliner $ capnp_address $ Current_github.Auth.cmdliner $ submission_service)),
+                     Current_github.App.cmdliner $ capnp_address $ Current_github.Auth.cmdliner $ submission_service $
+                     Matrix_current.cmdliner)),
   Term.info "ocaml-ci" ~doc
 
 let () = Term.(exit @@ eval cmd)

@@ -12,6 +12,7 @@
             ocluster-api
             capnp-rpc-unix
             mirage-crypto-rng.unix
+            matrix-current
             ocaml_ci
             ocaml-ci-api
             prometheus-app.unix)
