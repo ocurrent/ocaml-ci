@@ -1,15 +1,16 @@
 [submodule "ocurrent"]
 	path = ocurrent
 	url = https://github.com/ocurrent/ocurrent.git
-[submodule "opam-0install-solver"]
-	path = opam-0install-solver
-	url = https://github.com/talex5/opam-0install-solver
+	branch = master
 [submodule "ocluster"]
 	path = ocluster
 	url = https://github.com/ocurrent/ocluster.git
+	branch = master
 [submodule "ocaml-version"]
 	path = ocaml-version
 	url = git://github.com/ocurrent/ocaml-version.git
+	branch = master
 [submodule "ocaml-dockerfile"]
 	path = ocaml-dockerfile
 	url = https://github.com/avsm/ocaml-dockerfile.git
+	branch = master
