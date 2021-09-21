@@ -179,14 +179,27 @@ module Matrix = struct
     in
     (Text (Text.make ~body ~format:"org.matrix.custom.html" ~formatted_body ()))
 
-  let get_room ~repo matrix = 
+  let get_room_for ~alias =
+    function 
+    | None -> None 
+    | Some context -> Some (Matrix_current.Room.make context ~alias ())
+
+  let get_org_room ~installation =
+    let alias =
+      let+ installation = installation in
+      let account = Github.Installation.account installation in
+      "ocaml-ci/" ^ account
+    in 
+    get_room_for ~alias
+
+  let get_room ~repo = 
     let alias =
       let+ repo = repo in
       let id = Github.Api.Repo.id repo in
       (* we rely on the fact that allowed Github repository names is a subset of allowed Matrix channel names. *)
       "ocaml-ci/" ^ id.owner ^ "/" ^ id.name
     in 
-    Option.map (fun context -> Matrix_current.Room.make context ~alias ()) matrix 
+    get_room_for ~alias
   
 end
 
@@ -329,6 +342,7 @@ let v ?ocluster ?matrix ~app ~solver () =
   let installations = Github.App.installations app |> set_active_installations in
   installations |> Current.list_iter ~collapse_key:"org" (module Github.Installation) @@ fun installation ->
   let repos = Github.Installation.repositories installation |> set_active_repos ~installation in
+  let matrix_org_room = Matrix.get_org_room ~installation matrix in
   repos |> Current.list_iter ~collapse_key:"repo" (module Github.Api.Repo) @@ fun repo ->
   let refs = Github.Api.Repo.ci_refs ~staleness:Conf.max_staleness repo |> set_active_refs ~repo in
   let matrix_room = Matrix.get_room ~repo matrix in
@@ -363,17 +377,20 @@ let v ?ocluster ?matrix ~app ~solver () =
     |> github_status_of_state ~head summary
     |> Github.Api.CheckRun.set_status head "ocaml-ci"
   and set_matrix_status =
-    match matrix, matrix_room with 
-    | None, None -> Current.return ()
-    | Some context, Some room -> 
+    match matrix, matrix_room, matrix_org_room with 
+    | None, None, None -> Current.return ()
+    | Some context, Some room, Some org_room -> 
       let key =
         let+ head = head in
         Github.Api.Commit.id head
         |> Git.Commit_id.digest
       in
-      builds 
-      |> Matrix.message_of_state ~head summary
-      |> Matrix_current.post context ~key ~room
+      let message = Matrix.message_of_state ~head summary builds
+      in
+      Current.all [
+        Matrix_current.post context ~key ~room message;
+        Matrix_current.post context ~key ~room:org_room message;
+      ]
     | _ -> assert false
   in
   Current.all [index; set_github_status; set_matrix_status]
