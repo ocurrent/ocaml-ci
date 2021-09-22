@@ -1,7 +1,9 @@
 (executables
  (names main local)
  (libraries logs.fmt
+            logs.cli
             fmt.tty
+            fmt.cli
             current
             current_web
             current_docker

@@ -3,6 +3,7 @@
   (public_name ocaml-ci-web)
   (package ocaml-ci-web)
   (libraries lwt.unix
+             logs.cli
              logs.fmt
              fmt.tty
              current_ansi

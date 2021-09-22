@@ -4,9 +4,6 @@ open Capnp_rpc_lwt
 
 module Client = Ocaml_ci_api.Client
 
-let () =
-  Logging.init ~level:Logs.Warning ()
-
 let errorf msg =
   msg |> Fmt.kstrf @@ fun msg ->
   Error (`Msg msg)
@@ -128,6 +125,9 @@ let main ~ci_uri ~repo ~target ~variant ~job_op =
 
 open Cmdliner
 
+let setup_log =
+  Term.(const Logging.init $ Fmt_cli.style_renderer () $ Logs_cli.level ())
+
 let cap =
   Arg.value @@
   Arg.opt Arg.(some Capnp_rpc_unix.sturdy_uri) None @@
@@ -207,14 +207,14 @@ let to_fn = function
 
 let cmd =
   let doc = "Client for ocaml-ci" in
-  let main ci_uri repo target variant job_op =
+  let main () ci_uri repo target variant job_op =
     let job_op = to_fn job_op in
     match Lwt_main.run (main ~ci_uri ~repo ~target ~variant ~job_op) with
     | Ok () -> ()
     | Error `Capnp ex -> Fmt.epr "%a@." Capnp_rpc.Error.pp ex; exit 1
     | Error `Msg m -> Fmt.epr "%s@." m; exit 1
   in
-  Term.(const main $ cap $ repo $ target $ variant $ job_op),
+  Term.(const main $ setup_log $ cap $ repo $ target $ variant $ job_op),
   Term.info "ocaml-ci" ~doc
 
 let () = Term.(exit @@ eval cmd)

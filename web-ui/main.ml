@@ -1,8 +1,8 @@
 open Lwt.Infix
 open Astring
 
-let () =
-  Prometheus_unix.Logging.init ()
+let setup_log default_level =
+  Prometheus_unix.Logging.init ?default_level ()
 
 module Server = Cohttp_lwt_unix.Server
 
@@ -34,7 +34,7 @@ let handle_request ~backend _conn request _body =
 let pp_mode f mode =
   Sexplib.Sexp.pp_hum f (Conduit_lwt_unix.sexp_of_server mode)
 
-let main port backend_uri prometheus_config =
+let main () port backend_uri prometheus_config =
   Lwt_main.run begin
     let vat = Capnp_rpc_unix.client_only_vat () in
     let backend_sr = Capnp_rpc_unix.Vat.import_exn vat backend_uri in
@@ -57,6 +57,9 @@ let main port backend_uri prometheus_config =
 
 open Cmdliner
 
+let setup_log =
+  Term.(const setup_log $ Logs_cli.level ())
+
 let port =
   Arg.value @@
   Arg.opt Arg.int 8090 @@
@@ -75,7 +78,7 @@ let backend_cap =
 
 let cmd =
   let doc = "A web front-end for OCaml-CI" in
-  Term.(const main $ port $ backend_cap $ Prometheus_unix.opts),
+  Term.(const main $ setup_log $ port $ backend_cap $ Prometheus_unix.opts),
   Term.info "ocaml-ci-web" ~doc
 
 let () = Term.(exit @@ eval cmd)

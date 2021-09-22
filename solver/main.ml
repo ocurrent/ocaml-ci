@@ -20,8 +20,8 @@ let reporter =
   in
   { Logs.report = report }
 
-let () =
-  Logs.(set_level (Some Warning));
+let setup_log level =
+  Logs.set_level level;
   Logs.set_reporter reporter
 
 let export service ~on:socket =
@@ -40,16 +40,37 @@ let export service ~on:socket =
     ) >>= fun () ->
   crashed
 
-let () =
-  match Sys.argv with
-  | [| prog |] ->
+let main () = function
+  | None ->
     Lwt_main.run begin
       let create_worker hash =
-        let cmd = ("", [| prog; "--worker"; Git_unix.Store.Hash.to_hex hash |]) in
+        let cmd = ("", [| Sys.argv.(0); "--worker"; Git_unix.Store.Hash.to_hex hash |]) in
         Lwt_process.open_process cmd
       in
       Service.v ~n_workers ~create_worker >>= fun service ->
       export service ~on:Lwt_unix.stdin
     end
-  | [| _prog; "--worker"; hash |] -> Solver.main (Git_unix.Store.Hash.of_hex hash)
-  | args -> Fmt.failwith "Usage: ocaml-ci-solver (got %a)" Fmt.(array (quote string)) args
+  | Some hash ->
+    Solver.main (Git_unix.Store.Hash.of_hex hash)
+
+(* Command-line parsing *)
+
+open Cmdliner
+
+let setup_log =
+  Term.(const setup_log $ Logs_cli.level ())
+
+let worker_hash =
+  Arg.value @@
+  Arg.opt Arg.(some string) None @@
+  Arg.info
+    ~doc:"The hash of the worker."
+    ~docv:"HASH"
+    ["worker"]
+
+let cmd =
+  let doc = "Solver for ocaml-ci" in
+  Term.(const main $ setup_log $ worker_hash),
+  Term.info "solver" ~doc
+
+let () = Term.(exit @@ eval cmd)
