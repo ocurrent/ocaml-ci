@@ -68,9 +68,10 @@ let platforms =
     let label = DD.latest_tag_of_distro distro in
     let tag = DD.tag_of_distro distro in
     let ov = OV.(Releases.latest |> with_just_major_and_minor) in
+    let multicore_latest = OV.(Releases.v4_12 |> with_just_major_and_minor) in
     if distro = master_distro then
       v label tag (OV.with_variant ov (Some "flambda")) ::
-      v label tag (OV.with_variant ov (Some "domains")) ::
+      v label tag (OV.with_variant multicore_latest (Some "domains")) ::
       List.map (fun arch -> v ~arch label tag ov) (DD.distro_arches ov distro)
     else
       [v label tag ov]
@@ -85,7 +86,7 @@ let platforms =
         DD.active_tier1_distros `X86_64 @ DD.active_tier2_distros `X86_64 |>
         List.map make_distro |> List.flatten in
       (* The first one in this list is used for lint actions *)
-      let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas @ [OV.Releases.v4_13] in
+      let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas in
       List.map make_release ovs @ distros
   | `Dev ->
       let ovs = List.map OV.of_string_exn ["4.12"; "4.11"; "4.03"] in
