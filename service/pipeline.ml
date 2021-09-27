@@ -188,7 +188,7 @@ module Matrix = struct
    power level >50 to send state events (including to change power_levels)
 *)
   let power_level_content_override =
-    let admins = Conf.matrix_admins |> List.map (fun admin -> (admin, 100)) in
+    let admins = ("@ocaml-ci:ocamllabs.io" :: Conf.matrix_admins) |> List.map (fun admin -> (admin, 100)) in
     let users = admins in
     Current.return @@
     Matrix_common.Events.Event_content.Power_levels.make ~users ()
