@@ -68,9 +68,10 @@ let platforms =
     let label = DD.latest_tag_of_distro distro in
     let tag = DD.tag_of_distro distro in
     let ov = OV.(Releases.latest |> with_just_major_and_minor) in
+    let multicore_latest = OV.(Releases.v4_12 |> with_just_major_and_minor) in
     if distro = master_distro then
       v label tag (OV.with_variant ov (Some "flambda")) ::
-      v label tag (OV.with_variant ov (Some "domains")) ::
+      v label tag (OV.with_variant multicore_latest (Some "domains")) ::
       List.map (fun arch -> v ~arch label tag ov) (DD.distro_arches ov distro)
     else
       [v label tag ov]
