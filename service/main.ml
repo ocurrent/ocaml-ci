@@ -133,6 +133,6 @@ let cmd =
   Term.(term_result (const main $ Current.Config.cmdliner $ Current_web.cmdliner $
                      Current_github.App.cmdliner $ capnp_address $ Current_github.Auth.cmdliner $ submission_service $
                      Matrix_current.cmdliner)),
-  Term.info "ocaml-ci" ~doc
+  Term.info "ocaml-ci-service" ~doc
 
 let () = Term.(exit @@ eval cmd)
