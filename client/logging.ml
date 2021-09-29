@@ -9,7 +9,7 @@ let reporter =
   in
   { Logs.report = report }
 
-let init ?(level=Logs.Info) () =
-  Fmt_tty.setup_std_outputs ();
-  Logs.set_level (Some level);
+let init style_renderer level =
+  Fmt_tty.setup_std_outputs ?style_renderer ();
+  Logs.set_level level;
   Logs.set_reporter reporter

@@ -6,5 +6,7 @@
   ocaml-ci-api
   current_rpc
   capnp-rpc-unix
+  logs.cli
   logs.fmt
+  fmt.cli
   fmt.tty))

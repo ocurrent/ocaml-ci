@@ -40,8 +40,8 @@ module Metrics = struct
     Gauge.set (master "active") (float_of_int active)
 end
 
-let () =
-  Prometheus_unix.Logging.init ();
+let setup_log default_level =
+  Prometheus_unix.Logging.init ?default_level ();
   Mirage_crypto_rng_unix.initialize ();
   Prometheus.CollectorRegistry.(register_pre_collect default) Metrics.update;
   match Conf.profile with
@@ -83,7 +83,7 @@ let has_role user = function
            ) -> true
     | _ -> false
 
-let main config mode app capnp_address github_auth submission_uri matrix : ('a, [`Msg of string]) result =
+let main () config mode app capnp_address github_auth submission_uri matrix : ('a, [`Msg of string]) result =
   Lwt_main.run begin
     let solver = Ocaml_ci.Solver_pool.spawn_local () in
     run_capnp capnp_address >>= fun (vat, rpc_engine_resolver) ->
@@ -111,6 +111,9 @@ let main config mode app capnp_address github_auth submission_uri matrix : ('a, 
 
 open Cmdliner
 
+let setup_log =
+  Term.(const setup_log $ Logs_cli.level ())
+
 let capnp_address =
   Arg.value @@
   Arg.opt (Arg.some Capnp_rpc_unix.Network.Location.cmdliner_conv) None @@
@@ -129,7 +132,7 @@ let submission_service =
 
 let cmd =
   let doc = "Build OCaml projects on GitHub" in
-  Term.(term_result (const main $ Current.Config.cmdliner $ Current_web.cmdliner $
+  Term.(term_result (const main $ setup_log $ Current.Config.cmdliner $ Current_web.cmdliner $
                      Current_github.App.cmdliner $ capnp_address $ Current_github.Auth.cmdliner $ submission_service $
                      Matrix_current.cmdliner)),
   Term.info "ocaml-ci-service" ~doc
