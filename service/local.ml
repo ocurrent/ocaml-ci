@@ -1,13 +1,12 @@
 (* Utility program for testing the CI pipeline on a local repository. *)
 
-let solver = Ocaml_ci.Solver_pool.spawn_local ()
-
 let () =
   Unix.putenv "DOCKER_BUILDKIT" "1";
   Unix.putenv "PROGRESS_NO_TRUNC" "1";
   Prometheus_unix.Logging.init ()
 
 let main config mode repo : ('a, [`Msg of string]) result =
+  let solver = Ocaml_ci.Solver_pool.spawn_local () in
   let repo = Current_git.Local.v (Fpath.v repo) in
   let engine = Current.Engine.create ~config (Pipeline.local_test ~solver repo) in
   let site = Current_web.Site.(v ~has_role:allow_all) ~name:"ocaml-ci-local" (Current_web.routes engine) in
