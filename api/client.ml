@@ -149,6 +149,6 @@ module Commit = struct
            | Passed -> Ok (`Passed)
            | Failed -> Ok (`Failed)
            | Pending -> Ok (`Pending)
-           | Undefined i -> Error (`Msg (Fmt.strf "client.states: undefined state %d" i))
+           | Undefined i -> Error (`Msg (Fmt.str "client.states: undefined state %d" i))
         )
 end

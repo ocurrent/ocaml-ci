@@ -93,11 +93,11 @@ module Op = struct
       Obuilder_spec.Docker.dockerfile_of_spec ~buildkit:(not for_user) build_spec
     in
     Current.Job.write job
-      (Fmt.strf "@[<v>Base: %a@,%a@]@."
+      (Fmt.str "@[<v>Base: %a@,%a@]@."
          Raw.Image.pp base
          Spec.pp_summary ty);
     Current.Job.write job
-      (Fmt.strf "@.\
+      (Fmt.str "@.\
                  To reproduce locally:@.@.\
                  %a@.\
                  cat > Dockerfile <<'END-OF-DOCKERFILE'@.\
@@ -110,7 +110,7 @@ module Op = struct
     Current.Job.start ~timeout:build_timeout ~pool job ~level:Current.Level.Average >>= fun () ->
     with_commit_lock ~job commit variant @@ fun () ->
     Current_git.with_checkout ~pool:checkout_pool ~job commit @@ fun dir ->
-    Current.Job.write job (Fmt.strf "Writing BuildKit Dockerfile:@.%s@." dockerfile);
+    Current.Job.write job (Fmt.str "Writing BuildKit Dockerfile:@.%s@." dockerfile);
     Bos.OS.File.write Fpath.(dir / "Dockerfile") (dockerfile ^ "\n") |> or_raise;
     Bos.OS.File.write Fpath.(dir / ".dockerignore") dockerignore |> or_raise;
     let cmd = Raw.Cmd.docker ~docker_context @@ ["build"; "--"; Fpath.to_string dir] in
@@ -140,7 +140,7 @@ let build ~platforms ~spec ~repo commit =
     BC.run builder { Op.Key.commit; repo; label } { Op.Value.base; ty; variant }
   | None ->
     (* We can only get here if there is a bug. If the set of platforms changes, [Analyse] should recalculate. *)
-    let msg = Fmt.strf "BUG: variant %a is not a supported platform" Variant.pp variant in
+    let msg = Fmt.str "BUG: variant %a is not a supported platform" Variant.pp variant in
     Current_incr.const (Error (`Msg msg), None)
 
 let get_job_id x =

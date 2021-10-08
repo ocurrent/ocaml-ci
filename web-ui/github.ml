@@ -174,7 +174,7 @@ let link_jobs ~owner ~name ~hash ?selected jobs =
     | label_txt::k ->
         let k = List.rev k in
         let x =
-          let label = txt (Fmt.strf "%s (%a)" label_txt Client.State.pp outcome) in
+          let label = txt (Fmt.str "%s (%a)" label_txt Client.State.pp outcome) in
           let label = if selected = Some variant then b [label] else label in
           outcome, [a ~a:[a_href uri] [label]]
         in
@@ -218,7 +218,7 @@ let stream_logs job ~owner ~name ~refs ~hash ~jobs ~variant ~status (data, next)
       aux next
     | Error (`Capnp ex) ->
       Log.warn (fun f -> f "Error fetching logs: %a" Capnp_rpc.Error.pp ex);
-      Transfer_IO.write writer (Fmt.strf "ocaml-ci error: %a@." Capnp_rpc.Error.pp ex)
+      Transfer_IO.write writer (Fmt.str "ocaml-ci error: %a@." Capnp_rpc.Error.pp ex)
   in
   aux next
 

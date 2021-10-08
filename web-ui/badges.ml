@@ -64,7 +64,7 @@ let ( let*! ) x f =
       "ocaml-ci error: failed to retrieve badge state."
   in
   x >>= function
-  | Error (`Capnp ex) -> respond_error (Fmt.strf "%a" Capnp_rpc.Error.pp ex)
+  | Error (`Capnp ex) -> respond_error (Fmt.str "%a" Capnp_rpc.Error.pp ex)
   | Error (`Msg msg) -> respond_error msg
   | Ok y -> f y
 

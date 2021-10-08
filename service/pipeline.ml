@@ -314,11 +314,11 @@ let list_errors ~ok errs =
       match groups with
       | [] -> "No builds at all!"
       | [ msg, _ ] when ok = 0 -> msg (* Everything failed with the same error *)
-      | [ msg, ls ] -> Fmt.strf "%a failed: %s" Fmt.(list ~sep:(unit ", ") string) ls msg
+      | [ msg, ls ] -> Fmt.str "%a failed: %s" Fmt.(list ~sep:(any ", ") string) ls msg
       | _ ->
         (* Multiple error messages; just list everything that failed. *)
         let pp_label f (_, l) = Fmt.string f l in
-        Fmt.strf "%a failed" Fmt.(list ~sep:(unit ", ") pp_label) errs
+        Fmt.str "%a failed" Fmt.(list ~sep:(any ", ") pp_label) errs
     ))
 
 let summarise results =

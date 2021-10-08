@@ -69,7 +69,7 @@ module Op = struct
       | `Opam_fmt (selection, _) -> "ocamlformat-" ^ selection.Selection.commit
       | `Opam_monorepo _ -> "opam-monorepo-" ^ (Variant.to_string variant)
     in
-    Fmt.strf "%s/%s-%s-%a-%s"
+    Fmt.str "%s/%s-%s-%a-%s"
       owner name
       (Image.hash base)
       Variant.pp variant deps
@@ -79,11 +79,11 @@ module Op = struct
     let build_spec = Build.make_build_spec ~base ~repo ~variant ~ty
     in
     Current.Job.write job
-      (Fmt.strf "@[<v>Base: %a@,%a@]@."
+      (Fmt.str "@[<v>Base: %a@,%a@]@."
          Image.pp base
          Spec.pp_summary ty);
     Current.Job.write job
-      (Fmt.strf "@.\
+      (Fmt.str  "@.\
                  To reproduce locally:@.@.\
                  %a@.\
                  cat > Dockerfile <<'END-OF-DOCKERFILE'@.\
@@ -130,7 +130,7 @@ let build t ~platforms ~spec ~repo commit =
     BC.run t { Op.Key.pool; commit; repo; label } { Op.Value.base; ty; variant }
   | None ->
     (* We can only get here if there is a bug. If the set of platforms changes, [Analyse] should recalculate. *)
-    let msg = Fmt.strf "BUG: variant %a is not a supported platform" Variant.pp variant in
+    let msg = Fmt.str "BUG: variant %a is not a supported platform" Variant.pp variant in
     Current_incr.const (Error (`Msg msg), None)
 
 let get_job_id x =

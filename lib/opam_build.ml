@@ -93,7 +93,7 @@ let install_project_deps ~opam_files ~selection =
 let spec ~base ~opam_files ~selection =
   let open Obuilder_spec in
   stage ~from:base (
-    comment "%s" (Fmt.strf "%a" Variant.pp selection.Selection.variant) ::
+    comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant) ::
     user ~uid:1000 ~gid:1000 ::
     install_project_deps ~opam_files ~selection @ [
       copy ["."] ~dst:"/src/";
