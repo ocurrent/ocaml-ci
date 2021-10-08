@@ -41,10 +41,10 @@ let ocaml_version { ocaml_version; _ } = ocaml_version
 let with_ocaml_version ocaml_version t = { t with ocaml_version }
 
 let id { distro; ocaml_version; _ } =
-  Fmt.strf "%s-%a" distro Ocaml_version.pp ocaml_version
+  Fmt.str "%s-%a" distro Ocaml_version.pp ocaml_version
 
 let docker_tag { distro; ocaml_version; _ } =
-  Fmt.strf "%s-ocaml-%s" distro (Ocaml_version.to_string ~sep:'-' ocaml_version
+  Fmt.str "%s-ocaml-%s" distro (Ocaml_version.to_string ~sep:'-' ocaml_version
     |> String.map (function | '+' -> '-' | x -> x))
 
 let id_of_string s =
@@ -59,7 +59,7 @@ let pp f t =
      | a -> "_" ^ (Ocaml_version.to_opam_arch a))
 
 let to_string =
-  Fmt.strf "%a" pp
+  Fmt.str "%a" pp
 
 let of_string s =
   let id, arch =

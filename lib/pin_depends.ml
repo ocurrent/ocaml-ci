@@ -21,7 +21,7 @@ module Cmd = struct
   let id_of_repo repo =
     let base = Filename.basename repo in
     let digest = Digest.string repo |> Digest.to_hex in
-    Fmt.strf "%s-%s" base digest
+    Fmt.str "%s-%s" base digest
 
   (* .../var/pin-depends/myrepo-hhh *)
   let local_copy repo =

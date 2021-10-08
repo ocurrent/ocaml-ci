@@ -42,7 +42,7 @@ let doc_spec ~base ~opam_files ~selection =
   let network = ["host"] in
   let open Obuilder_spec in
   stage ~from:base @@
-    comment "%s" (Fmt.strf "%a" Variant.pp selection.Selection.variant) ::
+    comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant) ::
     user ~uid:1000 ~gid:1000 ::
     Opam_build.install_project_deps ~opam_files ~selection @ [
       (* Warnings-as-errors was introduced in Odoc.1.5.0 *)
@@ -69,7 +69,7 @@ let opam_lint_spec ~base ~opam_files ~selection =
   stage
     ~child_builds:["opam-dune-lint", install_opam_dune_lint ~cache ~network ~base]
     ~from:base @@
-    comment "%s" (Fmt.strf "%a" Variant.pp selection.Selection.variant) ::
+    comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant) ::
     user ~uid:1000 ~gid:1000 ::
     Opam_build.install_project_deps ~opam_files ~selection @ [
       workdir "/src";

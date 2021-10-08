@@ -39,5 +39,5 @@ let pp_summary f = function
   | `Opam (`Lint `Opam, _, _) -> Fmt.string f "Opam files lint"
   | `Opam_fmt (_, v) ->
       Fmt.pf f "ocamlformat version: %a"
-        Fmt.(option ~none:(unit "none") Analyse_ocamlformat.pp_source) v
+        Fmt.(option ~none:(any "none") Analyse_ocamlformat.pp_source) v
   | `Opam_monorepo _ -> Fmt.string f "opam-monorepo build"

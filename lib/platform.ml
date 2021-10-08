@@ -69,7 +69,7 @@ module Query = struct
 
   let opam_template arch =
     let arch = Option.value ~default:"%{arch}%" arch in
-    Fmt.strf {|
+    Fmt.str {|
     {
       "arch": "%s",
       "os": "%%{os}%%",
