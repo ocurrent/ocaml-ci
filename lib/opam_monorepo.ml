@@ -9,8 +9,8 @@ type switch_type =
 [@@deriving yojson, ord]
 
 type config = {
-  package : string;
   selection : Selection.t;
+  lock_file_path : string;
   lock_file_version : lock_file_version;
   switch_type : switch_type;
 }
@@ -18,18 +18,16 @@ type config = {
 
 let selection_of_config c = c.selection
 
+let opam_locked = ".opam.locked"
+
 let only_lockfile_in ~dir =
-  let opam_locked = ".opam.locked" in
   let lock_files =
     Sys.readdir (Fpath.to_string dir)
     |> Array.to_list
     |> List.filter (Astring.String.is_suffix ~affix:opam_locked)
   in
   match lock_files with
-  | [ lock_file ] ->
-      let last = String.length lock_file - String.length opam_locked - 1 in
-      let base = Astring.String.with_index_range ~last lock_file in
-      Some (base, lock_file)
+  | [ lock_file ] -> Some lock_file
   | _ -> None
 
 let guard = function true -> Some () | false -> None
@@ -46,16 +44,14 @@ let x_opam_monorepo_version opam =
 
 let detect ~dir =
   let ( let* ) = Option.bind in
-  let* package, lock_file_path = only_lockfile_in ~dir in
-  let opam_file_path = package ^ ".opam" in
-  let* () = guard (file_exists_in ~dir ~name:opam_file_path) in
+  let* lock_file_path = only_lockfile_in ~dir in
   let* () = guard (file_exists_in ~dir ~name:"dune-project") in
   let full_path = Filename.concat (Fpath.to_string dir) lock_file_path in
   let lock_file_contents =
     OpamFile.OPAM.read (OpamFile.make (OpamFilename.of_string full_path))
   in
   let* _ = x_opam_monorepo_version lock_file_contents in
-  Some (package, lock_file_contents)
+  Some (lock_file_path, lock_file_contents)
 
 let packages_in_depends f =
   let get_atom = function OpamFormula.Atom a -> a | _ -> assert false in
@@ -115,7 +111,7 @@ let adjust_ocaml_version platform ~version =
     Some (p, Platform.set_compiler_version ~version vars)
   else None
 
-let selection ~info:(package, lock_file) ~platforms ~solve =
+let selection ~info:(lock_file_path, lock_file) ~platforms ~solve =
   let open Lwt_result.Infix in
   let ocaml_version = opam_monorepo_dep_version ~lock_file ~package:"ocaml" in
   let dune_version = opam_monorepo_dep_version ~lock_file ~package:"dune" in
@@ -147,12 +143,13 @@ let selection ~info:(package, lock_file) ~platforms ~solve =
   let selection =
     List.hd workers |> Selection.remove_package ~package:deps_package
   in
-  `Opam_monorepo { package; selection; lock_file_version; switch_type }
+  `Opam_monorepo { lock_file_path; selection; lock_file_version; switch_type }
 
-let install_depexts ~network ~cache ~package ~lock_file_version =
+let install_depexts ~network ~cache ~lock_file_path ~lock_file_version =
   let open Obuilder_spec in
   match lock_file_version with
   | V0_1 ->
+    let package = Filename.chop_suffix_opt ~suffix:opam_locked lock_file_path |> Option.get in
       [
         run ~network ~cache "opam pin -n add %s . --locked" package;
         run ~network ~cache "opam depext --update -y %s" package;
@@ -160,7 +157,7 @@ let install_depexts ~network ~cache ~package ~lock_file_version =
       ]
   | V0_2 ->
       [
-        run ~network ~cache "opam monorepo depext --yes --lock ./%s.opam.locked" package;
+        run ~network ~cache "opam monorepo depext --yes --lock ./%s" lock_file_path;
       ]
 
 let initialize_switch ~network = function
@@ -170,9 +167,7 @@ let initialize_switch ~network = function
       [ run ~network "opam switch create %s" compiler_package ]
 
 let spec ~base ~repo ~config ~variant =
-  let { package; selection; lock_file_version; switch_type } = config in
-  let opam_file = package ^ ".opam" in
-  let lock_file = package ^ ".opam.locked" in
+  let { lock_file_path; selection; lock_file_version; switch_type } = config in
   let download_cache =
     Obuilder_spec.Cache.v Opam_build.download_cache
       ~target:"/home/opam/.opam/download-cache"
@@ -188,10 +183,9 @@ let spec ~base ~repo ~config ~variant =
   @ [
       workdir "/src";
       run "sudo chown opam /src";
-      copy [ dune_project; opam_file; lock_file ] ~dst:"/src/";
+      copy [ dune_project; lock_file_path ] ~dst:"/src/";
     ]
-  @ install_depexts ~network ~cache:[ download_cache ] ~package
-      ~lock_file_version
+  @ install_depexts ~network ~cache:[ download_cache ] ~lock_file_path ~lock_file_version
   @ [
       run ~network ~cache:[ download_cache ] "opam exec -- opam monorepo pull";
       copy [ "." ] ~dst:"/src/";
