@@ -47,7 +47,7 @@ module Analysis = struct
     ocamlformat_source : Analyse_ocamlformat.source option;
     selections :
       [ `Opam_build of Selection.t list
-      | `Opam_monorepo of Opam_monorepo.config
+      | `Opam_monorepo of Opam_monorepo.config list
       ];
   }
   [@@deriving yojson]
@@ -162,6 +162,15 @@ module Analysis = struct
     | Ok x -> Ok (List.map Selection.of_worker x)
     | Error (`Msg msg) -> Fmt.error_msg "Error from solver: %s" msg
 
+  let rec lwt_result_list_mapm ~f =
+    function
+    | [] -> Lwt_result.return []
+    | x::xs ->
+      let open Lwt_result.Syntax in
+      let+ y = f x
+      and+ ys = lwt_result_list_mapm ~f xs in
+      y::ys
+
   let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
     let solve = solve ~opam_repository_commit ~job ~solver in
     let ty = type_of_dir dir in
@@ -201,7 +210,11 @@ module Analysis = struct
     else (
       begin
         match ty with
-        | `Opam_monorepo info -> Opam_monorepo.selection ~info ~solve ~platforms
+        | `Opam_monorepo builds ->
+          lwt_result_list_mapm builds
+            ~f:(fun info -> Opam_monorepo.selection ~info ~solve ~platforms)
+          |> Lwt_result.map
+            (fun l -> `Opam_monorepo l)
         | `Ocaml_repo -> opam_selections ~solve ~job ~platforms ~opam_files dir
       end >>!= fun selections ->
       let r = { opam_files; ocamlformat_source; selections } in
