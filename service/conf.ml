@@ -94,5 +94,6 @@ let platforms =
       let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas in
       List.map make_release ovs @ distros
   | `Dev ->
-      let ovs = List.map OV.of_string_exn ["4.13"; "4.12"; "4.03"] in
-      List.map make_release ovs @ [make_release ~arch:`I386 (List.hd ovs)]
+      let[@warning "-8"] latest::previous::_ = List.rev OV.Releases.recent in
+      let ovs = [latest; previous; OV.Releases.v4_03] in
+      List.map make_release ovs @ [make_release ~arch:`I386 latest]
