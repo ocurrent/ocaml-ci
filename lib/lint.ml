@@ -49,7 +49,7 @@ let doc_spec ~base ~opam_files ~selection =
       (* conf-m4 is a work-around for https://github.com/ocaml-opam/opam-depext/pull/132 *)
       run ~network ~cache "opam depext -i conf-m4 && opam depext -i dune 'odoc>=1.5.0'";
       copy ["."] ~dst:"/src/";
-      run "ODOC_WARN_ERROR=true opam exec -- dune build @doc \
+      run "ODOC_WARN_ERROR=false opam exec -- dune build @doc \
            || (echo \"dune build @doc failed\"; exit 2)";
     ]
 
