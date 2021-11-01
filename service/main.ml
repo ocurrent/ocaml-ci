@@ -91,13 +91,14 @@ let main () config mode app capnp_address github_auth submission_uri matrix : ('
     let engine = Current.Engine.create ~config (Pipeline.v ?ocluster ?matrix ~app ~solver) in
     rpc_engine_resolver |> Option.iter (fun r -> Capability.resolve_ok r (Api_impl.make_ci ~engine));
     let authn = Option.map Current_github.Auth.make_login_uri github_auth in
+    let webhook_secret = Current_github.App.webhook_secret app in
     let has_role =
       if github_auth = None then Current_web.Site.allow_all
       else has_role
     in
     let secure_cookies = github_auth <> None in
     let routes =
-      Routes.(s "webhooks" / s "github" /? nil @--> Current_github.webhook) ::
+      Routes.(s "webhooks" / s "github" /? nil @--> Current_github.webhook ~engine ~webhook_secret ~has_role) ::
       Routes.(s "login" /? nil @--> Current_github.Auth.login github_auth) ::
       Current_web.routes engine in
     let site = Current_web.Site.v ?authn ~has_role ~secure_cookies ~name:"ocaml-ci" routes in
