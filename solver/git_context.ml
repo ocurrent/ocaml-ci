@@ -53,9 +53,20 @@ let filter_deps t pkg f =
   |> OpamFilter.partial_filter_formula (env t pkg)
   |> OpamFilter.filter_deps ~build:true ~post:true ~test ~doc:false ~dev ~default:false
 
+let filter_available t pkg opam =
+  let available = OpamFile.OPAM.available opam in
+  match OpamFilter.eval ~default:(B false) (env t pkg) available with
+  | B true -> Ok opam
+  | B false -> Error Unavailable
+  | _ ->
+    OpamConsole.error "Available expression not a boolean: %s" (OpamFilter.to_string available);
+    Error Unavailable
+
 let candidates t name =
   match OpamPackage.Name.Map.find_opt name t.pins with
-  | Some (version, opam) -> [version, Ok opam]
+  | Some (version, opam) ->
+    let pkg = OpamPackage.create name version in
+    [version, filter_available t pkg opam]
   | None ->
     match OpamPackage.Name.Map.find_opt name t.packages with
     | None ->
@@ -75,13 +86,7 @@ let candidates t name =
             v, Error (UserConstraint (name, Some test))
           | _ ->
             let pkg = OpamPackage.create name v in
-            let available = OpamFile.OPAM.available opam in
-            match OpamFilter.eval ~default:(B false) (env t pkg) available with
-            | B true -> v, Ok opam
-            | B false -> v, Error Unavailable
-            | _ ->
-              OpamConsole.error "Available expression not a boolean: %s" (OpamFilter.to_string available);
-              v, Error Unavailable
+            v, filter_available t pkg opam
         )
 
 let pp_rejection f = function
