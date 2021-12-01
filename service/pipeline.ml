@@ -19,7 +19,8 @@ let platforms =
   Current.list_seq (List.map v Conf.platforms)
 
 (* Link for GitHub statuses. *)
-let url ~owner ~name ~hash = Uri.of_string (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s" owner name hash)
+let url ~owner ~name ~hash =
+  Uri.of_string (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s" owner name hash)
 
 (* Link for GitHub CheckRun details. *)
 let url_variant ~owner ~name ~hash ~variant =
@@ -36,19 +37,32 @@ let github_status_of_state ~head result results =
   let { Github.Repo_id.owner; name } = Github.Api.Commit.repo_id head in
   let hash = Github.Api.Commit.hash head in
   let url = url ~owner ~name ~hash in
+
+  let result_symbol =
+    function
+    | Ok `Checked | Ok `Built-> "✅"
+    | Error `Msg m when Astring.String.is_prefix ~affix:"[SKIP]" m ->
+      "¯\\_(ツ)_/¯"
+    | Error `Msg _ -> "❌"
+    | Error `Active _ -> "🟠"
+  in
+  let pp_result = function
+    | Ok `Checked | Ok `Built->
+      "passed"
+    | Error `Msg m when Astring.String.is_prefix ~affix:"[SKIP]" m ->
+      "skipped"
+    | Error `Msg m ->
+      "failed: "^m
+    | Error `Active _ ->
+      "active"
+  in
   let pp_status f = function (variant, (build, _job_id)) ->
     let job_url = url_variant ~owner ~name ~hash ~variant in
-    match build with
-      | Ok `Checked | Ok `Built->
-        Fmt.pf f "%s [%s (%s)](%s)" "✅" variant "passed" job_url
-      | Error `Msg m when Astring.String.is_prefix ~affix:"[SKIP]" m ->
-        Fmt.pf f "%s [%s (%s)](%s)" "¯\\_(ツ)_/¯" variant "skipped" job_url
-      | Error `Msg m ->
-        Fmt.pf f "%s [%s (%s)](%s)" "❌" variant ("failed: " ^ m) job_url
-      | Error `Active _ ->
-        Fmt.pf f "%s [%s (%s)](%s)" "🟠" variant "active" job_url in
+    Fmt.pf f "%s [%s (%s)](%s)" (result_symbol build) variant (pp_result build) job_url in
+
   let summary = Fmt.str "@[<v>%a@]" (Fmt.list ~sep:Fmt.cut pp_status)
-      (List.sort (fun (x, _) (y,_) -> String.compare x y) results) in
+      (List.sort_uniq (fun (x, _) (y,_) -> String.compare x y) results) in
+
   match result with
   | Ok _ ->
      Github.Api.CheckRunStatus.v ~url (`Completed `Success) ~summary
