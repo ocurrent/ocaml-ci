@@ -39,9 +39,12 @@ Note: you need to clone with `--recursive` because this project uses submodules
 (it depends on some packages that aren't released yet).
 If you forget, `git submodule update --init` will fetch them.
 
-To test the CI on a local Git clone, use:
+To test the CI on a local Git clone, you need to first install the
+dependencies, and then use `dune exec` as shown below:
 
 ```sh
+opam update
+opam install -t .
 dune exec -- ocaml-ci-local /path/to/project
 ```
 
