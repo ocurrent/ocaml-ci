@@ -1,6 +1,6 @@
-FROM ocaml/opam:debian-10-ocaml-4.10 AS build
+FROM ocaml/opam:debian-11-ocaml-4.13 AS build
 RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libsqlite3-dev libgmp-dev graphviz -y --no-install-recommends
-RUN cd ~/opam-repository && git pull origin -q master && git reset --hard 23813a6c2ce803a07abd2ea87672995882e8bd23 && opam update
+RUN cd ~/opam-repository && git pull origin -q master && git reset --hard f137b0e3641c241915e1798a5c76520ab1c3b4f8 && opam update
 COPY --chown=opam \
 	ocurrent/current_docker.opam \
 	ocurrent/current_github.opam \
@@ -21,7 +21,6 @@ COPY --chown=opam \
 	ocaml-dockerfile/dockerfile*.opam \
 	/src/ocaml-dockerfile/
 COPY --chown=opam \
-	ocaml-matrix/matrix-client.opam \
 	ocaml-matrix/matrix-common.opam \
 	ocaml-matrix/matrix-ctos.opam \
 	ocaml-matrix/matrix-current.opam \
@@ -38,7 +37,6 @@ RUN opam pin add -yn current_docker.dev "./ocurrent" && \
     opam pin add -yn ocaml-version.dev "./ocaml-version" && \
     opam pin add -yn dockerfile.dev "./ocaml-dockerfile" && \
     opam pin add -yn dockerfile-opam.dev "./ocaml-dockerfile" && \
-    opam pin add -yn matrix-client.dev "./ocaml-matrix" && \
     opam pin add -yn matrix-common.dev "./ocaml-matrix" && \
     opam pin add -yn matrix-ctos.dev "./ocaml-matrix" && \
     opam pin add -yn matrix-current.dev "./ocaml-matrix" && \
@@ -48,7 +46,7 @@ RUN opam-2.1 install -y --deps-only .
 ADD --chown=opam . .
 RUN opam-2.1 exec -- dune build ./_build/install/default/bin/ocaml-ci-service
 
-FROM debian:10
+FROM debian:11
 RUN apt-get update && apt-get install libev4 openssh-client curl gnupg2 dumb-init git graphviz libsqlite3-dev ca-certificates netbase -y --no-install-recommends
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -
 RUN echo 'deb [arch=amd64] https://download.docker.com/linux/debian buster stable' >> /etc/apt/sources.list
