@@ -8,7 +8,7 @@ module Analysis = struct
   include Ocaml_ci.Analyse.Analysis
 
   type ocamlformat_source = Ocaml_ci.Analyse_ocamlformat.source =
-    | Opam of { version : string }
+    | Opam of { version : string; opam_repo_commit : string }
     | Vendored of { path : string }
   [@@deriving yojson, eq]
 
@@ -179,7 +179,7 @@ let test_simple =
         { ocaml_version = "4.10"; only_packages = [] };
         { ocaml_version = "4.09"; only_packages = [] }
       ];
-      ocamlformat_source = Some (Opam { version = "0.12" });
+      ocamlformat_source = Some (Opam { version = "0.12"; opam_repo_commit = "abc" });
     }
   in
   expect_test "simple" ~project ~expected

@@ -182,6 +182,28 @@ module Analysis = struct
       and+ ys = lwt_result_list_mapm ~f xs in
       y::ys
 
+  let opam_dep_file packages =
+    let lines =
+      [ {|opam-version: "2.0"|}; {|depends: [|} ]
+      @ List.map (fun (pkg, ver) -> Printf.sprintf {|  "%s" %s|} pkg ver) packages
+      @ [ {|]|} ]
+    in
+    lines |> List.map (fun s -> s ^ "\n") |> String.concat ""
+
+  let exactly v = Printf.sprintf {|{ = "%s" }|} v
+
+  let find_opam_repo_commit_for_ocamlformat ~solve ~platforms version =
+    let ( let+ ) = Lwt_result.Infix.( >|= ) in
+    let deps_for_ocamlformat =
+      ( "deps_for_ocamlformat.opam"
+      , opam_dep_file [("ocamlformat", exactly version)])
+    in
+    let+ workers =
+      solve ~root_pkgs:[deps_for_ocamlformat] ~pinned_pkgs:[] ~platforms
+    in
+    let selection = List.hd workers in
+    selection.Selection.commit
+
   let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
     let solve = solve ~opam_repository_commit ~job ~solver in
     let ty = type_of_dir dir in
@@ -215,7 +237,10 @@ module Analysis = struct
             else None
         )
     in
-    Analyse_ocamlformat.get_ocamlformat_source job ~opam_files ~root:dir >>!= fun ocamlformat_source ->
+    let find_opam_repo_commit = find_opam_repo_commit_for_ocamlformat ~solve ~platforms in
+    Analyse_ocamlformat.get_ocamlformat_source
+      job ~opam_files ~root:dir ~find_opam_repo_commit
+    >>!= fun ocamlformat_source ->
     if opam_files = [] then Lwt_result.fail (`Msg "No opam files found!")
     else if List.filter is_toplevel opam_files = [] then Lwt_result.fail (`Msg "No top-level opam files found!")
     else (
