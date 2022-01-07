@@ -12,12 +12,21 @@ let install_ocamlformat =
       run ~network "opam depext ocamlformat";
       run ~network ~cache "opam install --deps-only -y ocamlformat";
     ]
-  | Opam { version } ->
+  | Opam { version; _ } ->
     [ run ~network ~cache "opam depext -i ocamlformat=%s" version ]
+
+let commit_from_ocamlformat_source ocamlformat_source =
+  let open Analyse_ocamlformat in
+  match ocamlformat_source with
+  | None | Some Vendored _ -> None
+  | Some Opam { opam_repo_commit; _ } -> Some opam_repo_commit
 
 let fmt_spec ~base ~ocamlformat_source ~selection =
   let open Obuilder_spec in
-  let { Selection.packages = _; commit; variant = _ } = selection in
+  let commit =
+    Option.value ~default:selection.Selection.commit
+    (commit_from_ocamlformat_source ocamlformat_source)
+  in
   let cache = [ Obuilder_spec.Cache.v Opam_build.download_cache ~target:"/home/opam/.opam/download-cache" ] in
   let network = ["host"] in
   stage ~from:base @@ [
