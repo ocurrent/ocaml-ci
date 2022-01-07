@@ -5,13 +5,25 @@ module Store = Git_unix.Store
 open Lwt.Infix
 
 let env (vars : Worker.Vars.t) =
-  Opam_0install.Dir_context.std_env
-    ~arch:vars.arch
-    ~os:vars.os
-    ~os_distribution:vars.os_distribution
-    ~os_version:vars.os_version
-    ~os_family:vars.os_family
-    ()
+  let std_env =
+    Opam_0install.Dir_context.std_env
+      ~arch:vars.arch
+      ~os:vars.os
+      ~os_distribution:vars.os_distribution
+      ~os_version:vars.os_version
+      ~os_family:vars.os_family
+      ()
+  in
+  function
+  | "opam-version" ->
+    (* Dir_context.std_env expands this variable to the
+       version of the opam library we are linking against.
+       We want the one from vars instead.
+       Can be simplified once this is released:
+       https://github.com/ocaml-opam/opam-0install-solver/pull/36
+    *)
+    Some (OpamVariable.string vars.opam_version)
+  | v -> std_env v
 
 let parse_opam (name, contents) =
   let pkg = OpamPackage.of_string name in

@@ -75,7 +75,8 @@ module Query = struct
       "os": "%%{os}%%",
       "os_family": "%%{os-family}%%",
       "os_distribution": "%%{os-distribution}%%",
-      "os_version": "%%{os-version}%%"
+      "os_version": "%%{os-version}%%",
+      "opam_version": "%%{opam-version}%%"
     }
   |} arch
 
