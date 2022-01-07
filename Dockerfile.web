@@ -1,6 +1,6 @@
-FROM ocaml/opam:debian-10-ocaml-4.10 AS build
+FROM ocaml/opam:debian-11-ocaml-4.13 AS build
 RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libgmp-dev -y --no-install-recommends
-RUN cd ~/opam-repository && git pull origin master && git reset --hard 23813a6c2ce803a07abd2ea87672995882e8bd23 && opam update
+RUN cd ~/opam-repository && git pull origin master && git reset --hard f137b0e3641c241915e1798a5c76520ab1c3b4f8 && opam update
 COPY --chown=opam \
 	ocurrent/current_rpc.opam \
 	/src/ocurrent/
@@ -11,7 +11,7 @@ RUN opam install -y --deps-only .
 ADD --chown=opam . .
 RUN opam config exec -- dune build ./_build/install/default/bin/ocaml-ci-web
 
-FROM debian:10
+FROM debian:11
 RUN apt-get update && apt-get install libev4 dumb-init -y --no-install-recommends
 WORKDIR /
 ENTRYPOINT ["dumb-init", "/usr/local/bin/ocaml-ci-web"]
