@@ -1,12 +1,12 @@
 let ( >>!= ) = Lwt_result.Infix.( >>= )
 
 type source =
-  | Opam of { version : string }
+  | Opam of { version : string ; opam_repo_commit : string }
   | Vendored of { path : string }
 [@@deriving yojson, eq, ord]
 
 let pp_source f = function
-  | Opam { version } -> Fmt.pf f "version %s (from opam)" version
+  | Opam { version; _ } -> Fmt.pf f "version %s (from opam)" version
   | Vendored { path } -> Fmt.pf f "vendored at %s" path
 
 let ocamlformat_version_from_string =
@@ -66,12 +66,20 @@ let ocamlformat_version_from_file ~root job path =
     | _::_::_ ->
         Lwt.return (Error (`Msg "Multiple 'version=' lines in .ocamlformat"))
 
-let get_ocamlformat_source job ~opam_files ~root =
+let get_ocamlformat_source job ~opam_files ~root ~find_opam_repo_commit =
+  let ( let* ) = Lwt_result.Infix.( >>= ) in
   let proj_is_ocamlformat p = String.equal (Filename.basename p) "ocamlformat.opam" in
   match List.find_opt proj_is_ocamlformat opam_files with
   | Some opam_file ->
     let path = Filename.dirname opam_file in
     Lwt_result.return (Some (Vendored { path }))
   | None ->
-    Fpath.(to_string (root / ".ocamlformat")) |> ocamlformat_version_from_file ~root job
-    |> Lwt_result.map (Option.map (fun version -> Opam { version }))
+    let* version_in_dot_ocamlformat =
+      ocamlformat_version_from_file ~root job
+        Fpath.(to_string (root / ".ocamlformat"))
+    in
+    match version_in_dot_ocamlformat with
+    | None -> Lwt_result.return None
+    | Some version ->
+      let* opam_repo_commit = find_opam_repo_commit version in
+      Lwt_result.return (Some (Opam { version; opam_repo_commit }))
