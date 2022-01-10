@@ -7,10 +7,19 @@ let () =
 module Analysis = struct
   include Ocaml_ci.Analyse.Analysis
 
-  type ocamlformat_source = Ocaml_ci.Analyse_ocamlformat.source =
-    | Opam of { version : string; opam_repo_commit : string }
+  type ocamlformat_source_type =
+    | Opam of { version : string }
     | Vendored of { path : string }
   [@@deriving yojson, eq]
+
+  let ocamlformat_source_type (t:t) =
+    let osrc = ocamlformat_source t in
+    Option.map
+      (fun (osrc : Ocaml_ci.Analyse_ocamlformat.source) ->
+         match osrc with
+         | Opam { version; opam_repo_commit = _ } -> Opam { version }
+         | Vendored { path } -> Vendored { path })
+      osrc
 
   let set_equality = Alcotest.(equal (slist string String.compare))
 
@@ -23,7 +32,7 @@ module Analysis = struct
   type t = {
     opam_files : string list; [@equal set_equality]
     selection_type : string;
-    ocamlformat_source : ocamlformat_source option;
+    ocamlformat_source_type : ocamlformat_source_type option;
   }
   [@@deriving eq, yojson]
 
@@ -39,7 +48,7 @@ module Analysis = struct
            {
              opam_files = opam_files t;
              selection_type = selection_type t;
-             ocamlformat_source = ocamlformat_source t;
+             ocamlformat_source_type = ocamlformat_source_type t;
            })
 
   let t : t Alcotest.testable =
@@ -86,6 +95,7 @@ let expect_test name ~project ~expected =
                 dummy_package "logs" [ "1.0" ];
                 dummy_package "alcotest" [ "1.0" ];
                 dummy_package "opam-monorepo" [ "0.1.0" ];
+                dummy_package "ocamlformat" [ "0.12" ];
               ];
           ];
       let opam_repository = Fpath.v repo in
@@ -157,7 +167,7 @@ let test_simple =
     {
       opam_files = [ "example.opam" ];
       selection_type = "opam";
-      ocamlformat_source = Some (Opam { version = "0.12"; opam_repo_commit = "abc" });
+      ocamlformat_source_type = Some (Opam { version = "0.12" });
     }
   in
   expect_test "simple" ~project ~expected
@@ -185,7 +195,7 @@ let test_multiple_opam =
     {
       opam_files = [ "example.opam"; "example-foo.opam"; "example-bar.opam" ];
       selection_type = "opam";
-      ocamlformat_source = None;
+      ocamlformat_source_type = None;
     }
   in
   expect_test "multiple_opam" ~project ~expected
@@ -204,7 +214,7 @@ let test_opam_monorepo =
     {
       opam_files = [ "example.opam" ];
       selection_type = "opam-monorepo";
-      ocamlformat_source = None;
+      ocamlformat_source_type = None;
     }
   in
   expect_test "opam-monorepo" ~project ~expected
@@ -223,7 +233,7 @@ let test_opam_monorepo_no_version =
     {
       opam_files = [ "example.opam" ];
       selection_type = "opam";
-      ocamlformat_source = None;
+      ocamlformat_source_type = None;
     }
   in
   expect_test "opam-monorepo-no-version" ~project ~expected
@@ -238,7 +248,7 @@ let test_ocamlformat_self =
     {
       opam_files = [ "ocamlformat.opam" ];
       selection_type = "opam";
-      ocamlformat_source = Some (Vendored { path = "." });
+      ocamlformat_source_type = Some (Vendored { path = "." });
     }
   in
   expect_test "ocamlformat_self" ~project ~expected
