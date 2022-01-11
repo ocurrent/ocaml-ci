@@ -15,6 +15,13 @@
   ppx_deriving
   ppx_deriving_yojson))
 (package
+ (name ocaml-ci)
+ (synopsis "Core ocaml-ci")
+ (depends
+   logs current current_docker current_github ocaml-ci-api str capnp-rpc-unix
+   ppx_deriving_yojson.runtime ocaml-version opam-0install
+   current_ocluster ocluster-api obuilder-spec))
+(package
  (name ocaml-ci-service)
  (synopsis "Test OCaml projects on GitHub")
  (conflicts (ocaml-migrate-parsetree (= "1.7.1")))
@@ -42,7 +49,7 @@
   conf-libev
   (dockerfile-opam (>= 7.0.0))
   (ocaml-version (>= 3.0.0))
-  matrix-current
+  matrix-client
   (alcotest (and (>= 1.0.0) :with-test))
   (alcotest-lwt (and (>= 1.0.1) :with-test))))
 (package
