@@ -8,7 +8,7 @@ let jobs =
 let test_simple () =
   let owner = "owner" in
   let name = "name" in
-  let repo = { Current_github.Repo_id.owner; name } in
+  let repo = { Ocaml_ci.Repo_id.owner; name } in
   let hash = "abc" in
   let db = Lazy.force Current.Db.v in
   Index.init ();

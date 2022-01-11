@@ -239,7 +239,8 @@ let set_active_refs ~repo xs =
   let+ repo = repo
   and+ xs = xs in
   let repo = Github.Api.Repo.id repo in
-  Index.set_active_refs ~repo (
+  let repo' = {Repo_id.owner = repo.owner; name = repo.name} in
+  Index.set_active_refs ~repo:repo' (
     xs |> List.fold_left (fun acc x ->
         let commit = Github.Api.Commit.id x in
         let gref = Git.Commit_id.gref commit in
@@ -385,9 +386,10 @@ let v ?ocluster ?matrix ~app ~solver () =
     and+ builds = builds
     and+ status = status in
     let repo = Current_github.Api.Commit.repo_id commit in
+    let repo' = {Ocaml_ci.Repo_id.owner = repo.owner; name = repo.name} in
     let hash = Current_github.Api.Commit.hash commit in
     let jobs = builds |> List.map (fun (variant, (_, job_id)) -> (variant, job_id)) in
-    Index.record ~repo ~hash ~status jobs
+    Index.record ~repo:repo' ~hash ~status jobs
   and set_github_status =
     builds
     |> github_status_of_state ~head summary

@@ -20,7 +20,7 @@ module Metrics = struct
   }
 
   let count_repo ~owner name (acc : stats) =
-    let repo = { Current_github.Repo_id.owner; name } in
+    let repo = { Ocaml_ci.Repo_id.owner; name } in
     match Index.Ref_map.find_opt "refs/heads/master" (Index.get_active_refs repo) with
     | None -> acc
     | Some hash ->

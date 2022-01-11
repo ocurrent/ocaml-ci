@@ -49,7 +49,7 @@ let make_commit ~engine ~owner ~name hash =
       let open Commit.Refs in
       release_param_caps ();
       let refs =
-        Index.get_active_refs { Current_github.Repo_id.owner; name }
+        Index.get_active_refs { Ocaml_ci.Repo_id.owner; name }
         |> Index.Ref_map.bindings
         |> List.filter_map (fun (name, h) -> if h = hash then Some name else None)
       in
@@ -97,7 +97,7 @@ let make_repo ~engine ~owner ~name =
       let open Repo.Refs in
       release_param_caps ();
       let refs =
-        Index.get_active_refs { Current_github.Repo_id.owner; name }
+        Index.get_active_refs { Ocaml_ci.Repo_id.owner; name }
         |> Index.Ref_map.bindings
       in
       let response, results = Service.Response.create Results.init_pointer in
@@ -119,7 +119,7 @@ let make_repo ~engine ~owner ~name =
       let open Repo.CommitOfRef in
       let gref = Params.ref_get params in
       release_param_caps ();
-      let refs = Index.get_active_refs { Current_github.Repo_id.owner; name } in
+      let refs = Index.get_active_refs { Ocaml_ci.Repo_id.owner; name } in
       match Index.Ref_map.find_opt gref refs with
       | None -> Service.fail "@[<v2>Unknown ref %S. Options are:@,%a@]" gref
                   Fmt.(Dump.list string) (List.map fst (Index.Ref_map.bindings refs))
@@ -190,7 +190,7 @@ let make_org ~engine owner =
       repos |> List.iteri (fun i name ->
           let slot = Capnp.Array.get arr i in
           Raw.Builder.RepoInfo.name_set slot name;
-          let refs = Index.get_active_refs { Current_github.Repo_id.owner; name } in
+          let refs = Index.get_active_refs { Ocaml_ci.Repo_id.owner; name } in
           let status =
             match Index.Ref_map.find_opt "refs/heads/master" refs with
             | Some hash -> to_build_status (Index.get_status ~owner ~name ~hash)

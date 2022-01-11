@@ -95,7 +95,7 @@ end
 let get_status = Status_cache.find
 
 let record ~repo ~hash ~status jobs =
-  let { Current_github.Repo_id.owner; name } = repo in
+  let { Repo_id.owner; name } = repo in
   let t = Lazy.force db in
   let () = Status_cache.add ~owner ~name ~hash status in
   let jobs = Job_map.of_list jobs in
@@ -178,7 +178,7 @@ let active_repos = ref Owner_map.empty
 let set_active_repos ~owner x = active_repos := Owner_map.add owner x !active_repos
 let get_active_repos ~owner = Owner_map.find_opt owner !active_repos |> Option.value ~default:Repo_set.empty
 
-module Repo_map = Map.Make(Current_github.Repo_id)
+module Repo_map = Map.Make(Repo_id)
 module Ref_map = Map.Make(String)
 
 let active_refs : string Ref_map.t Repo_map.t ref = ref Repo_map.empty
