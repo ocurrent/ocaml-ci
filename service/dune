@@ -20,7 +20,7 @@
             ocaml-ci-api
             prometheus-app.unix)
  (preprocess (pps ppx_deriving_yojson))
- (modules api_impl conf github pipeline))
+ (modules api_impl conf github pipeline matrix))
 
 (executables
  (names main local)

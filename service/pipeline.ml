@@ -4,6 +4,7 @@ open Ocaml_ci
 module Git = Current_git
 module Github = Current_github
 module Docker = Current_docker.Default
+module Matrix = Matrix
 
 let platforms =
   let schedule = Current_cache.Schedule.v ~valid_for:(Duration.of_day 30) () in
@@ -99,6 +100,7 @@ let get_job_id x =
   | None -> None
 
 let build_with_docker ?ocluster ~repo ~analysis source =
+  let repo' = Current.map (fun r -> { Repo_id.owner = r.Github.Repo_id.owner; Repo_id.name = r.name }) repo in
   Current.with_context analysis @@ fun () ->
   let specs =
     let+ analysis = Current.state ~hidden:true analysis in
@@ -133,10 +135,10 @@ let build_with_docker ?ocluster ~repo ~analysis source =
   let builds = specs |> Current.list_map (module Spec) (fun spec ->
       let+ result =
         match ocluster with
-        | None -> Build.v ~platforms ~repo ~spec source
+        | None -> Build.v ~platforms ~repo:repo' ~spec source
         | Some ocluster ->
           let src = Current.map Git.Commit.id source in
-          Cluster_build.v ocluster ~platforms ~repo ~spec src
+          Cluster_build.v ocluster ~platforms ~repo:repo' ~spec src
       and+ spec = spec in
       Spec.label spec, result
     ) in

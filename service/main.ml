@@ -40,6 +40,8 @@ module Metrics = struct
     Gauge.set (master "active") (float_of_int active)
 end
 
+open Ocaml_ci_service
+
 let setup_log default_level =
   Prometheus_unix.Logging.init ?default_level ();
   Mirage_crypto_rng_unix.initialize ();
