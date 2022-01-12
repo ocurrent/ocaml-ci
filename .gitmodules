@@ -8,7 +8,7 @@
 	branch = master
 [submodule "ocaml-version"]
 	path = ocaml-version
-	url = git://github.com/ocurrent/ocaml-version.git
+	url = https://github.com/ocurrent/ocaml-version.git
 	branch = master
 [submodule "ocaml-dockerfile"]
 	path = ocaml-dockerfile
