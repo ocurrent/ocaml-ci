@@ -1,5 +1,6 @@
-(executables
- (names main local)
+(library
+ (name ocaml_ci_service)
+ (public_name ocaml-ci-service)
  (libraries logs.fmt
             logs.cli
             fmt.tty
@@ -18,7 +19,32 @@
             ocaml_ci
             ocaml-ci-api
             prometheus-app.unix)
- (preprocess (pps ppx_deriving_yojson)))
+ (preprocess (pps ppx_deriving_yojson))
+ (modules api_impl conf github pipeline))
+
+(executables
+ (names main local)
+ (libraries logs.fmt
+            logs.cli
+            fmt.tty
+            fmt.cli
+            current
+            current_web
+            current_docker
+            current_git
+            current_github
+            current_rpc
+            dockerfile-opam
+            ocluster-api
+            capnp-rpc-unix
+            mirage-crypto-rng.unix
+            matrix-current
+            ocaml-ci
+            ocaml-ci-api
+            ocaml_ci_service
+            prometheus-app.unix)
+ (preprocess (pps ppx_deriving_yojson))
+ (modules main local))
 
 ; This is a hack to work around https://github.com/ocaml/dune/issues/3499
 ; We first build the binaries, then copy them to a new name, then install them.

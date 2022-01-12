@@ -1,3 +1,4 @@
+(** Git source repository *)
 type t = {
   owner : string;
   name : string;

@@ -7,8 +7,6 @@ type job_state = [`Not_started | `Active | `Failed of string | `Passed | `Aborte
 
 type build_status = [ `Not_started | `Pending | `Failed | `Passed ]
 
-(* type repo_id = Current_github.Repo_id.t *)
-
 val init : unit -> unit
 (** Ensure the database is initialised (for unit-tests). *)
 

@@ -48,14 +48,14 @@ module Op = struct
   module Key = struct
     type t = {
       commit : Current_git.Commit.t;            (* The source code to build and test *)
-      repo : Current_github.Repo_id.t;          (* Used to choose a build cache *)
+      repo : Repo_id.t;          (* Used to choose a build cache *)
       label : string;                           (* A unique ID for this build within the commit *)
     }
 
     let to_json { commit; label; repo } =
       `Assoc [
         "commit", `String (Current_git.Commit.hash commit);
-        "repo", `String (Fmt.to_to_string Current_github.Repo_id.pp repo);
+        "repo", `String (Fmt.to_to_string Repo_id.pp repo);
         "label", `String label;
       ]
 
@@ -120,7 +120,7 @@ module Op = struct
 
   let pp f ({ Key.repo; commit; label }, _) =
     Fmt.pf f "test %a %a (%s)"
-      Current_github.Repo_id.pp repo
+      Repo_id.pp repo
       Current_git.Commit.pp commit
       label
 

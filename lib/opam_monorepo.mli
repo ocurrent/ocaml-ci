@@ -22,7 +22,7 @@ val selection :
 (** Describe build steps *)
 val spec :
   base:string ->
-  repo:Current_github.Repo_id.t ->
+  repo:Repo_id.t ->
   config:config ->
   variant:Variant.t ->
   Obuilder_spec.t
