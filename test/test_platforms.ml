@@ -5,6 +5,7 @@ let debian_10_vars ocaml_package ocaml_version =
     os_family = "debian";
     os_distribution = "debian";
     os_version = "10";
+    opam_version = "2.0.10";
     ocaml_package;
     ocaml_version
   }

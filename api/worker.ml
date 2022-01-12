@@ -10,6 +10,7 @@ module Vars = struct
     os_version : string;
     ocaml_package : string;
     ocaml_version : string;
+    opam_version : string;
   } [@@deriving yojson]
 end
 
