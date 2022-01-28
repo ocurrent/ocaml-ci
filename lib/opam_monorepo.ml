@@ -83,7 +83,7 @@ let between a b = Printf.sprintf {|{ >= "%s" & < "%s" }|} a b
 
 let plugin_version = function
   | V0_1 -> between "0.1.0" "0.3.0"
-  | V0_2 -> between "0.2.0" "0.3.0"
+  | V0_2 -> between "0.2.6" "0.3.0"
 
 let opam_dep_file packages =
   let lines =
@@ -160,10 +160,7 @@ let install_depexts ~network ~cache ~package ~lock_file_version =
       ]
   | V0_2 ->
       [
-        run ~network ~cache
-          "sudo apt-get -y update && sudo apt-get -y install $(opam show -f \
-           depexts ./%s.opam.locked)"
-          package;
+        run ~network ~cache "opam monorepo depext --yes --lock ./%s.opam.locked" package;
       ]
 
 let initialize_switch ~network = function
