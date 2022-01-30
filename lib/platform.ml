@@ -133,24 +133,30 @@ let query builder ~variant ~host_image image =
   let docker_context = builder.Builder.docker_context in
   QC.run Query.No_context { Query.Key.docker_context; variant } { Query.Value.image; host_image }
 
-let get ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base base =
-  match Variant.v ~arch ~distro ~ocaml_version with
+let get ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base ~opam_version base =
+  match Variant.v ~arch ~distro ~ocaml_version ~opam_version with
   | Error (`Msg m) -> Current.fail m
   | Ok variant ->
   let+ { Query.Outcome.vars; image } = query builder ~variant ~host_image:host_base base in
   (* It would be better to run the opam query on the platform itself, but for
      now we run everything on x86_64 and then assume that the other
      architectures are the same except for the arch flag. *)
-  let vars = { vars with arch = Ocaml_version.to_opam_arch arch } in
+  let vars = {
+      vars with
+        arch = Ocaml_version.to_opam_arch arch;
+        opam_version = Opam_version.to_string_with_patch opam_version;
+    } in
   let base = Raw.Image.of_hash image in
   { label; builder; pool; variant; base; vars }
 
-let pull ~arch ~schedule ~builder ~distro ~ocaml_version =
-  match Variant.v ~arch ~distro ~ocaml_version with
+let pull ~arch ~schedule ~builder ~distro ~ocaml_version ~opam_version =
+  match Variant.v ~arch ~distro ~ocaml_version ~opam_version with
   | Error (`Msg m) -> Current.fail m
   | Ok variant ->
   let archl = Ocaml_version.to_opam_arch arch in
-  Current.component "pull@,%s %a %s" distro Ocaml_version.pp ocaml_version archl |>
+  let opam_version = Opam_version.to_string opam_version in
+  Current.component "pull@,%s %a %s opam-%s"
+    distro Ocaml_version.pp ocaml_version archl opam_version|>
   let> () = Current.return () in
   let tag = Variant.docker_tag variant in
   Builder.pull ~schedule ~arch builder @@ "ocaml/opam:" ^ tag

@@ -7,16 +7,18 @@ module Docker = Current_docker.Default
 
 let platforms =
   let schedule = Current_cache.Schedule.v ~valid_for:(Duration.of_day 30) () in
-  let v { Conf.label; builder; pool; distro; ocaml_version; arch } =
-    let base = Platform.pull ~arch ~schedule ~builder ~distro ~ocaml_version in
+  let v { Conf.label; builder; pool; distro; ocaml_version; arch; opam_version } =
+    let base = Platform.pull ~arch ~schedule ~builder ~distro ~ocaml_version ~opam_version in
     let host_base =
       match arch with
       | `X86_64 -> base
-      | _ -> Platform.pull ~arch:`X86_64 ~schedule ~builder ~distro ~ocaml_version
+      | _ -> Platform.pull ~arch:`X86_64 ~schedule ~builder ~distro ~ocaml_version ~opam_version
     in
-    Platform.get ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base base
+    Platform.get ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base ~opam_version base
   in
-  Current.list_seq (List.map v Conf.platforms)
+  let v2_0 = Conf.platforms `V2_0 in
+  let v2_1 = Conf.platforms `V2_1 in
+  Current.list_seq (List.map v (v2_0 @ v2_1))
 
 (* Link for GitHub statuses. *)
 let url ~owner ~name ~hash = Uri.of_string (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s" owner name hash)
@@ -272,10 +274,12 @@ let build_with_docker ?ocluster ~repo ~analysis source =
       | `Opam_build selections ->
         let lint_selection = List.hd selections in
         let builds =
-          selections |> List.map (fun selection ->
-              let label = Variant.to_string selection.Selection.variant in
-              Spec.opam ~label ~selection ~analysis `Build
-            )
+          selections
+          |> Selection.filter_duplicate_opam_versions
+          |> List.map (fun selection ->
+               let label = Variant.to_string selection.Selection.variant in
+               Spec.opam ~label ~selection ~analysis `Build
+             )
         and lint =
           [
             Spec.opam ~label:"(lint-fmt)" ~selection:lint_selection ~analysis (`Lint `Fmt);

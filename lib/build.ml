@@ -30,8 +30,9 @@ let rec with_commit_lock ~job commit variant fn =
 
 let make_build_spec ~base ~repo ~variant ~ty =
     let base = Raw.Image.hash base in
+    let opam_version = Variant.opam_version variant in
     match ty with
-    | `Opam (`Build, selection, opam_files) -> Opam_build.spec ~base ~opam_files ~selection
+    | `Opam (`Build, selection, opam_files) -> Opam_build.spec ~base ~opam_files ~selection ~opam_version
     | `Opam (`Lint `Doc, selection, opam_files) -> Lint.doc_spec ~base ~opam_files ~selection
     | `Opam (`Lint `Opam, selection, opam_files) -> Lint.opam_lint_spec ~base ~opam_files ~selection
     | `Opam_fmt (selection, ocamlformat_source) -> Lint.fmt_spec ~base ~ocamlformat_source ~selection

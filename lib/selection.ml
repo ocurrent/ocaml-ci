@@ -17,3 +17,26 @@ let remove_package t ~package =
     packages =
       List.filter (fun p -> not (String.equal p package)) t.packages;
   }
+
+let filter_duplicate_opam_versions ts =
+  let tbl = Hashtbl.create (List.length ts) in
+  let key t =
+    Variant.distro t.variant,
+    Variant.ocaml_version t.variant,
+    Variant.arch t.variant
+  in
+  List.iter (fun t ->
+      let opam_version = Variant.opam_version t.variant in
+      let k = key t in
+      let v = match Hashtbl.find_opt tbl k with
+        | None -> opam_version, t
+        | Some (version, v) ->
+           (* keep the oldest supported opam version *)
+           if Opam_version.compare opam_version version < 0 then
+             (opam_version, t)
+           else
+             (version, v)
+      in
+      Hashtbl.replace tbl k v
+    ) ts;
+  Hashtbl.fold (fun _ (_, v) acc -> v :: acc) tbl []
