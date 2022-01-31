@@ -11,7 +11,8 @@ let debian_10_vars ocaml_package ocaml_version =
   }
 
 let var distro ov =
-  Ocaml_ci.Variant.v ~arch:`X86_64 ~distro ~ocaml_version:(Ocaml_version.of_string_exn ov) |>
+  Ocaml_ci.Variant.v ~arch:`X86_64 ~distro
+    ~ocaml_version:(Ocaml_version.of_string_exn ov) ~opam_version:`V2_0 |>
   function Ok v -> v | Error (`Msg m) -> failwith m
 
 let v = [

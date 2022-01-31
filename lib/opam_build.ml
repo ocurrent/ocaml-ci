@@ -59,7 +59,7 @@ let rec get_root_opam_packages = function
 
 let download_cache = "opam-archives"
 
-let install_project_deps ~opam_files ~selection =
+let install_project_deps ~opam_version ~opam_files ~selection =
   let { Selection.packages; commit; variant } = selection in
   let groups = group_opam_files opam_files in
   let root_pkgs = get_root_opam_packages groups in
@@ -74,28 +74,35 @@ let install_project_deps ~opam_files ~selection =
       []
   in
   let network = ["host"] in
+  let opam_cmd = "/usr/bin/opam-" ^ (Opam_version.to_string opam_version) in
+  let root_pkgs = String.concat " " root_pkgs in
+  let non_root_pkgs = String.concat " " non_root_pkgs in
+  let opam_depext = match opam_version with
+    | `V2_0 -> run ~network ~cache "opam depext --update -y %s $DEPS" root_pkgs
+    | `V2_1 -> run ~network ~cache "opam install --cli=2.1 --depext-only -y %s $DEPS" root_pkgs
+  in
   (if Variant.arch variant |> Ocaml_version.arch_is_32bit then
      [shell ["/usr/bin/linux32"; "/bin/sh"; "-c"]] else [])
   @ distro_extras @ [
+    run "sudo ln -f %s /usr/bin/opam" opam_cmd;
     workdir "/src";
     run "sudo chown opam /src";
     run ~network ~cache
       "cd ~/opam-repository && \
        (git cat-file -e %s || git fetch origin master) && \
        git reset -q --hard %s && git log --no-decorate -n1 --oneline \
-       && opam update -u" commit commit;
-  ] @ pin_opam_files ~network groups @ [
-    env "DEPS" (String.concat " " non_root_pkgs);
-    run ~network ~cache "opam depext --update -y %s $DEPS" (String.concat " " root_pkgs);
-    run ~network ~cache "opam install $DEPS"
-  ]
+       && opam update -u" commit commit ]
+  @ pin_opam_files ~network groups @ [
+    env "DEPS" non_root_pkgs;
+    opam_depext;
+    run ~network ~cache "opam install $DEPS" ]
 
-let spec ~base ~opam_files ~selection =
+let spec ~base ~opam_version ~opam_files ~selection =
   let open Obuilder_spec in
   stage ~from:base (
     comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant) ::
     user ~uid:1000 ~gid:1000 ::
-    install_project_deps ~opam_files ~selection @ [
+    install_project_deps ~opam_version ~opam_files ~selection @ [
       copy ["."] ~dst:"/src/";
       run "opam exec -- dune build @install @check @runtest && rm -rf _build"
     ]

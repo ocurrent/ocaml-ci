@@ -1,3 +1,6 @@
+(* Use opam-2.1 to lint the packages *)
+let opam_version = `V2_1
+
 let install_ocamlformat =
   let open Obuilder_spec in
   let cache = [ Obuilder_spec.Cache.v Opam_build.download_cache ~target:"/home/opam/.opam/download-cache" ] in
@@ -44,7 +47,7 @@ let doc_spec ~base ~opam_files ~selection =
   stage ~from:base @@
     comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant) ::
     user ~uid:1000 ~gid:1000 ::
-    Opam_build.install_project_deps ~opam_files ~selection @ [
+    Opam_build.install_project_deps ~opam_version ~opam_files ~selection @ [
       (* Warnings-as-errors was introduced in Odoc.1.5.0 *)
       (* conf-m4 is a work-around for https://github.com/ocaml-opam/opam-depext/pull/132 *)
       run ~network ~cache "opam depext -i conf-m4 && opam depext -i dune 'odoc>=1.5.0'";
@@ -71,7 +74,7 @@ let opam_lint_spec ~base ~opam_files ~selection =
     ~from:base @@
     comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant) ::
     user ~uid:1000 ~gid:1000 ::
-    Opam_build.install_project_deps ~opam_files ~selection @ [
+    Opam_build.install_project_deps ~opam_version ~opam_files ~selection @ [
       workdir "/src";
       copy ["."] ~dst:"/src/";
       run "opam lint %s" (String.concat " " opam_files);
