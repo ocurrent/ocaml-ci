@@ -72,7 +72,7 @@ let of_string s =
    | None -> s, `X86_64, Opam_version.default
    | Some (s, a) ->
       let arch a = Ocaml_version.of_opam_arch a |> Option.value ~default:`X86_64 in
-      match Astring.String.cut ~rev:true ~sep:"_opam-" a with
+      match Astring.String.cut ~rev:true ~sep:"opam-" a with
       | None -> s, arch a, Opam_version.default
       | Some (a, v) ->
          match Opam_version.of_string v with
