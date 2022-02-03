@@ -66,19 +66,31 @@ let pp f t =
 let to_string =
   Fmt.str "%a" pp
 
+let err_variant id = failwith ("internal error: unknown variant " ^ id)
+let err_arch a = failwith ("internal error: unknown arch " ^ a)
+let err_opam_version id = failwith ("internal error: unknown opam version " ^ id)
+
+let arch_of_string a =
+  match Ocaml_version.of_opam_arch a with
+  | Some a -> a
+  | None -> err_arch a
+
+let opam_version_of_string v =
+  match Opam_version.of_string v with
+  | Ok v -> v
+  | Error _  -> err_opam_version v
+
 let of_string s =
-  let id, arch, opam_version =
-   match Astring.String.cut ~sep:"_" s with
-   | None -> s, `X86_64, Opam_version.default
-   | Some (s, a) ->
-      let arch a = Ocaml_version.of_opam_arch a |> Option.value ~default:`X86_64 in
-      match Astring.String.cut ~rev:true ~sep:"_opam-" a with
-      | None -> s, arch a, Opam_version.default
-      | Some (a, v) ->
-         match Opam_version.of_string v with
-         | Ok v -> s, arch a, v
-         | Error _ -> s, arch a, Opam_version.default
+  let s, opam_version =
+    match Astring.String.cut ~rev:true ~sep:"_opam-" s with
+    | None -> s, Opam_version.default
+    | Some (s, v) -> s, opam_version_of_string v
+  in
+  let id, arch =
+    match Astring.String.cut ~sep:"_" s with
+    | None -> s, `X86_64
+    | Some (id, a) -> id, arch_of_string a
   in
   match id_of_string id with
-  | None -> raise (Failure ("internal error: unknown variant " ^ id))
+  | None -> err_variant id
   | Some (distro, ocaml_version) -> { arch; distro; ocaml_version; opam_version }
