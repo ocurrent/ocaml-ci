@@ -126,7 +126,8 @@ let main ~ci_uri ~repo ~target ~variant ~job_op =
 open Cmdliner
 
 let setup_log =
-  Term.(const Logging.init $ Fmt_cli.style_renderer () $ Logs_cli.level ())
+  let docs = Manpage.s_common_options in
+  Term.(const Logging.init $ Fmt_cli.style_renderer ~docs () $ Logs_cli.level ~docs ())
 
 let cap =
   Arg.value @@
@@ -214,7 +215,7 @@ let cmd =
     | Error `Capnp ex -> Fmt.epr "%a@." Capnp_rpc.Error.pp ex; exit 1
     | Error `Msg m -> Fmt.epr "%s@." m; exit 1
   in
-  Term.(const main $ setup_log $ cap $ repo $ target $ variant $ job_op),
-  Term.info "ocaml-ci" ~doc
+  let info = Cmd.info "ocaml-ci" ~doc in
+  Cmd.v info Term.(const main $ setup_log $ cap $ repo $ target $ variant $ job_op)
 
-let () = Term.(exit @@ eval cmd)
+let () = exit @@ Cmd.eval cmd
