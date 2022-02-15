@@ -16,5 +16,5 @@
 	branch = master
 [submodule "ocaml-matrix"]
 	path = ocaml-matrix
-	url = https://github.com/clecat/ocaml-matrix.git
-	branch = master
+	url = https://github.com/mirage/ocaml-matrix.git
+	branch = main

@@ -72,19 +72,19 @@ let platforms opam_version =
   let master_distro = DD.resolve_alias DD.master_distro in
   let make_distro distro =
     let distro = DD.resolve_alias distro in
-    let label = DD.latest_tag_of_distro distro in
-    let tag = DD.tag_of_distro distro in
+    let label = DD.latest_tag_of_distro (distro :> DD.t) in
+    let tag = DD.tag_of_distro (distro :> DD.t) in
     let ov = OV.(Releases.latest |> with_just_major_and_minor) in
     let multicore_latest = OV.(Releases.v4_12 |> with_just_major_and_minor) in
     if distro = master_distro then
       v label tag (OV.with_variant ov (Some "flambda")) ::
       v label tag (OV.with_variant multicore_latest (Some "domains")) ::
-      List.map (fun arch -> v ~arch label tag ov) (DD.distro_arches ov distro)
+      List.map (fun arch -> v ~arch label tag ov) (DD.distro_arches ov (distro :> DD.t))
     else
       [v label tag ov]
   in
   let make_release ?arch ov =
-    let distro = DD.tag_of_distro master_distro in
+    let distro = DD.tag_of_distro (master_distro :> DD.t) in
     let ov = OV.with_just_major_and_minor ov in
     v ?arch (OV.to_string ov) distro ov in
   match profile with
