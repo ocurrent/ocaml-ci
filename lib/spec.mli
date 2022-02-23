@@ -1,5 +1,5 @@
 type ty = [
-  | `Opam of [ `Build | `Lint of [ `Doc | `Opam ]] * Selection.t * string list
+  | `Opam of [ `Build | `Lint of [ `Doc ]] * Selection.t * string list
   | `Opam_fmt of Selection.t * Analyse_ocamlformat.source option
   | `Opam_monorepo of Opam_monorepo.config
 ] [@@deriving to_yojson, ord]
@@ -14,7 +14,7 @@ val opam :
   label:string ->
   selection:Selection.t ->
   analysis:Analyse.Analysis.t ->
-  [ `Build | `Lint of [ `Doc | `Fmt | `Opam ] ] ->
+  [ `Build | `Lint of [ `Doc | `Fmt] ] ->
   t
 
 val opam_monorepo : config:Opam_monorepo.config -> t

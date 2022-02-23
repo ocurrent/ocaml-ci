@@ -65,7 +65,7 @@ module Op = struct
     let deps =
       match ty with
       | `Opam (`Build, selection, _) -> hash_packages selection.packages
-      | `Opam (`Lint (`Doc|`Opam), selection, _) -> hash_packages selection.packages
+      | `Opam (`Lint (`Doc), selection, _) -> hash_packages selection.packages
       | `Opam_fmt (selection, _) -> "ocamlformat-" ^ selection.Selection.commit
       | `Opam_monorepo _ -> "opam-monorepo-" ^ (Variant.to_string variant)
     in
@@ -149,7 +149,7 @@ let v t ~platforms ~repo ~spec source =
     match spec.ty with
     | `Opam_monorepo _
     | `Opam (`Build, _, _) -> `Built
-    | `Opam (`Lint (`Doc|`Opam), _, _) -> `Checked
+    | `Opam (`Lint (`Doc), _, _) -> `Checked
     | `Opam_fmt _ -> `Checked
   in
   result, job_id
