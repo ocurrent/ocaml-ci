@@ -60,7 +60,7 @@ let install_opam_dune_lint ~cache ~network ~base =
   let open Obuilder_spec in
   stage ~from:base [
     user ~uid:1000 ~gid:1000;
-    run ~cache ~network "git -C ~/opam-repository pull origin master && opam update && opam pin add -yn opam-dune-lint.dev https://github.com/ocurrent/opam-dune-lint.git#a431a1128b9564d1b3d08b8bee2977be47bc6b6b";
+    run ~cache ~network "git -C ~/opam-repository pull origin master && opam update && opam pin add -yn opam-dune-lint.dev https://github.com/ocurrent/opam-dune-lint.git#fa223083adec698a8c43268a1a1b5b33bafd3722";
     run ~cache ~network "opam depext -i opam-dune-lint";
     run "sudo cp $(opam exec -- which opam-dune-lint) /usr/local/bin/";
   ]
