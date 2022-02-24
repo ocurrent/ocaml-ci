@@ -65,7 +65,7 @@ let install_opam_dune_lint ~cache ~network ~base =
     run "sudo cp $(opam exec -- which opam-dune-lint) /usr/local/bin/";
   ]
 
-let opam_lint_spec ~base ~opam_files ~selection =
+let opam_dune_lint_spec ~base ~opam_files ~selection =
   let cache = [ Obuilder_spec.Cache.v Opam_build.download_cache ~target:"/home/opam/.opam/download-cache" ] in
   let network = ["host"] in
   let open Obuilder_spec in
@@ -82,4 +82,13 @@ let opam_lint_spec ~base ~opam_files ~selection =
         ~from:(`Build "opam-dune-lint")
         ~dst:"/usr/local/bin/";
       run "opam exec -- opam-dune-lint";
+    ]
+
+let opam_lint_spec ~base ~opam_files =
+  let open Obuilder_spec in
+  stage ~from:base [
+      user ~uid:1000 ~gid:1000;
+      workdir "src";
+      copy ["./"] ~dst:"./";
+      run "opam lint %s" (String.concat " " opam_files);
     ]
