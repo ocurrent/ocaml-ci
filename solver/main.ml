@@ -70,7 +70,7 @@ let worker_hash =
 
 let cmd =
   let doc = "Solver for ocaml-ci" in
-  Term.(const main $ setup_log $ worker_hash),
-  Term.info "solver" ~doc
+  let info = Cmd.info "solver" ~doc in
+  Cmd.v info Term.(const main $ setup_log $ worker_hash)
 
-let () = Term.(exit @@ eval cmd)
+let () = exit @@ Cmd.eval cmd

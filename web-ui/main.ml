@@ -78,7 +78,7 @@ let backend_cap =
 
 let cmd =
   let doc = "A web front-end for OCaml-CI" in
-  Term.(const main $ setup_log $ port $ backend_cap $ Prometheus_unix.opts),
-  Term.info "ocaml-ci-web" ~doc
+  let info = Cmd.info "ocaml-ci-web" ~doc in
+  Cmd.v info Term.(const main $ setup_log $ port $ backend_cap $ Prometheus_unix.opts)
 
-let () = Term.(exit @@ eval cmd)
+let () = exit @@ Cmd.eval cmd

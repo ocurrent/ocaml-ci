@@ -113,7 +113,8 @@ let main () config mode app capnp_address github_auth submission_uri matrix : ('
 open Cmdliner
 
 let setup_log =
-  Term.(const setup_log $ Logs_cli.level ())
+  let docs = Manpage.s_common_options in
+  Term.(const setup_log $ Logs_cli.level ~docs ())
 
 let capnp_address =
   Arg.value @@
@@ -133,9 +134,11 @@ let submission_service =
 
 let cmd =
   let doc = "Build OCaml projects on GitHub" in
-  Term.(term_result (const main $ setup_log $ Current.Config.cmdliner $ Current_web.cmdliner $
-                     Current_github.App.cmdliner $ capnp_address $ Current_github.Auth.cmdliner $ submission_service $
-                     Matrix_current.cmdliner)),
-  Term.info "ocaml-ci-service" ~doc
+  let info = Cmd.info "ocaml-ci-service" ~doc in
+  Cmd.v info
+    Term.(term_result (const main $ setup_log $ Current.Config.cmdliner
+                       $ Current_web.cmdliner $ Current_github.App.cmdliner
+                       $ capnp_address $ Current_github.Auth.cmdliner
+                       $ submission_service $ Matrix_current.cmdliner))
 
-let () = Term.(exit @@ eval cmd)
+let () = exit @@ Cmd.eval cmd
