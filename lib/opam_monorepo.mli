@@ -1,7 +1,7 @@
 type info
 
 (** Detect whether a project uses opam-monorepo or something else. *)
-val detect : dir:Fpath.t -> info option
+val detect : dir:Fpath.t -> info list option
 
 type config [@@deriving yojson, ord]
 
@@ -17,7 +17,7 @@ val selection :
      pinned_pkgs:(string * string) list ->
      platforms:(Variant.t * Ocaml_ci_api.Worker.Vars.t) list ->
      (Selection.t list, Rresult.R.msg) Lwt_result.t) ->
-  ([> `Opam_monorepo of config ], Rresult.R.msg) Lwt_result.t
+  (config, Rresult.R.msg) Lwt_result.t
 
 (** Describe build steps *)
 val spec :
