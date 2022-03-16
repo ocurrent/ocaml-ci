@@ -38,6 +38,5 @@ build: [
 ]
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
 pin-depends: [
-  ["hxd.0.3.1" "git+https://github.com/dinosaure/hxd.git#4d3c4b35d74cbd9782d12a8d13a7d047db17e182"]
-  ["git-unix.3.8.0" "git+https://github.com/MisterDA/ocaml-git.git#d52aa79f782d3654e3661778811888554d99e337"]
+  ["git-unix.3.8.0" "git+https://github.com/mirage/ocaml-git.git#36dc0aa323968e2459e5e6137e2f98c2c09f4d74"]
 ]
