@@ -1,10 +1,10 @@
-FROM ocaml/opam:debian-11-ocaml-4.14@sha256:5b9de826b22c77a0654519d0959536f93a6ffd7020712a8b1c3437445e031e04 AS build
+FROM ocaml/opam:debian-11-ocaml-4.14@sha256:b83fcce3b715fe10ee2d3060763379e1ad9be76832d67203652f2c0abd6ae50d AS build
 RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libsqlite3-dev libgmp-dev graphviz -y --no-install-recommends
-RUN cd ~/opam-repository && git fetch origin master && git reset --hard 97da9a1b68b824a65a09e5f7d071fcf2da35bd1b && opam update
+RUN cd ~/opam-repository && git pull origin -q master && git reset --hard 11e634fd946c90fdb26c14ae5f7759e644c898f0 && opam update
 COPY --chown=opam \
 	ocurrent/current_docker.opam \
 	ocurrent/current_github.opam \
-        ocurrent/current_gitlab.opam \
+	ocurrent/current_gitlab.opam \
 	ocurrent/current_git.opam \
 	ocurrent/current.opam \
 	ocurrent/current_rpc.opam \
@@ -21,6 +21,11 @@ COPY --chown=opam \
 COPY --chown=opam \
 	ocaml-dockerfile/dockerfile*.opam \
 	/src/ocaml-dockerfile/
+COPY --chown=opam \
+        ocaml-matrix/matrix-common.opam \
+        ocaml-matrix/matrix-ctos.opam \
+        ocaml-matrix/matrix-current.opam \
+        /src/ocaml-matrix/
 WORKDIR /src
 RUN opam pin add -yn current_docker.dev "./ocurrent" && \
     opam pin add -yn current_github.dev "./ocurrent" && \
@@ -34,11 +39,14 @@ RUN opam pin add -yn current_docker.dev "./ocurrent" && \
     opam pin add -yn ocaml-version.dev "./ocaml-version" && \
     opam pin add -yn dockerfile.dev "./ocaml-dockerfile" && \
     opam pin add -yn dockerfile-opam.dev "./ocaml-dockerfile" && \
+    opam pin add -yn matrix-common.dev "./ocaml-matrix" && \
+    opam pin add -yn matrix-ctos.dev "./ocaml-matrix" && \
+    opam pin add -yn matrix-current.dev "./ocaml-matrix" && \
     opam pin add -yn ocluster-api.dev "./ocluster"
 COPY --chown=opam ocaml-ci-service.opam ocaml-ci.opam ocaml-ci-gitlab.opam ocaml-ci-api.opam ocaml-ci-solver.opam /src/
 RUN opam-2.1 install -y --deps-only .
 ADD --chown=opam . .
-RUN opam-2.1 exec -- dune build ./_build/install/default/bin/ocaml-ci-service
+RUN opam-2.1 exec -- dune build ./_build/install/default/bin/ocaml-ci-gitlab
 
 FROM debian:11
 RUN apt-get update && apt-get install libev4 openssh-client curl gnupg2 dumb-init git graphviz libsqlite3-dev ca-certificates netbase -y --no-install-recommends
@@ -46,8 +54,8 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -
 RUN echo 'deb [arch=amd64] https://download.docker.com/linux/debian buster stable' >> /etc/apt/sources.list
 RUN apt-get update && apt-get install docker-ce -y --no-install-recommends
 WORKDIR /var/lib/ocurrent
-ENTRYPOINT ["dumb-init", "/usr/local/bin/ocaml-ci-service"]
+ENTRYPOINT ["dumb-init", "/usr/local/bin/ocaml-ci-gitlab"]
 ENV OCAMLRUNPARAM=a=2
 # Enable experimental for docker manifest support
 ENV DOCKER_CLI_EXPERIMENTAL=enabled
-COPY --from=build /src/_build/install/default/bin/ocaml-ci-service /src/_build/install/default/bin/ocaml-ci-solver /usr/local/bin/
+COPY --from=build /src/_build/install/default/bin/ocaml-ci-gitlab /src/_build/install/default/bin/ocaml-ci-solver /usr/local/bin/

@@ -21,10 +21,11 @@
    logs
    current
    current_docker
+   current_github
    ocaml-ci-api
-   capnp-rpc-unix
-   ppx_deriving_yojson
-   ocaml-version
+   (capnp-rpc-unix (>= 1.2))
+   (ppx_deriving_yojson (>= 3.6.1))
+   (ocaml-version (>= 3.0.0))
    opam-0install
    current_ocluster
    ocluster-api
@@ -108,3 +109,23 @@
   (capnp-rpc-unix (>= 1.2))
   ocaml-ci-api
   dockerfile))
+
+(package
+ (name ocaml-ci-gitlab)
+ (synopsis "A CI for OCaml projects on GitLab")
+ (description "A CI for OCaml projects on GitLab")
+ (depends
+  (ocaml (>= 4.08.0))
+   dune
+  (alcotest :with-test)
+  (odoc :with-doc)
+   current
+   current_git
+   current_gitlab
+   current_docker
+   prometheus
+   cmdliner
+   ocaml-ci
+   ocaml-ci-service
+   logs
+   fmt))
