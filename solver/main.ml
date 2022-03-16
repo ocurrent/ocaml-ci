@@ -1,6 +1,6 @@
 open Lwt.Infix
 
-let n_workers = 20
+let n_workers = 6
 
 let pp_timestamp f x =
   let open Unix in

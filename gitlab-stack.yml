@@ -1,0 +1,61 @@
+# *[ocaml_ci_gitlab][~/projects/tarides/infrastructure/ci.ocamllabs.io]$ docker -c tezos.ci.dev secret create ocaml-ci-gitlab-oauth ~/projects/tarides/secrets/tezos.ci.dev/ocaml-ci-gitlab-oauth
+# *[ocaml_ci_gitlab][~/projects/tarides/infrastructure/ci.ocamllabs.io]$ docker -c tezos.ci.dev secret create ocaml-ci-gitlab-token ~/projects/tarides/secrets/tezos.ci.dev/ocaml-ci-gitlab-token
+# *[ocaml_ci_gitlab][~/projects/tarides/infrastructure/ci.ocamllabs.io]$ docker -c tezos.ci.dev secret create ocaml-ci-gitlab-webhook-secret ~/projects/tarides/secrets/tezos.ci.dev/ocaml-ci-gitlab-webhook-secret 
+
+version: "3.8"
+volumes:
+  data:
+  capnp-secrets:
+
+secrets:
+  ocaml-ci-gitlab-oauth: # GitLab oauth token
+    external: true
+  ocaml-ci-gitlab-token: # GitLab token
+    external: true
+  tezos-ci-submission-cap: # Tezos cluster with x86_64 and ARM64 workers
+    external: true
+  # ocaml-ci-submission.cap: # TODO Should be using submission capability to ocaml-ci cluster to access more platforms
+  #   external: true
+  ocaml-ci-gitlab-webhook-secret: # Webhook secret for GitLab
+    external: true
+
+networks:
+  infra_default:
+    external: true
+
+services:
+  ci:
+    # Deploys an image built via deploy.sh
+    image: ocaml-ci-gitlab
+    command: --gitlab-oauth /run/secrets/ocaml-ci-gitlab-oauth --gitlab-token-file /run/secrets/ocaml-ci-gitlab-token --gitlab-webhook-secret-file /run/secrets/ocaml-ci-gitlab-webhook-secret --submission-service /run/secrets/tezos-ci-submission-cap --capnp-address=tcp:gitlab.tezos.ci.dev:8102
+
+    environment:
+      - "CI_PROFILE=production"
+      - "DOCKER_BUILDKIT=1"
+      - "PROGRESS_NO_TRUNC=1"
+    ports:
+      - '8102:9000'
+    volumes:
+      - 'data:/var/lib/ocurrent'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+      - 'capnp-secrets:/capnp-secrets'
+    secrets:
+      - 'ocaml-ci-gitlab-oauth'
+      - 'ocaml-ci-gitlab-token'
+      - 'tezos-ci-submission-cap'
+      - 'ocaml-ci-gitlab-webhook-secret'
+    sysctls:
+      - 'net.ipv4.tcp_keepalive_time=60'
+    networks:
+      - infra_default
+
+  web:
+    image: ocaml-ci-github-web
+    command: --backend /capnp-secrets/ocaml-ci-admin.cap --listen-prometheus=9090
+    volumes:
+      - 'capnp-secrets:/capnp-secrets:ro'
+    sysctls:
+      - 'net.ipv4.tcp_keepalive_time=60'
+    networks:
+      - infra_default
+      
