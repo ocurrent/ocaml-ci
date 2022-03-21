@@ -6,7 +6,7 @@ authors: ["talex5@gmail.com"]
 homepage: "https://github.com/ocurrent/ocaml-ci"
 bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
-  "dune" {>= "2.0"}
+  "dune" {>= "3.0"}
   "ppx_deriving_yojson" {>= "3.6.1"}
   "ppx_deriving" {>= "5.1"}
   "yojson"
@@ -18,12 +18,13 @@ depends: [
   "opam-0install" {>= "0.2"}
   "git-unix" {>= "3.9.0"}
   "capnp-rpc-unix" {>= "1.2"}
+  "odoc" {with-doc}
 ]
 conflicts: [
   "carton" {< "0.4.2"}
 ]
 build: [
-  ["dune" "subst"] {pinned}
+  ["dune" "subst"] {dev}
   [
     "dune"
     "build"

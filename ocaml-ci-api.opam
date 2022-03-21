@@ -6,15 +6,16 @@ authors: ["talex5@gmail.com"]
 homepage: "https://github.com/ocurrent/ocaml-ci"
 bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
-  "dune" {>= "2.0"}
+  "dune" {>= "3.0"}
   "current_rpc"
   "capnp" {>= "3.4.0"}
   "capnp-rpc-lwt"
   "ppx_deriving"
   "ppx_deriving_yojson"
+  "odoc" {with-doc}
 ]
 build: [
-  ["dune" "subst"] {pinned}
+  ["dune" "subst"] {dev}
   [
     "dune"
     "build"

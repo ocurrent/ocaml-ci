@@ -6,9 +6,6 @@ let setup_log default_level =
 
 module Server = Cohttp_lwt_unix.Server
 
-let errorf fmt =
-  fmt |> Fmt.kstr @@ fun msg -> Error (`Msg msg)
-
 let normal_response x =
   x >|= fun x -> `Response x
 
