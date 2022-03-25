@@ -43,6 +43,8 @@ let handle_request ~backend _conn request _body =
     crunch ~content_type:"text/css" path |> normal_response
   | meth, ("github" :: path) ->
     Github.handle ~backend ~meth path
+  | meth, ("gitlab" :: path) -> (* TODO Conditionally enable this based off Git Forges known about. *)
+    Gitlab.handle ~backend ~meth path
   | `GET, ("badge" :: path) ->
      Badges.handle ~backend ~path
   | _ ->
