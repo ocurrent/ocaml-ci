@@ -1,4 +1,4 @@
-(lang dune 2.0)
+(lang dune 3.0)
 (name ocaml-ci-api)
 (formatting disabled)
 (generate_opam_files true)
@@ -58,7 +58,7 @@
   ocaml-ci-api
   conf-libev
   (opam-0install (>= "0.2"))
-  (git-unix (>= 3.8.0))
+  (git-unix (>= 3.9.0))
   (capnp-rpc-unix (>= 1.2)))
  (conflicts
   (carton (< 0.4.2))) ; workaround for mirage/ocaml-git#514

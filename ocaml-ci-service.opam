@@ -6,7 +6,7 @@ authors: ["talex5@gmail.com"]
 homepage: "https://github.com/ocurrent/ocaml-ci"
 bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
-  "dune" {>= "2.0"}
+  "dune" {>= "3.0"}
   "prometheus-app" {>= "1.0"}
   "ppx_sexp_conv" {>= "v0.14.1"}
   "ppx_deriving_yojson" {>= "3.6.1"}
@@ -33,12 +33,13 @@ depends: [
   "matrix-current"
   "alcotest" {>= "1.0.0" & with-test}
   "alcotest-lwt" {>= "1.0.1" & with-test}
+  "odoc" {with-doc}
 ]
 conflicts: [
   "ocaml-migrate-parsetree" {= "1.7.1"}
 ]
 build: [
-  ["dune" "subst"] {pinned}
+  ["dune" "subst"] {dev}
   [
     "dune"
     "build"
