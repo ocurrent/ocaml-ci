@@ -54,7 +54,7 @@ module Server = Cohttp_lwt_unix.Server
 let normal_response = Lwt.map (fun x -> `Response x)
 
 let respond_error status body =
-  let headers = Cohttp.Header.init_with "Content-Type" "text/plain" in
+  let headers = Cohttp.Header.init_with "Content-Type" "text/plain; charset=utf-8" in
   Server.respond_error ~status ~headers ~body () |> normal_response
 
 let ( let*! ) x f =
@@ -81,5 +81,6 @@ let handle ~backend ~path =
       let body =
         status |> schema_of_status |> schema_to_yojson |> Yojson.Safe.to_string
       in
-      Server.respond_string ~status:`OK ~body () |> normal_response
+      let headers = Cohttp.Header.init_with "Content-Type" "application/json; charset=utf-8" in
+      Server.respond_string ~status:`OK ~headers ~body () |> normal_response
   | _ -> Server.respond_not_found () |> normal_response

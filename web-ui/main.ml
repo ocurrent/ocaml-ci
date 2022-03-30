@@ -18,7 +18,8 @@ let handle_request ~backend _conn request _body =
   match meth, String.cuts ~sep:"/" ~empty:false path with
   | `GET, ([] | ["index.html"]) ->
     let body = Homepage.render () in
-    Server.respond_string ~status:`OK ~body () |> normal_response
+    let headers = Cohttp.Header.init_with "Content-Type" "text/html; charset=utf-8" in
+    Server.respond_string ~status:`OK ~headers ~body () |> normal_response
   | `GET, ["css"; "style.css"] ->
     Style.get () |> normal_response
   | meth, ("github" :: path) ->

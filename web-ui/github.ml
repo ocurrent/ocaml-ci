@@ -7,11 +7,13 @@ module Server = Cohttp_lwt_unix.Server
 module Response = Cohttp.Response.Make(Server.IO)
 module Transfer_IO = Cohttp__Transfer_io.Make(Server.IO)
 
+let headers = Cohttp.Header.init_with "Content-Type" "text/html; charset=utf-8"
+
 let normal_response x =
   x >|= fun x -> `Response x
 
 let respond_error status body =
-  let headers = Cohttp.Header.init_with "Content-Type" "text/plain" in
+  let headers = Cohttp.Header.init_with "Content-Type" "text/plain; charset=utf-8" in
   Server.respond_error ~status ~headers ~body () |> normal_response
 
 let (>>!=) x f =
@@ -231,7 +233,7 @@ let repo_handle ~meth ~owner ~name ~repo path =
                        owner, owner] name;
           format_refs ~owner ~name refs
         ] in
-      Server.respond_string ~status:`OK ~body () |> normal_response
+      Server.respond_string ~status:`OK ~headers ~body () |> normal_response
   | `GET, ["commit"; hash] ->
     Capability.with_ref (Client.Repo.commit_of_hash repo hash) @@ fun commit ->
     let refs = Client.Commit.refs commit in
@@ -244,7 +246,7 @@ let repo_handle ~meth ~owner ~name ~repo path =
         link_github_refs ~owner ~name refs;
         link_jobs ~owner ~name ~hash jobs;
       ] in
-    Server.respond_string ~status:`OK ~body () |> normal_response
+    Server.respond_string ~status:`OK ~headers ~body () |> normal_response
   | `GET, ["commit"; hash; "variant"; variant] ->
     Capability.with_ref (Client.Repo.commit_of_hash repo hash) @@ fun commit ->
     let refs = Client.Commit.refs commit in
@@ -258,7 +260,7 @@ let repo_handle ~meth ~owner ~name ~repo path =
     status >>!= fun status ->
     let headers =
       (* Otherwise, an nginx reverse proxy will wait for the whole log before sending anything. *)
-      Cohttp.Header.init_with "X-Accel-Buffering" "no"
+      Cohttp.Header.add headers "X-Accel-Buffering" "no"
     in
     let res = Cohttp.Response.make ~status:`OK ~flush:true ~encoding:Cohttp.Transfer.Chunked ~headers () in
     let write _ic oc =
@@ -285,7 +287,7 @@ let repo_handle ~meth ~owner ~name ~repo path =
         let uri = job_url ~owner ~name ~hash variant |> Uri.of_string in
         Server.respond_redirect ~uri () |> normal_response
       | Error { Capnp_rpc.Exception.reason; _ } ->
-        Server.respond_error ~body:reason () |> normal_response
+        respond_error `Internal_server_error reason
     end
   | _ ->
     Server.respond_not_found () |> normal_response
@@ -300,7 +302,7 @@ let list_orgs ci =
       breadcrumbs [] "github";
       ul (List.map format_org orgs)
     ] in
-  Server.respond_string ~status:`OK ~body () |> normal_response
+  Server.respond_string ~status:`OK ~headers ~body () |> normal_response
 
 let format_repo ~owner { Client.Org.name; master_status } =
   let open Tyxml.Html in
@@ -314,7 +316,7 @@ let list_repos ~owner org =
       breadcrumbs ["github", "github"] owner;
       ul ~a:[a_class ["statuses"]] (List.map (format_repo ~owner) repos)
     ] in
-  Server.respond_string ~status:`OK ~body () |> normal_response
+  Server.respond_string ~status:`OK ~headers ~body () |> normal_response
 
 let handle ~backend ~meth path =
   Backend.ci backend >>= fun ci ->

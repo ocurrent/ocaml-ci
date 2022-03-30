@@ -80,6 +80,6 @@ let css = {|
 |} ^ Current_ansi.css ^ Github.css
 
 let get () =
-  let headers = Cohttp.Header.init_with "Content-Type" "text/css" in
+  let headers = Cohttp.Header.init_with "Content-Type" "text/css; charset=utf-8" in
   Server.respond_string ~status:`OK ~headers ~body:css ()
 (*   Server.respond_file ~fname:"style.css" () *)
