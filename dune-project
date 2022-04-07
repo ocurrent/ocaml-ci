@@ -18,9 +18,17 @@
  (name ocaml-ci)
  (synopsis "Core ocaml-ci")
  (depends
-   logs current current_docker current_github ocaml-ci-api str capnp-rpc-unix
-   ppx_deriving_yojson.runtime ocaml-version opam-0install
-   current_ocluster ocluster-api obuilder-spec))
+   logs
+   current
+   current_docker
+   ocaml-ci-api
+   capnp-rpc-unix
+   ppx_deriving_yojson
+   ocaml-version
+   opam-0install
+   current_ocluster
+   ocluster-api
+   obuilder-spec))
 (package
  (name ocaml-ci-service)
  (synopsis "Test OCaml projects on GitHub")

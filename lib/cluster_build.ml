@@ -24,7 +24,7 @@ module Op = struct
     type t = {
       pool : string;                            (* The build pool to use (e.g. "linux-arm64") *)
       commit : Current_git.Commit_id.t;         (* The source code to build and test *)
-      repo : Repo_id.t;          (* Used to choose a build cache *)
+      repo : Repo_id.t;                         (* Used to choose a build cache *)
       label : string;                           (* A unique ID for this build within the commit *)
     }
 

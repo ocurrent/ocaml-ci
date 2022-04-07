@@ -48,7 +48,7 @@ module Op = struct
   module Key = struct
     type t = {
       commit : Current_git.Commit.t;            (* The source code to build and test *)
-      repo : Repo_id.t;          (* Used to choose a build cache *)
+      repo : Repo_id.t;                         (* Used to choose a build cache *)
       label : string;                           (* A unique ID for this build within the commit *)
     }
 
