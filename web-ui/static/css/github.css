@@ -1,0 +1,18 @@
+.statuses {
+  list-style: none;
+}
+.statuses > li:before {
+  display: inline-block;
+  width: 1em;
+  margin-right: 0.5em;
+  margin-left: -1.5em;
+  text-align: center;
+  line-height: 1.1em;
+}
+.statuses > li.not-started:before { content: "●"; color:grey; }
+.statuses > li.aborted:before { content: "A"; color:red; }
+.statuses > li.failed:before { content: "×"; color:red; }
+.statuses > li.passed:before { content: "✓"; color:green; }
+.statuses > li.active:before { content: "●"; color:orange; }
+.statuses > li.undefined:before { content: "?"; color:grey; }
+.statuses > li.skipped:before { content: "–"; color:grey; }

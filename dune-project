@@ -84,6 +84,7 @@
  (synopsis "Web-server frontend for ocaml-ci")
  (conflicts (ocaml-migrate-parsetree (= "1.7.1")))
  (depends
+  (crunch (and (>= 3.2.0) :build))
   (yojson (>= 1.7.0))
   (logs (>= 0.7.0))
   (fmt (>= 0.8.9))
