@@ -13,6 +13,7 @@ type t = {
   pins : (OpamPackage.Version.t * OpamFile.OPAM.t) OpamPackage.Name.Map.t;
   constraints : OpamFormula.version_constraint OpamTypes.name_map;    (* User-provided constraints *)
   test : OpamPackage.Name.Set.t;
+  with_beta_remote : bool;
 }
 
 let ocaml_beta_pkg = OpamPackage.of_string "ocaml-beta.enabled"
@@ -82,7 +83,7 @@ let candidates t name =
       []
     | Some versions ->
       let versions =
-        if OpamPackage.Name.compare name (OpamPackage.name ocaml_beta_pkg) = 0 then 
+        if t.with_beta_remote && OpamPackage.Name.compare name (OpamPackage.name ocaml_beta_pkg) = 0 then
           OpamPackage.Version.Map.add (OpamPackage.version ocaml_beta_pkg) ocaml_beta_opam versions
         else versions
       in
@@ -148,5 +149,6 @@ let read_packages store commit =
             | Some versions -> OpamPackage.Name.Map.add name versions acc
         ) OpamPackage.Name.Map.empty
 
-let create ?(test=OpamPackage.Name.Set.empty) ?(pins=OpamPackage.Name.Map.empty) ~constraints ~env ~packages () =
-  { env; packages; pins; constraints; test }
+let create ?(test=OpamPackage.Name.Set.empty) ?(pins=OpamPackage.Name.Map.empty)
+           ~constraints ~env ~packages ~with_beta_remote () =
+  { env; packages; pins; constraints; test; with_beta_remote }

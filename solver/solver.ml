@@ -40,6 +40,7 @@ let solve ~packages ~pins ~root_pkgs (vars : Worker.Vars.t) =
       ~env:(env vars)
       ~constraints:(OpamPackage.Name.Map.singleton ocaml_package (`Eq, ocaml_version))
       ~test:(OpamPackage.Name.Set.of_list root_pkgs)
+      ~with_beta_remote:(Ocaml_version.(Releases.is_dev (of_string_exn vars.ocaml_version)))
   in
   let t0 = Unix.gettimeofday () in
   let r = Solver.solve context (ocaml_package :: root_pkgs) in
