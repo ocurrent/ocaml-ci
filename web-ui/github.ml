@@ -209,14 +209,14 @@ let stream_logs job ~owner ~name ~refs ~hash ~jobs ~variant ~status (data, next)
       ] in
     Astring.String.cut ~sep:"@@@" body |> Option.get
   in
-  let ansi = Current_ansi.create () in
-  Transfer_IO.write writer (header ^ (Current_ansi.process ansi data)) >>= fun () ->
+  let ansi = Ansi.create () in
+  Transfer_IO.write writer (header ^ (Ansi.process ansi data)) >>= fun () ->
   let rec aux next =
     Current_rpc.Job.log job ~start:next >>= function
     | Ok ("", _) ->
       Transfer_IO.write writer footer
     | Ok (data, next) ->
-      Transfer_IO.write writer (Current_ansi.process ansi data) >>= fun () ->
+      Transfer_IO.write writer (Ansi.process ansi data) >>= fun () ->
       aux next
     | Error (`Capnp ex) ->
       Log.warn (fun f -> f "Error fetching logs: %a" Capnp_rpc.Error.pp ex);

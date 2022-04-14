@@ -77,7 +77,7 @@ let css = {|
     content: "\00a0›\00a0";
   }
 
-|} ^ Current_ansi.css ^ Github.css
+|} ^ Ansi.css ^ Github.css
 
 let get () =
   let headers = Cohttp.Header.init_with "Content-Type" "text/css; charset=utf-8" in
