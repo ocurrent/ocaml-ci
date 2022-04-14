@@ -33,6 +33,7 @@ authors: [
 homepage: "https://ocaml.org"
 synopsis: "OCaml beta releases enabled"
 description: "Virtual package enabling the installation of OCaml beta releases."
+flags: avoid-version
 |}
 
 let user_restrictions t name =
@@ -62,6 +63,13 @@ let filter_available t pkg opam =
     OpamConsole.error "Available expression not a boolean: %s" (OpamFilter.to_string available);
     Error Unavailable
 
+let version_compare (v1, opam1) (v2, opam2) =
+  let avoid1 = List.mem OpamTypes.Pkgflag_AvoidVersion (OpamFile.OPAM.flags opam1) in
+  let avoid2 = List.mem OpamTypes.Pkgflag_AvoidVersion (OpamFile.OPAM.flags opam2) in
+  if avoid1 = avoid2 then
+    OpamPackage.Version.compare v1 v2
+  else if avoid1 then -1 else 1
+
 let candidates t name =
   match OpamPackage.Name.Map.find_opt name t.pins with
   | Some (version, opam) ->
@@ -80,6 +88,7 @@ let candidates t name =
       in
       let user_constraints = user_restrictions t name in
       OpamPackage.Version.Map.bindings versions
+      |> List.fast_sort version_compare
       |> List.rev_map (fun (v, opam) ->
           match user_constraints with
           | Some test when not (OpamFormula.check_version_formula (OpamFormula.Atom test) v) ->
