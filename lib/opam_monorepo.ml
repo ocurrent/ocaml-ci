@@ -178,6 +178,15 @@ let initialize_switch ~network = function
       let open Obuilder_spec in
       [ run ~network "opam switch create %s" compiler_package ]
 
+let install_opam_provided_packages ~network ~cache ~lock_file_path ~lock_file_version =
+  let open Obuilder_spec in
+  match lock_file_version with
+  | V0_1 | V0_2 -> []
+  | V0_3 ->
+      [
+        run ~network ~cache "opam install --yes --deps-only ./%s" lock_file_path;
+      ]
+
 let spec ~base ~repo ~config ~variant =
   let { lock_file_path; selection; lock_file_version; switch_type } = config in
   let download_cache =
@@ -198,6 +207,7 @@ let spec ~base ~repo ~config ~variant =
       copy [ dune_project; lock_file_path ] ~dst:"/src/";
     ]
   @ install_depexts ~network ~cache:[ download_cache ] ~lock_file_path ~lock_file_version
+  @ install_opam_provided_packages ~network ~cache:[ download_cache ] ~lock_file_path ~lock_file_version
   @ [
       run ~network ~cache:[ download_cache ] "opam exec -- opam monorepo pull";
       copy [ "." ] ~dst:"/src/";
