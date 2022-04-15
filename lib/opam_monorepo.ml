@@ -184,7 +184,7 @@ let install_opam_provided_packages ~network ~cache ~lock_file_path ~lock_file_ve
   | V0_1 | V0_2 -> []
   | V0_3 ->
       [
-        run ~network ~cache "opam install --yes --deps-only ./%s" lock_file_path;
+        run ~network ~cache "opam install --yes --ignore-pin-depends --deps-only ./%s" lock_file_path;
       ]
 
 let spec ~base ~repo ~config ~variant =
