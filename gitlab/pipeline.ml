@@ -39,7 +39,15 @@ let opam_repository_commit =
 (* TODO Sometime later, grab these from Index/DB table. *)
 let gitlab_repos : Gitlab.Repo_id.t list = [
   { Gitlab.Repo_id.owner = "tmcgilchrist"; Gitlab.Repo_id.name = "ocaml-gitlab"; project_id = 29798678 }
-; { Gitlab.Repo_id.owner = "tmcgilchrist"; Gitlab.Repo_id.name = "ocaml-changes"; project_id = 30953712 }
+; { Gitlab.Repo_id.owner = "nomadic-labs"; Gitlab.Repo_id.name = "resto"; project_id = 16269987}
+; { Gitlab.Repo_id.owner = "nomadic-labs"; Gitlab.Repo_id.name = "data-encoding"; project_id = 14134943}
+; { Gitlab.Repo_id.owner = "nomadic-labs"; Gitlab.Repo_id.name = "json-data-encoding"; project_id = 16489740}
+; { Gitlab.Repo_id.owner = "nomadic-labs"; Gitlab.Repo_id.name = "ringo"; project_id = 15200071}
+; { Gitlab.Repo_id.owner = "nomadic-labs"; Gitlab.Repo_id.name = "ocaml-secp256k1-internal"; project_id = 17524462}
+; { Gitlab.Repo_id.owner = "nomadic-labs"; Gitlab.Repo_id.name = "lwt-exit"; project_id = 22943026}
+; { Gitlab.Repo_id.owner = "nomadic-labs"; Gitlab.Repo_id.name = "lwt-watcher"; project_id = 14672501}
+; { Gitlab.Repo_id.owner = "nomadic-labs"; Gitlab.Repo_id.name = "lwt-canceler"; project_id = 14702762 }
+; { Gitlab.Repo_id.owner = "nomadic-labs"; Gitlab.Repo_id.name = "ctypes_stubs_js"; project_id = 31956063 }
 ]
 
 (* Fake Installation module, we don't have this in GitLab. *)
@@ -96,19 +104,26 @@ let build_with_docker ?ocluster ~repo ~analysis source =
     | Ok analysis ->
       match Analyse.Analysis.selections analysis with
       | `Opam_monorepo builds ->
-         let lint_selection = Opam_monorepo.selection_of_config (List.hd builds) in
-         Spec.opam ~label:"(lint-fmt)" ~selection:lint_selection ~analysis (`Lint `Fmt)
-         :: List.map (fun config -> Spec.opam_monorepo ~config) builds
+        let lint_selection = Opam_monorepo.selection_of_config (List.hd builds) in
+        Spec.opam ~label:"(lint-fmt)" ~selection:lint_selection ~analysis (`Lint `Fmt)
+        :: Spec.opam_monorepo builds
       | `Opam_build selections ->
         let lint_selection = List.hd selections in
+        let lint_ocamlformat = 
+          (match Analyse.Analysis.ocamlformat_selection analysis with
+           | None -> lint_selection 
+           | Some selection -> selection)
+        in
         let builds =
-          selections |> List.map (fun selection ->
+          selections 
+          |> Selection.filter_duplicate_opam_versions
+          |> List.map (fun selection ->
               let label = Variant.to_string selection.Selection.variant in
               Spec.opam ~label ~selection ~analysis `Build
             )
         and lint =
           [
-            Spec.opam ~label:"(lint-fmt)" ~selection:lint_selection ~analysis (`Lint `Fmt);
+            Spec.opam ~label:"(lint-fmt)" ~selection:lint_ocamlformat ~analysis (`Lint `Fmt);
             Spec.opam ~label:"(lint-doc)" ~selection:lint_selection ~analysis (`Lint `Doc);
             Spec.opam ~label:"(lint-opam)" ~selection:lint_selection ~analysis (`Lint `Opam);
           ]
