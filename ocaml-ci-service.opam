@@ -53,6 +53,3 @@ build: [
   ]
 ]
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
-pin-depends: [
-  ["opam-monorepo.0.3.0" "git+https://github.com/ocamllabs/opam-monorepo#268f77993146d83951dbc139147dc801cea8517c"]
-]
