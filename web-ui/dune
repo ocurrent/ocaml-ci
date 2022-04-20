@@ -6,7 +6,7 @@
              logs.cli
              logs.fmt
              fmt.tty
-             current_ansi
+             ansi
              cohttp-lwt-unix
              tyxml
              prometheus-app.unix
