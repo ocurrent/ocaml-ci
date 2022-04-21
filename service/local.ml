@@ -6,6 +6,7 @@ let setup_log default_level =
   Prometheus_unix.Logging.init ?default_level ()
 
 let main () config mode repo : ('a, [`Msg of string]) result =
+  let open Ocaml_ci_service in
   let solver = Ocaml_ci.Solver_pool.spawn_local () in
   let repo = Current_git.Local.v (Fpath.v repo) in
   let engine = Current.Engine.create ~config (Pipeline.local_test ~solver repo) in

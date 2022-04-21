@@ -20,7 +20,7 @@ module Metrics = struct
   }
 
   let count_repo ~owner name (acc : stats) =
-    let repo = { Current_github.Repo_id.owner; name } in
+    let repo = { Ocaml_ci.Repo_id.owner; name } in
     match Index.Ref_map.find_opt "refs/heads/master" (Index.get_active_refs repo) with
     | None -> acc
     | Some hash ->
@@ -39,6 +39,8 @@ module Metrics = struct
     Gauge.set (master "failed") (float_of_int failed);
     Gauge.set (master "active") (float_of_int active)
 end
+
+open Ocaml_ci_service
 
 let setup_log default_level =
   Prometheus_unix.Logging.init ?default_level ();
@@ -69,19 +71,6 @@ let run_capnp = function
     Logs.app (fun f -> f "Wrote capability reference to %S" Conf.Capnp.cap_file);
     Lwt.return (vat, Some rpc_engine_resolver)
 
-(* Access control policy. *)
-let has_role user = function
-  | `Viewer | `Monitor -> true
-  | _ ->
-    match Option.map Current_web.User.id user with
-    | Some ( "github:talex5"
-           | "github:avsm"
-           | "github:kit-ty-kate"
-           | "github:samoht"
-           | "github:tmcgilchrist"
-           | "github:dra27"
-           ) -> true
-    | _ -> false
 
 let main () config mode app capnp_address github_auth submission_uri matrix : ('a, [`Msg of string]) result =
   Lwt_main.run begin
@@ -90,16 +79,16 @@ let main () config mode app capnp_address github_auth submission_uri matrix : ('
     let ocluster = Option.map (Capnp_rpc_unix.Vat.import_exn vat) submission_uri in
     let engine = Current.Engine.create ~config (Pipeline.v ?ocluster ?matrix ~app ~solver) in
     rpc_engine_resolver |> Option.iter (fun r -> Capability.resolve_ok r (Api_impl.make_ci ~engine));
-    let authn = Option.map Current_github.Auth.make_login_uri github_auth in
+    let authn = Github.authn github_auth in
     let webhook_secret = Current_github.App.webhook_secret app in
     let has_role =
       if github_auth = None then Current_web.Site.allow_all
-      else has_role
+      else Github.has_role
     in
     let secure_cookies = github_auth <> None in
     let routes =
-      Routes.(s "webhooks" / s "github" /? nil @--> Current_github.webhook ~engine ~webhook_secret ~has_role) ::
-      Routes.(s "login" /? nil @--> Current_github.Auth.login github_auth) ::
+      Github.webhook_route ~engine ~webhook_secret ~has_role ::
+      Github.login_route github_auth ::
       Current_web.routes engine in
     let site = Current_web.Site.v ?authn ~has_role ~secure_cookies ~name:"ocaml-ci" routes in
     Lwt.choose [

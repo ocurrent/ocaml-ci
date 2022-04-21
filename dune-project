@@ -15,6 +15,21 @@
   ppx_deriving
   ppx_deriving_yojson))
 (package
+ (name ocaml-ci)
+ (synopsis "Core ocaml-ci")
+ (depends
+   logs
+   current
+   current_docker
+   ocaml-ci-api
+   capnp-rpc-unix
+   ppx_deriving_yojson
+   ocaml-version
+   opam-0install
+   current_ocluster
+   ocluster-api
+   obuilder-spec))
+(package
  (name ocaml-ci-service)
  (synopsis "Test OCaml projects on GitHub")
  (conflicts (ocaml-migrate-parsetree (= "1.7.1")))

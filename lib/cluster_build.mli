@@ -5,7 +5,7 @@ val config : ?timeout:int64 -> [ `Submission_f4e8a768b32a7c42 ] Capnp_rpc_lwt.St
 val v :
   t ->
   platforms:Platform.t list Current.t ->
-  repo:Current_github.Repo_id.t Current.t ->
+  repo:Repo_id.t Current.t ->
   spec:Spec.t Current.t ->
   Current_git.Commit_id.t Current.t ->
   ([> `Built | `Checked ] Current_term.Output.t * Current.job_id option) Current.t
