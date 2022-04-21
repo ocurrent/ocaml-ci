@@ -187,15 +187,6 @@ let install_opam_provided_packages ~network ~cache ~lock_file_path ~lock_file_ve
         run ~network ~cache "opam install --yes --ignore-pin-depends --deps-only ./%s" lock_file_path;
       ]
 
-let pin_prerelease ~network ~cache ~lock_file_version =
-  let open Obuilder_spec in
-  match lock_file_version with
-  | V0_1 | V0_2 -> []
-  | V0_3 ->
-      [
-        run ~network ~cache "opam pin --yes add opam-monorepo.0.3.0 git+https://github.com/ocamllabs/opam-monorepo#268f77993146d83951dbc139147dc801cea8517c";
-      ]
-
 let spec ~base ~repo ~config ~variant =
   let { lock_file_path; selection; lock_file_version; switch_type } = config in
   let download_cache =
@@ -215,7 +206,6 @@ let spec ~base ~repo ~config ~variant =
       run "sudo chown opam /src";
       copy [ dune_project; lock_file_path ] ~dst:"/src/";
     ]
-  @ pin_prerelease ~network ~cache:[ download_cache ] ~lock_file_version
   @ install_depexts ~network ~cache:[ download_cache ] ~lock_file_path ~lock_file_version
   @ install_opam_provided_packages ~network ~cache:[ download_cache ] ~lock_file_path ~lock_file_version
   @ [
