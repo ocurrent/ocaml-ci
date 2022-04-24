@@ -18,6 +18,7 @@ end
 module Selection = struct
   type t = {
     id : string;                        (** The platform ID from the request. *)
+    compat_pkgs : string list;          (** Local root packages compatible with the platform. *)
     packages : string list;             (** The selected packages ("name.version"). *)
     commit : string;                    (** A commit in opam-repository to use. *)
   } [@@deriving yojson, ord]

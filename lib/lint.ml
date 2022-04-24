@@ -20,7 +20,7 @@ let install_ocamlformat =
 
 let fmt_spec ~base ~ocamlformat_source ~selection =
   let open Obuilder_spec in
-  let { Selection.packages = _; commit; variant = _ } = selection in
+  let { Selection.packages = _; commit; variant = _; only_packages = _ } = selection in
   let cache = [ Obuilder_spec.Cache.v Opam_build.download_cache ~target:"/home/opam/.opam/download-cache" ] in
   let network = ["host"] in
   stage ~from:base @@ [

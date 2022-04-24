@@ -15,8 +15,9 @@ val opam_monorepo_lock_file : monorepo_version:string option -> contents
 (** Contents of an example [.opam.locked] file for opam-monorepo.
     [monorepo_version] will populate a [x-opam-monorepo-version] field. *)
 
-val opam : contents
-(** Contents of an example [.opam] file *)
+val opam : ?ocaml:string -> contents
+(** Contents of an example [.opam] file
+    @param ocaml Version constraint on OCaml. *)
 
 val ocamlformat : version:string -> contents
 (** Contents of a [.ocamlformat] file with a particular version *)

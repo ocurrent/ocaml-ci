@@ -80,6 +80,22 @@ end = struct
       | _ ->
         Fmt.failwith "BUG: bad output: %s" results
 
+  let ocaml = OpamPackage.Name.of_string "ocaml"
+
+  (* If a local package has a literal constraint on OCaml's version and it doesn't match
+     the platform, we just remove that package from the set to test, so other packages
+     can still be tested. *)
+  let compatible_with ~ocaml_version (dep_name, filter) =
+    let check = function
+      | OpamTypes.Constraint (op, OpamTypes.FString v) ->
+        let v = OpamPackage.Version.of_string v in
+        OpamFormula.eval_relop op ocaml_version v
+      | _ -> true
+    in
+    if OpamPackage.Name.equal dep_name ocaml then (
+      OpamFormula.eval check filter
+    ) else true
+
   let handle ~log request t =
     let { Worker.Solve_request.opam_repository_commit; platforms; root_pkgs; pinned_pkgs } = request in
     let opam_repository_commit = Store.Hash.of_hex opam_repository_commit in
@@ -92,8 +108,20 @@ end = struct
     in
     Log.info log "Solving for %a" Fmt.(list ~sep:comma string) root_pkgs;
     platforms |> Lwt_list.map_p (fun p ->
-        let id = fst p in
-        let slice = { request with platforms = [p] } in
+        let id, vars = p in
+        let ocaml_version = OpamPackage.Version.of_string vars.Worker.Vars.ocaml_version in
+        let compatible_root_pkgs =
+          request.root_pkgs
+          |> List.filter (fun (_name, contents) ->
+              let opam = OpamFile.OPAM.read_from_string contents in
+              let deps = OpamFile.OPAM.depends opam in
+              OpamFormula.eval (compatible_with ~ocaml_version) deps
+            )
+        in
+        (* If some packages are compatible but some aren't, just solve for the compatible ones.
+           Otherwise, try to solve for everything to get a suitable error. *)
+        let root_pkgs = if compatible_root_pkgs = [] then request.root_pkgs else compatible_root_pkgs in
+        let slice = { request with platforms = [p]; root_pkgs } in
         Lwt_pool.use t (process ~log ~id slice) >>= function
         | Error _ as e -> Lwt.return (id, e)
         | Ok packages ->
@@ -105,7 +133,8 @@ end = struct
               )
           in
           Opam_repository.oldest_commit_with repo_packages ~from:opam_repository_commit >|= fun commit ->
-          id, Ok { Worker.Selection.id; packages; commit }
+          let compat_pkgs = List.map fst compatible_root_pkgs in
+          id, Ok { Worker.Selection.id; compat_pkgs; packages; commit }
       )
     >|= List.filter_map (fun (id, result) ->
         Log.info log "= %s =" id;

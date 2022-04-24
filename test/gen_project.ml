@@ -45,7 +45,7 @@ depends: []
 synopsis: "Example project generated for testing purposes"
 |}
 
-let opam ppf =
+let opam ?(ocaml={|{>= "4.09"}|}) ppf =
   Fmt.pf ppf
     {|opam-version: "2.0"
 maintainer:   "Camelus Bactrianus"
@@ -62,7 +62,7 @@ build: [
 ]
 
 depends: [
-  "ocaml"   {>= "4.09"}
+  "ocaml"   %s
   "dune"
   "fmt"
   "logs"
@@ -70,7 +70,7 @@ depends: [
 ]
 
 synopsis: "Example project generated for testing purposes"
-|}
+|} ocaml
 
 let ocamlformat ~version ppf =
   Fmt.pf ppf {|version = %s
