@@ -289,6 +289,44 @@ let repo_handle ~meth ~owner ~name ~repo path =
       | Error { Capnp_rpc.Exception.reason; _ } ->
         respond_error `Internal_server_error reason
     end
+  | `POST, ["commit"; hash; "cancel"] ->
+    let can_cancel (commit: Client.Commit.t) (job_i: Client.job_info) =
+      match job_i.outcome with
+      | Active | NotStarted ->
+          let variant = job_i.variant in
+          Capability.with_ref (Client.Commit.job_of_variant commit variant) @@ fun job ->
+            Current_rpc.Job.status job |> Lwt.map (fun rs ->
+              match rs with
+              | Ok s -> if s.Current_rpc.Job.can_cancel then Some job else None
+              | Error _e -> None
+            )
+      | Aborted | Failed _ | Passed | Undefined _ -> Lwt.return None
+    in
+    let cancel_many (commit: Client.Commit.t) (job_infos : Client.job_info list) =
+      let open Lwt.Infix in
+      Lwt_list.filter_map_p (fun job_info -> can_cancel commit job_info) job_infos >>=
+        Lwt_list.map_p Current_rpc.Job.cancel >>= fun x ->
+          let failed = ref 0 in
+          let log_error r =
+          match r with
+          | Ok () -> ()
+          | Error (`Capnp ex) ->
+              incr failed;
+            Log.err (fun f -> f "Error cancelling job: %a" Capnp_rpc.Error.pp ex);
+          in
+          let _ = List.map log_error x in
+          Lwt.return !failed
+    in
+    Capability.with_ref (Client.Repo.commit_of_hash repo hash) @@ fun commit ->
+    Client.Commit.jobs commit >>!= fun jobs ->
+      begin cancel_many commit jobs >>= function
+      | 0 ->
+        let uri = commit_url ~owner ~name hash |> Uri.of_string in
+        Server.respond_redirect ~uri () |> normal_response
+      | n ->
+        let msg = Fmt.str "%d jobs could not be cancelled. Check logs for more detail." n in
+        respond_error `OK  msg
+    end
   | _ ->
     Server.respond_not_found () |> normal_response
 
