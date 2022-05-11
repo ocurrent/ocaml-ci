@@ -239,12 +239,26 @@ let repo_handle ~meth ~owner ~name ~repo path =
     let refs = Client.Commit.refs commit in
     Client.Commit.jobs commit >>!= fun jobs ->
     refs >>!= fun refs ->
-    let body = Template.instance [
+    let can_cancel = List.fold_left (fun accum job_info ->
+      accum ||
+        match job_info.Client.outcome with
+        | Active | NotStarted -> true
+        | Aborted | Failed _ | Passed | Undefined _ -> false) false jobs
+    in
+    let buttons =
+      if can_cancel then Tyxml.Html.[
+          form ~a:[a_action (hash ^ "/cancel"); a_method `Post] [
+            input ~a:[a_input_type `Submit; a_value "Cancel"] ()
+          ]
+      ] else []
+    in
+    let body = Template.instance Tyxml.Html.[
         breadcrumbs ["github", "github";
                      owner, owner;
                      name, name] (short_hash hash);
         link_github_refs ~owner ~name refs;
         link_jobs ~owner ~name ~hash jobs;
+        div buttons;
       ] in
     Server.respond_string ~status:`OK ~headers ~body () |> normal_response
   | `GET, ["commit"; hash; "variant"; variant] ->
@@ -295,8 +309,7 @@ let repo_handle ~meth ~owner ~name ~repo path =
       | Active | NotStarted ->
           let variant = job_i.variant in
           Capability.with_ref (Client.Commit.job_of_variant commit variant) @@ fun job ->
-            Current_rpc.Job.status job |> Lwt.map (fun rs ->
-              match rs with
+          Current_rpc.Job.status job |> Lwt.map (function
               | Ok s -> if s.Current_rpc.Job.can_cancel then Some job else None
               | Error _e -> None
             )
@@ -311,8 +324,8 @@ let repo_handle ~meth ~owner ~name ~repo path =
           match r with
           | Ok () -> ()
           | Error (`Capnp ex) ->
-              incr failed;
-            Log.err (fun f -> f "Error cancelling job: %a" Capnp_rpc.Error.pp ex);
+            incr failed;
+            Log.err (fun f -> f "Error cancelling job: %a" Capnp_rpc.Error.pp ex)
           in
           let _ = List.map log_error x in
           Lwt.return !failed
