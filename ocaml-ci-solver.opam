@@ -14,7 +14,7 @@ depends: [
   "logs"
   "fmt"
   "ocaml-ci-api"
-  "conf-libev"
+  "conf-libev" {os != "win32"}
   "opam-0install" {>= "0.2"}
   "git-unix" {>= "3.9.0"}
   "capnp-rpc-unix" {>= "1.2"}

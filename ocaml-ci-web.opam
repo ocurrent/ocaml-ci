@@ -19,7 +19,7 @@ depends: [
   "tyxml"
   "capnp-rpc-unix" {>= "1.2"}
   "ocaml-ci-api"
-  "conf-libev"
+  "conf-libev" {os != "win32"}
   "ppx_deriving_yojson"
   "odoc" {with-doc}
 ]
