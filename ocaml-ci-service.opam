@@ -27,7 +27,7 @@ depends: [
   "ocaml-ci-solver"
   "ocluster-api"
   "obuilder-spec"
-  "conf-libev"
+  "conf-libev" {os != "win32"}
   "dockerfile-opam" {>= "7.0.0"}
   "ocaml-version" {>= "3.0.0"}
   "matrix-current"

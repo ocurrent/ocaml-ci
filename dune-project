@@ -54,7 +54,7 @@
   ocaml-ci-solver
   ocluster-api
   obuilder-spec
-  conf-libev
+  (conf-libev (<> :os "win32"))
   (dockerfile-opam (>= 7.0.0))
   (ocaml-version (>= 3.0.0))
   matrix-current
@@ -71,7 +71,7 @@
   logs
   fmt
   ocaml-ci-api
-  conf-libev
+  (conf-libev (<> :os "win32"))
   (opam-0install (>= "0.2"))
   (git-unix (>= 3.9.0))
   (capnp-rpc-unix (>= 1.2)))
@@ -95,7 +95,7 @@
   tyxml
   (capnp-rpc-unix (>= 1.2))
   ocaml-ci-api
-  conf-libev
+  (conf-libev (<> :os "win32"))
   ppx_deriving_yojson))
 (package
  (name ocaml-ci-client)
