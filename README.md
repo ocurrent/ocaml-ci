@@ -121,6 +121,26 @@ least the first 6 characters. e.g.
 $ ocaml-ci mirage/irmin pull/867 alpine-3.10-ocaml-4.08 cancel
 ```
 
+## Deployment
+
+`ocaml-ci` is deployed as two docker images built from `Dockerfile` and `Dockerfile.web`, with 
+the live service following `live-engine` for the backend and `live-web` for the frontend.
+An ocurrent-deployer [pipeline](deploy.ci3.ocamllabs.io) watches these branches, performing a docker build 
+and deploy whenever it sees a new commit. The live branches should typically contain commits from `master` plus potentially 
+short lived commits for testing changes that are later merged into `master`.
+
+To deploy code changes either from `master` or a branch:
+ * check that you've rebased the changes onto master
+ * git push -u upstream HEAD:live-engine or
+ * git push -u upstream HEAD:live-web 
+
+To deploy changes to `stack.yml` run (assuming a docker context with sufficient access):
+
+``` bash
+docker -c ci.ocamllabs.io stack deploy -c stack.yml ocaml-ci
+```
+
 [OCurrent]: https://github.com/ocurrent/ocurrent
 [pipeline.ml]: https://github.com/ocurrent/ocaml-ci/blob/master/service/pipeline.ml
 [capnp-api]: https://github.com/ocurrent/ocaml-ci/blob/master/api/schema.capnp
+
