@@ -70,6 +70,7 @@
   lwt
   logs
   fmt
+  ocaml-ci
   ocaml-ci-api
   (conf-libev (<> :os "win32"))
   (opam-0install (>= "0.2"))
