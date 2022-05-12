@@ -54,14 +54,27 @@ let or_die = function
   | Ok x -> x
   | Error `Msg m -> failwith m
 
-let run_capnp = function
-  | None -> Lwt.return (Capnp_rpc_unix.client_only_vat (), None)
-  | Some public_address ->
+let run_capnp capnp_public_address capnp_listen_address =
+  match capnp_public_address, capnp_listen_address with
+  | None, None -> Lwt.return (Capnp_rpc_unix.client_only_vat (), None)
+  | Some _, None  ->
+        Lwt.fail_invalid_arg "Public address for Cap'n Proto RPC can't be set without setting a capnp-listen-address to listen on."
+  | _ ->
+    let listen_address =
+        match capnp_listen_address with
+        | Some listen_address -> listen_address
+        | None -> (Capnp_rpc_unix.Network.Location.tcp ~host:"0.0.0.0" ~port:Conf.Capnp.internal_port)
+    in
+    let public_address =
+        match capnp_public_address with
+        | None -> listen_address
+        | Some public_address -> public_address
+    in
     let config =
       Capnp_rpc_unix.Vat_config.create
         ~public_address
         ~secret_key:(`File Conf.Capnp.secret_key)
-        (Capnp_rpc_unix.Network.Location.tcp ~host:"0.0.0.0" ~port:Conf.Capnp.internal_port)
+        listen_address
     in
     let rpc_engine, rpc_engine_resolver = Capability.promise () in
     let service_id = Capnp_rpc_unix.Vat_config.derived_id config "ci" in
@@ -71,11 +84,10 @@ let run_capnp = function
     Logs.app (fun f -> f "Wrote capability reference to %S" Conf.Capnp.cap_file);
     Lwt.return (vat, Some rpc_engine_resolver)
 
-
-let main () config mode app capnp_address github_auth submission_uri matrix : ('a, [`Msg of string]) result =
+let main () config mode app capnp_public_address capnp_listen_address github_auth submission_uri matrix : ('a, [`Msg of string]) result =
   Lwt_main.run begin
     let solver = Ocaml_ci.Solver_pool.spawn_local () in
-    run_capnp capnp_address >>= fun (vat, rpc_engine_resolver) ->
+    run_capnp capnp_public_address capnp_listen_address >>= fun (vat, rpc_engine_resolver) ->
     let ocluster = Option.map (Capnp_rpc_unix.Vat.import_exn vat) submission_uri in
     let engine = Current.Engine.create ~config (Pipeline.v ?ocluster ?matrix ~app ~solver) in
     rpc_engine_resolver |> Option.iter (fun r -> Capability.resolve_ok r (Api_impl.make_ci ~engine));
@@ -105,13 +117,23 @@ let setup_log =
   let docs = Manpage.s_common_options in
   Term.(const setup_log $ Logs_cli.level ~docs ())
 
-let capnp_address =
+let capnp_public_address =
   Arg.value @@
   Arg.opt (Arg.some Capnp_rpc_unix.Network.Location.cmdliner_conv) None @@
   Arg.info
-    ~doc:"Public address (SCHEME:HOST:PORT) for Cap'n Proto RPC (default: no RPC)"
+    ~doc:"Public address (SCHEME:HOST:PORT) for Cap'n Proto RPC (default: no RPC).
+          If --capnp-listen-address isn't set it will run no RPC."
     ~docv:"ADDR"
-    ["capnp-address"]
+    ["capnp-public-address"]
+
+let capnp_listen_address =
+    let i =
+        Arg.info
+        ~docv:"ADDR"
+        ~doc:"Address to listen on, e.g. $(b,unix:/run/my.socket) (default: no RPC)."
+        ["capnp-listen-address"]
+  in
+    Arg.(value @@ opt (Arg.some Capnp_rpc_unix.Network.Location.cmdliner_conv) None @@ i)
 
 let submission_service =
   Arg.value @@
@@ -132,7 +154,7 @@ let cmd =
   Cmd.v info
     Term.(term_result (const main $ setup_log $ Current.Config.cmdliner
                        $ Current_web.cmdliner $ Current_github.App.cmdliner
-                       $ capnp_address $ Current_github.Auth.cmdliner
+                       $ capnp_public_address $ capnp_listen_address $ Current_github.Auth.cmdliner
                        $ submission_service $ Matrix_current.cmdliner))
 
 let () = exit @@ Cmd.eval cmd
