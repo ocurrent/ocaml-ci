@@ -1,4 +1,4 @@
-FROM ocaml/opam:debian-11-ocaml-4.14 AS build
+FROM ocaml/opam:debian-11-ocaml-4.14@sha256:9e4fb3a4021599c4bfe9858f5318b7539c4b899aa7a1152b84330fb2738aea2e AS build
 RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libgmp-dev -y --no-install-recommends
 RUN cd ~/opam-repository && git pull origin master && git reset --hard 34f2c01bd9ad75817a71f0ab3d4251f50aeb2088 && opam update
 COPY --chown=opam \
