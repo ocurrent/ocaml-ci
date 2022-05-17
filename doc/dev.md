@@ -12,6 +12,15 @@ To do this, follow the instructions in [Setting up your development environment 
 Metadata: Read
 Checks: Read and write
 Commit statuses: Read and write
+Pull requests: Read and write
+Webhooks: Read
+```
+
+Also, subscribe to the following events:
+
+```
+Check Run
+Pull Requests
 ```
 
 ### Running the server locally
@@ -20,8 +29,9 @@ You will need the following:
 
 1. The GitHub App ID of the app you created
 2. The `pem` file containing the private key associated to the app
-3. A capability file that has been generated for you by an ocaml-ci admin. This gives you the ability to submit jobs to the ci cluster
-4. The app webhook secret that is used to authenticate to the app
+3. A comma separated list of GitHub accounts to allow - this could start out as just your GitHub account
+4. A capability file for submitting jobs to a cluster, in this case the main ocaml-ci cluster as documented in https://github.com/ocurrent/ocluster#admin
+5. The app webhook secret that is used to authenticate to the app
 
 ```
 dune exec -- ocaml-ci-service \
