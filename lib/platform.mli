@@ -44,4 +44,4 @@ val pull :
   ocaml_version:Ocaml_version.t ->
   opam_version:Opam_version.t ->
   Current_docker.Raw.Image.t Current.t
-(** [pull ~schedule ~builder ~distro ~ocaml_version] pulls "ocaml/opam:{distro}-ocaml-{version}" on [schedule]. *)
+(** [pull ~schedule ~builder ~distro ~ocaml_version] pulls "ocaml/opam:\{distro\}-ocaml-\{version\}" on [schedule]. *)
