@@ -23,6 +23,10 @@ Check Run
 Pull Requests
 ```
 
+### Running a scheduler and a worker
+
+You will need to run a scheduler and a worker to connect it to the CI. Follow the instruction from [ocurrent/ocluster](https://github.com/ocurrent/ocluster#the-scheduler-service).
+
 ### Running the server locally
 
 You will need the following:
