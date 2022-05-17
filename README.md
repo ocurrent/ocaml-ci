@@ -139,6 +139,9 @@ To deploy changes to `stack.yml` run (assuming a docker context with sufficient 
 ``` bash
 docker -c ci.ocamllabs.io stack deploy -c stack.yml ocaml-ci
 ```
+## Local development
+
+See [this document](doc/dev.md) for set up and running the server and web components locally.
 
 [OCurrent]: https://github.com/ocurrent/ocurrent
 [pipeline.ml]: https://github.com/ocurrent/ocaml-ci/blob/master/service/pipeline.ml
