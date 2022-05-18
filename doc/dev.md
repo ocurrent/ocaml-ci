@@ -6,21 +6,22 @@ This document sets you up to use locally running instances of `ocaml-ci-service`
 
 Since `ocaml-ci` is a GitHub App, create a GitHub App ([settings/apps](https://github.com/settings/apps)) under your own user and point it to localhost via a webhook payload delivery service like [smee.io](https://smee.io).
 
-To do this, follow the instructions in [Setting up your development environment to create a GitHub App](https://docs.github.com/en/developers/apps/getting-started-with-apps/setting-up-your-development-environment-to-create-a-github-app) but when it comes to setting permissions for your app, set the following:
+To do this, follow the instructions in [Setting up your development environment to create a GitHub App](https://docs.github.com/en/developers/apps/getting-started-with-apps/setting-up-your-development-environment-to-create-a-github-app) but when it comes to setting permissions for your app, set the following as the "Repository permissions":
 
 ```
-Metadata: Read
 Checks: Read and write
 Commit statuses: Read and write
-Pull requests: Read and write
-Webhooks: Read
+Contents: Read-only
+Metadata: Read-only
+Pull requests: Read-only
 ```
 
 Also, subscribe to the following events:
 
 ```
-Check Run
-Pull Requests
+Create
+Pull request
+Push
 ```
 
 ### Running a scheduler and a worker
