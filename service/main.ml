@@ -121,9 +121,14 @@ let submission_service =
     ~docv:"FILE"
     ["submission-service"]
 
+let profile =
+  let values = ["production"; "dev"] in
+  let doc = Printf.sprintf "CI profile settings, must be %s." (Arg.doc_alts values) in
+  Cmd.Env.info "CI_PROFILE" ~doc
+
 let cmd =
   let doc = "Build OCaml projects on GitHub" in
-  let info = Cmd.info "ocaml-ci-service" ~doc in
+  let info = Cmd.info "ocaml-ci-service" ~doc ~envs:[profile] in
   Cmd.v info
     Term.(term_result (const main $ setup_log $ Current.Config.cmdliner
                        $ Current_web.cmdliner $ Current_github.App.cmdliner
