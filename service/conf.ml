@@ -2,7 +2,7 @@ let profile =
   match Sys.getenv_opt "CI_PROFILE" with
   | Some "production" -> `Production
   | Some "dev" | None -> `Dev
-  | Some x -> Fmt.failwith "Unknown $PROFILE setting %S" x
+  | Some x -> Fmt.failwith "Unknown $CI_PROFILE setting %S." x
 
 (* GitHub defines a stale branch as more than 3 months old.
    Don't bother testing these. *)
