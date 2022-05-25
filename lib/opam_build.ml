@@ -51,11 +51,26 @@ let pin_opam_files ~network groups =
       |> run ~network "%s"
     ]
 
+let unpin_opam_files ~network opam_files =
+    let pkgs = List.map (fun x -> Filename.basename x |> Filename.chop_extension) opam_files in
+    let pkgs = String.concat " " pkgs  in
+    Obuilder_spec.run ~network "opam pin remove -y %s" pkgs
+
 (* Get the packages directly in "." *)
 let rec get_root_opam_packages = function
   | [] -> []
   | (dir, _, pkgs) ::_ when Fpath.is_current_dir dir -> pkgs
   | _ :: rest -> get_root_opam_packages rest
+
+ let build_each_package ~opam_files =
+     let open Obuilder_spec in
+    List.map
+        (fun x ->
+            Filename.basename x
+            |> Filename.chop_extension
+            |> run "opam exec -- dune build --only-packages=%s @install @check @runtest && rm -rf _build")
+        opam_files
+
 
 let download_cache = "opam-archives"
 
@@ -96,21 +111,22 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   @ pin_opam_files ~network groups @ [
     env "DEPS" non_root_pkgs;
     opam_depext;
+    unpin_opam_files ~network opam_files;
     run ~network ~cache "opam install $DEPS" ]
+  @ pin_opam_files ~network groups
+  @ [ copy ["."] ~dst:"/src/" ]
+  @ [ run  ~network ~cache "opam install %s" compatible_root_pkgs ]
 
 let spec ~base ~opam_version ~opam_files ~selection =
   let open Obuilder_spec in
-  let to_name x = OpamPackage.of_string x |> OpamPackage.name_to_string in
-  let only_packages =
-    match selection.Selection.only_packages with
-    | [] -> ""
-    | pkgs -> " --only-packages=" ^ String.concat "," (List.map to_name pkgs)
-  in
+  let { Selection.only_packages ; _ } = selection in
+  let groups = group_opam_files opam_files in
+  let root_pkgs = get_root_opam_packages groups in
+  let compatible_root_pkgs = if only_packages = [] then root_pkgs else only_packages in
   stage ~from:base (
     comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant) ::
     user ~uid:1000 ~gid:1000 ::
-    install_project_deps ~opam_version ~opam_files ~selection @ [
-      copy ["."] ~dst:"/src/";
-      run "opam exec -- dune build%s @install @check @runtest && rm -rf _build" only_packages
-    ]
+    copy compatible_root_pkgs ~dst:"/src/" ::
+    install_project_deps ~opam_version ~opam_files ~selection @
+    build_each_package ~opam_files:compatible_root_pkgs
   )
