@@ -60,10 +60,11 @@ let rec get_root_opam_packages = function
 let download_cache = "opam-archives"
 
 let install_project_deps ~opam_version ~opam_files ~selection =
-  let { Selection.packages; commit; variant } = selection in
+  let { Selection.packages; commit; variant; only_packages } = selection in
   let groups = group_opam_files opam_files in
   let root_pkgs = get_root_opam_packages groups in
   let non_root_pkgs = packages |> List.filter (fun pkg -> not (List.mem pkg root_pkgs)) in
+  let compatible_root_pkgs = if only_packages = [] then root_pkgs else only_packages in
   let open Obuilder_spec in
   let cache = [ Obuilder_spec.Cache.v download_cache ~target:"/home/opam/.opam/download-cache" ] in
   let network = ["host"] in
@@ -75,11 +76,11 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   in
   let network = ["host"] in
   let opam_cmd = "/usr/bin/opam-" ^ (Opam_version.to_string opam_version) in
-  let root_pkgs = String.concat " " root_pkgs in
+  let compatible_root_pkgs = String.concat " " compatible_root_pkgs in
   let non_root_pkgs = String.concat " " non_root_pkgs in
   let opam_depext = match opam_version with
-    | `V2_0 -> run ~network ~cache "opam depext --update -y %s $DEPS" root_pkgs
-    | `V2_1 -> run ~network ~cache "opam update --depexts && opam install --cli=2.1 --depext-only -y %s $DEPS" root_pkgs
+    | `V2_0 -> run ~network ~cache "opam depext --update -y %s $DEPS" compatible_root_pkgs
+    | `V2_1 -> run ~network ~cache "opam update --depexts && opam install --cli=2.1 --depext-only -y %s $DEPS" compatible_root_pkgs
   in
   (if Variant.arch variant |> Ocaml_version.arch_is_32bit then
      [shell ["/usr/bin/linux32"; "/bin/sh"; "-c"]] else [])
@@ -99,11 +100,17 @@ let install_project_deps ~opam_version ~opam_files ~selection =
 
 let spec ~base ~opam_version ~opam_files ~selection =
   let open Obuilder_spec in
+  let to_name x = OpamPackage.of_string x |> OpamPackage.name_to_string in
+  let only_packages =
+    match selection.Selection.only_packages with
+    | [] -> ""
+    | pkgs -> " --only-packages=" ^ String.concat "," (List.map to_name pkgs)
+  in
   stage ~from:base (
     comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant) ::
     user ~uid:1000 ~gid:1000 ::
     install_project_deps ~opam_version ~opam_files ~selection @ [
       copy ["."] ~dst:"/src/";
-      run "opam exec -- dune build @install @check @runtest && rm -rf _build"
+      run "opam exec -- dune build%s @install @check @runtest && rm -rf _build" only_packages
     ]
   )
