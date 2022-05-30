@@ -123,10 +123,13 @@ let spec ~base ~opam_version ~opam_files ~selection =
   let groups = group_opam_files opam_files in
   let root_pkgs = get_root_opam_packages groups in
   let compatible_root_pkgs = if only_packages = [] then root_pkgs else only_packages in
+  let compatible_root_opam =
+      List.map (fun x -> "./" ^ (Filename.basename x |> Filename.chop_extension) ^ ".opam") compatible_root_pkgs
+  in 
   stage ~from:base (
     comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant) ::
     user ~uid:1000 ~gid:1000 ::
-    copy compatible_root_pkgs ~dst:"/src/" ::
+    copy compatible_root_opam ~dst:"/src/" ::
     install_project_deps ~opam_version ~opam_files ~selection @
     build_each_package ~opam_files:compatible_root_pkgs
   )
