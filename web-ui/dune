@@ -1,3 +1,10 @@
+(rule
+ (target static.ml)
+ (deps
+  (glob_files static/css/*))
+ (action
+  (run ocaml-crunch --mode=plain --output=%{target} static)))
+
 (executable
   (name main)
   (public_name ocaml-ci-web)

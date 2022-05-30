@@ -39,27 +39,6 @@ let github_branch_url ~owner ~name ref =
 let github_pr_url ~owner ~name id =
   Printf.sprintf "https://github.com/%s/%s/pull/%s" owner name id
 
-let css = {|
-  .statuses {
-    list-style: none;
-  }
-  .statuses > li:before {
-    display: inline-block;
-    width: 1em;
-    margin-right: 0.5em;
-    margin-left: -1.5em;
-    text-align: center;
-    line-height: 1.1em;
-  }
-  .statuses > li.not-started:before { content: "●"; color:grey; }
-  .statuses > li.aborted:before { content: "A"; color:red; }
-  .statuses > li.failed:before { content: "×"; color:red; }
-  .statuses > li.passed:before { content: "✓"; color:green; }
-  .statuses > li.active:before { content: "●"; color:orange; }
-  .statuses > li.undefined:before { content: "?"; color:grey; }
-  .statuses > li.skipped:before { content: "–"; color:grey; }
-|}
-
 let breadcrumbs steps page_title =
   let open Tyxml.Html in
   let add (prefix, results) (label, link) =

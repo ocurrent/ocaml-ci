@@ -7,6 +7,9 @@ let instance contents =
     html
       (head (title (txt "OCaml-CI")) [
           meta ~a:[a_charset "UTF-8"] ();
+          link ~rel:[ `Stylesheet ] ~href:"/css/normalize.css" ();
+          link ~rel:[ `Stylesheet ] ~href:"/css/ansi.css" ();
+          link ~rel:[ `Stylesheet ] ~href:"/css/github.css" ();
           link ~rel:[ `Stylesheet ] ~href:"/css/style.css" ();
         ]
       )

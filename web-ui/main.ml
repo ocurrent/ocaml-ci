@@ -9,19 +9,38 @@ module Server = Cohttp_lwt_unix.Server
 let normal_response x =
   x >|= fun x -> `Response x
 
+let headers content_type max_age =
+  Cohttp.Header.of_list [
+    ("Content-Type", content_type);
+    ("Cache-Control", Printf.sprintf "public, max-age=%d;" max_age);
+  ]
+
+let static ~content_type ?(max_age=86400) body =
+  let headers = headers content_type max_age in
+  Server.respond_string ~status:`OK ~headers ~body ()
+
+let crunch ?content_type ?(max_age=86400) path =
+  match Static.read path with
+  | None -> Server.respond_not_found ()
+  | Some body ->
+    let content_type = Option.value ~default:(Magic_mime.lookup path) content_type in
+    let headers = headers content_type max_age in
+    Server.respond_string ~status:`OK ~headers ~body ()
+
 let handle_request ~backend _conn request _body =
   let meth = Cohttp.Request.meth request in
   let uri = Cohttp.Request.uri request in
-  let path = Uri.path uri in
-  let path = Uri.pct_decode path in
+  let path = Uri.(uri |> path |> pct_decode) in
   Log.info (fun f -> f "HTTP %s %S" (Cohttp.Code.string_of_method meth) path);
   match meth, String.cuts ~sep:"/" ~empty:false path with
   | `GET, ([] | ["index.html"]) ->
     let body = Homepage.render () in
     let headers = Cohttp.Header.init_with "Content-Type" "text/html; charset=utf-8" in
     Server.respond_string ~status:`OK ~headers ~body () |> normal_response
-  | `GET, ["css"; "style.css"] ->
-    Style.get () |> normal_response
+  | `GET, ["css"; "ansi.css"] ->
+    static ~content_type:"text/css" Ansi.css |> normal_response
+  | `GET, ["css"; _] ->
+    crunch ~content_type:"text/css" path |> normal_response
   | meth, ("github" :: path) ->
     Github.handle ~backend ~meth path
   | `GET, ("badge" :: path) ->
