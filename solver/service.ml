@@ -81,19 +81,32 @@ end = struct
         Fmt.failwith "BUG: bad output: %s" results
 
   let ocaml = OpamPackage.Name.of_string "ocaml"
+  let base_effects = OpamPackage.Name.of_string "base-effects"
+  let base_domains = OpamPackage.Name.of_string "base-domains"
+
+  let is_multicore ocaml_version =
+    let v = Ocaml_version.of_string_exn (OpamPackage.Version.to_string ocaml_version) in
+    Ocaml_version.Configure_options.is_multicore v
 
   (* If a local package has a literal constraint on OCaml's version and it doesn't match
      the platform, we just remove that package from the set to test, so other packages
-     can still be tested. *)
-  let compatible_with ~ocaml_version (dep_name, filter) =
-    let check = function
+     can still be tested. If it depends on base-effects or base-domains, require a multicore compiler. *)
+  let compatible_with ~log ~ocaml_version (dep_name, filter) =
+    let check_ocaml = function
       | OpamTypes.Constraint (op, OpamTypes.FString v) ->
         let v = OpamPackage.Version.of_string v in
         OpamFormula.eval_relop op ocaml_version v
       | _ -> true
     in
     if OpamPackage.Name.equal dep_name ocaml then (
-      OpamFormula.eval check filter
+      OpamFormula.eval check_ocaml filter
+    ) else if OpamPackage.Name.equal dep_name base_effects ||
+              OpamPackage.Name.equal dep_name base_domains then (
+      try
+        is_multicore ocaml_version
+      with ex ->
+        Log.info log "is_multicore %S failed: %a" (OpamPackage.Version.to_string ocaml_version) Fmt.exn ex;
+        false
     ) else true
 
   let handle ~log request t =
@@ -115,7 +128,7 @@ end = struct
           |> List.filter (fun (_name, contents) ->
               let opam = OpamFile.OPAM.read_from_string contents in
               let deps = OpamFile.OPAM.depends opam in
-              OpamFormula.eval (compatible_with ~ocaml_version) deps
+              OpamFormula.eval (compatible_with ~log ~ocaml_version) deps
             )
         in
         (* If some packages are compatible but some aren't, just solve for the compatible ones.

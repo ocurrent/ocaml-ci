@@ -44,6 +44,12 @@ let doc_spec ~base ~opam_files ~selection =
   let cache = [ Obuilder_spec.Cache.v Opam_build.download_cache ~target:"/home/opam/.opam/download-cache" ] in
   let network = ["host"] in
   let open Obuilder_spec in
+  let to_name x = OpamPackage.of_string x |> OpamPackage.name_to_string in
+  let only_packages =
+    match selection.Selection.only_packages with
+    | [] -> ""
+    | pkgs -> " --only-packages=" ^ String.concat "," (List.map to_name pkgs)
+  in
   stage ~from:base @@
     comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant) ::
     user ~uid:1000 ~gid:1000 ::
@@ -52,8 +58,8 @@ let doc_spec ~base ~opam_files ~selection =
       (* conf-m4 is a work-around for https://github.com/ocaml-opam/opam-depext/pull/132 *)
       run ~network ~cache "opam depext -i conf-m4 && opam depext -i dune 'odoc>=1.5.0'";
       copy ["."] ~dst:"/src/";
-      run "ODOC_WARN_ERROR=false opam exec -- dune build @doc \
-           || (echo \"dune build @doc failed\"; exit 2)";
+      run "ODOC_WARN_ERROR=false opam exec -- dune build%s @doc \
+           || (echo \"dune build @doc failed\"; exit 2)" only_packages;
     ]
 
 let install_opam_dune_lint ~cache ~network ~base =
