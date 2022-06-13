@@ -116,6 +116,11 @@ let build_with_docker ?ocluster ~repo ~analysis source =
         :: Spec.opam_monorepo builds
       | `Opam_build selections ->
         let lint_selection = List.hd selections in
+        let lint_ocamlformat = 
+            (match Analyse.Analysis.ocamlformat_selection analysis with
+                | None -> lint_selection 
+                | Some selection -> selection)
+        in
         let builds =
           selections
           |> Selection.filter_duplicate_opam_versions
@@ -125,7 +130,7 @@ let build_with_docker ?ocluster ~repo ~analysis source =
              )
         and lint =
           [
-            Spec.opam ~label:"(lint-fmt)" ~selection:lint_selection ~analysis (`Lint `Fmt);
+            Spec.opam ~label:"(lint-fmt)" ~selection:lint_ocamlformat ~analysis (`Lint `Fmt);
             Spec.opam ~label:"(lint-doc)" ~selection:lint_selection ~analysis (`Lint `Doc);
             Spec.opam ~label:"(lint-opam)" ~selection:lint_selection ~analysis (`Lint `Opam);
           ]

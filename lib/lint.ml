@@ -28,7 +28,7 @@ let fmt_spec ~base ~ocamlformat_source ~selection =
   let open Obuilder_spec in
   let { Selection.packages = _; commit; variant = _; only_packages = _ } = selection in
   let commit =
-    Option.value ~default:selection.Selection.commit
+    Option.value ~default:commit
     (commit_from_ocamlformat_source ocamlformat_source)
   in
   let cache = [ Obuilder_spec.Cache.v Opam_build.download_cache ~target:"/home/opam/.opam/download-cache" ] in

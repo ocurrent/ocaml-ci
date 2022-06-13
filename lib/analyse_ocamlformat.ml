@@ -1,7 +1,7 @@
 let ( >>!= ) = Lwt_result.Infix.( >>= )
 
 type source =
-  | Opam of { version : string ; opam_repo_commit : string }
+    | Opam of { version : string ; opam_repo_commit : string }
   | Vendored of { path : string }
 [@@deriving yojson, eq, ord]
 
@@ -72,14 +72,17 @@ let get_ocamlformat_source job ~opam_files ~root ~find_opam_repo_commit =
   match List.find_opt proj_is_ocamlformat opam_files with
   | Some opam_file ->
     let path = Filename.dirname opam_file in
-    Lwt_result.return (Some (Vendored { path }))
+    Lwt_result.return (Some (Vendored { path }), None)
   | None ->
     let* version_in_dot_ocamlformat =
       ocamlformat_version_from_file ~root job
         Fpath.(to_string (root / ".ocamlformat"))
     in
     match version_in_dot_ocamlformat with
-    | None -> Lwt_result.return None
+    | None ->
+            Lwt_result.return (None, None)
+            (* This case happens when the ocamlformat file doesn't specify a version.
+               It will try to get the latest version for the last platform. *)
     | Some version ->
-      let* opam_repo_commit = find_opam_repo_commit version in
-      Lwt_result.return (Some (Opam { version; opam_repo_commit }))
+            let* opam_repo_commit, ocamlformat_selection = find_opam_repo_commit version in
+      Lwt_result.return (Some (Opam { version; opam_repo_commit }), Some ocamlformat_selection)
