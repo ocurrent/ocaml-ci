@@ -44,6 +44,7 @@ let job_log job =
 module Analysis = struct
   type t = {
     opam_files : string list;
+    ocamlformat_selection: Selection.t option;
     ocamlformat_source : Analyse_ocamlformat.source option;
     selections :
       [ `Opam_build of Selection.t list
@@ -60,6 +61,8 @@ module Analysis = struct
     | Error e -> failwith e
 
   let opam_files t = t.opam_files
+
+  let ocamlformat_selection t = t.ocamlformat_selection
 
   let ocamlformat_source t = t.ocamlformat_source
 
@@ -202,7 +205,7 @@ module Analysis = struct
       solve ~root_pkgs:[deps_for_ocamlformat] ~pinned_pkgs:[] ~platforms
     in
     let selection = List.hd workers in
-    selection.Selection.commit
+    selection.Selection.commit, selection
 
   let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
     let solve = solve ~opam_repository_commit ~job ~solver in
@@ -240,7 +243,7 @@ module Analysis = struct
     let find_opam_repo_commit = find_opam_repo_commit_for_ocamlformat ~solve ~platforms in
     Analyse_ocamlformat.get_ocamlformat_source
       job ~opam_files ~root:dir ~find_opam_repo_commit
-    >>!= fun ocamlformat_source ->
+    >>!= fun (ocamlformat_source, ocamlformat_selection) ->
     if opam_files = [] then Lwt_result.fail (`Msg "No opam files found!")
     else if List.filter is_toplevel opam_files = [] then Lwt_result.fail (`Msg "No top-level opam files found!")
     else (
@@ -253,7 +256,7 @@ module Analysis = struct
             (fun l -> `Opam_monorepo l)
         | `Ocaml_repo -> opam_selections ~solve ~job ~platforms ~opam_files dir
       end >>!= fun selections ->
-      let r = { opam_files; ocamlformat_source; selections } in
+          let r = { opam_files; ocamlformat_selection; ocamlformat_source; selections } in
       Current.Job.log job "@[<v2>Results:@,%a@]" Yojson.Safe.(pretty_print ~std:true) (to_yojson r);
       Lwt_result.return r
     )

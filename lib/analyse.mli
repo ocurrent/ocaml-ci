@@ -2,6 +2,7 @@ module Analysis : sig
   type t [@@deriving yojson]
 
   val opam_files : t -> string list
+  val ocamlformat_selection : t -> Selection.t option
   val ocamlformat_source : t -> Analyse_ocamlformat.source option
 
   val selections : t -> [
