@@ -30,15 +30,15 @@ module Commit : sig
   type t = Raw.Client.Commit.t Capability.t
   (** A single commit being tested. *)
 
-  val jobs : t -> (job_info list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
+  val jobs : t -> (job_info list, [> `Capnp of Capnp_rpc.Error.t ]) Result.t
 
   val job_of_variant : t -> variant -> Current_rpc.Job.t
   (** [job_of_variant t] is the (most recent) OCurrent job for this variant. *)
 
-  val refs : t -> (git_ref list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
+  val refs : t -> (git_ref list, [> `Capnp of Capnp_rpc.Error.t ]) Result.t
   (** [refs t] is the list of Git references that have this commit as their head. *)
 
-  val status : t -> ([ `Not_started | `Pending | `Failed | `Passed ], [> `Capnp of Capnp_rpc.Error.t | `Msg of string]) Lwt_result.t
+  val status : t -> ([ `Not_started | `Pending | `Failed | `Passed ], [> `Capnp of Capnp_rpc.Error.t | `Msg of string]) Result.t
   (** [status t] is the result of the most-recent 'summarise' step on this commit. *)
 end
 
@@ -46,7 +46,7 @@ module Repo : sig
   type t = Raw.Client.Repo.t Capability.t
   (** A GitHub repository that is tested by ocaml-ci. *)
 
-  val refs : t -> ((git_hash * Build_status.t) Ref_map.t, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
+  val refs : t -> ((git_hash * Build_status.t) Ref_map.t, [> `Capnp of Capnp_rpc.Error.t ]) Result.t
   (** [refs t] returns the known Git references (branches and pull requests) that ocaml-ci
       is monitoring, along with the current head of each one. *)
 
@@ -70,7 +70,7 @@ module Org : sig
   (** [repo t name] is the GitHub organisation at "https://github.com/$owner/$name".
       It returns an error if ocaml-ci doesn't know about this repository. *)
 
-  val repos : t -> (repo_info list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
+  val repos : t -> (repo_info list, [> `Capnp of Capnp_rpc.Error.t ]) Result.t
 end
 
 module CI : sig
@@ -81,5 +81,5 @@ module CI : sig
   (** [org t owner] is the GitHub organisation at "https://github.com/$owner".
       It returns an error if ocaml-ci doesn't know about this organisation. *)
 
-  val orgs : t -> (string list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
+  val orgs : t -> (string list, [> `Capnp of Capnp_rpc.Error.t ]) Result.t
 end

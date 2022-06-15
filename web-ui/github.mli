@@ -1,3 +1,1 @@
-val handle :
-  backend:Backend.t -> meth:Cohttp.Code.meth -> string list ->
-  Cohttp_lwt_unix.Server.response_action Lwt.t
+val handle : backend:Backend.t -> Http.Method.t -> string list -> Cohttp_eio.Server.response

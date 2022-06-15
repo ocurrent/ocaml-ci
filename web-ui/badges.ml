@@ -44,18 +44,21 @@ let schema_of_status =
   | `Failed -> v ~message:"failing" ~color:"critical" ()
   | `Passed -> v ~message:"passing" ~color:"success" ()
 
-let ( let* ) = Lwt.Infix.( >>= )
-
-open Lwt.Infix
 module Capability = Capnp_rpc_lwt.Capability
-module Client = Ocaml_ci_api.Client
-module Server = Cohttp_lwt_unix.Server
 
-let normal_response = Lwt.map (fun x -> `Response x)
+module Client = Ocaml_ci_api.Client
+module Server = Cohttp_eio.Server
+module Body = Cohttp_eio.Body
 
 let respond_error status body =
-  let headers = Cohttp.Header.init_with "Content-Type" "text/plain; charset=utf-8" in
-  Server.respond_error ~status ~headers ~body () |> normal_response
+  let headers =
+    Http.Header.of_list
+      [
+        ("content-type", "text/plain; charset=utf-8");
+        ("content-length", string_of_int @@ String.length body);
+      ]
+  in
+  Http.Response.make ~status ~headers (), Body.Fixed body
 
 let ( let*! ) x f =
   let respond_error msg =
@@ -63,13 +66,26 @@ let ( let*! ) x f =
     respond_error `Internal_server_error
       "ocaml-ci error: failed to retrieve badge state."
   in
-  x >>= function
+  match x with
   | Error (`Capnp ex) -> respond_error (Fmt.str "%a" Capnp_rpc.Error.pp ex)
   | Error (`Msg msg) -> respond_error msg
   | Ok y -> f y
 
+let json_response body =
+  let headers =
+    Http.Header.of_list
+      [
+        ("content-type", "application/json; charset=utf-8");
+        ("content-length", string_of_int @@ String.length body);
+      ]
+  in
+  let response =
+    Http.Response.make ~version:`HTTP_1_1 ~status:`OK ~headers ()
+  in
+  (response, Body.Fixed body)
+
 let handle ~backend ~path =
-  let* ci = Backend.ci backend in
+  let ci = Backend.ci backend in
   match path with
   | [ org_name; repo_name; branch_name ] ->
       let ref_name = Fmt.str "refs/heads/%s" branch_name in
@@ -81,6 +97,5 @@ let handle ~backend ~path =
       let body =
         status |> schema_of_status |> schema_to_yojson |> Yojson.Safe.to_string
       in
-      let headers = Cohttp.Header.init_with "Content-Type" "application/json; charset=utf-8" in
-      Server.respond_string ~status:`OK ~headers ~body () |> normal_response
-  | _ -> Server.respond_not_found () |> normal_response
+      json_response body
+  | _ -> Server.not_found_response

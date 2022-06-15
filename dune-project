@@ -93,7 +93,7 @@
   (prometheus-app (>= 1.0))
   (cmdliner (>= 1.1.0))
   lwt
-  (cohttp-lwt-unix (>= 2.2.0))
+  (cohttp-eio (>= 2.2.0))
   eio_main
   lwt_eio
   tyxml

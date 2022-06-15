@@ -51,7 +51,7 @@ module CI = struct
     let open Raw.Client.CI.Orgs in
     let request = Capability.Request.create_no_args () in
     Capability.call_for_value t method_id request
-    |> Lwt_result.map Results.orgs_get_list
+    |> Result.map Results.orgs_get_list
 end
 
 module Org = struct
@@ -72,7 +72,7 @@ module Org = struct
     let open Raw.Client.Org.Repos in
     let request = Capability.Request.create_no_args () in
     Capability.call_for_value t method_id request
-    |> Lwt_result.map (fun result ->
+    |> Result.map (fun result ->
         Results.repos_get_list result
         |> List.map @@ fun repo ->
         let name = Raw.Reader.RepoInfo.name_get repo in
@@ -87,7 +87,7 @@ module Repo = struct
   let refs t =
     let open Raw.Client.Repo.Refs in
     let request = Capability.Request.create_no_args () in
-    Capability.call_for_value t method_id request |> Lwt_result.map @@ fun jobs ->
+    Capability.call_for_value t method_id request |> Result.map @@ fun jobs ->
     Results.refs_get_list jobs
     |> List.fold_left (fun acc slot ->
         let gref = Raw.Reader.RefInfo.ref_get slot in
@@ -122,7 +122,7 @@ module Commit = struct
     let open Raw.Client.Commit.Jobs in
     let request = Capability.Request.create_no_args () in
     Capability.call_for_value t method_id request
-    |> Lwt_result.map @@ fun jobs ->
+    |> Result.map @@ fun jobs ->
     Results.jobs_get_list jobs |> List.map (fun job ->
         let variant = Raw.Reader.JobInfo.variant_get job in
         let state = Raw.Reader.JobInfo.state_get job in
@@ -133,11 +133,11 @@ module Commit = struct
   let refs t =
     let open Raw.Client.Commit.Refs in
     let request = Capability.Request.create_no_args () in
-    Capability.call_for_value t method_id request |> Lwt_result.map Results.refs_get_list
+    Capability.call_for_value t method_id request |> Result.map Results.refs_get_list
 
   let ( >> ) f g x = g (f x)
 
-  let (>>=) = Lwt_result.bind_result
+  let (>>=) = Result.bind
 
   let status t =
     let open Raw.Client.Commit.Status in

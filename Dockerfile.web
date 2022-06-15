@@ -1,7 +1,20 @@
-FROM ocaml/opam:debian-11-ocaml-5.0@sha256:2496a816275da522c21630f23be61e625e6a0f880883fb093306e4005ea1e52a
+FROM ocaml/opam:debian-11-ocaml-5.0@sha256:2496a816275da522c21630f23be61e625e6a0f880883fb093306e4005ea1e52a AS build
 RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libgmp-dev -y --no-install-recommends
-RUN cd ~/opam-repository && git fetch origin master && git reset --hard bf63beadbea0c69b499037cd707fd607ed844f0d && opam update
-RUN opam repo add alpha git://github.com/kit-ty-kate/opam-alpha-repository.git
+RUN cd ~/opam-repository && git fetch origin master && git reset --hard c6a0807ecfd0373688e2ae9823c00a800087fcf8 && opam update
+RUN opam repo add alpha https://github.com/kit-ty-kate/opam-alpha-repository.git
+RUN opam pin -yn http.5.5.0 https://github.com/mirage/ocaml-cohttp.git#08e796d45add02893a559411aa83d2196d1b86e4 && \
+    opam pin -yn cohttp.5.5.0 https://github.com/mirage/ocaml-cohttp.git#08e796d45add02893a559411aa83d2196d1b86e4 && \
+    opam pin -yn cohttp-eio.5.5.0 https://github.com/mirage/ocaml-cohttp.git#08e796d45add02893a559411aa83d2196d1b86e4 && \
+    opam pin -yn cohttp-lwt.5.5.0 https://github.com/mirage/ocaml-cohttp.git#08e796d45add02893a559411aa83d2196d1b86e4 && \
+    opam pin -yn cohttp-lwt-unix.5.5.0 https://github.com/mirage/ocaml-cohttp.git#08e796d45add02893a559411aa83d2196d1b86e4 && \
+    opam pin -yn eio.dev https://github.com/ocaml-multicore/eio.git#ff5e2bf33eec1194c0bae989e9290a0f5abd42cf && \
+    opam pin -yn eio_linux.dev https://github.com/ocaml-multicore/eio.git#ff5e2bf33eec1194c0bae989e9290a0f5abd42cf && \
+    opam pin -yn eio_luv.dev https://github.com/ocaml-multicore/eio.git#ff5e2bf33eec1194c0bae989e9290a0f5abd42cf && \
+    opam pin -yn eio_main.dev https://github.com/ocaml-multicore/eio.git#ff5e2bf33eec1194c0bae989e9290a0f5abd42cf && \
+    opam pin -yn capnp-rpc.1.2.2 https://github.com/talex5/capnp-rpc.git#f5c0c355dccdab083f80d55f7c2bb7480fc86eed && \
+    opam pin -yn capnp-rpc-lwt.1.2.2 https://github.com/talex5/capnp-rpc.git#f5c0c355dccdab083f80d55f7c2bb7480fc86eed && \
+    opam pin -yn capnp-rpc-net.1.2.2 https://github.com/talex5/capnp-rpc.git#f5c0c355dccdab083f80d55f7c2bb7480fc86eed && \
+    opam pin -yn capnp-rpc-unix.1.2.2 https://github.com/talex5/capnp-rpc.git#f5c0c355dccdab083f80d55f7c2bb7480fc86eed
 COPY --chown=opam \
 	ocurrent/current_rpc.opam \
 	/src/ocurrent/

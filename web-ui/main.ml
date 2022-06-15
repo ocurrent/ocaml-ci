@@ -1,77 +1,83 @@
-open Lwt.Infix
-open Astring
+open Eio.Std
 
 let setup_log default_level =
   Prometheus_unix.Logging.init ?default_level ()
 
-module Server = Cohttp_lwt_unix.Server
-
-let normal_response x =
-  x >|= fun x -> `Response x
+module Server = Cohttp_eio.Server
 
 let headers content_type max_age =
-  Cohttp.Header.of_list [
+  Http.Header.of_list [
     ("Content-Type", content_type);
     ("Cache-Control", Printf.sprintf "public, max-age=%d;" max_age);
   ]
 
 let static ~content_type ?(max_age=86400) body =
   let headers = headers content_type max_age in
-  Server.respond_string ~status:`OK ~headers ~body ()
+  let headers = Http.Header.add headers "content-length" (string_of_int (String.length body)) in
+  Http.Response.make ~status:`OK ~headers (), Cohttp_eio.Body.Fixed body
 
 let crunch ?content_type ?(max_age=86400) path =
   match Static.read path with
-  | None -> Server.respond_not_found ()
+  | None -> Server.not_found_response
   | Some body ->
     let content_type = Option.value ~default:(Magic_mime.lookup path) content_type in
     let headers = headers content_type max_age in
-    Server.respond_string ~status:`OK ~headers ~body ()
+    let headers = Http.Header.add headers "content-length" (string_of_int (String.length body)) in
+    Http.Response.make ~status:`OK ~headers (), Cohttp_eio.Body.Fixed body
 
-let handle_request ~backend _conn request _body =
-  let meth = Cohttp.Request.meth request in
-  let uri = Cohttp.Request.uri request in
-  let path = Uri.(uri |> path |> pct_decode) in
+let handle_request ~backend (request, _body, _addr) =
+  let meth = Http.Request.meth request in
+  let path = Http.Request.resource request |> Uri.pct_decode in (* XXX: pct_decode needed? *)
   Log.info (fun f -> f "HTTP %s %S" (Cohttp.Code.string_of_method meth) path);
-  match meth, String.cuts ~sep:"/" ~empty:false path with
+  match meth, String.split_on_char '/' path |> List.filter ((<>) "") with
   | `GET, ([] | ["index.html"]) ->
-    let body = Homepage.render () in
-    let headers = Cohttp.Header.init_with "Content-Type" "text/html; charset=utf-8" in
-    Server.respond_string ~status:`OK ~headers ~body () |> normal_response
+    Server.html_response (Homepage.render ())
   | `GET, ["css"; "ansi.css"] ->
-    static ~content_type:"text/css" Ansi.css |> normal_response
+    static ~content_type:"text/css" Ansi.css
   | `GET, ["css"; _] ->
-    crunch ~content_type:"text/css" path |> normal_response
+    crunch ~content_type:"text/css" path
   | meth, ("github" :: path) ->
-    Github.handle ~backend ~meth path
+    Github.handle ~backend meth path
   | `GET, ("badge" :: path) ->
      Badges.handle ~backend ~path
   | _ ->
-    Server.respond_not_found () |> normal_response
+    Server.not_found_response
 
-let pp_mode f mode =
-  Sexplib.Sexp.pp_hum f (Conduit_lwt_unix.sexp_of_server mode)
+let handle_exceptions handler req =
+  try handler req
+  with ex ->
+    Log.warn (fun f -> f "Error handling request: %a" Fmt.exn ex);
+    let headers = Http.Header.init_with "content-length" "0" in
+    Http.Response.make ~headers ~status:`Internal_server_error (), Cohttp_eio.Body.Empty
 
-let main () port backend_uri prometheus_config =
-  Eio_main.run @@ fun env ->
-  Lwt_eio.with_event_loop ~clock:env#clock @@ fun _ ->
-  Lwt_eio.run_lwt @@ fun () ->
-  let vat = Capnp_rpc_unix.client_only_vat () in
+let log_connection_error ex =
+  Log.warn (fun f -> f "Error handling connection: %a" Fmt.exn ex)
+
+let run_prometheus ~sw config =
+  Prometheus_unix.serve config |> List.iter (fun p ->
+      Fiber.fork_daemon ~sw (fun () -> Lwt_eio.Promise.await_lwt p; assert false)
+    )
+
+let main ~net () port backend_uri prometheus_config =
+  Switch.run @@ fun sw ->
+  let vat = Capnp_rpc_unix.client_only_vat ~sw net in
   let backend_sr = Capnp_rpc_unix.Vat.import_exn vat backend_uri in
-  let backend = Backend.make backend_sr in
-  let config = Server.make_response_action ~callback:(handle_request ~backend) () in
-  let mode = `TCP (`Port port) in
-  Log.info (fun f -> f "Starting web server: %a" pp_mode mode);
-  let web =
-    Lwt.try_bind
-      (fun () -> Server.create ~mode config)
-      (fun () -> failwith "Web-server stopped!")
-      (function
-        | Unix.Unix_error(Unix.EADDRINUSE, "bind", _) ->
-          Fmt.failwith "Web-server failed.@ Another program is already using this port %a." pp_mode mode
-        | ex -> Lwt.fail ex
-      )
-  in
-  Lwt.choose (web :: Prometheus_unix.serve prometheus_config)
+  let backend = Backend.make ~sw backend_sr in
+  Log.info (fun f -> f "Starting web server on port %d" port);
+  match
+    Eio.Net.listen net ~sw ~reuse_addr:true ~backlog:128
+      (`Tcp (Eio.Net.Ipaddr.V4.any, port))
+  with
+  | exception Unix.Unix_error(Unix.EADDRINUSE, "bind", _) ->
+    Fmt.error "Web-server failed.@ Another program is already using port %d." port
+  | socket ->
+    let handler = Server.connection_handler (handle_exceptions @@ handle_request ~backend) in
+    run_prometheus ~sw prometheus_config;
+    let rec run_server () =
+      Eio.Net.accept_fork ~sw socket handler ~on_error:log_connection_error;
+      run_server ()
+    in
+    run_server ()
 
 open Cmdliner
 
@@ -94,9 +100,12 @@ let backend_cap =
     ~docv:"CAP"
     ["backend"]
 
-let cmd =
+let cmd ~net =
   let doc = "A web front-end for OCaml-CI" in
   let info = Cmd.info "ocaml-ci-web" ~doc in
-  Cmd.v info Term.(const main $ setup_log $ port $ backend_cap $ Prometheus_unix.opts)
+  Cmd.v info Term.(const (main ~net) $ setup_log $ port $ backend_cap $ Prometheus_unix.opts)
 
-let () = exit @@ Cmd.eval cmd
+let () =
+  exit @@ Eio_main.run @@ fun env ->
+  Lwt_eio.with_event_loop ~clock:env#clock @@ fun _ ->
+  Cmd.eval_result (cmd ~net:env#net)

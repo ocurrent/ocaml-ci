@@ -17,6 +17,7 @@
              fmt.tty
              ansi
              cohttp-lwt-unix
+             cohttp-eio
              tyxml
              prometheus-app.unix
              ocaml-ci-api
