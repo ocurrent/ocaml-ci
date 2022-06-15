@@ -298,39 +298,22 @@ let repo_handle ~meth ~owner ~name ~repo path =
         respond_error `Internal_server_error reason
     end
   | `POST, ["commit"; hash; "cancel"] ->
-    let job_lookup commit job_info =
-      let variant = job_info.Client.variant in
-      let job = Client.Commit.job_of_variant commit variant in
-      Current_rpc.Job.status job |> Lwt.map (function
-        | Ok s -> if s.Current_rpc.Job.can_cancel then Some (job_info, job) else None
-        | Error (`Capnp ex) -> Log.info (fun f -> f "Error fetching job status: %a" Capnp_rpc.Error.pp ex); None
-      )
-    in
-    let can_cancel (commit: Client.Commit.t) (job_i: Client.job_info) =
-      match job_i.outcome with
-      | Active | NotStarted ->
-          job_lookup commit job_i
-      | Aborted | Failed _ | Passed | Undefined _ -> Lwt.return None
-    in
     let cancel_many (commit: Client.Commit.t) (job_infos : Client.job_info list) =
-      let open Lwt.Infix in
-      Lwt_list.filter_map_p (fun job_info -> can_cancel commit job_info) job_infos >>= fun l ->
-        Lwt_list.map_p (fun (ji, j) -> Current_rpc.Job.cancel j |> Lwt_result.map @@ fun () -> ji) l >>= fun x ->
-          let success = ref [] in
-          let failed = ref 0 in
-          let log_error r =
-          match r with
-          | Ok(ji) -> success := ji :: !success
-          | Error (`Capnp ex) ->
-            incr failed;
-            Log.err (fun f -> f "Error cancelling job: %a" Capnp_rpc.Error.pp ex)
-          in
-          let _ = List.map log_error x in
-          Lwt.return (!success, !failed)
+      Lwt_list.fold_left_s (fun (success, failed) (job_info : Client.job_info) ->
+        match job_info.outcome with
+        | Aborted | Failed _ | Passed | Undefined _ -> Lwt.return (success, failed)
+        | Active | NotStarted ->
+          let variant = job_info.Client.variant in
+          let job = Client.Commit.job_of_variant commit variant in
+            Current_rpc.Job.cancel job >|= function
+              | Ok () -> (job_info :: success, failed)
+              | Error (`Capnp ex) ->
+                  Log.err (fun f -> f "Error cancelling job: %a" Capnp_rpc.Error.pp ex);
+                  (success, succ failed)
+      ) ([], 0) job_infos
     in
     Capability.with_ref (Client.Repo.commit_of_hash repo hash) @@ fun commit ->
-    let refs = Client.Commit.refs commit in
-    refs >>!= fun refs ->
+    Client.Commit.refs commit >>!= fun refs ->
     Client.Commit.jobs commit >>!= fun jobs ->
       begin cancel_many commit jobs >>= fun (success, failed) ->
         let open Tyxml.Html in
@@ -339,9 +322,9 @@ let repo_handle ~meth ~owner ~name ~repo path =
           li [span [txt @@ Fmt.str "Cancelling job: %s" ji.Client.variant]]
         in
         let success_msg =
-          if List.length success > 0
-          then ul (List.map format_job_info success)
-          else div [span [txt @@ Fmt.str "No jobs were cancelled."]]
+          match success with
+          | [] -> div [span [txt @@ Fmt.str "No jobs were cancelled."]]
+          | success -> ul (List.map format_job_info success)
         in
         let fail_msg = match failed with
         | n when n <= 0 -> div []
@@ -349,17 +332,17 @@ let repo_handle ~meth ~owner ~name ~repo path =
         | n ->  div [span [txt @@ Fmt.str "%d jobs could not be cancelled. Check logs for more detail." n]]
         in
         let return_link =
-          a ~a:[a_href (uri)] [txt @@ Fmt.str "Return to %s" (short_hash hash)]
+          a ~a:[a_href uri] [txt @@ Fmt.str "Return to %s" (short_hash hash)]
         in
         let body = Template.instance [
-          breadcrumbs ["github", "github";
-                      owner, owner;
-                      name, name] (short_hash hash);
-          link_github_refs ~owner ~name refs;
-          link_jobs ~owner ~name ~hash jobs;
-          success_msg;
-          fail_msg;
-          return_link;
+            breadcrumbs ["github", "github";
+                          owner, owner;
+                          name, name] (short_hash hash);
+            link_github_refs ~owner ~name refs;
+            link_jobs ~owner ~name ~hash jobs;
+            success_msg;
+            fail_msg;
+            return_link;
           ] in
         Server.respond_string ~status:`OK ~headers ~body () |> normal_response
     end
@@ -370,53 +353,43 @@ let repo_handle ~meth ~owner ~name ~repo path =
       | ["commit";_;"rebuild-failed"] -> true
       | _ -> false
     in
-    let job_lookup commit job_info status_check =
-      let variant = job_info.Client.variant in
-      let job = Client.Commit.job_of_variant commit variant in
-      Current_rpc.Job.status job |> Lwt.map (function
-        | Ok s -> if status_check s then Some (job_info, job) else None
-        | Error (`Capnp ex) -> Log.info (fun f -> f "Error fetching job status: %a" Capnp_rpc.Error.pp ex); None
-      )
-    in
-    let can_rebuild (commit: Client.Commit.t) (job_i: Client.job_info) =
-      if rebuild_failed_only then
-        match job_i.outcome with
-        | Active | NotStarted | Passed -> Lwt.return None
-        | Aborted | Failed _ | Undefined _ -> job_lookup commit job_i (fun s -> s.Current_rpc.Job.can_rebuild)
-      else
-        job_lookup commit job_i (fun s -> s.Current_rpc.Job.can_rebuild)
-    in
-    let success = ref [] in
-    let failed = ref 0 in
     let rebuild_many commit job_infos =
-      Lwt_list.filter_map_p (fun job_info -> can_rebuild commit job_info) job_infos >>=
-      Lwt_list.map_p (fun (ji, j) ->
-          Capability.with_ref (Current_rpc.Job.rebuild j) @@ fun new_job ->
-            begin Capability.await_settled new_job >>= function
-            | Ok () -> success := ji :: !success; Lwt.return_unit
-            | Error ex ->
-              incr failed;
-              Log.err (fun f -> f "Error rebuilding job: %a" Capnp_rpc.Exception.pp ex);
-              Lwt.return_unit
-            end
-        )
+      let go job_info commit success failed =
+        let variant = job_info.Client.variant in
+        let job = Client.Commit.job_of_variant commit variant in
+        Capability.with_ref (Current_rpc.Job.rebuild job) @@ fun new_job ->
+          begin Capability.await_settled new_job >>= function
+          | Ok () -> Lwt.return (job_info :: success, failed)
+          | Error ex ->
+            Log.err (fun f -> f "Error rebuilding job: %a" Capnp_rpc.Exception.pp ex);
+            Lwt.return (success, succ failed)
+          end
+      in
+      Lwt_list.fold_left_s (fun (success, failed) (job_info : Client.job_info) ->
+        if rebuild_failed_only then
+          match job_info.outcome with
+          | Active | NotStarted | Passed -> Lwt.return (success, failed)
+          | Aborted | Failed _ | Undefined _ ->
+            go job_info commit success failed
+        else
+          go job_info commit success failed
+      ) ([], 0) job_infos
     in
     Capability.with_ref (Client.Repo.commit_of_hash repo hash) @@ fun commit ->
-      let refs = Client.Commit.refs commit in
-      refs >>!= fun refs ->
+      Client.Commit.refs commit >>!= fun refs ->
       Client.Commit.jobs commit >>!= fun jobs ->
-        begin rebuild_many commit jobs >>= fun _unit ->
+        begin rebuild_many commit jobs >>= fun (success, failed) ->
           let open Tyxml.Html in
           let uri = commit_url ~owner ~name hash in
           let format_job_info ji =
             li [span [txt @@ Fmt.str "Rebuilding job: %s" ji.Client.variant]]
           in
           let success_msg =
-            if List.length !success > 0
-            then ul (List.map format_job_info !success)
-            else div [span [txt @@ Fmt.str "No jobs were rebuilt."]]
+            match success with
+            | [] -> div [span [txt @@ Fmt.str "No jobs were rebuilt."]]
+            | success -> ul (List.map format_job_info success)
           in
-          let fail_msg = match !failed with
+          let fail_msg = match failed with
           | n when n <= 0 -> div []
           | 1 ->  div [span [txt @@ Fmt.str "1 job could not be rebuilt. Check logs for more detail."]]
           | n ->  div [span [txt @@ Fmt.str "%d jobs could not be rebuilt. Check logs for more detail." n]]
@@ -425,15 +398,15 @@ let repo_handle ~meth ~owner ~name ~repo path =
             a ~a:[a_href (uri)] [txt @@ Fmt.str "Return to %s" (short_hash hash)]
           in
           let body = Template.instance [
-            breadcrumbs ["github", "github";
-                        owner, owner;
-                        name, name] (short_hash hash);
-            link_github_refs ~owner ~name refs;
-            link_jobs ~owner ~name ~hash jobs;
-            success_msg;
-            fail_msg;
-            return_link;
-          ] in
+              breadcrumbs ["github", "github";
+                          owner, owner;
+                          name, name] (short_hash hash);
+              link_github_refs ~owner ~name refs;
+              link_jobs ~owner ~name ~hash jobs;
+              success_msg;
+              fail_msg;
+              return_link;
+            ] in
         Server.respond_string ~status:`OK ~headers ~body () |> normal_response
       end
   | _ ->
