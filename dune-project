@@ -94,6 +94,8 @@
   (cmdliner (>= 1.1.0))
   lwt
   (cohttp-lwt-unix (>= 2.2.0))
+  eio_main
+  lwt_eio
   tyxml
   (capnp-rpc-unix (>= 1.2))
   ocaml-ci-api

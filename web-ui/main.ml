@@ -52,25 +52,26 @@ let pp_mode f mode =
   Sexplib.Sexp.pp_hum f (Conduit_lwt_unix.sexp_of_server mode)
 
 let main () port backend_uri prometheus_config =
-  Lwt_main.run begin
-    let vat = Capnp_rpc_unix.client_only_vat () in
-    let backend_sr = Capnp_rpc_unix.Vat.import_exn vat backend_uri in
-    let backend = Backend.make backend_sr in
-    let config = Server.make_response_action ~callback:(handle_request ~backend) () in
-    let mode = `TCP (`Port port) in
-    Log.info (fun f -> f "Starting web server: %a" pp_mode mode);
-    let web =
-      Lwt.try_bind
-        (fun () -> Server.create ~mode config)
-        (fun () -> failwith "Web-server stopped!")
-        (function
-          | Unix.Unix_error(Unix.EADDRINUSE, "bind", _) ->
-            Fmt.failwith "Web-server failed.@ Another program is already using this port %a." pp_mode mode
-          | ex -> Lwt.fail ex
-        )
-    in
-    Lwt.choose (web :: Prometheus_unix.serve prometheus_config)
-  end
+  Eio_main.run @@ fun env ->
+  Lwt_eio.with_event_loop ~clock:env#clock @@ fun _ ->
+  Lwt_eio.run_lwt @@ fun () ->
+  let vat = Capnp_rpc_unix.client_only_vat () in
+  let backend_sr = Capnp_rpc_unix.Vat.import_exn vat backend_uri in
+  let backend = Backend.make backend_sr in
+  let config = Server.make_response_action ~callback:(handle_request ~backend) () in
+  let mode = `TCP (`Port port) in
+  Log.info (fun f -> f "Starting web server: %a" pp_mode mode);
+  let web =
+    Lwt.try_bind
+      (fun () -> Server.create ~mode config)
+      (fun () -> failwith "Web-server stopped!")
+      (function
+        | Unix.Unix_error(Unix.EADDRINUSE, "bind", _) ->
+          Fmt.failwith "Web-server failed.@ Another program is already using this port %a." pp_mode mode
+        | ex -> Lwt.fail ex
+      )
+  in
+  Lwt.choose (web :: Prometheus_unix.serve prometheus_config)
 
 open Cmdliner
 

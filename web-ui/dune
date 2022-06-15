@@ -10,6 +10,8 @@
   (public_name ocaml-ci-web)
   (package ocaml-ci-web)
   (libraries lwt.unix
+             eio_main
+             lwt_eio
              logs.cli
              logs.fmt
              fmt.tty
