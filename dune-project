@@ -34,7 +34,7 @@
  (synopsis "Test OCaml projects on GitHub")
  (conflicts (ocaml-migrate-parsetree (= "1.7.1")))
  (depends
-  (prometheus-app (>= 1.0))
+  (prometheus-app (>= 1.2))
   (ppx_sexp_conv (>= v0.14.1))
   (ppx_deriving_yojson (>= 3.6.1))
   (ppx_deriving (>= 5.1))
@@ -90,7 +90,7 @@
   (fmt (>= 0.8.9))
   current_rpc
   (ansi (>= 0.5.0))
-  (prometheus-app (>= 1.0))
+  (prometheus-app (>= 1.2))
   (cmdliner (>= 1.1.0))
   lwt
   (cohttp-lwt-unix (>= 2.2.0))
