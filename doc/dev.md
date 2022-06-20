@@ -45,7 +45,7 @@ dune exec -- ocaml-ci-service \
   --github-account-allowlist <your-github-username> \
   --submission-service <path-to-the-submission-capability-file> \
   --github-webhook-secret-file <path-to-the-app-secret> \
-  --capnp-address tcp:127.0.0.1:9000
+  --capnp-listen-address tcp:127.0.0.1:9001
 ```
 
 This will generate a capability file. See the logs for `Wrote capability reference to "./capnp-secrets/ocaml-ci-admin.cap"`
