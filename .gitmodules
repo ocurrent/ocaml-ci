@@ -18,3 +18,6 @@
 	path = ocaml-matrix
 	url = https://github.com/mirage/ocaml-matrix.git
 	branch = main
+[submodule "ocaml-gitlab"]
+	path = ocaml-gitlab
+	url = https://github.com/tmcgilchrist/ocaml-gitlab.git
