@@ -12,8 +12,8 @@ let has_role user = function
            ) -> true
     | _ -> false
 
-let webhook_route ~engine ~webhook_secret ~has_role =
-  Routes.(s "webhooks" / s "github" /? nil @--> Current_github.webhook ~engine ~webhook_secret ~has_role)
+let webhook_route ~engine ~get_job_ids ~webhook_secret ~has_role =
+  Routes.(s "webhooks" / s "github" /? nil @--> Current_github.webhook ~engine ~get_job_ids ~webhook_secret ~has_role)
 
 let login_route github_auth = Routes.(s "login" /? nil @--> Current_github.Auth.login github_auth) 
 
