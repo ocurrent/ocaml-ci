@@ -68,12 +68,13 @@ CREATE TABLE IF NOT EXISTS ci_build_index (
 
 let init () = ignore (Lazy.force db)
 
-let get_job_ids t ~owner ~name ~hash =
+let get_job_ids_with_variant t ~owner ~name ~hash =
   Db.query t.get_job_ids Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash ]
   |> List.map @@ function
   | Sqlite3.Data.[ TEXT variant; NULL ] -> variant, None
   | Sqlite3.Data.[ TEXT variant; TEXT id ] -> variant, Some id
   | row -> Fmt.failwith "get_job_ids: invalid row %a" Db.dump_row row
+
 
 module Status_cache = struct
   let cache = Hashtbl.create 1_000
@@ -99,7 +100,7 @@ let record ~repo ~hash ~status jobs =
   let t = Lazy.force db in
   let () = Status_cache.add ~owner ~name ~hash status in
   let jobs = Job_map.of_list jobs in
-  let previous = get_job_ids t ~owner ~name ~hash |> Job_map.of_list in
+  let previous = get_job_ids_with_variant t ~owner ~name ~hash |> Job_map.of_list in
   let merge variant prev job =
     let set job_id =
       Log.info (fun f -> f "@[<h>Index.record %s/%s %s %s -> %a@]"
@@ -164,6 +165,10 @@ let get_job ~owner ~name ~hash ~variant =
   | Some Sqlite3.Data.[ TEXT id ] -> Ok (Some id)
   | Some Sqlite3.Data.[ NULL ] -> Ok None
   | _ -> failwith "get_job: invalid result!"
+
+let get_job_ids  ~owner ~name ~hash =
+  let t = Lazy.force db in
+  get_job_ids_with_variant t ~owner ~name ~hash |> List.filter_map snd
 
 module Owner_set = Set.Make(String)
 

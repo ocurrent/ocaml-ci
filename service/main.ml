@@ -1,9 +1,9 @@
 open Lwt.Infix
 open Capnp_rpc_lwt
+open Ocaml_ci
 
 module Metrics = struct
   open Prometheus
-  open Ocaml_ci
 
   let namespace = "ocamlci"
 
@@ -87,7 +87,7 @@ let main () config mode app capnp_address github_auth submission_uri matrix : ('
     in
     let secure_cookies = github_auth <> None in
     let routes =
-      Github.webhook_route ~engine ~webhook_secret ~has_role ::
+      Github.webhook_route ~engine ~get_job_ids:Index.get_job_ids ~webhook_secret ~has_role ::
       Github.login_route github_auth ::
       Current_web.routes engine in
     let site = Current_web.Site.v ?authn ~has_role ~secure_cookies ~name:"ocaml-ci" routes in

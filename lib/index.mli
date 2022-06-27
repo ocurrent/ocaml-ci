@@ -24,6 +24,8 @@ val get_jobs : owner:string -> name:string -> string -> (string * job_state) lis
 val get_job : owner:string -> name:string -> hash:string -> variant:string -> (string option, [> `No_such_variant]) result
 (** [get_job ~owner ~name ~variant] is the last known job ID for this combination. *)
 
+val get_job_ids: owner:string -> name:string -> hash:string -> string list
+
 val get_status:
   owner:string ->
   name:string ->
