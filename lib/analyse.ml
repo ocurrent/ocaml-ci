@@ -195,6 +195,8 @@ module Analysis = struct
 
   let exactly v = Printf.sprintf {|{ = "%s" }|} v
 
+  let solver_cache = Hashtbl.create 128
+
   let find_opam_repo_commit_for_ocamlformat ~solve ~platforms version =
     let ( let+ ) = Lwt_result.Infix.( >|= ) in
     let deps_for_ocamlformat =
@@ -202,7 +204,12 @@ module Analysis = struct
       , opam_dep_file [("ocamlformat", exactly version)])
     in
     let+ workers =
-      solve ~root_pkgs:[deps_for_ocamlformat] ~pinned_pkgs:[] ~platforms
+        match Hashtbl.find_opt solver_cache  platforms with
+        | Some workers -> Lwt_result.return workers
+        | None ->
+            let+ workers = solve ~root_pkgs:[deps_for_ocamlformat] ~pinned_pkgs:[] ~platforms in
+            Hashtbl.add solver_cache platforms workers;
+            workers
     in
     let selection = List.hd workers in
     selection.Selection.commit, selection
