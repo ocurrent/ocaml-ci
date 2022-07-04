@@ -203,15 +203,21 @@ module Analysis = struct
       ( "deps_for_ocamlformat.opam"
       , opam_dep_file [("ocamlformat", exactly version)])
     in
-    let+ workers =
-        match Hashtbl.find_opt solver_cache  platforms with
-        | Some workers -> Lwt_result.return workers
+    let+ selections =
+        match Hashtbl.find_opt solver_cache version with
+        | Some (selections, platforms') ->
+            if platforms <> platforms' then
+                let+ selections = solve ~root_pkgs:[deps_for_ocamlformat] ~pinned_pkgs:[] ~platforms in
+                    Hashtbl.add solver_cache version (selections, platforms) ;
+                    selections
+            else 
+                Lwt_result.return selections
         | None ->
-            let+ workers = solve ~root_pkgs:[deps_for_ocamlformat] ~pinned_pkgs:[] ~platforms in
-            Hashtbl.add solver_cache platforms workers;
-            workers
+            let+ selections = solve ~root_pkgs:[deps_for_ocamlformat] ~pinned_pkgs:[] ~platforms in
+            Hashtbl.add solver_cache version (selections, platforms) ;
+            selections
     in
-    let selection = List.hd workers in
+    let selection = List.hd selections in
     selection.Selection.commit, selection
 
   let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
@@ -263,7 +269,7 @@ module Analysis = struct
             (fun l -> `Opam_monorepo l)
         | `Ocaml_repo -> opam_selections ~solve ~job ~platforms ~opam_files dir
       end >>!= fun selections ->
-          let r = { opam_files; ocamlformat_selection; ocamlformat_source; selections } in
+      let r = { opam_files; ocamlformat_selection; ocamlformat_source; selections } in
       Current.Job.log job "@[<v2>Results:@,%a@]" Yojson.Safe.(pretty_print ~std:true) (to_yojson r);
       Lwt_result.return r
     )
