@@ -16,6 +16,8 @@ type config = {
 }
 [@@deriving yojson, ord]
 
+let label c = c.lock_file_path
+
 let selection_of_config c = c.selection
 
 let opam_locked = ".opam.locked"

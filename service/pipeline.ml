@@ -113,7 +113,7 @@ let build_with_docker ?ocluster ~repo ~analysis source =
       | `Opam_monorepo builds ->
         let lint_selection = Opam_monorepo.selection_of_config (List.hd builds) in
         Spec.opam ~label:"(lint-fmt)" ~selection:lint_selection ~analysis (`Lint `Fmt)
-        :: List.map (fun config -> Spec.opam_monorepo ~config) builds
+        :: Spec.opam_monorepo builds
       | `Opam_build selections ->
         let lint_selection = List.hd selections in
         let builds =
