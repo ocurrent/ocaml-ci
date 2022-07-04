@@ -17,7 +17,7 @@ val opam :
   [ `Build | `Lint of [ `Doc | `Fmt | `Opam ] ] ->
   t
 
-val opam_monorepo : config:Opam_monorepo.config -> t
+val opam_monorepo : Opam_monorepo.config list -> t list
 
 val pp : t Fmt.t
 val compare : t -> t -> int

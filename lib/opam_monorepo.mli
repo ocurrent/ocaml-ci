@@ -5,6 +5,8 @@ val detect : dir:Fpath.t -> info list option
 
 type config [@@deriving yojson, ord]
 
+val label : config -> string
+
 val selection_of_config : config -> Selection.t
 
 (** Determine configuration for a build
