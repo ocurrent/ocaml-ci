@@ -22,12 +22,13 @@ let group_opam_files =
     )
 
 let mkdir dirs =
-  let dirs =
-    dirs
-    |> List.map (fun (dir, _, _) -> Filename.quote (Fpath.to_string dir))
-    |> String.concat " "
+  let dirs = dirs |> List.filter_map (fun (dir, _, _) ->
+      if Fpath.is_current_dir dir then None
+      else Some (Filename.quote (Fpath.to_string dir)))
   in
-  [Obuilder_spec.run "mkdir -p %s" dirs]
+  match dirs with
+  | [] -> []
+  | dirs -> [Obuilder_spec.run "mkdir -p %s" (String.concat " " dirs)]
 
 (* Generate instructions to copy all the files in [items] into the
    image, creating the necessary directories first, and then pin them all. *)
