@@ -21,13 +21,23 @@ let opam ~label ~selection ~analysis op =
   in
   { label; variant; ty }
 
-let opam_monorepo ~config =
-  let {Selection.variant; _} = Opam_monorepo.selection_of_config config in
-  {
-    label = Variant.to_string variant;
-    variant;
-    ty = `Opam_monorepo config
-  }
+let opam_monorepo builds =
+  let multi = List.compare_length_with builds 2 >= 0 in
+  List.map
+    (fun config ->
+       let {Selection.variant; _} = Opam_monorepo.selection_of_config config in
+       let label = if multi then
+           Opam_monorepo.label config
+         else
+           Variant.to_string variant
+       in
+       {
+         label;
+         variant;
+         ty = `Opam_monorepo config
+       }
+    )
+    builds
 
 let pp f t = Fmt.string f t.label
 
