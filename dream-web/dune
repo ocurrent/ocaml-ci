@@ -1,0 +1,8 @@
+(executable
+ (name main)
+ (libraries
+   dream
+   tyxml
+   ocaml-ci-api
+   capnp-rpc-unix
+))
