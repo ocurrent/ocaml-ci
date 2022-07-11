@@ -108,3 +108,8 @@
   (capnp-rpc-unix (>= 1.2))
   ocaml-ci-api
   dockerfile))
+(package
+ (name dream-web)
+ (synopsis "Dream web client")
+ (depends
+  (dream (= 1.0.0~alpha4))))
