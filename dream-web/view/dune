@@ -1,0 +1,4 @@
+(library
+ (public_name dream-web.view)
+ (name view)
+ (libraries ansi unix fmt dream tyxml ocaml_ci_api))

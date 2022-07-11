@@ -1,0 +1,13 @@
+(executable
+ (package dream-web)
+ (public_name dream-web)
+ (name main)
+ (libraries
+   ansi
+   dream
+   logs.cli
+   prometheus-app.unix
+   ocaml-ci-api
+   capnp-rpc-unix
+   dream-web.controller
+   dream-web.view))
