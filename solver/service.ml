@@ -145,6 +145,9 @@ end = struct
                 else Some pkg
               )
           in
+          (* Hack: ocaml-ci sometimes also installs odoc, but doesn't tell us about it.
+             Make sure we have at least odoc 2.1.1 available, otherwise it won't work on OCaml 5.0. *)
+          let repo_packages = OpamPackage.of_string "odoc.2.1.1" :: repo_packages in
           Opam_repository.oldest_commit_with repo_packages ~from:opam_repository_commit >|= fun commit ->
           let compat_pkgs = List.map fst compatible_root_pkgs in
           id, Ok { Worker.Selection.id; compat_pkgs; packages; commit }
