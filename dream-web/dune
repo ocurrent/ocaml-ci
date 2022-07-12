@@ -1,8 +1,10 @@
 (executable
+ (package dream-web)
+ (public_name dream-web)
  (name main)
  (libraries
    dream
-   tyxml
    ocaml-ci-api
    capnp-rpc-unix
+   dream-web.view
 ))

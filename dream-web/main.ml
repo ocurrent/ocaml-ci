@@ -1,39 +1,16 @@
-open Tyxml.Html
-
-let render =
-  Template.instance [
-      p [txt "Welcome to OCaml-CI!"];
-      p [txt "See ";
-         a ~a:[a_href "https://github.com/apps/ocaml-ci"] [
-             txt "The OCaml-CI GitHub App"
-           ];
-         txt " for details.";
-        ];
-      ul [
-          li [a ~a:[a_href "/github"] [txt "Registered GitHub organisations"]];
-        ]
-    ]
-
-
-(* let html_to_string html = *)
-(*   Format.asprintf "%a" (Tyxml.Html.pp ()) html *)
-
 let main port backend_cap =
   Lwt_main.run begin
-
       let open Lwt.Infix in
-      let vat = Capnp_rpc_unix.client_only_vat () in
-      let backend_sr = Capnp_rpc_unix.Vat.import_exn vat backend_cap in
-      let backend = Backend.make backend_sr in
-      Backend.ci backend >>= fun ci ->
+
+      Backend.Make.ci backend_cap >>= fun ci ->
 
       Dream.serve ~port
       @@ Dream.logger
       @@ Dream.origin_referrer_check
       @@ Dream.router [
-             Dream.get "/github" (fun _request -> Github.list_orgs ci);
+             Dream.get "/github" (fun _request -> Github.handle ~path:[] ci);
              Dream.get "/css/**" @@ Dream.static "dream-web/static/css";
-             Dream.get "/" (fun _ -> Dream.html @@ render)
+             Dream.get "/" (fun _ -> Dream.html @@ View.Index.render)
            ]
     end
 

@@ -112,4 +112,5 @@
  (name dream-web)
  (synopsis "Dream web client")
  (depends
+  (fmt (>= 0.8.9))
   (dream (= 1.0.0~alpha4))))
