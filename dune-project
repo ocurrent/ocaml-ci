@@ -57,7 +57,6 @@
   (conf-libev (<> :os "win32"))
   (dockerfile-opam (>= 7.0.0))
   (ocaml-version (>= 3.0.0))
-  matrix-current
   (alcotest (and (>= 1.0.0) :with-test))
   (alcotest-lwt (and (>= 1.0.1) :with-test))))
 (package
