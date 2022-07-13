@@ -14,7 +14,3 @@
 	path = ocaml-dockerfile
 	url = https://github.com/avsm/ocaml-dockerfile.git
 	branch = master
-[submodule "ocaml-matrix"]
-	path = ocaml-matrix
-	url = https://github.com/mirage/ocaml-matrix.git
-	branch = main
