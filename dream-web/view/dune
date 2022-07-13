@@ -1,4 +1,19 @@
 (library
  (public_name dream-web.view)
  (name view)
- (libraries base stdio unix tyxml fmt))
+ (libraries base stdio unix fmt dream))
+
+(rule
+ (targets template.ml)
+ (deps template.eml.ml)
+ (action (run dream_eml %{deps} --workspace %{workspace_root})))
+
+(rule
+ (targets github.ml)
+ (deps github.eml.ml)
+ (action (run dream_eml %{deps} --workspace %{workspace_root})))
+
+(rule
+ (targets index.ml)
+ (deps index.eml.ml)
+ (action (run dream_eml %{deps} --workspace %{workspace_root})))
