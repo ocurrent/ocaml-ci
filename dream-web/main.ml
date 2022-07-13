@@ -8,9 +8,9 @@ let main port backend_cap =
       @@ Dream.logger
       @@ Dream.origin_referrer_check
       @@ Dream.router [
-             Dream.get "/github" (fun _request -> Github.handle ~path:[] ci);
+             Dream.get "/github" (fun _request -> Controller.Github.handle ~path:[] ci);
              Dream.get "/css/**" @@ Dream.static "dream-web/static/css";
-             Dream.get "/" (fun _ -> Dream.html @@ View.Index.render)
+             Dream.get "/" (fun _ -> Dream.html @@ Controller.Index.render)
            ]
     end
 
