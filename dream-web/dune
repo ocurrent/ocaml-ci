@@ -6,5 +6,6 @@
    dream
    ocaml-ci-api
    capnp-rpc-unix
+   dream-web.controller
    dream-web.view
 ))
