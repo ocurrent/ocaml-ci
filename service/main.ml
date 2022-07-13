@@ -84,12 +84,12 @@ let run_capnp capnp_public_address capnp_listen_address =
     Logs.app (fun f -> f "Wrote capability reference to %S" Conf.Capnp.cap_file);
     Lwt.return (vat, Some rpc_engine_resolver)
 
-let main () config mode app capnp_public_address capnp_listen_address github_auth submission_uri matrix : ('a, [`Msg of string]) result =
+let main () config mode app capnp_public_address capnp_listen_address github_auth submission_uri : ('a, [`Msg of string]) result =
   Lwt_main.run begin
     let solver = Ocaml_ci.Solver_pool.spawn_local () in
     run_capnp capnp_public_address capnp_listen_address >>= fun (vat, rpc_engine_resolver) ->
     let ocluster = Option.map (Capnp_rpc_unix.Vat.import_exn vat) submission_uri in
-    let engine = Current.Engine.create ~config (Pipeline.v ?ocluster ?matrix ~app ~solver) in
+    let engine = Current.Engine.create ~config (Pipeline.v ?ocluster ~app ~solver) in
     rpc_engine_resolver |> Option.iter (fun r -> Capability.resolve_ok r (Api_impl.make_ci ~engine));
     let authn = Github.authn github_auth in
     let webhook_secret = Current_github.App.webhook_secret app in
@@ -155,6 +155,6 @@ let cmd =
     Term.(term_result (const main $ setup_log $ Current.Config.cmdliner
                        $ Current_web.cmdliner $ Current_github.App.cmdliner
                        $ capnp_public_address $ capnp_listen_address $ Current_github.Auth.cmdliner
-                       $ submission_service $ Matrix_current.cmdliner))
+                       $ submission_service))
 
 let () = exit @@ Cmd.eval cmd
