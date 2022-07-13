@@ -7,5 +7,4 @@
  opam-0install-solver
  ocluster
  ocaml-version
- ocaml-dockerfile
- ocaml-matrix)
+ ocaml-dockerfile)

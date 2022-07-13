@@ -4,7 +4,6 @@ open Ocaml_ci
 module Git = Current_git
 module Github = Current_github
 module Docker = Current_docker.Default
-module Matrix = Matrix
 
 let platforms =
   let schedule = Current_cache.Schedule.v ~valid_for:(Duration.of_day 30) () in
@@ -201,17 +200,15 @@ let local_test ~solver repo () =
   in
   Current_incr.const (result, None)
 
-let v ?ocluster ?matrix ~app ~solver () =
+let v ?ocluster ~app ~solver () =
   let ocluster = Option.map (Cluster_build.config ~timeout:(Duration.of_hour 1)) ocluster in
   Current.with_context opam_repository_commit @@ fun () ->
   Current.with_context platforms @@ fun () ->
   let installations = Github.App.installations app |> set_active_installations in
   installations |> Current.list_iter ~collapse_key:"org" (module Github.Installation) @@ fun installation ->
   let repos = Github.Installation.repositories installation |> set_active_repos ~installation in
-  let matrix_org_room = Matrix.get_org_room ~installation matrix in
   repos |> Current.list_iter ~collapse_key:"repo" (module Github.Api.Repo) @@ fun repo ->
   let refs = Github.Api.Repo.ci_refs ~staleness:Conf.max_staleness repo |> set_active_refs ~repo in
-  let matrix_room = Matrix.get_room ~repo matrix in
   refs |> Current.list_iter (module Github.Api.Commit) @@ fun head ->
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
   let analysis = Analyse.examine ~solver ~platforms ~opam_repository_commit src in
@@ -243,21 +240,6 @@ let v ?ocluster ?matrix ~app ~solver () =
     builds
     |> github_status_of_state ~head summary
     |> Github.Api.CheckRun.set_status head "ocaml-ci"
-  and set_matrix_status =
-    match matrix, matrix_room, matrix_org_room with
-    | None, None, None -> Current.return ()
-    | Some context, Some room, Some org_room ->
-      let key =
-        let+ head = head in
-        Github.Api.Commit.id head
-        |> Git.Commit_id.digest
-      in
-      let message = Matrix.message_of_state ~head summary builds
-      in
-      Current.all [
-        Matrix_current.post context ~key ~room message;
-        Matrix_current.post context ~key ~room:org_room message;
-      ]
-    | _ -> assert false
+  and set_matrix_status = Current.return ()
   in
   Current.all [index; set_github_status; set_matrix_status]

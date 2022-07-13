@@ -15,12 +15,11 @@
             ocluster-api
             capnp-rpc-unix
             mirage-crypto-rng.unix
-            matrix-current
             ocaml_ci
             ocaml-ci-api
             prometheus-app.unix)
  (preprocess (pps ppx_deriving_yojson))
- (modules api_impl conf github pipeline matrix))
+ (modules api_impl conf github pipeline))
 
 (executables
  (names main local)
@@ -38,7 +37,6 @@
             ocluster-api
             capnp-rpc-unix
             mirage-crypto-rng.unix
-            matrix-current
             ocaml-ci
             ocaml-ci-api
             ocaml_ci_service
