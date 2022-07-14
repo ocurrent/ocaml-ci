@@ -1,19 +1,28 @@
 (library
  (public_name dream-web.view)
  (name view)
- (libraries base stdio unix fmt dream))
+ (libraries base stdio unix fmt dream ocaml_ci_api))
 
 (rule
  (targets template.ml)
  (deps template.eml.ml)
- (action (run dream_eml %{deps} --workspace %{workspace_root})))
+ (action
+  (run dream_eml %{deps} --workspace %{workspace_root})))
 
 (rule
  (targets github.ml)
  (deps github.eml.ml)
- (action (run dream_eml %{deps} --workspace %{workspace_root})))
+ (action
+  (run dream_eml %{deps} --workspace %{workspace_root})))
 
 (rule
  (targets index.ml)
  (deps index.eml.ml)
- (action (run dream_eml %{deps} --workspace %{workspace_root})))
+ (action
+  (run dream_eml %{deps} --workspace %{workspace_root})))
+
+(rule
+ (targets client_error.ml)
+ (deps client_error.eml.ml)
+ (action
+  (run dream_eml %{deps} --workspace %{workspace_root})))
