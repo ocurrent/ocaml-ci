@@ -1,31 +1,31 @@
 open Astring
 
-let github_path request =
-  let path_components =
-    Dream.target request |> Uri.pct_decode
-  in
-  match String.cuts ~sep:"/" ~empty:false path_components with
-  | "github" :: path -> path
-  | _ -> []
-
 let main port backend_cap =
+  let github_path request =
+    let path_components =
+      Dream.target request |> Uri.pct_decode
+    in
+    match String.cuts ~sep:"/" ~empty:false path_components with
+    | "github" :: path -> path
+    | _ -> []
+  in  
   Lwt_main.run begin
       let open Lwt.Infix in
 
       Backend.Make.ci backend_cap >>= fun ci ->
-
       Dream.serve ~port
       @@ Dream.logger
       @@ Dream.origin_referrer_check
       @@ Dream.router [
              Dream.get "/css/**" @@ Dream.static "dream-web/static/css";
              Dream.get "/" (fun _ -> Dream.html @@ Controller.Index.render);
-             Dream.get "/github" (fun _request -> Controller.Github.handle ~path:[] ci);
+             Dream.get "/github" (fun _request -> Controller.Github.get_handler ~path:[] ci);
              Dream.scope"/github" [Dream.origin_referrer_check] [
                Dream.get "**" (fun request ->
-                     Controller.Github.handle ~path:(github_path request) ci)
+                     Controller.Github.get_handler ~path:(github_path request) ci)
                ];
-
+               Dream.post "**" (fun request ->
+                     Controller.Github.post_handler ~path:(github_path request) ci)
            ]
     end
 
