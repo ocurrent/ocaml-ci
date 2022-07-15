@@ -12,5 +12,6 @@ let add arch =
     | `X86_64 | `I386 -> `X86_64
     | `Aarch64 | `Aarch32 -> `Aarch64
     | `Ppc64le -> `Ppc64le
-    | `S390x -> `S390x) in
+    | `S390x -> `S390x
+    | `Riscv64 -> failwith "No support for riscv64 in docker/dockerfile:experimental.") in
   Printf.sprintf "# syntax = docker/dockerfile:experimental@%s\n" hash

@@ -63,6 +63,7 @@ let pool_of_arch = function
 | `Aarch32 | `Aarch64 -> "linux-arm64"
 | `S390x -> "linux-s390x"
 | `Ppc64le -> "linux-ppc64"
+| `Riscv64 -> "linux-riscv64"
 
 let platforms opam_version =
   let v ?(arch=`X86_64) label distro ocaml_version =
