@@ -6,7 +6,7 @@ authors: ["talex5@gmail.com"]
 homepage: "https://github.com/ocurrent/ocaml-ci"
 bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
-  "dune" {>= "3.0"}
+  "dune" {>= "3.3"}
   "logs"
   "current"
   "current_docker"

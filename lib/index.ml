@@ -6,7 +6,6 @@ module Db = Current.Db
 module Job_map = Astring.String.Map
 
 type t = {
-  db : Sqlite3.db;
   record_job : Sqlite3.stmt;
   remove : Sqlite3.stmt;
   get_jobs : Sqlite3.stmt;
@@ -56,7 +55,6 @@ CREATE TABLE IF NOT EXISTS ci_build_index (
   let full_hash = Sqlite3.prepare db "SELECT DISTINCT hash FROM ci_build_index \
                                       WHERE owner = ? AND name = ? AND hash LIKE ?" in
       {
-        db;
         record_job;
         remove;
         get_jobs;

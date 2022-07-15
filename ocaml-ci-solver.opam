@@ -6,11 +6,11 @@ authors: ["talex5@gmail.com"]
 homepage: "https://github.com/ocurrent/ocaml-ci"
 bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
-  "dune" {>= "3.0"}
+  "dune" {>= "3.3"}
   "ppx_deriving_yojson" {>= "3.6.1"}
   "ppx_deriving" {>= "5.1"}
   "yojson"
-  "lwt"
+  "lwt" {>= "5.6.1"}
   "logs"
   "fmt"
   "ocaml-ci"

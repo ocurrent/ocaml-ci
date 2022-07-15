@@ -6,7 +6,7 @@ authors: ["talex5@gmail.com"]
 homepage: "https://github.com/ocurrent/ocaml-ci"
 bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
-  "dune" {>= "3.0"}
+  "dune" {>= "3.3"}
   "crunch" {>= "3.2.0" & build}
   "yojson" {>= "1.7.0"}
   "logs" {>= "0.7.0"}
@@ -15,7 +15,7 @@ depends: [
   "ansi" {>= "0.5.0"}
   "prometheus-app" {>= "1.2"}
   "cmdliner" {>= "1.1.0"}
-  "lwt"
+  "lwt" {>= "5.6.1"}
   "cohttp-lwt-unix" {>= "2.2.0"}
   "tyxml"
   "capnp-rpc-unix" {>= "1.2"}
