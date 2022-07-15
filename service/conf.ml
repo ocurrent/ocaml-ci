@@ -116,6 +116,16 @@ let pool_of_arch = function
   | `Ppc64le -> "linux-ppc64"
   | `Riscv64 -> "linux-riscv64"
 
+(* Arches supported by [distro] but unsupported by [DD.master_distro]. *)
+let supplementary_arches ov master_distro distro =
+  if List.mem distro (List.map DD.resolve_alias DD.latest_distros) then
+    let master_distro_arches = DD.distro_arches ov (master_distro :> DD.t)
+    and distro_arches = DD.distro_arches ov (distro :> DD.t) in
+    List.filter
+      (fun arch -> not (List.mem arch master_distro_arches))
+      distro_arches
+  else []
+
 let platforms ~include_macos opam_version =
   let v ?(arch = `X86_64) label distro ocaml_version =
     {
@@ -139,7 +149,11 @@ let platforms ~include_macos opam_version =
       :: List.map
            (fun arch -> v ~arch label tag ov)
            (DD.distro_arches ov (distro :> DD.t))
-    else [ v label tag ov ]
+    else
+      v label tag ov
+      :: List.map
+           (fun arch -> v ~arch label tag ov)
+           (supplementary_arches ov master_distro distro)
   in
   let make_release ?arch ov =
     let distro = DD.tag_of_distro (master_distro :> DD.t) in
