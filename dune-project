@@ -1,4 +1,4 @@
-(lang dune 3.0)
+(lang dune 3.3)
 (name ocaml-ci-api)
 (formatting disabled)
 (generate_opam_files true)
@@ -67,7 +67,7 @@
   (ppx_deriving_yojson (>= 3.6.1))
   (ppx_deriving (>= 5.1))
   yojson
-  lwt
+  (lwt (>= 5.6.1))
   logs
   fmt
   ocaml-ci
@@ -92,7 +92,7 @@
   (ansi (>= 0.5.0))
   (prometheus-app (>= 1.2))
   (cmdliner (>= 1.1.0))
-  lwt
+  (lwt (>= 5.6.1))
   (cohttp-lwt-unix (>= 2.2.0))
   tyxml
   (capnp-rpc-unix (>= 1.2))
