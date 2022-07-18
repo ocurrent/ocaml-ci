@@ -1,4 +1,6 @@
 (library
  (public_name dream-web.controller)
  (name controller)
- (libraries lwt ocaml-ci-api dream base stdio unix dream-web.view))
+ (libraries lwt ocaml-ci-api dream base stdio unix dream-web.view)
+ (preprocess
+  (pps lwt_ppx)))

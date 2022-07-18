@@ -1,7 +1,9 @@
 (library
  (public_name dream-web.view)
  (name view)
- (libraries base stdio unix fmt dream ocaml_ci_api))
+ (libraries base ansi stdio unix fmt dream tyxml ocaml_ci_api)
+ (preprocess
+  (pps lwt_ppx)))
 
 (rule
  (targets template.ml)

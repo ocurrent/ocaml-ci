@@ -13,22 +13,22 @@ let main port backend_cap =
            Dream.get "github/:org/:repo" (fun request ->
                Controller.Github.list_refs
                  ~org:(Dream.param request "org")
-                 ~name:(Dream.param request "repo")
+                 ~repo:(Dream.param request "repo")
                  ci);
            Dream.get "github/:org/:repo/commit/:hash" (fun request ->
-               Dream.log "Not implemented yet %s %s %s"
-                 (Dream.param request "org")
-                 (Dream.param request "repo")
-                 (Dream.param request "hash");
-               Dream.respond ~status:`Not_Found View.Client_error.not_found);
+               Controller.Github.list_steps
+                 ~org:(Dream.param request "org")
+                 ~repo:(Dream.param request "repo")
+                 ~hash:(Dream.param request "hash")
+                 ci);
            Dream.get "github/:org/:repo/commit/:hash/variant/:variant"
              (fun request ->
-               Dream.log "Not implemented yet %s %s %s %s"
-                 (Dream.param request "org")
-                 (Dream.param request "repo")
-                 (Dream.param request "hash")
-                 (Dream.param request "variant");
-               Dream.respond ~status:`Not_Found View.Client_error.not_found);
+               Controller.Github.show_step
+                 ~org:(Dream.param request "org")
+                 ~repo:(Dream.param request "repo")
+                 ~hash:(Dream.param request "hash")
+                 ~variant:(Dream.param request "variant")
+                 ci);
          ])
 
 open Cmdliner
