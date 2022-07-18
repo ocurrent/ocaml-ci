@@ -4,27 +4,3 @@
  (libraries base ansi stdio unix fmt dream tyxml ocaml_ci_api)
  (preprocess
   (pps lwt_ppx)))
-
-(rule
- (targets template.ml)
- (deps template.eml.ml)
- (action
-  (run dream_eml %{deps} --workspace %{workspace_root})))
-
-(rule
- (targets github.ml)
- (deps github.eml.ml)
- (action
-  (run dream_eml %{deps} --workspace %{workspace_root})))
-
-(rule
- (targets index.ml)
- (deps index.eml.ml)
- (action
-  (run dream_eml %{deps} --workspace %{workspace_root})))
-
-(rule
- (targets client_error.ml)
- (deps client_error.eml.ml)
- (action
-  (run dream_eml %{deps} --workspace %{workspace_root})))
