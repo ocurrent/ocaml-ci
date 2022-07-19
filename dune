@@ -7,4 +7,6 @@
  opam-0install-solver
  ocluster
  ocaml-version
+ ocaml-gitlab
  ocaml-dockerfile)
+
