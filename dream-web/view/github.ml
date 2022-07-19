@@ -30,7 +30,7 @@ end = struct
     | [], ts -> ts @ [ Leaf x ]
     | k :: ks, [] -> [ Branch (k, add ks x []) ]
     | _ :: _, (Leaf _ as t) :: ts -> t :: add k x ts
-    | k :: ks, Branch (k', t) :: ts when String.equal k k' ->
+    | k :: ks, Branch (k', t) :: ts when Astring.String.equal k k' ->
         Branch (k, add ks x t) :: ts
     | _ :: _, (Branch _ as t) :: ts -> t :: add k x ts
 end
@@ -40,7 +40,7 @@ let short_hash = Astring.String.with_range ~len:6
 let breadcrumbs steps page_title =
   let open Tyxml.Html in
   let add (prefix, results) (label, link) =
-    let prefix = Printf.sprintf "%s/%s" prefix link in
+    let prefix = Fmt.str "%s/%s" prefix link in
     let link = li [a ~a:[a_href prefix] [txt label]] in
     (prefix, link :: results)
   in
@@ -51,22 +51,22 @@ let breadcrumbs steps page_title =
   )
 
 let org_url org =
-  Printf.sprintf "/github/%s" org
+  Fmt.str "/github/%s" org
 
 let repo_url org repo =
-  Printf.sprintf "/github/%s/%s" org repo
+  Fmt.str "/github/%s/%s" org repo
 
 let commit_url ~org ~repo hash =
-  Printf.sprintf "/github/%s/%s/commit/%s" org repo hash
+  Fmt.str "/github/%s/%s/commit/%s" org repo hash
 
 let job_url ~org ~repo ~hash variant =
-  Printf.sprintf "/github/%s/%s/commit/%s/variant/%s" org repo hash variant
+  Fmt.str "/github/%s/%s/commit/%s/variant/%s" org repo hash variant
 
 let github_branch_url ~org ~repo ref =
-  Printf.sprintf "https://github.com/%s/%s/tree/%s" org repo ref
+  Fmt.str "https://github.com/%s/%s/tree/%s" org repo ref
 
 let github_pr_url ~org ~repo id =
-  Printf.sprintf "https://github.com/%s/%s/pull/%s" org repo id
+  Fmt.str "https://github.com/%s/%s/pull/%s" org repo id
 
 let format_org org =
   let open Tyxml.Html in
@@ -140,7 +140,7 @@ let link_github_refs ~org ~repo =
               |> List.map @@ fun r ->
                   match Astring.String.cuts ~sep:"/" r with
                   | "refs" :: "heads" :: branch ->
-                      let branch = String.concat "/" branch in
+                    let branch = Astring.String.concat ~sep:"/" branch in
                       span
                         [
                           txt "branch ";
@@ -156,14 +156,14 @@ let link_github_refs ~org ~repo =
                             ~a:[ a_href (github_pr_url ~org ~repo id) ]
                             [ txt ("#" ^ id) ];
                         ]
-                  | _ -> txt (Printf.sprintf "Bad ref format %S" r))
+                  | _ -> txt (Fmt.str "Bad ref format %S" r))
         @ [ txt ")" ])
 
 let link_jobs ~org ~repo ~hash ?selected jobs =
   let open Tyxml.Html in
   let render_job trees { Client.variant; outcome } =
     let uri = job_url ~org ~repo ~hash variant in
-    match List.rev (String.split_on_char Common.status_sep variant) with
+    match List.rev (Astring.String.cuts ~sep:(Fmt.str "%c" Common.status_sep) variant) with
     | [] -> assert false
     | label_txt :: k ->
         let k = List.rev k in
