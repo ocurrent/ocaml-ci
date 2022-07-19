@@ -1,6 +1,6 @@
 type info = string * OpamFile.OPAM.t
 
-type lock_file_version = V0_1 | V0_2 | V0_3 [@@deriving yojson, ord]
+type lock_file_version = V0_2 | V0_3 [@@deriving yojson, ord]
 
 (** The kind of switch the package will be built in. *)
 type switch_type =
@@ -81,9 +81,12 @@ let opam_monorepo_dep_version ~lock_file ~package =
   |> version_of_equal_constraint
 
 let lock_file_version_of_string = function
-  | "0.1" -> V0_1
   | "0.2" -> V0_2
   | "0.3" -> V0_3
+  | "0.1" as s ->
+    Printf.ksprintf failwith
+      "lockfile version %s is not supported anymore. \
+       Please re-run opam-monorepo lock from a recent version of opam-monorepo." s
   | v -> Printf.ksprintf failwith "unknown x-opam-monorepo-version %S" v
 
 let exactly v = Printf.sprintf {|{ = "%s" }|} v
@@ -91,7 +94,6 @@ let exactly v = Printf.sprintf {|{ = "%s" }|} v
 let between a b = Printf.sprintf {|{ >= "%s" & < "%s" }|} a b
 
 let plugin_version = function
-  | V0_1 -> between "0.1.0" "0.3.0"
   | V0_2 -> between "0.2.6" "0.3.0"
   | V0_3 -> between "0.3.0" "0.4.0"
 
@@ -159,21 +161,6 @@ let selection ~info:(lock_file_path, lock_file) ~platforms ~solve =
   in
   { lock_file_path; selection; lock_file_version; switch_type }
 
-let install_depexts ~network ~cache ~lock_file_path ~lock_file_version =
-  let open Obuilder_spec in
-  match lock_file_version with
-  | V0_1 ->
-    let package = Filename.chop_suffix_opt ~suffix:opam_locked lock_file_path |> Option.get in
-      [
-        run ~network ~cache "opam pin -n add %s . --locked" package;
-        run ~network ~cache "opam depext --update -y %s" package;
-        run ~network ~cache "opam pin -n remove %s" package;
-      ]
-  | V0_2 | V0_3 ->
-      [
-        run ~network ~cache "opam monorepo depext --yes --lock ./%s" lock_file_path;
-      ]
-
 let initialize_switch ~network = function
   | Base -> []
   | Create { compiler_package } ->
@@ -183,7 +170,7 @@ let initialize_switch ~network = function
 let install_opam_provided_packages ~network ~cache ~lock_file_path ~lock_file_version =
   let open Obuilder_spec in
   match lock_file_version with
-  | V0_1 | V0_2 -> []
+  | V0_2 -> []
   | V0_3 ->
       [
         run ~network ~cache "opam install --yes --ignore-pin-depends --deps-only ./%s" lock_file_path;
@@ -207,8 +194,8 @@ let spec ~base ~repo ~config ~variant =
       workdir "/src";
       run "sudo chown opam /src";
       copy [ dune_project; lock_file_path ] ~dst:"/src/";
-    ]
-  @ install_depexts ~network ~cache:[ download_cache ] ~lock_file_path ~lock_file_version
+      run ~network ~cache:[ download_cache ] "opam monorepo depext --yes --lock ./%s" lock_file_path;
+  ]
   @ install_opam_provided_packages ~network ~cache:[ download_cache ] ~lock_file_path ~lock_file_version
   @ [
       run ~network ~cache:[ download_cache ] "opam exec -- opam monorepo pull";
