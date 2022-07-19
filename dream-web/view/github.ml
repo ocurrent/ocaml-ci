@@ -199,8 +199,16 @@ let list_steps ~org ~repo ~refs ~hash ~jobs =
         link_jobs ~org ~repo ~hash jobs;
       ]
 
-let step_v ~org ~repo ~refs ~hash ~variant ~job chunk =
+let step_v ~org ~repo ~refs ~hash ~variant ~job ~status chunk =
   let header, footer =
+    let can_rebuild = status.Current_rpc.Job.can_rebuild in
+    let buttons =
+      if can_rebuild then Tyxml.Html.[
+          form ~a:[a_action (variant ^ "/rebuild"); a_method `Post] [
+            input ~a:[a_input_type `Submit; a_value "Rebuild"] ()
+          ]
+      ] else []
+    in
     let body = Template_tyxml.instance Tyxml.Html.[
         breadcrumbs ["github", "github";
                      org, org;
@@ -208,6 +216,7 @@ let step_v ~org ~repo ~refs ~hash ~variant ~job chunk =
                      short_hash hash, "commit/" ^ hash;
                     ] variant;
         link_github_refs ~org ~repo refs;
+        div buttons;
         pre [txt "@@@"]
   ] in
   Astring.String.cut ~sep:"@@@" body |> Option.get in
@@ -237,5 +246,5 @@ let step_v ~org ~repo ~refs ~hash ~variant ~job chunk =
       in
       loop ())
 
-let show_step ~org ~repo ~refs ~hash ~variant job chunk =
-  step_v ~org ~repo ~refs ~hash ~variant ~job chunk
+let show_step ~org ~repo ~refs ~hash ~variant ~status job chunk =
+  step_v ~org ~repo ~refs ~hash ~variant ~job ~status chunk

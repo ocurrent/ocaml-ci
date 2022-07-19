@@ -52,8 +52,8 @@ let show_step ~org ~repo ~hash ~variant ci =
   Current_rpc.Job.log job_cap ~start:0L >>!= fun chunk ->
   (* (these will have resolved by now) *)
   refs >>!= fun refs ->
-  status >>!= fun _status ->
-  View.Github.show_step ~org ~repo ~refs ~hash ~variant job_cap chunk
+  status >>!= fun status ->
+  View.Github.show_step ~org ~repo ~refs ~hash ~variant ~status job_cap chunk
 
 let rebuild_step ~org ~repo ~hash ~variant request ci =
   Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->

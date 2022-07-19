@@ -3,6 +3,7 @@ let main port backend_cap =
     (let open Lwt.Infix in
     Backend.Make.ci backend_cap >>= fun ci ->
     Dream.serve ~port @@ Dream.logger @@ Dream.origin_referrer_check
+    @@ Dream.flash
     @@ Dream.router
          [
            Dream.get "/css/**" @@ Dream.static "dream-web/static/css";
