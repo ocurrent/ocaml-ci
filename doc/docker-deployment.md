@@ -29,7 +29,7 @@ App Name: example-ci (must be unique across GitHub)
 Homepage URL: https://ci.example.org/
 Callback URL: https://ci.example.org:8100/login
 Webhook URL: https://ci.example.org:8100/webhooks/github
-Webhook Secret: Create a secure webhook secret - perhaps like this `ruby -rsecurerandom -e 'puts SecureRandom.hex(20)'`
+Webhook Secret: Create a secure webhook secret - perhaps like this `ruby -rsecurerandom -e 'print SecureRandom.hex(20)'`
 
 Give repository permissions:
 
@@ -63,13 +63,21 @@ docker swarm init --advertise-addr 127.0.0.1:2377 --listen-addr 127.0.0.1:2377
 
 Create the Docker secrets required for the app.
 
-> Be careful not to have a trailing return character for the webhook secret.
+> Be careful not to have a trailing return character on the webhook secret.
+> Also be mindful of your shell history when creating secrets.
+
+This may be a good way to create a random secret in a file without a
+return character:
+
+```shell=
+ruby -rsecurerandom -e 'print SecureRandom.hex(20)' > example-ci-webhook-secret
+```
 
 You will need a submission cap for a [OCurrent cluster](https://github.com/ocurrent/ocluster.git).
 
 ```shell=
 docker secret create example-ci-github-key example-ci.2022-06-28.private-key.pem
-echo -n 8xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx6 | docker secret create example-ci-webhook-secret -
+docker secret create example-ci-webhook-secret example-ci-webhook-secret
 docker secret create ocaml-ci-submission.cap cluster.cap
 ```
 
