@@ -46,14 +46,17 @@ let show_step ~org ~repo ~hash ~variant ci =
   Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash)
   @@ fun commit_cap ->
   let refs = Client.Commit.refs commit_cap in
+  let jobs = Client.Commit.jobs commit_cap in
   Capability.with_ref (Client.Commit.job_of_variant commit_cap variant)
   @@ fun job_cap ->
   let status = Current_rpc.Job.status job_cap in
   Current_rpc.Job.log job_cap ~start:0L >>!= fun chunk ->
   (* (these will have resolved by now) *)
   refs >>!= fun refs ->
+  jobs >>!= fun jobs ->
   status >>!= fun status ->
-  View.Github.show_step ~org ~repo ~refs ~hash ~variant ~status job_cap chunk
+  Capability.inc_ref job_cap;
+  View.Github.show_step ~org ~repo ~refs ~hash ~jobs ~variant ~status job_cap chunk
 
 let rebuild_step ~org ~repo ~hash ~variant request ci =
   Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->

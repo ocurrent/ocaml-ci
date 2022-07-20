@@ -199,7 +199,7 @@ let list_steps ~org ~repo ~refs ~hash ~jobs =
         link_jobs ~org ~repo ~hash jobs;
       ]
 
-let step_v ~org ~repo ~refs ~hash ~variant ~job ~status chunk =
+let step_v ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status (data, next) =
   let header, footer =
     let can_rebuild = status.Current_rpc.Job.can_rebuild in
     let buttons =
@@ -216,6 +216,7 @@ let step_v ~org ~repo ~refs ~hash ~variant ~job ~status chunk =
                      short_hash hash, "commit/" ^ hash;
                     ] variant;
         link_github_refs ~org ~repo refs;
+        link_jobs ~org ~repo ~hash ~selected:variant jobs;
         div buttons;
         pre [txt "@@@"]
   ] in
@@ -226,25 +227,23 @@ let step_v ~org ~repo ~refs ~hash ~variant ~job ~status chunk =
     ~headers:[ ("Content-type", "text/html; charset=utf-8") ]
     (fun response_stream ->
       let%lwt () = Dream.write response_stream header in
-      let buffer = ref chunk in
-      let rec loop () =
-        match !buffer with
-        | "", _ ->
+      let%lwt () = Dream.write response_stream (Ansi.process ansi data) in
+      let rec loop next =
+        Current_rpc.Job.log job ~start:next >>= function
+        | Ok("", _) ->
           let%lwt () = Dream.write response_stream footer in
           Dream.close response_stream
-        | data, next -> (
+        | Ok(data, next) -> (
+            Dream.log "Fetching logs";
             let%lwt () = Dream.write response_stream (Ansi.process ansi data) in
             let%lwt () = Dream.flush response_stream in
-            Current_rpc.Job.log job ~start:next >>= function
-            | Ok x ->
-                buffer := x;
-                loop ()
-            | Error (`Capnp ex) ->
-                Dream.log "Error fetching logs: %a" Capnp_rpc.Error.pp ex;
-                Dream.write response_stream
-                  (Fmt.str "ocaml-ci error: %a@." Capnp_rpc.Error.pp ex))
+            loop next)
+        | Error (`Capnp ex) ->
+            Dream.log "Error fetching logs: %a" Capnp_rpc.Error.pp ex;
+            Dream.write response_stream
+              (Fmt.str "ocaml-ci error: %a@." Capnp_rpc.Error.pp ex)
       in
-      loop ())
+      loop next)
 
 let show_step ~org ~repo ~refs ~hash ~variant ~status job chunk =
   step_v ~org ~repo ~refs ~hash ~variant ~job ~status chunk
