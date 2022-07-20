@@ -6,7 +6,7 @@ monitor PRs.
 # Build the Docker images
 
 ```shell=
-git clone https://github.com/ocurrent/ocaml-ci.git
+git clone --recursive https://github.com/ocurrent/ocaml-ci.git
 cd ocaml-ci
 docker build -t ocaml-ci-service .
 docker build -f Dockerfile.web -t ocaml-ci-web .
