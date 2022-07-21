@@ -190,26 +190,105 @@ let list_refs ~org ~repo ~refs =
       refs_v ~org ~repo ~refs
     ]
 
-let list_steps ~org ~repo ~refs ~hash ~jobs =
-  Template_tyxml.instance [
+let cancel_success_message success =
+  let open Tyxml.Html in
+  let format_job_info ji =
+    li [span [txt @@ Fmt.str "Cancelling job: %s" ji.Client.variant]]
+  in
+  match success with
+  | [] -> div [span [txt @@ Fmt.str "No jobs were cancelled."]]
+  | success -> ul (List.map format_job_info success)
+
+let cancel_fail_message failed =
+  let open Tyxml.Html in
+  match failed with
+  | n when n <= 0 -> div []
+  | 1 ->  div [span [txt @@ Fmt.str "1 job could not be cancelled. Check logs for more detail."]]
+  | n ->  div [span [txt @@ Fmt.str "%d jobs could not be cancelled. Check logs for more detail." n]]
+
+let rebuild_success_message success =
+  let open Tyxml.Html in
+  let format_job_info ji =
+    li [span [txt @@ Fmt.str "Rebuilding job: %s" ji.Client.variant]]
+  in
+  match success with
+  | [] -> div [span [txt @@ Fmt.str "No jobs were rebuilt."]]
+  | success -> ul (List.map format_job_info success)
+
+let rebuild_fail_message failed =
+  let open Tyxml.Html in
+  match failed with
+  | n when n <= 0 -> div []
+  | 1 ->  div [span [txt @@ Fmt.str "1 job could not be rebuilt. Check logs for more detail."]]
+  | n ->  div [span [txt @@ Fmt.str "%d jobs could not be rebuilt. Check logs for more detail." n]]
+
+let return_link ~org ~repo ~hash =
+  let open Tyxml.Html in
+  let uri = commit_url ~org ~repo hash in
+  a ~a:[a_href uri] [txt @@ Fmt.str "Return to %s" (short_hash hash)]
+
+let list_steps
+  ~org ~repo ~refs ~hash ~jobs
+  ?(success_msg=(let open Tyxml.Html in div[]))
+  ?(fail_msg=(let open Tyxml.Html in div[]))
+  ?(return_link=(let open Tyxml.Html in div[]))
+  ?(flash_messages=[])
+  ~csrf_token () =
+  let open Tyxml.Html in
+  let can_cancel = List.fold_left (fun accum job_info ->
+    accum ||
+      match job_info.Client.outcome with
+      | Active | NotStarted -> true
+      | Aborted | Failed _ | Passed | Undefined _ -> false) false jobs
+  in
+  let can_rebuild = List.fold_left (fun accum job_info ->
+    accum ||
+    match job_info.Client.outcome with
+    | Active | NotStarted | Passed -> false
+    | Aborted | Failed _ | Undefined _ -> true) false jobs
+  in
+  let buttons =
+    if can_cancel then [
+        form ~a:[a_action (hash ^ "/cancel"); a_method `Post] [
+          input ~a:[a_name "csrf"; a_input_type `Hidden; a_value csrf_token] ();
+          input ~a:[a_input_type `Submit; a_value "Cancel"] () ]
+    ] else if can_rebuild then [
+      form ~a:[a_action (hash ^ "/rebuild-failed"); a_method `Post] [
+        button [txt "Rebuild Failed"];
+        input ~a:[a_name "csrf"; a_input_type `Hidden; a_value csrf_token] ();
+        input ~a:[a_name "filter"; a_input_type `Hidden; a_value "failed"] ()
+      ];
+      form ~a:[a_action (hash ^ "/rebuild-all"); a_method `Post] [
+        button [txt "Rebuild All"];
+        input ~a:[a_name "csrf"; a_input_type `Hidden; a_value csrf_token] ();
+        input ~a:[a_name "filter"; a_input_type `Hidden; a_value "none"] ()
+      ];
+    ] else []
+  in
+  Template_tyxml.instance ~flash_messages [
         breadcrumbs ["github", "github";
                      org, org;
                      repo, repo] (short_hash hash);
         link_github_refs ~org ~repo refs;
         link_jobs ~org ~repo ~hash jobs;
+        success_msg;
+        fail_msg;
+        return_link;
+        div buttons;
       ]
 
-let step_v ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status (data, next) =
+let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token ?(flash_messages=[]) (data, next) =
   let header, footer =
     let can_rebuild = status.Current_rpc.Job.can_rebuild in
     let buttons =
       if can_rebuild then Tyxml.Html.[
           form ~a:[a_action (variant ^ "/rebuild"); a_method `Post] [
+            input ~a:[a_name "csrf"; a_input_type `Hidden; a_value csrf_token] ();
             input ~a:[a_input_type `Submit; a_value "Rebuild"] ()
           ]
       ] else []
     in
-    let body = Template_tyxml.instance Tyxml.Html.[
+    let body = Template_tyxml.instance ~flash_messages Tyxml.Html.[
         breadcrumbs ["github", "github";
                      org, org;
                      repo, repo;
@@ -244,6 +323,3 @@ let step_v ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status (data, next) =
               (Fmt.str "ocaml-ci error: %a@." Capnp_rpc.Error.pp ex)
       in
       loop next)
-
-let show_step ~org ~repo ~refs ~hash ~variant ~status job chunk =
-  step_v ~org ~repo ~refs ~hash ~variant ~job ~status chunk

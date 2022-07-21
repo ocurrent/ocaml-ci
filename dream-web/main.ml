@@ -20,7 +20,8 @@ let main port backend_cap =
                Controller.Github.list_steps
                  ~org:(Dream.param request "org")
                  ~repo:(Dream.param request "repo")
-                 ~hash:(Dream.param request "hash")
+                 ~hash:(Dream.param request "hash") 
+                 request
                  ci);
            Dream.get "github/:org/:repo/commit/:hash/variant/:variant"
              (fun request ->
@@ -29,37 +30,39 @@ let main port backend_cap =
                  ~repo:(Dream.param request "repo")
                  ~hash:(Dream.param request "hash")
                  ~variant:(Dream.param request "variant")
+                 request
                  ci);
-          Dream.post "github/:org/:repo/commit/:hash/variant/:variant/rebuild" (fun request ->
-              Controller.Github.rebuild_step
+           Dream.post "github/:org/:repo/commit/:hash/variant/:variant/rebuild"
+             (fun request ->
+               Controller.Github.rebuild_step
                  ~org:(Dream.param request "org")
                  ~repo:(Dream.param request "repo")
                  ~hash:(Dream.param request "hash")
                  ~variant:(Dream.param request "variant")
-                 request
-                 ci);
-(*
+                 request ci);
           Dream.post "github/:org/:repo/commit/:hash/cancel" (fun request ->
               Controller.Github.cancel_steps
                  ~org:(Dream.param request "org")
                  ~repo:(Dream.param request "repo")
                  ~hash:(Dream.param request "hash")
-                ci);
+                 request
+                 ci);
           Dream.post "github/:org/:repo/commit/:hash/rebuild-failed" (fun request ->
               Controller.Github.rebuild_steps
                  ~rebuild_failed_only:true
                  ~org:(Dream.param request "org")
                  ~repo:(Dream.param request "repo")
                  ~hash:(Dream.param request "hash")
-                ci);
+                 request
+                 ci);
           Dream.post "github/:org/:repo/commit/:hash/rebuild-all" (fun request ->
               Controller.Github.rebuild_steps
                  ~rebuild_failed_only:false
                  ~org:(Dream.param request "org")
                  ~repo:(Dream.param request "repo")
                  ~hash:(Dream.param request "hash")
+                 request
                 ci);
-*)
          ])
 
 open Cmdliner

@@ -3,9 +3,11 @@ open Tyxml.Html
 let html_to_string = Fmt.to_to_string (Tyxml.Html.pp ())
 
 let instance ?(flash_messages=[]) contents =
-let flash_message_contents =
-  ul (List.map (fun (category, text) ->
-    li [ txt (Fmt.str "%s: %s" category text) ]) flash_messages)
+  let flash_div (category, text) =
+  let close_x = "\u{2715}" in
+    div ~a:[a_class ["bar"; "info"]]
+      [div ~a:[a_class ["close"]; a_onclick "this.parentElement.remove()"] [txt close_x];
+    txt (Fmt.str "%s: %s" category text) ]
   in
   html_to_string (
     html
@@ -15,6 +17,7 @@ let flash_message_contents =
           link ~rel:[ `Stylesheet ] ~href:"/css/ansi.css" ();
           link ~rel:[ `Stylesheet ] ~href:"/css/github.css" ();
           link ~rel:[ `Stylesheet ] ~href:"/css/style.css" ();
+          link ~rel:[ `Stylesheet ] ~href:"/css/flash-messages.css" ();
         ]
       )
       (body [
@@ -23,7 +26,7 @@ let flash_message_contents =
               li [a ~a:[a_href "/"] [txt "OCaml-CI"]];
             ]
           ];
-          div [ flash_message_contents ];
+          div (List.map flash_div flash_messages);
           div ~a:[a_id "main"] contents
         ]
       )

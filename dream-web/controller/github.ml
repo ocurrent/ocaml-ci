@@ -31,16 +31,18 @@ let list_refs ~org ~repo ci =
   Client.Repo.refs repo_cap >>!= fun refs ->
   Dream.respond @@ View.Github.list_refs ~org ~repo ~refs
 
-let list_steps ~org ~repo ~hash ci =
+let list_steps ~org ~repo ~hash request ci =
   Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
   Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
   Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash)
   @@ fun commit ->
   Client.Commit.jobs commit >>!= fun jobs ->
   Client.Commit.refs commit >>!= fun refs ->
-  Dream.respond @@ View.Github.list_steps ~org ~repo ~refs ~hash ~jobs
+  let csrf_token = Dream.csrf_tag request in
+  let flash_messages = Dream.flash_messages request in
+  Dream.respond @@ View.Github.list_steps ~org ~repo ~refs ~hash ~jobs ~csrf_token ~flash_messages ()
 
-let show_step ~org ~repo ~hash ~variant ci =
+let show_step ~org ~repo ~hash ~variant request ci =
   Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
   Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
   Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash)
@@ -56,7 +58,9 @@ let show_step ~org ~repo ~hash ~variant ci =
   jobs >>!= fun jobs ->
   status >>!= fun status ->
   Capability.inc_ref job_cap;
-  View.Github.show_step ~org ~repo ~refs ~hash ~jobs ~variant ~status job_cap chunk
+  let csrf_token = Dream.csrf_tag request in
+  let flash_messages = Dream.flash_messages request in
+  View.Github.show_step ~org ~repo ~refs ~hash ~jobs ~variant ~status ~csrf_token ~flash_messages ~job:job_cap chunk
 
 let rebuild_step ~org ~repo ~hash ~variant request ci =
   Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
@@ -74,4 +78,64 @@ let rebuild_step ~org ~repo ~hash ~variant request ci =
     Dream.respond ~status:`Internal_Server_Error View.Client_error.internal_server_error
   end
 
+let cancel_steps ~org ~repo ~hash request ci =
+  let cancel_many (commit: Client.Commit.t) (job_infos : Client.job_info list) =
+    Lwt_list.fold_left_s (fun (success, failed) (job_info : Client.job_info) ->
+      match job_info.outcome with
+      | Aborted | Failed _ | Passed | Undefined _ -> Lwt.return (success, failed)
+      | Active | NotStarted ->
+        let variant = job_info.Client.variant in
+        let job = Client.Commit.job_of_variant commit variant in
+          Current_rpc.Job.cancel job >|= function
+            | Ok () -> (job_info :: success, failed)
+            | Error (`Capnp ex) ->
+                Dream.log "Error cancelling job: %a" Capnp_rpc.Error.pp ex;
+                (success, succ failed)
+    ) ([], 0) job_infos
+  in
+  Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
+  Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
+  Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash) @@ fun commit_cap ->
+  Client.Commit.refs commit_cap >>!= fun refs ->
+  Client.Commit.jobs commit_cap >>!= fun jobs ->
+    cancel_many commit_cap jobs >>= fun (success, failed) ->
+      let success_msg = View.Github.cancel_success_message success in
+      let fail_msg = View.Github.cancel_fail_message failed in
+      let return_link = View.Github.return_link ~org ~repo ~hash in
+      let csrf_token = Dream.csrf_tag request in
+      Dream.respond @@ View.Github.list_steps ~org ~repo ~refs ~hash ~jobs ~success_msg ~fail_msg ~return_link ~csrf_token ()
 
+let rebuild_steps ~rebuild_failed_only ~org ~repo ~hash request ci =
+  let rebuild_many commit job_infos =
+    let go job_info commit success failed =
+      let variant = job_info.Client.variant in
+      let job = Client.Commit.job_of_variant commit variant in
+      Capability.with_ref (Current_rpc.Job.rebuild job) @@ fun new_job ->
+        begin Capability.await_settled new_job >>= function
+        | Ok () -> Lwt.return (job_info :: success, failed)
+        | Error ex ->
+          Dream.log "Error rebuilding job: %a" Capnp_rpc.Exception.pp ex;
+          Lwt.return (success, succ failed)
+        end
+    in
+    Lwt_list.fold_left_s (fun (success, failed) (job_info : Client.job_info) ->
+      if rebuild_failed_only then
+        match job_info.outcome with
+        | Active | NotStarted | Passed -> Lwt.return (success, failed)
+        | Aborted | Failed _ | Undefined _ ->
+          go job_info commit success failed
+      else
+        go job_info commit success failed
+    ) ([], 0) job_infos
+  in
+    Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
+    Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
+    Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash) @@ fun commit_cap ->
+    Client.Commit.refs commit_cap >>!= fun refs ->
+    Client.Commit.jobs commit_cap >>!= fun jobs ->
+      rebuild_many commit_cap jobs >>= fun (success, failed) ->
+      let success_msg = View.Github.rebuild_success_message success in
+      let fail_msg = View.Github.rebuild_fail_message failed in
+      let return_link = View.Github.return_link ~org ~repo ~hash in
+      let csrf_token = Dream.csrf_tag request in
+      Dream.respond @@ View.Github.list_steps ~org ~repo ~refs ~hash ~jobs ~success_msg ~fail_msg ~return_link ~csrf_token ()
