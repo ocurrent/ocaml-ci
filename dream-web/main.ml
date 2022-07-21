@@ -3,6 +3,7 @@ let main port backend_cap =
     (let open Lwt.Infix in
     Backend.Make.ci backend_cap >>= fun ci ->
     Dream.serve ~port @@ Dream.logger @@ Dream.origin_referrer_check
+    @@ Dream.memory_sessions
     @@ Dream.flash
     @@ Dream.router
          [
@@ -20,7 +21,7 @@ let main port backend_cap =
                Controller.Github.list_steps
                  ~org:(Dream.param request "org")
                  ~repo:(Dream.param request "repo")
-                 ~hash:(Dream.param request "hash") 
+                 ~hash:(Dream.param request "hash")
                  request
                  ci);
            Dream.get "github/:org/:repo/commit/:hash/variant/:variant"
@@ -34,35 +35,55 @@ let main port backend_cap =
                  ci);
            Dream.post "github/:org/:repo/commit/:hash/variant/:variant/rebuild"
              (fun request ->
-               Controller.Github.rebuild_step
-                 ~org:(Dream.param request "org")
-                 ~repo:(Dream.param request "repo")
-                 ~hash:(Dream.param request "hash")
-                 ~variant:(Dream.param request "variant")
-                 request ci);
+                match%lwt Dream.form request with
+                | `Ok _ ->
+                   Controller.Github.rebuild_step
+                     ~org:(Dream.param request "org")
+                     ~repo:(Dream.param request "repo")
+                     ~hash:(Dream.param request "hash")
+                     ~variant:(Dream.param request "variant")
+                     request ci
+                | _ ->
+                  Dream.log "Form validation failed";
+                  Dream.empty `Bad_Request);
           Dream.post "github/:org/:repo/commit/:hash/cancel" (fun request ->
-              Controller.Github.cancel_steps
-                 ~org:(Dream.param request "org")
-                 ~repo:(Dream.param request "repo")
-                 ~hash:(Dream.param request "hash")
-                 request
-                 ci);
+                match%lwt Dream.form request with
+                | `Ok _ ->
+                  Controller.Github.cancel_steps
+                     ~org:(Dream.param request "org")
+                     ~repo:(Dream.param request "repo")
+                     ~hash:(Dream.param request "hash")
+                     request
+                     ci
+                | _ ->
+                  Dream.log "Form validation failed";
+                  Dream.empty `Bad_Request);
           Dream.post "github/:org/:repo/commit/:hash/rebuild-failed" (fun request ->
-              Controller.Github.rebuild_steps
-                 ~rebuild_failed_only:true
-                 ~org:(Dream.param request "org")
-                 ~repo:(Dream.param request "repo")
-                 ~hash:(Dream.param request "hash")
-                 request
-                 ci);
+                match%lwt Dream.form request with
+                | `Ok _ ->
+                  Controller.Github.rebuild_steps
+                     ~rebuild_failed_only:true
+                     ~org:(Dream.param request "org")
+                     ~repo:(Dream.param request "repo")
+                     ~hash:(Dream.param request "hash")
+                     request
+                     ci
+                | _ ->
+                  Dream.log "Form validation failed";
+                  Dream.empty `Bad_Request);
           Dream.post "github/:org/:repo/commit/:hash/rebuild-all" (fun request ->
-              Controller.Github.rebuild_steps
-                 ~rebuild_failed_only:false
-                 ~org:(Dream.param request "org")
-                 ~repo:(Dream.param request "repo")
-                 ~hash:(Dream.param request "hash")
-                 request
-                ci);
+                match%lwt Dream.form request with
+                | `Ok _ ->
+                  Controller.Github.rebuild_steps
+                     ~rebuild_failed_only:false
+                     ~org:(Dream.param request "org")
+                     ~repo:(Dream.param request "repo")
+                     ~hash:(Dream.param request "hash")
+                     request
+                    ci
+                | _ ->
+                  Dream.log "Form validation failed";
+                  Dream.empty `Bad_Request);
          ])
 
 open Cmdliner

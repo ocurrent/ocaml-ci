@@ -7,5 +7,6 @@
    ocaml-ci-api
    capnp-rpc-unix
    dream-web.controller
-   dream-web.view
-))
+   dream-web.view)
+ (preprocess
+  (pps lwt_ppx)))

@@ -250,17 +250,17 @@ let list_steps
   let buttons =
     if can_cancel then [
         form ~a:[a_action (hash ^ "/cancel"); a_method `Post] [
-          input ~a:[a_name "csrf"; a_input_type `Hidden; a_value csrf_token] ();
+          Unsafe.data csrf_token;
           input ~a:[a_input_type `Submit; a_value "Cancel"] () ]
     ] else if can_rebuild then [
       form ~a:[a_action (hash ^ "/rebuild-failed"); a_method `Post] [
+        Unsafe.data csrf_token;
         button [txt "Rebuild Failed"];
-        input ~a:[a_name "csrf"; a_input_type `Hidden; a_value csrf_token] ();
         input ~a:[a_name "filter"; a_input_type `Hidden; a_value "failed"] ()
       ];
       form ~a:[a_action (hash ^ "/rebuild-all"); a_method `Post] [
+        Unsafe.data csrf_token;
         button [txt "Rebuild All"];
-        input ~a:[a_name "csrf"; a_input_type `Hidden; a_value csrf_token] ();
         input ~a:[a_name "filter"; a_input_type `Hidden; a_value "none"] ()
       ];
     ] else []
@@ -282,11 +282,12 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token ?(f
     let can_rebuild = status.Current_rpc.Job.can_rebuild in
     let buttons =
       if can_rebuild then Tyxml.Html.[
-          form ~a:[a_action (variant ^ "/rebuild"); a_method `Post] [
-            input ~a:[a_name "csrf"; a_input_type `Hidden; a_value csrf_token] ();
+        form ~a:[a_action (variant ^ "/rebuild"); a_method `Post] [
+            Unsafe.data csrf_token;
             input ~a:[a_input_type `Submit; a_value "Rebuild"] ()
-          ]
-      ] else []
+        ]
+      ]
+      else []
     in
     let body = Template_tyxml.instance ~flash_messages Tyxml.Html.[
         breadcrumbs ["github", "github";
