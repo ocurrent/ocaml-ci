@@ -8,6 +8,7 @@ val read_packages :
 
 val create :
   ?test:OpamPackage.Name.Set.t ->
+  ?doc:bool ->
   ?pins:(OpamPackage.Version.t * OpamFile.OPAM.t) OpamPackage.Name.Map.t ->
   constraints:OpamFormula.version_constraint OpamPackage.Name.Map.t ->
   env:(string -> OpamVariable.variable_contents option) ->

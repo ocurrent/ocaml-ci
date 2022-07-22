@@ -130,7 +130,6 @@ let build_with_docker ?ocluster ~repo ~analysis source =
         and lint =
           [
             Spec.opam ~label:"(lint-fmt)" ~selection:lint_ocamlformat ~analysis (`Lint `Fmt);
-            Spec.opam ~label:"(lint-doc)" ~selection:lint_selection ~analysis (`Lint `Doc);
             Spec.opam ~label:"(lint-opam)" ~selection:lint_selection ~analysis (`Lint `Opam);
           ]
         in
@@ -151,6 +150,40 @@ let build_with_docker ?ocluster ~repo ~analysis source =
   and+ analysis_id = get_job_id analysis in
   builds @ [
     "(analysis)", (analysis_result, analysis_id);
+  ]
+
+let build_doc_with_docker ?ocluster ~repo ~doc_analysis source =
+  let repo' = Current.map (fun r -> { Repo_id.owner = r.Github.Repo_id.owner; Repo_id.name = r.name }) repo in
+  Current.with_context doc_analysis @@ fun () ->
+  let specs =
+    let+ analysis = Current.state ~hidden:true doc_analysis in
+    match analysis with
+    | Error _ ->
+        (* If we don't have the analysis yet, just use the empty list. *)
+        []
+    | Ok analysis ->
+      match Analyse.Analysis.selections analysis with
+      | `Opam_monorepo _ ->
+        assert false
+      | `Opam_build selections ->
+        let lint_selection = List.hd selections in
+        [ Spec.opam ~label:"(lint-doc)" ~selection:lint_selection ~analysis (`Lint `Doc) ]
+  in
+  let builds = specs |> Current.list_map (module Spec) (fun spec ->
+      let+ result =
+        match ocluster with
+        | None -> Build.v ~platforms ~repo:repo' ~spec source
+        | Some ocluster ->
+          let src = Current.map Git.Commit.id source in
+          Cluster_build.v ocluster ~platforms ~repo:repo' ~spec src
+      and+ spec = spec in
+      Spec.label spec, result
+    ) in
+  let+ builds = builds
+  and+ analysis_result = Current.state ~hidden:true (Current.map (fun _ -> `Checked) doc_analysis)
+  and+ analysis_id = get_job_id doc_analysis in
+  builds @ [
+    "(doc-analysis)", (analysis_result, analysis_id);
   ]
 
 let list_errors ~ok errs =
@@ -190,11 +223,13 @@ let summarise results =
 let local_test ~solver repo () =
   let src = Git.Local.head_commit repo in
   let repo = Current.return { Github.Repo_id.owner = "local"; name = "test" }
-  and analysis = Analyse.examine ~solver ~platforms ~opam_repository_commit src in
+  and analysis = Analyse.examine ~doc:false ~solver ~platforms ~opam_repository_commit src
+  and doc_analysis = Analyse.examine ~doc:true ~solver ~platforms ~opam_repository_commit src in
   Current.component "summarise" |>
-  let> results = build_with_docker ~repo ~analysis src in
+  let> results = build_with_docker ~repo ~analysis src
+  and> doc_results = build_doc_with_docker ~repo ~doc_analysis src in
   let result =
-    results
+    (results @ doc_results)
     |> List.map (fun (variant, (build, _job)) -> variant, build)
     |> summarise
   in
@@ -211,14 +246,18 @@ let v ?ocluster ~app ~solver () =
   let refs = Github.Api.Repo.ci_refs ~staleness:Conf.max_staleness repo |> set_active_refs ~repo in
   refs |> Current.list_iter (module Github.Api.Commit) @@ fun head ->
   let src = Git.fetch (Current.map Github.Api.Commit.id head) in
-  let analysis = Analyse.examine ~solver ~platforms ~opam_repository_commit src in
-  let builds =
+  let analysis = Analyse.examine ~doc:false ~solver ~platforms ~opam_repository_commit src
+  and doc_analysis = Analyse.examine ~doc:true ~solver ~platforms ~opam_repository_commit src in
+  let builds, doc_build =
     let repo = Current.map Github.Api.Repo.id repo in
-    build_with_docker ?ocluster ~repo ~analysis src in
+    build_with_docker ?ocluster ~repo ~analysis src,
+    build_doc_with_docker ?ocluster ~repo ~doc_analysis src in
   let summary =
-    builds
-    |> Current.map (List.map (fun (variant, (build, _job)) -> variant, build))
-    |> Current.map summarise
+    Current.pair builds doc_build
+    |> Current.map (fun (x, y) ->
+           (x @ y)
+           |> List.map (fun (variant, (build, _job)) -> variant, build)
+           |> summarise)
   in
   let status =
     let+ summary = summary in
@@ -230,14 +269,15 @@ let v ?ocluster ~app ~solver () =
   let index =
     let+ commit = head
     and+ builds = builds
+    and+ doc_build = doc_build
     and+ status = status in
     let repo = Current_github.Api.Commit.repo_id commit in
     let repo' = {Ocaml_ci.Repo_id.owner = repo.owner; name = repo.name} in
     let hash = Current_github.Api.Commit.hash commit in
-    let jobs = builds |> List.map (fun (variant, (_, job_id)) -> (variant, job_id)) in
+    let jobs = (builds @ doc_build) |> List.map (fun (variant, (_, job_id)) -> (variant, job_id)) in
     Index.record ~repo:repo' ~hash ~status jobs
   and set_github_status =
-    builds
+    Current.(map (fun (x, y) -> (x @ y)) (pair builds doc_build))
     |> github_status_of_state ~head summary
     |> Github.Api.CheckRun.set_status head "ocaml-ci"
   and set_matrix_status = Current.return ()

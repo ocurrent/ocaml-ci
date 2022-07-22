@@ -110,7 +110,7 @@ end = struct
     ) else true
 
   let handle ~log request t =
-    let { Worker.Solve_request.opam_repository_commit; platforms; root_pkgs; pinned_pkgs } = request in
+    let { Worker.Solve_request.opam_repository_commit; platforms; root_pkgs; pinned_pkgs; doc; } = request in
     let opam_repository_commit = Store.Hash.of_hex opam_repository_commit in
     let root_pkgs = List.map fst root_pkgs in
     let pinned_pkgs = List.map fst pinned_pkgs in

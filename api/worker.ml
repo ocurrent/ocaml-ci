@@ -30,6 +30,7 @@ module Solve_request = struct
     opam_repository_commit : string;            (** Commit in opam repository to use. *)
     root_pkgs : (string * string) list;         (** Name and contents of top-level opam files. *)
     pinned_pkgs : (string * string) list;       (** Name and contents of other pinned opam files. *)
+    doc : bool;                                 (** Whether to solve including [with-doc] dependencies. *)
     platforms : (string * Vars.t) list;         (** Possible build platforms, by ID. *)
   } [@@deriving yojson]
 end

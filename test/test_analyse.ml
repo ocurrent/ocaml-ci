@@ -58,7 +58,7 @@ module Analysis = struct
         Capnp_rpc_lwt.Capability.dec_ref solver;
         Lwt.return_unit
       );
-    of_dir ~solver ~job ~platforms ~opam_repository_commit d
+    of_dir ~solver ~job ~platforms ~opam_repository_commit ~doc:false d
     |> Lwt_result.map (fun t ->
            {
              opam_files = opam_files t;

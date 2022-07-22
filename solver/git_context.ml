@@ -13,6 +13,7 @@ type t = {
   pins : (OpamPackage.Version.t * OpamFile.OPAM.t) OpamPackage.Name.Map.t;
   constraints : OpamFormula.version_constraint OpamTypes.name_map;    (* User-provided constraints *)
   test : OpamPackage.Name.Set.t;
+  doc : bool;
   with_beta_remote : bool;
 }
 
@@ -53,7 +54,7 @@ let filter_deps t pkg f =
   let test = OpamPackage.Name.Set.mem (OpamPackage.name pkg) t.test in
   f
   |> OpamFilter.partial_filter_formula (env t pkg)
-  |> OpamFilter.filter_deps ~build:true ~post:true ~test ~doc:false ~dev ~default:false
+  |> OpamFilter.filter_deps ~build:true ~post:true ~test ~doc:t.doc ~dev ~default:false
 
 let filter_available t pkg opam =
   let available = OpamFile.OPAM.available opam in
@@ -149,6 +150,6 @@ let read_packages store commit =
             | Some versions -> OpamPackage.Name.Map.add name versions acc
         ) OpamPackage.Name.Map.empty
 
-let create ?(test=OpamPackage.Name.Set.empty) ?(pins=OpamPackage.Name.Map.empty)
+let create ?(test=OpamPackage.Name.Set.empty) ?(doc=false) ?(pins=OpamPackage.Name.Map.empty)
            ~constraints ~env ~packages ~with_beta_remote () =
-  { env; packages; pins; constraints; test; with_beta_remote }
+  { env; packages; pins; constraints; test; doc; with_beta_remote }
