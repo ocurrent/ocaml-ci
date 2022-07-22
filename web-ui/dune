@@ -6,19 +6,21 @@
   (run ocaml-crunch --mode=plain --output=%{target} static)))
 
 (executable
-  (name main)
-  (public_name ocaml-ci-web)
-  (package ocaml-ci-web)
-  (libraries lwt.unix
-             logs.cli
-             logs.fmt
-             fmt.tty
-             ansi
-             cohttp-lwt-unix
-             tyxml
-             prometheus-app.unix
-             ocaml-ci-api
-             capnp-rpc-unix
-             yojson
-             ppx_deriving_yojson.runtime)
-(preprocess (pps ppx_deriving_yojson)))
+ (name main)
+ (public_name ocaml-ci-web)
+ (package ocaml-ci-web)
+ (libraries
+  lwt.unix
+  logs.cli
+  logs.fmt
+  fmt.tty
+  ansi
+  cohttp-lwt-unix
+  tyxml
+  prometheus-app.unix
+  ocaml-ci-api
+  capnp-rpc-unix
+  yojson
+  ppx_deriving_yojson.runtime)
+ (preprocess
+  (pps ppx_deriving_yojson)))

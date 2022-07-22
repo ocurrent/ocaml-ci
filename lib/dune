@@ -1,7 +1,20 @@
 (library
  (name ocaml_ci)
  (public_name ocaml-ci)
- (preprocess (pps ppx_deriving.std ppx_deriving_yojson))
- (libraries logs current current_docker current.term ocaml-ci-api str capnp-rpc-unix
-            current.cache ppx_deriving_yojson.runtime ocaml-version opam-0install
-            current_ocluster ocluster-api obuilder-spec))
+ (preprocess
+  (pps ppx_deriving.std ppx_deriving_yojson))
+ (libraries
+  logs
+  current
+  current_docker
+  current.term
+  ocaml-ci-api
+  str
+  capnp-rpc-unix
+  current.cache
+  ppx_deriving_yojson.runtime
+  ocaml-version
+  opam-0install
+  current_ocluster
+  ocluster-api
+  obuilder-spec))
