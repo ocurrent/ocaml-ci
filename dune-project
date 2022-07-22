@@ -1,5 +1,4 @@
 (lang dune 3.3)
-(name ocaml-ci-api)
 (formatting disabled)
 (generate_opam_files true)
 (source (github ocurrent/ocaml-ci))
@@ -9,6 +8,7 @@
  (name ocaml-ci-api)
  (synopsis "Cap'n Proto API for ocaml-ci")
  (depends
+  (ocaml (>= 4.14.0))
   current_rpc
   (capnp (>= 3.4.0))
   capnp-rpc-lwt
