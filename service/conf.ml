@@ -1,8 +1,13 @@
-let profile =
+let ci_profile =
   match Sys.getenv_opt "CI_PROFILE" with
   | Some "production" -> `Production
   | Some "dev" | None -> `Dev
   | Some x -> Fmt.failwith "Unknown $CI_PROFILE setting %S." x
+
+let cmdliner_envs =
+  let values = ["production"; "dev"] in
+  let doc = Printf.sprintf "CI profile settings, must be %s." (Cmdliner.Arg.doc_alts values) in
+  [Cmdliner.Cmd.Env.info "CI_PROFILE" ~doc]
 
 (* GitHub defines a stale branch as more than 3 months old.
    Don't bother testing these. *)
@@ -18,7 +23,7 @@ module Capnp = struct
      (because they're just internal to the Docker container). *)
 
   let cap_secrets =
-    match profile with
+    match ci_profile with
     | `Production -> "/capnp-secrets"
     | `Dev -> "./capnp-secrets"
 
@@ -88,7 +93,7 @@ let platforms opam_version =
     let distro = DD.tag_of_distro (master_distro :> DD.t) in
     let ov = OV.with_just_major_and_minor ov in
     v ?arch (OV.to_string ov) distro ov in
-  match profile with
+  match ci_profile with
   | `Production ->
       let distros =
         DD.active_tier1_distros `X86_64 @ DD.active_tier2_distros `X86_64 |>

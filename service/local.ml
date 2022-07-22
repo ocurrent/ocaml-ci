@@ -36,7 +36,7 @@ let repo =
 
 let cmd =
   let doc = "Test ocaml-ci on a local Git clone" in
-  let info = Cmd.info "ocaml-ci-local" ~doc in
+  let info = Cmd.info "ocaml-ci-local" ~doc ~envs:Ocaml_ci_service.Conf.cmdliner_envs in
   Cmd.v info Term.(term_result (const main $ setup_log $ Current.Config.cmdliner $ Current_web.cmdliner $ repo))
 
 let () = exit @@ Cmd.eval cmd
