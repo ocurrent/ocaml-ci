@@ -63,6 +63,9 @@ You'll have to register your own GitHub app to be able to test the services loca
 If you want it to update to changes in opam-repository automatically you'll also need
 to register a webhook there sending push events to the CI's `/webhooks/github` path.
 
+[This document](doc/docker-deployment.md) takes you through the steps
+necessary to deploy the Docker images.
+
 ## Remote API
 
 The service provides a [Cap'n Proto endpoint][capnp-api] and a command-line client that uses it.

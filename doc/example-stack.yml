@@ -1,0 +1,56 @@
+version: '3.1'
+volumes:
+  data:
+  capnp-secrets:
+    external: true
+  caddy_data:
+    external: true
+  caddy_config:
+networks:
+  example_default:
+    external: true
+secrets:
+  example-ci-github-key:
+    external: true
+  ocaml-ci-submission.cap:
+    external: true
+  example-ci-webhook-secret:
+    external: true
+services:
+  caddy:
+    image: caddy
+    ports:
+      - 80:80
+      - 443:443
+      - 8100:8100
+    volumes:
+      - /etc/caddy:/etc/caddy:ro
+      - caddy_data:/data
+      - caddy_config:/config
+  ci:
+    image: ocaml-ci-service
+    command: --github-app-id 215418 --github-private-key-file /run/secrets/example-ci-github-key --github-account-allowlist "github-username" --confirm above-average --confirm-auto-release 120 --capnp-address=tcp:ci.example.org:8102 --submission-service /run/secrets/ocaml-ci-submission.cap --github-webhook-secret-file /run/secrets/example-ci-webhook-secret
+    environment:
+      - "CI_PROFILE=production"
+      - "DOCKER_BUILDKIT=1"
+      - "PROGRESS_NO_TRUNC=1"
+    ports:
+      - '8102:9000'
+    volumes:
+      - 'data:/var/lib/ocurrent'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+      - 'capnp-secrets:/capnp-secrets'
+    secrets:
+      - 'example-ci-github-key'
+      - 'ocaml-ci-submission.cap'
+      - 'example-ci-webhook-secret'
+    sysctls:
+      - 'net.ipv4.tcp_keepalive_time=60'
+  web:
+    image: ocaml-ci-web
+    command: --backend /capnp-secrets/ocaml-ci-admin.cap --listen-prometheus=9090
+    volumes:
+      - 'capnp-secrets:/capnp-secrets:ro'
+    sysctls:
+      - 'net.ipv4.tcp_keepalive_time=60'
+
