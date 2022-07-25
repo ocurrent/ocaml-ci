@@ -16,9 +16,8 @@ let platforms =
     in
     Platform.get ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base ~opam_version base
   in
-  let v2_0 = Conf.platforms `V2_0 in
   let v2_1 = Conf.platforms `V2_1 in
-  Current.list_seq (List.map v (v2_0 @ v2_1))
+  Current.list_seq (List.map v v2_1)
 
 (* Link for GitHub statuses. *)
 let url ~owner ~name ~hash = Uri.of_string (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s" owner name hash)
