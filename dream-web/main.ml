@@ -1,13 +1,6 @@
-let main interface port backend_cap _ =
-  Lwt_main.run
-    (let open Lwt.Infix in
-    let () = Dream.initialize_log () in
-    Backend.Make.ci backend_cap >>= fun ci ->
-    Dream.serve ~interface ~port ~error_handler:(Dream.error_template View.Client_error.ocaml_ci_error_template)
-    @@ Dream.logger
-    @@ Dream.memory_sessions
-    @@ Dream.flash
-    @@ Dream.router
+open Lwt.Infix
+module Router = struct
+  let t ci = Dream.router
          [
            Dream.get "/css/ansi.css" (fun _ -> Dream.respond ~headers:[("content-type", "text/css")] Ansi.css);
            Dream.get "/css/**" @@ Dream.static "static/css";
@@ -88,7 +81,25 @@ let main interface port backend_cap _ =
                | _ ->
                    Dream.log "Form validation failed";
                    Dream.empty `Bad_Request);
-         ])
+         ]
+end
+
+let setup_logs default_level =
+  Prometheus_unix.Logging.init ?default_level ()
+  let () = Dream.initialize_log ()
+
+let main interface port backend_cap prometheus_config log_level =
+  Lwt_main.run begin
+    let () = setup_logs log_level in
+    Backend.Make.ci backend_cap >>= fun ci ->
+    let web = Dream.serve ~interface ~port ~error_handler:(Dream.error_template View.Client_error.ocaml_ci_error_template)
+    @@ Dream.logger
+    @@ Dream.memory_sessions
+    @@ Dream.flash
+    @@ Router.t ci
+    in
+    Lwt.choose (web :: Prometheus_unix.serve prometheus_config)
+  end
 
 open Cmdliner
 
@@ -98,7 +109,6 @@ let interface =
   @@ Arg.info ~doc:"The interface on which to listen for incoming HTTP connections."
        ~docv:"INTERFACE" [ "interface" ]
 let port =
-
   Arg.value
   @@ Arg.opt Arg.int 8090
   @@ Arg.info ~doc:"The port on which to listen for incoming HTTP connections."
@@ -114,6 +124,6 @@ let backend_cap =
 let cmd =
   let doc = "A web front-end for OCaml-CI" in
   let info = Cmd.info "ocaml-ci-web" ~doc in
-  Cmd.v info Term.(const main $ interface $ port $ backend_cap $ Prometheus_unix.opts)
+  Cmd.v info Term.(const main $ interface $ port $ backend_cap $ Prometheus_unix.opts $ Logs_cli.level ())
 
 let () = exit @@ Cmd.eval cmd
