@@ -108,3 +108,16 @@
   (capnp-rpc-unix (>= 1.2))
   ocaml-ci-api
   dockerfile))
+(package
+ (name dream-web)
+ (synopsis "Dream web client")
+ (depends
+  (ansi (>= 0.5.0))
+  (capnp-rpc-unix (>= 1.2))
+  (dream (= 1.0.0~alpha4))
+  (fmt (>= 0.8.9))
+  (logs (>= 0.7.0))
+  (lwt (>= 5.6.1))
+  ocaml-ci-api
+  (prometheus-app (>= 1.2))
+  tyxml))

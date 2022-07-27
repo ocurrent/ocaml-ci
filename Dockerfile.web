@@ -1,19 +1,21 @@
 FROM ocaml/opam:debian-11-ocaml-4.14@sha256:5b9de826b22c77a0654519d0959536f93a6ffd7020712a8b1c3437445e031e04 AS build
-RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libgmp-dev -y --no-install-recommends
-RUN cd ~/opam-repository && git fetch origin master && git reset --hard 97da9a1b68b824a65a09e5f7d071fcf2da35bd1b && opam update
+RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libgmp-dev libssl-dev -y --no-install-recommends
+RUN cd ~/opam-repository && git fetch origin master && git reset --hard f1eef1a5b413443a841a24a1c7f655ef64772692 && opam update
 COPY --chown=opam \
 	ocurrent/current_rpc.opam \
 	/src/ocurrent/
 WORKDIR /src
 RUN opam pin -yn add ./ocurrent
-COPY --chown=opam ocaml-ci-api.opam ocaml-ci-web.opam /src/
+COPY --chown=opam dream-web.opam ocaml-ci-api.opam /src/
+COPY --chown=opam dream-web/static /src/static
 RUN opam install -y --deps-only .
 ADD --chown=opam . .
-RUN opam config exec -- dune build ./_build/install/default/bin/ocaml-ci-web
+RUN opam config exec -- dune build ./_build/install/default/bin/dream-web
 
 FROM debian:11
 RUN apt-get update && apt-get install libev4 dumb-init -y --no-install-recommends
 WORKDIR /
-ENTRYPOINT ["dumb-init", "/usr/local/bin/ocaml-ci-web"]
+ENTRYPOINT ["dumb-init", "/usr/local/bin/dream-web"]
 RUN apt-get install ca-certificates -y  # https://github.com/mirage/ocaml-conduit/issues/388
-COPY --from=build /src/_build/install/default/bin/ocaml-ci-web /usr/local/bin/
+COPY --from=build /src/_build/install/default/bin/dream-web /usr/local/bin/
+COPY --from=build /src/static /static
