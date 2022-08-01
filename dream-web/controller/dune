@@ -1,4 +1,5 @@
 (library
  (public_name dream-web.controller)
  (name controller)
- (libraries lwt ocaml-ci-api dream unix dream-web.view))
+ (libraries lwt ocaml-ci-api dream unix yojson ppx_deriving_yojson.runtime dream-web.view)
+ (preprocess (pps ppx_deriving_yojson)))

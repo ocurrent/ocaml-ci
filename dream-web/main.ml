@@ -11,6 +11,12 @@ let main interface port backend_cap _ =
          [
            Dream.get "/css/ansi.css" (fun _ -> Dream.respond ~headers:[("content-type", "text/css")] Ansi.css);
            Dream.get "/css/**" @@ Dream.static "static/css";
+           Dream.get "/badge/:org/:repo/:branch" @@ (fun request ->
+               Controller.Badges.handle
+                 ~org:(Dream.param request "org")
+                 ~repo:(Dream.param request "repo")
+                 ~branch:(Dream.param request "branch")
+                 ci);
            Dream.get "/" (fun _ -> Dream.html @@ Controller.Index.render);
            Dream.get "/github" (fun _ -> Controller.Github.list_orgs ci);
            Dream.get "/github/:org" (fun request ->
