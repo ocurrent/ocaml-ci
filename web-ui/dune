@@ -5,9 +5,9 @@
   (run ocaml-crunch --mode=plain --output=%{target} static))))
 
 (executable
- (package dream-web)
- (public_name dream-web)
  (name main)
+ (public_name ocaml-ci-web)
+ (package ocaml-ci-web)
  (libraries
    ansi
    dream
@@ -15,5 +15,5 @@
    prometheus-app.unix
    ocaml-ci-api
    capnp-rpc-unix
-   dream-web.controller
-   dream-web.view))
+   ocaml-ci-web.controller
+   ocaml-ci-web.view))
