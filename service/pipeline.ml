@@ -76,19 +76,23 @@ let set_active_repos ~installation repos =
   |> Index.set_active_repos ~owner;
   repos
 
+let ref_from_commit (x : Github.Api.Commit.t) : string =
+  Git.Commit_id.gref @@ Github.Api.Commit.id x
+
 let set_active_refs ~repo xs =
   let+ repo = repo
   and+ xs = xs in
   let github_repo = Github.Api.Repo.id repo in
   let repo = { Repo_id.owner = github_repo.owner; name = github_repo.name } in
-  Index.set_active_refs ~repo (
+  let refs = begin
     xs |> List.fold_left (fun acc x ->
         let commit = Github.Api.Commit.id x in
-        let gref = Git.Commit_id.gref commit in
+        let gref = ref_from_commit x in
         let hash = Git.Commit_id.hash commit in
         Index.Ref_map.add gref hash acc
       ) Index.Ref_map.empty
-  );
+  end in
+  Index.set_active_refs ~repo refs;
   xs
 
 let get_job_id x =
@@ -114,9 +118,9 @@ let build_with_docker ?ocluster ~repo ~analysis source =
         :: Spec.opam_monorepo builds
       | `Opam_build selections ->
         let lint_selection = List.hd selections in
-        let lint_ocamlformat = 
+        let lint_ocamlformat =
             (match Analyse.Analysis.ocamlformat_selection analysis with
-                | None -> lint_selection 
+                | None -> lint_selection
                 | Some selection -> selection)
         in
         let builds =
@@ -230,11 +234,12 @@ let v ?ocluster ~app ~solver () =
     let+ commit = head
     and+ builds = builds
     and+ status = status in
+    let gref = ref_from_commit commit in
     let repo = Current_github.Api.Commit.repo_id commit in
     let repo' = {Ocaml_ci.Repo_id.owner = repo.owner; name = repo.name} in
     let hash = Current_github.Api.Commit.hash commit in
     let jobs = builds |> List.map (fun (variant, (_, job_id)) -> (variant, job_id)) in
-    Index.record ~repo:repo' ~hash ~status jobs
+    Index.record ~repo:repo' ~hash ~status ~gref jobs
   and set_github_status =
     builds
     |> github_status_of_state ~head summary
