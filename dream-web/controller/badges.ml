@@ -1,5 +1,5 @@
 type schema = {
-  schema_version : int; [@key "schemaVersion"]  (** always: 1 *)
+  schema_version : int; [@key "schemaVersion"] [@default 1]  (** always: 1 *)
   label : string;
   message : string;
   color : string option; [@default None]  (** default: "lightgrey" *)

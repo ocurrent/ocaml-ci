@@ -1,9 +1,17 @@
 open Lwt.Infix
 module Router = struct
+
+  (* ocaml-crunch is used to generate the module Static.
+   See also https://github.com/aantron/dream/tree/master/example/w-one-binary *)
+  let loader root path _request =
+    match Static.read (Filename.concat root path) with
+    | None -> Dream.empty `Not_Found
+    | Some asset -> Dream.respond asset
+
   let t ci = Dream.router
          [
            Dream.get "/css/ansi.css" (fun _ -> Dream.respond ~headers:[("content-type", "text/css")] Ansi.css);
-           Dream.get "/css/**" @@ Dream.static "static/css";
+           Dream.get "/css/**" @@ (Dream.static ~loader "/css");
            Dream.get "/badge/:org/:repo/:branch" @@ (fun request ->
                Controller.Badges.handle
                  ~org:(Dream.param request "org")

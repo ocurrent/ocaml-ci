@@ -6,16 +6,14 @@ COPY --chown=opam \
 	/src/ocurrent/
 WORKDIR /src
 RUN opam pin -yn add ./ocurrent
-COPY --chown=opam dream-web.opam ocaml-ci-api.opam /src/
-COPY --chown=opam dream-web/static /src/static
+COPY --chown=opam web-ui.opam ocaml-ci-api.opam /src/
 RUN opam install -y --deps-only .
 ADD --chown=opam . .
-RUN opam config exec -- dune build ./_build/install/default/bin/dream-web
+RUN opam config exec -- dune build ./_build/install/default/bin/web-ui
 
 FROM debian:11
 RUN apt-get update && apt-get install libev4 dumb-init -y --no-install-recommends
 WORKDIR /
-ENTRYPOINT ["dumb-init", "/usr/local/bin/dream-web"]
+ENTRYPOINT ["dumb-init", "/usr/local/bin/web-ui"]
 RUN apt-get install ca-certificates -y  # https://github.com/mirage/ocaml-conduit/issues/388
-COPY --from=build /src/_build/install/default/bin/dream-web /usr/local/bin/
-COPY --from=build /src/static /static
+COPY --from=build /src/_build/install/default/bin/web-ui /usr/local/bin/

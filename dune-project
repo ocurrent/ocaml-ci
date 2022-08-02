@@ -114,6 +114,7 @@
  (depends
   (ansi (>= 0.5.0))
   (capnp-rpc-unix (>= 1.2))
+  (crunch (and (>= 3.2.0) :build))
   (dream (= 1.0.0~alpha4))
   (fmt (>= 0.8.9))
   (logs (>= 0.7.0))
