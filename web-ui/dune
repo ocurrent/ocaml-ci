@@ -1,8 +1,8 @@
 (rule
  (target static.ml)
  (deps (source_tree static))
- (action (with-stdout-to %{null}
-  (run ocaml-crunch --mode=plain --output=%{target} static))))
+ (action
+  (run ocaml-crunch --mode=plain --output=%{target} static)))
 
 (executable
  (name main)
