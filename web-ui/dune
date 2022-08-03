@@ -1,24 +1,19 @@
 (rule
  (target static.ml)
- (deps
-  (glob_files static/css/*))
+ (deps (source_tree static))
  (action
   (run ocaml-crunch --mode=plain --output=%{target} static)))
 
 (executable
-  (name main)
-  (public_name ocaml-ci-web)
-  (package ocaml-ci-web)
-  (libraries lwt.unix
-             logs.cli
-             logs.fmt
-             fmt.tty
-             ansi
-             cohttp-lwt-unix
-             tyxml
-             prometheus-app.unix
-             ocaml-ci-api
-             capnp-rpc-unix
-             yojson
-             ppx_deriving_yojson.runtime)
-(preprocess (pps ppx_deriving_yojson)))
+ (name main)
+ (public_name ocaml-ci-web)
+ (package ocaml-ci-web)
+ (libraries
+   ansi
+   dream
+   logs.cli
+   prometheus-app.unix
+   ocaml-ci-api
+   capnp-rpc-unix
+   ocaml-ci-web.controller
+   ocaml-ci-web.view))

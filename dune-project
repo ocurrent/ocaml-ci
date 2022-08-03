@@ -79,26 +79,6 @@
   (carton (< 0.4.2))) ; workaround for mirage/ocaml-git#514
 )
 (package
- (name ocaml-ci-web)
- (synopsis "Web-server frontend for ocaml-ci")
- (conflicts (ocaml-migrate-parsetree (= "1.7.1")))
- (depends
-  (crunch (and (>= 3.2.0) :build))
-  (yojson (>= 1.7.0))
-  (logs (>= 0.7.0))
-  (fmt (>= 0.8.9))
-  current_rpc
-  (ansi (>= 0.5.0))
-  (prometheus-app (>= 1.2))
-  (cmdliner (>= 1.1.0))
-  (lwt (>= 5.6.1))
-  (cohttp-lwt-unix (>= 2.2.0))
-  tyxml
-  (capnp-rpc-unix (>= 1.2))
-  ocaml-ci-api
-  (conf-libev (<> :os "win32"))
-  ppx_deriving_yojson))
-(package
  (name ocaml-ci-client)
  (synopsis "Command-line client for ocaml-ci")
  (depends
@@ -109,11 +89,12 @@
   ocaml-ci-api
   dockerfile))
 (package
- (name dream-web)
- (synopsis "Dream web client")
+ (name ocaml-ci-web)
+ (synopsis "Web-server frontend for ocaml-ci")
  (depends
   (ansi (>= 0.5.0))
   (capnp-rpc-unix (>= 1.2))
+  (crunch (and (>= 3.2.0) :build))
   (dream (= 1.0.0~alpha4))
   (fmt (>= 0.8.9))
   (logs (>= 0.7.0))

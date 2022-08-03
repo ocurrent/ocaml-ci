@@ -1,16 +1,17 @@
-let main interface port backend_cap _ =
-  Lwt_main.run
-    (let open Lwt.Infix in
-    let () = Dream.initialize_log () in
-    Backend.Make.ci backend_cap >>= fun ci ->
-    Dream.serve ~interface ~port ~error_handler:(Dream.error_template View.Client_error.ocaml_ci_error_template)
-    @@ Dream.logger
-    @@ Dream.memory_sessions
-    @@ Dream.flash
-    @@ Dream.router
+open Lwt.Infix
+module Router = struct
+
+  (* ocaml-crunch is used to generate the module Static.
+   See also https://github.com/aantron/dream/tree/master/example/w-one-binary *)
+  let loader root path _request =
+    match Static.read (Filename.concat root path) with
+    | None -> Dream.empty `Not_Found
+    | Some asset -> Dream.respond asset
+
+  let t ci = Dream.router
          [
            Dream.get "/css/ansi.css" (fun _ -> Dream.respond ~headers:[("content-type", "text/css")] Ansi.css);
-           Dream.get "/css/**" @@ Dream.static "static/css";
+           Dream.get "/css/**" @@ (Dream.static ~loader "/css");
            Dream.get "/badge/:org/:repo/:branch" @@ (fun request ->
                Controller.Badges.handle
                  ~org:(Dream.param request "org")
@@ -88,32 +89,6 @@ let main interface port backend_cap _ =
                | _ ->
                    Dream.log "Form validation failed";
                    Dream.empty `Bad_Request);
-         ])
+         ]
+end
 
-open Cmdliner
-
-let interface =
-  Arg.value
-  @@ Arg.opt Arg.string "0.0.0.0"
-  @@ Arg.info ~doc:"The interface on which to listen for incoming HTTP connections."
-       ~docv:"INTERFACE" [ "interface" ]
-let port =
-
-  Arg.value
-  @@ Arg.opt Arg.int 8090
-  @@ Arg.info ~doc:"The port on which to listen for incoming HTTP connections."
-       ~docv:"PORT" [ "port" ]
-
-let backend_cap =
-  Arg.required
-  @@ Arg.opt (Arg.some Capnp_rpc_unix.sturdy_uri) None
-  @@ Arg.info
-       ~doc:"The capability file giving access to the CI backend service."
-       ~docv:"CAP" [ "backend" ]
-
-let cmd =
-  let doc = "A web front-end for OCaml-CI" in
-  let info = Cmd.info "ocaml-ci-web" ~doc in
-  Cmd.v info Term.(const main $ interface $ port $ backend_cap $ Prometheus_unix.opts)
-
-let () = exit @@ Cmd.eval cmd
