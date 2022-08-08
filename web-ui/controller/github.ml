@@ -118,23 +118,26 @@ let rebuild_steps ~rebuild_failed_only ~org ~repo ~hash request ci =
   let rebuild_many commit job_infos =
     let go job_info commit success failed =
       let variant = job_info.Client.variant in
-      let job = Client.Commit.job_of_variant commit variant in
-      Capability.with_ref (Current_rpc.Job.rebuild job) @@ fun new_job ->
-      Capability.await_settled new_job >>= function
-      | Ok () -> Lwt.return (job_info :: success, failed)
-      | Error ex ->
-          Dream.log "Error rebuilding job: %a" Capnp_rpc.Exception.pp ex;
-          Lwt.return (success, succ failed)
+      if variant = "(analysis)" then (* Do not rebuild analysis -- this triggers other jobs *)
+        Lwt.return (success, failed)
+      else
+        let job = Client.Commit.job_of_variant commit variant in
+        Capability.with_ref (Current_rpc.Job.rebuild job) @@ fun new_job ->
+        Capability.await_settled new_job >>= function
+        | Ok () -> Lwt.return (job_info :: success, failed)
+        | Error ex ->
+            Dream.log "Error rebuilding job: %a" Capnp_rpc.Exception.pp ex;
+            Lwt.return (success, succ failed)
     in
     let init = ([], 0) in
-        let f (success, failed) (job_info : Client.job_info) =
-        if rebuild_failed_only then
-          match job_info.outcome with
-          | Active | NotStarted | Passed -> Lwt.return (success, failed)
-          | Aborted | Failed _ | Undefined _ -> go job_info commit success failed
-        else go job_info commit success failed
+    let f (success, failed) (job_info : Client.job_info) =
+      if rebuild_failed_only then
+        match job_info.outcome with
+        | Active | NotStarted | Passed -> Lwt.return (success, failed)
+        | Aborted | Failed _ | Undefined _ -> go job_info commit success failed
+      else go job_info commit success failed
     in
-    Lwt_list.fold_left_s f init  job_infos
+    Lwt_list.fold_left_s f init job_infos
   in
   Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
   Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
