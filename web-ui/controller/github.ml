@@ -130,14 +130,14 @@ let rebuild_steps ~rebuild_failed_only ~org ~repo ~hash request ci =
             Lwt.return (success, succ failed)
     in
     let init = ([], 0) in
-        let f (success, failed) (job_info : Client.job_info) =
-        if rebuild_failed_only then
-          match job_info.outcome with
-          | Active | NotStarted | Passed -> Lwt.return (success, failed)
-          | Aborted | Failed _ | Undefined _ -> go job_info commit success failed
-        else go job_info commit success failed
+    let f (success, failed) (job_info : Client.job_info) =
+      if rebuild_failed_only then
+        match job_info.outcome with
+        | Active | NotStarted | Passed -> Lwt.return (success, failed)
+        | Aborted | Failed _ | Undefined _ -> go job_info commit success failed
+      else go job_info commit success failed
     in
-    Lwt_list.fold_left_s f init  job_infos
+    Lwt_list.fold_left_s f init job_infos
   in
   Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
   Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
