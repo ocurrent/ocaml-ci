@@ -12,12 +12,7 @@ type schema = {
   logo_position : string option;
   style : string option;
   cache_seconds : int option;
-}
-
-val schema_to_yojson : schema -> Yojson.Safe.t
-
-val schema_of_yojson :
-  Yojson.Safe.t -> schema Ppx_deriving_yojson_runtime.error_or
+} [@@deriving yojson]
 
 val v :
   label:string ->
@@ -37,17 +32,7 @@ val v :
 
 val schema_of_status : [ `Failed | `Not_started | `Passed | `Pending ] -> schema
 
-module Capability = Capnp_rpc_lwt.Capability
 module Client = Ocaml_ci_api.Client
-
-val ( let*! ) :
-  ( 'a,
-    [< `Capnp of [< `Cancelled | `Exception of Capnp_rpc.Exception.t ]
-    | `Msg of string ] )
-  result
-  Lwt.t ->
-  ('a -> Dream.response Lwt.t) ->
-  Dream.response Lwt.t
 
 val handle :
   org:string ->

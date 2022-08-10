@@ -1,5 +1,3 @@
-open Router
-
 let setup_logs default_level =
   Prometheus_unix.Logging.init ?default_level ();
   Dream.initialize_log ()
@@ -13,7 +11,7 @@ let main interface port backend_cap prometheus_config log_level =
     @@ Dream.logger
     @@ Dream.memory_sessions
     @@ Dream.flash
-    @@ Router.t ci
+    @@ Router.create ci
     in
     Lwt.choose (web :: Prometheus_unix.serve prometheus_config)
   end
