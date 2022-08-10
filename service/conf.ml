@@ -13,11 +13,6 @@ let cmdliner_envs =
    Don't bother testing these. *)
 let max_staleness = Duration.of_day 93
 
-(* List of admins for rooms managed by the CI bot. *)
-let matrix_admins = [
-  "@avsm:recoil.org"
-]
-
 module Capnp = struct
   (* Cap'n Proto RPC is enabled by passing --capnp-public-address. These values are hard-coded
      (because they're just internal to the Docker container). *)
