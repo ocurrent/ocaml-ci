@@ -1,15 +1,5 @@
 module Client = Ocaml_ci_api.Client
-module Capability = Capnp_rpc_lwt.Capability
 
-val ( >>!= ) :
-  ( 'a,
-    [< `Capnp of [< `Cancelled | `Exception of Capnp_rpc.Exception.t ] ] )
-  result
-  Lwt.t ->
-  ('a -> Dream.response Lwt.t) ->
-  Dream.response Lwt.t
-
-val job_url : org:string -> repo:string -> hash:string -> string -> string
 val list_orgs : Client.CI.t -> Dream.response Lwt.t
 val list_repos : org:string -> Client.CI.t -> Dream.response Lwt.t
 val list_refs : org:string -> repo:string -> Client.CI.t -> Dream.response Lwt.t
