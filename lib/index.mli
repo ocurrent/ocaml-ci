@@ -14,9 +14,10 @@ val record :
   repo:Repo_id.t ->
   hash:string ->
   status:build_status ->
+  gref:string ->
   (string * Current.job_id option) list ->
   unit
-(** [record ~repo ~hash jobs] updates the entry for [repo, hash] to point at [jobs]. *)
+(** [record ~repo ~hash ~gref jobs] updates the entry for [repo, hash] to point at [jobs]. *)
 
 val get_jobs : owner:string -> name:string -> string -> (string * job_state) list
 (** [get_jobs ~owner ~name commit] is the last known set of OCurrent jobs for hash [commit] in repository [owner/name]. *)
@@ -25,6 +26,10 @@ val get_job : owner:string -> name:string -> hash:string -> variant:string -> (s
 (** [get_job ~owner ~name ~variant] is the last known job ID for this combination. *)
 
 val get_job_ids: owner:string -> name:string -> hash:string -> string list
+
+val get_build_history : owner:string -> name:string -> gref:string -> (string * string * string option) list
+(** [get_build_history ~owner ~name ~gref] is a list of builds for the branch gref of the repo identfied by (owner, name) 
+    The builds are identified by triples (variant, hash, Some job_id) *)
 
 val get_status:
   owner:string ->
