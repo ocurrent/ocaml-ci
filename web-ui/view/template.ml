@@ -1,6 +1,6 @@
 open Tyxml.Html
 
-let html_to_string = Fmt.to_to_string (Tyxml.Html.pp ())
+let html_to_string = Fmt.to_to_string (pp ())
 
 let instance ?(flash_messages = []) contents =
   let flash_div (category, text) =

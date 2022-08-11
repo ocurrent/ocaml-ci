@@ -1,6 +1,5 @@
 module Client = Ocaml_ci_api.Client
 module Common = Ocaml_ci_api.Common
-
 module Build_status = struct
   include Client.Build_status
 
@@ -64,33 +63,26 @@ let github_pr_url ~org ~repo id =
   Fmt.str "https://github.com/%s/%s/pull/%s" org repo id
 
 let format_org org =
-  let open Tyxml.Html in
   li [ a ~a:[ a_href (org_url org) ] [ txt org ] ]
 
 let format_repo ~org { Client.Org.name; master_status } =
-  let open Tyxml.Html in
   li
     ~a:[ a_class [ Build_status.class_name master_status ] ]
     [ a ~a:[ a_href (repo_url org name) ] [ txt name ] ]
 
 let orgs_v ~orgs =
-  Tyxml.Html.[ breadcrumbs [] "github"; ul (List.map format_org orgs) ]
+  [ breadcrumbs [] "github"; ul (List.map format_org orgs) ]
 
 let repos_v ~org ~repos =
-  Tyxml.Html.
-    [
-      breadcrumbs [ ("github", "github") ] org;
-      ul ~a:[ a_class [ "statuses" ] ] (List.map (format_repo ~org) repos);
-    ]
+  [ breadcrumbs [ ("github", "github") ] org;
+    ul ~a:[ a_class [ "statuses" ] ] (List.map (format_repo ~org) repos);
+  ]
 
 let refs_v ~org ~repo ~refs =
-  let open Tyxml.Html in
-  ul
-    ~a:[ a_class [ "statuses" ] ]
+  ul ~a:[ a_class [ "statuses" ] ]
     (Client.Ref_map.bindings refs
     |> List.map @@ fun (branch, (commit, status)) ->
-       li
-         ~a:[ a_class [ Build_status.class_name status ] ]
+       li ~a:[ a_class [ Build_status.class_name status ] ]
          [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt branch ] ])
 
 let rec intersperse ~sep = function
@@ -99,7 +91,6 @@ let rec intersperse ~sep = function
   | x :: xs -> x :: sep :: intersperse ~sep xs
 
 let statuses ss =
-  let open Tyxml.Html in
   let rec render_status = function
     | StatusTree.Leaf (s, elms) ->
         let status_class_name =
@@ -123,7 +114,6 @@ let statuses ss =
   ul ~a:[ a_class [ "statuses" ] ] (List.map render_status ss)
 
 let link_github_refs ~org ~repo =
-  let open Tyxml.Html in
   function
   | [] -> txt "(not at the head of any monitored branch or PR)"
   | refs ->
@@ -154,7 +144,6 @@ let link_github_refs ~org ~repo =
         @ [ txt ")" ])
 
 let link_jobs ~org ~repo ~hash ?selected jobs =
-  let open Tyxml.Html in
   let render_job trees { Client.variant; outcome } =
     let uri = job_url ~org ~repo ~hash variant in
     match
@@ -186,7 +175,6 @@ let list_refs ~org ~repo ~refs =
     ]
 
 let cancel_success_message success =
-  let open Tyxml.Html in
   let format_job_info ji =
     li [ span [ txt @@ Fmt.str "Cancelling job: %s" ji.Client.variant ] ]
   in
@@ -195,33 +183,14 @@ let cancel_success_message success =
   | success -> ul (List.map format_job_info success)
 
 let cancel_fail_message failed =
-  let open Tyxml.Html in
   match failed with
   | n when n <= 0 -> div []
   | 1 ->
-      div
-        [
-          span
-            [
-              txt
-              @@ Fmt.str
-                   "1 job could not be cancelled. Check logs for more detail.";
-            ];
-        ]
+     div [ span [ txt @@ Fmt.str "1 job could not be cancelled. Check logs for more detail." ]]
   | n ->
-      div
-        [
-          span
-            [
-              txt
-              @@ Fmt.str
-                   "%d jobs could not be cancelled. Check logs for more detail."
-                   n;
-            ];
-        ]
+     div [ span [ txt @@ Fmt.str "%d jobs could not be cancelled. Check logs for more detail." n ]]
 
 let rebuild_success_message success =
-  let open Tyxml.Html in
   let format_job_info ji =
     li [ span [ txt @@ Fmt.str "Rebuilding job: %s" ji.Client.variant ] ]
   in
@@ -230,48 +199,24 @@ let rebuild_success_message success =
   | success -> ul (List.map format_job_info success)
 
 let rebuild_fail_message failed =
-  let open Tyxml.Html in
   match failed with
-  | n when n <= 0 -> div []
+  | n when n <= 0 -> 
+     div []
   | 1 ->
-      div
-        [
-          span
-            [
-              txt
-              @@ Fmt.str
-                   "1 job could not be rebuilt. Check logs for more detail.";
-            ];
-        ]
+     div [ span [ txt @@ Fmt.str "1 job could not be rebuilt. Check logs for more detail." ]]
   | n ->
-      div
-        [
-          span
-            [
-              txt
-              @@ Fmt.str
-                   "%d jobs could not be rebuilt. Check logs for more detail." n;
-            ];
-        ]
+     div [ span [ txt @@ Fmt.str "%d jobs could not be rebuilt. Check logs for more detail." n ]]
 
 let return_link ~org ~repo ~hash =
-  let open Tyxml.Html in
   let uri = commit_url ~org ~repo hash in
   a ~a:[ a_href uri ] [ txt @@ Fmt.str "Return to %s" (short_hash hash) ]
 
 (* TODO: Clean up so that success and fail messages appear in flash messages and we do a redirect
 instead of providing a return link *)
 let list_steps ~org ~repo ~refs ~hash ~jobs
-    ?(success_msg =
-      let open Tyxml.Html in
-      div [])
-    ?(fail_msg =
-      let open Tyxml.Html in
-      div [])
-    ?(return_link =
-      let open Tyxml.Html in
-      div []) ?(flash_messages = []) ~csrf_token () =
-  let open Tyxml.Html in
+    ?(success_msg = div [])
+    ?(fail_msg = div [])
+    ?(return_link = div []) ?(flash_messages = []) ~csrf_token () =
   let can_cancel =
     let check job_info =
         match job_info.Client.outcome with
@@ -340,34 +285,32 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
     let can_rebuild = status.Current_rpc.Job.can_rebuild in
     let buttons =
       if can_rebuild then
-        Tyxml.Html.
-          [
-            form
-              ~a:[ a_action (variant ^ "/rebuild"); a_method `Post ]
-              [
-                Unsafe.data csrf_token;
-                input ~a:[ a_input_type `Submit; a_value "Rebuild" ] ();
-              ];
-          ]
+        [
+          form
+            ~a:[ a_action (variant ^ "/rebuild"); a_method `Post ]
+            [
+              Unsafe.data csrf_token;
+              input ~a:[ a_input_type `Submit; a_value "Rebuild" ] ();
+            ];
+        ]
       else []
     in
     let body =
       Template.instance ~flash_messages
-        Tyxml.Html.
-          [
-            breadcrumbs
-              [
-                ("github", "github");
-                (org, org);
-                (repo, repo);
-                (short_hash hash, "commit/" ^ hash);
-              ]
-              variant;
-            link_github_refs ~org ~repo refs;
-            link_jobs ~org ~repo ~hash ~selected:variant jobs;
-            div buttons;
-            pre [ txt "@@@" ];
-          ]
+        [
+          breadcrumbs
+            [
+              ("github", "github");
+              (org, org);
+              (repo, repo);
+              (short_hash hash, "commit/" ^ hash);
+            ]
+            variant;
+          link_github_refs ~org ~repo refs;
+          link_jobs ~org ~repo ~hash ~selected:variant jobs;
+          div buttons;
+          pre [ txt "@@@" ];
+        ]
     in
     Astring.String.cut ~sep:"@@@" body |> Option.get
   in
