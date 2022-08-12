@@ -27,10 +27,10 @@ let test_active_refs () =
   let repo = { Ocaml_ci.Repo_id.owner; name } in
   let hash = "abc" in
   Index.set_active_refs ~repo @@ Ref_map.singleton "master" hash;
-  Alcotest.(check (list (pair string string)))
-    "Refs"
-    [ ("master", hash) ]
-    (Index.get_active_refs repo |> Ref_map.bindings)
+
+  let expected = [ ("master", hash) ] in
+  let result = Index.get_active_refs repo |> Ref_map.bindings in
+  Alcotest.(check (list (pair string string))) "Refs" expected result
 
 let test_get_jobs () =
   let db = setup () in
@@ -42,59 +42,44 @@ let test_get_jobs () =
   Current.Db.exec_literal db
     "INSERT INTO cache (op, key, job_id, value, ok, outcome, ready, running, \
      finished, build) \n\
-     VALUES ('test', x'00', 'job1', x'01', 1, x'02', '2019-11-01 9:00', \
-     '2019-11-01 9:01', '2019-11-01 9:02', 0)";
-  Index.record ~repo ~hash ~status:`Pending ~gref:"master"
-    [ ("analysis", Some "job1"); ("alpine", None) ];
-  Alcotest.(check jobs)
-    "Jobs"
-    [ ("alpine", `Not_started); ("analysis", `Passed) ]
-  @@ Index.get_jobs ~owner ~name hash;
+     VALUES ('test', x'00', 'job1', x'01', 1, x'02', '2019-11-01 09:00', \
+     '2019-11-01 09:01', '2019-11-01 09:02', 0)";
+  Index.record ~repo ~hash ~status:`Pending ~gref:"master" [ ("analysis", Some "job1"); ("alpine", None) ];
+  let expected = [ ("alpine", `Not_started); ("analysis", `Passed) ] in
+  let result = Index.get_jobs ~owner ~name hash in
+  Alcotest.(check jobs) "Jobs" expected result;
+
   Current.Db.exec_literal db
     "INSERT INTO cache (op, key, job_id, value, ok, outcome, ready, running, \
      finished, build) \n\
-     VALUES ('test', x'01', 'job2', x'01', 0, x'21', '2019-11-01 9:03', \
-     '2019-11-01 9:04', '2019-11-01 9:05', 0)";
+     VALUES ('test', x'01', 'job2', x'01', 0, x'21', '2019-11-01 09:03', \
+     '2019-11-01 09:04', '2019-11-01 09:05', 0)";
   Index.record ~repo ~hash ~status:`Failed ~gref:"master"
     [ ("analysis", Some "job1"); ("alpine", Some "job2") ];
-  Alcotest.(check jobs)
-    "Jobs"
-    [ ("alpine", `Failed "!"); ("analysis", `Passed) ]
-  @@ Index.get_jobs ~owner ~name hash;
+  let expected = [ ("alpine", `Failed "!"); ("analysis", `Passed) ] in
+  let result = Index.get_jobs ~owner ~name hash in
+  Alcotest.(check jobs) "Jobs" expected result;
+
   Index.record ~repo ~hash ~status:`Passed ~gref:"master"
     [ ("analysis", Some "job1") ];
-  Alcotest.(check jobs) "Jobs" [ ("analysis", `Passed) ]
-  @@ Index.get_jobs ~owner ~name hash
+  let expected = [ ("analysis", `Passed) ] in
+  let result = Index.get_jobs ~owner ~name hash in
+  Alcotest.(check jobs) "Jobs" expected result
 
 let test_get_build_history () =
-  let db = setup () in
-  Alcotest.check database "Disk store initially empty" [] @@ [];
   let owner = "owner" in
   let name = "name" in
   let repo = { Ocaml_ci.Repo_id.owner; name } in
   let hash = "abc" in
-  Current.Db.exec_literal db
-    "INSERT INTO cache (op, key, job_id, value, ok, outcome, ready, running, \
-     finished, build)\n\
-     VALUES ('test', x'00', 'job1', x'01', 1, x'02', '2019-11-01 9:00', \
-     '2019-11-01 9:01', '2019-11-01 9:02', 0)";
-  Index.record ~repo ~hash ~status:`Pending ~gref:"master"
-    [ ("analysis", Some "job1"); ("alpine", None) ];
-  Current.Db.exec_literal db
-    "INSERT INTO cache (op, key, job_id, value, ok, outcome, ready, running, \
-     finished, build)\n\
-     VALUES ('test', x'01', 'job2', x'01', 0, x'21', '2019-11-01 9:03', \
-     '2019-11-01 9:04', '2019-11-01 9:05', 0)";
   Index.record ~repo ~hash ~status:`Failed ~gref:"master"
     [ ("analysis", Some "job1"); ("alpine", Some "job2") ];
   Index.record ~repo ~hash ~status:`Passed ~gref:"master"
     [ ("analysis", Some "job1") ];
   Index.record ~repo ~hash:"def" ~status:`Passed ~gref:"master"
     [ ("lint", Some "job2") ];
-  Alcotest.(check commits_jobs)
-    "Commits"
-    [ ("analysis", "abc", Some "job1"); ("lint", "def", Some "job2") ]
-  @@ Index.get_build_history ~owner ~name ~gref:"master"
+  let expected = [ ("analysis", "abc", Some "job1"); ("lint", "def", Some "job2") ] in
+  let result = Index.get_build_history ~owner ~name ~gref:"master" in
+  Alcotest.(check commits_jobs) "Commits" expected result
 
 let tests =
   [
