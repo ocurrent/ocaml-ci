@@ -100,6 +100,7 @@ module Op = struct
     Current.Job.write job
       (Fmt.str "@.\
                  To reproduce locally:@.@.\
+                 cd $(mktemp -d)@.\
                  %a@.\
                  cat > Dockerfile <<'END-OF-DOCKERFILE'@.\
                  \o033[34m%s\o033[0m\
