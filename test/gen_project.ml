@@ -2,7 +2,7 @@ type contents = Format.formatter -> unit
 
 let opam_monorepo_spec_file ppf =
   Fmt.pf ppf
-      {|
+    {|
 opam-version: "2.0"
 synopsis: "spec file"
 maintainer: "opam-monorepo"
@@ -28,8 +28,8 @@ depends: [
 x-opam-monorepo-root-packages: [ "test-opam-monorepo" ]
 x-opam-monorepo-duniverse-dirs: [ ]
     |}
-    (Fmt.option pp_version_field) monorepo_version
-
+    (Fmt.option pp_version_field)
+    monorepo_version
 
 let dummy_opam ppf =
   Fmt.pf ppf
@@ -45,7 +45,7 @@ depends: []
 synopsis: "Example project generated for testing purposes"
 |}
 
-let opam ?(ocaml={|{>= "4.09"}|}) ppf =
+let opam ?(ocaml = {|{>= "4.09"}|}) ppf =
   Fmt.pf ppf
     {|opam-version: "2.0"
 maintainer:   "Camelus Bactrianus"
@@ -70,7 +70,8 @@ depends: [
 ]
 
 synopsis: "Example project generated for testing purposes"
-|} ocaml
+|}
+    ocaml
 
 let ocamlformat ~version ppf =
   Fmt.pf ppf {|version = %s
@@ -84,7 +85,6 @@ let empty_file _ppf = ()
 type file = Folder of string * file list | File of string * contents
 
 let folder name items = Folder (name, items)
-
 let file name content = File (name, content)
 
 let print_to_file path printer =
@@ -106,14 +106,14 @@ let rec instantiate ~root =
   mkdir_p root;
   List.iter (function
     | Folder (name, contents) ->
-        mkdir_p name;
+        mkdir_p @@ Filename.concat root name;
         instantiate ~root:(Filename.concat root name) contents
     | File (name, printer) -> print_to_file (Filename.concat root name) printer)
 
 let dummy_package name versions =
   folder name
-    ( versions
+    (versions
     |> List.map (fun version ->
            folder
              (Printf.sprintf "%s.%s" name version)
-             [ file "opam" dummy_opam ]) )
+             [ file "opam" dummy_opam ]))

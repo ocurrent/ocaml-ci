@@ -12,7 +12,8 @@ type schema = {
   logo_position : string option;
   style : string option;
   cache_seconds : int option;
-} [@@deriving yojson]
+}
+[@@deriving yojson]
 
 val v :
   label:string ->

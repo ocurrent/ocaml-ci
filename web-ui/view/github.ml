@@ -1,5 +1,6 @@
 module Client = Ocaml_ci_api.Client
 module Common = Ocaml_ci_api.Common
+
 module Build_status = struct
   include Client.Build_status
 
@@ -62,27 +63,28 @@ let github_branch_url ~org ~repo ref =
 let github_pr_url ~org ~repo id =
   Fmt.str "https://github.com/%s/%s/pull/%s" org repo id
 
-let format_org org =
-  li [ a ~a:[ a_href (org_url org) ] [ txt org ] ]
+let format_org org = li [ a ~a:[ a_href (org_url org) ] [ txt org ] ]
 
 let format_repo ~org { Client.Org.name; master_status } =
   li
     ~a:[ a_class [ Build_status.class_name master_status ] ]
     [ a ~a:[ a_href (repo_url org name) ] [ txt name ] ]
 
-let orgs_v ~orgs =
-  [ breadcrumbs [] "github"; ul (List.map format_org orgs) ]
+let orgs_v ~orgs = [ breadcrumbs [] "github"; ul (List.map format_org orgs) ]
 
 let repos_v ~org ~repos =
-  [ breadcrumbs [ ("github", "github") ] org;
+  [
+    breadcrumbs [ ("github", "github") ] org;
     ul ~a:[ a_class [ "statuses" ] ] (List.map (format_repo ~org) repos);
   ]
 
 let refs_v ~org ~repo ~refs =
-  ul ~a:[ a_class [ "statuses" ] ]
+  ul
+    ~a:[ a_class [ "statuses" ] ]
     (Client.Ref_map.bindings refs
     |> List.map @@ fun (branch, (commit, status)) ->
-       li ~a:[ a_class [ Build_status.class_name status ] ]
+       li
+         ~a:[ a_class [ Build_status.class_name status ] ]
          [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt branch ] ])
 
 let rec intersperse ~sep = function
@@ -113,8 +115,7 @@ let statuses ss =
   in
   ul ~a:[ a_class [ "statuses" ] ] (List.map render_status ss)
 
-let link_github_refs ~org ~repo =
-  function
+let link_github_refs ~org ~repo = function
   | [] -> txt "(not at the head of any monitored branch or PR)"
   | refs ->
       p
@@ -186,9 +187,26 @@ let cancel_fail_message failed =
   match failed with
   | n when n <= 0 -> div []
   | 1 ->
-     div [ span [ txt @@ Fmt.str "1 job could not be cancelled. Check logs for more detail." ]]
+      div
+        [
+          span
+            [
+              txt
+              @@ Fmt.str
+                   "1 job could not be cancelled. Check logs for more detail.";
+            ];
+        ]
   | n ->
-     div [ span [ txt @@ Fmt.str "%d jobs could not be cancelled. Check logs for more detail." n ]]
+      div
+        [
+          span
+            [
+              txt
+              @@ Fmt.str
+                   "%d jobs could not be cancelled. Check logs for more detail."
+                   n;
+            ];
+        ]
 
 let rebuild_success_message success =
   let format_job_info ji =
@@ -200,36 +218,50 @@ let rebuild_success_message success =
 
 let rebuild_fail_message failed =
   match failed with
-  | n when n <= 0 -> 
-     div []
+  | n when n <= 0 -> div []
   | 1 ->
-     div [ span [ txt @@ Fmt.str "1 job could not be rebuilt. Check logs for more detail." ]]
+      div
+        [
+          span
+            [
+              txt
+              @@ Fmt.str
+                   "1 job could not be rebuilt. Check logs for more detail.";
+            ];
+        ]
   | n ->
-     div [ span [ txt @@ Fmt.str "%d jobs could not be rebuilt. Check logs for more detail." n ]]
+      div
+        [
+          span
+            [
+              txt
+              @@ Fmt.str
+                   "%d jobs could not be rebuilt. Check logs for more detail." n;
+            ];
+        ]
 
 let return_link ~org ~repo ~hash =
   let uri = commit_url ~org ~repo hash in
   a ~a:[ a_href uri ] [ txt @@ Fmt.str "Return to %s" (short_hash hash) ]
 
 (* TODO: Clean up so that success and fail messages appear in flash messages and we do a redirect
-instead of providing a return link *)
-let list_steps ~org ~repo ~refs ~hash ~jobs
-    ?(success_msg = div [])
-    ?(fail_msg = div [])
-    ?(return_link = div []) ?(flash_messages = []) ~csrf_token () =
+   instead of providing a return link *)
+let list_steps ~org ~repo ~refs ~hash ~jobs ?(success_msg = div [])
+    ?(fail_msg = div []) ?(return_link = div []) ?(flash_messages = [])
+    ~csrf_token () =
   let can_cancel =
     let check job_info =
-        match job_info.Client.outcome with
-        | Active | NotStarted -> true
-        | Aborted | Failed _ | Passed | Undefined _ -> false
+      match job_info.Client.outcome with
+      | Active | NotStarted -> true
+      | Aborted | Failed _ | Passed | Undefined _ -> false
     in
     List.exists check jobs
   in
   let can_rebuild =
     let check job_info =
-        match job_info.Client.outcome with
-        | Active | NotStarted | Passed -> false
-        | Aborted | Failed _ | Undefined _ -> true
+      match job_info.Client.outcome with
+      | Active | NotStarted | Passed -> false
+      | Aborted | Failed _ | Undefined _ -> true
     in
     List.exists check jobs
   in
@@ -329,8 +361,7 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
         | Ok (data, next) ->
             Dream.log "Fetching logs";
             Dream.write response_stream (Ansi.process ansi data) >>= fun () ->
-            Dream.flush response_stream >>= fun () ->
-            loop next
+            Dream.flush response_stream >>= fun () -> loop next
         | Error (`Capnp ex) ->
             Dream.log "Error fetching logs: %a" Capnp_rpc.Error.pp ex;
             Dream.write response_stream

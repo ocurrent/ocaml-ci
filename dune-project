@@ -1,6 +1,5 @@
 (lang dune 3.3)
 (name ocaml-ci-api)
-(formatting disabled)
 (generate_opam_files true)
 (source (github ocurrent/ocaml-ci))
 (authors "talex5@gmail.com")

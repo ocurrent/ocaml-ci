@@ -44,7 +44,8 @@ let test_get_jobs () =
      finished, build) \n\
      VALUES ('test', x'00', 'job1', x'01', 1, x'02', '2019-11-01 09:00', \
      '2019-11-01 09:01', '2019-11-01 09:02', 0)";
-  Index.record ~repo ~hash ~status:`Pending ~gref:"master" [ ("analysis", Some "job1"); ("alpine", None) ];
+  Index.record ~repo ~hash ~status:`Pending ~gref:"master"
+    [ ("analysis", Some "job1"); ("alpine", None) ];
   let expected = [ ("alpine", `Not_started); ("analysis", `Passed) ] in
   let result = Index.get_jobs ~owner ~name hash in
   Alcotest.(check jobs) "Jobs" expected result;
@@ -77,7 +78,9 @@ let test_get_build_history () =
     [ ("analysis", Some "job1") ];
   Index.record ~repo ~hash:"def" ~status:`Passed ~gref:"master"
     [ ("lint", Some "job2") ];
-  let expected = [ ("analysis", "abc", Some "job1"); ("lint", "def", Some "job2") ] in
+  let expected =
+    [ ("analysis", "abc", Some "job1"); ("lint", "def", Some "job2") ]
+  in
   let result = Index.get_build_history ~owner ~name ~gref:"master" in
   Alcotest.(check commits_jobs) "Commits" expected result
 
