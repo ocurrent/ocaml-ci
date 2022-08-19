@@ -22,8 +22,7 @@ let duration_pp ppf t =
         let min = to_min left in
         let left = Int64.sub t (of_min min) in
         let sec = to_sec left in
-        if h > 0 then
-          Fmt.pf ppf "%dh%02dm" h min
+        if h > 0 then Fmt.pf ppf "%dh%02dm" h min
         else (* if m > 0 then *)
           Fmt.pf ppf "%dm%02ds" min sec
   else
@@ -45,110 +44,138 @@ let duration_pp ppf t =
 
 type timestamps =
   | Queued of float (* timestamp -- step is ready and queued *)
-  | Running of { ready: float; started: float }
-  | Finished of { ready: float; started: float option; finished: float }
+  | Running of { ready : float; started : float }
+  | Finished of { ready : float; started : float option; finished : float }
 [@@deriving show]
 
 type run_time_info =
-  | Cached (* This indicates that the job never ran because cached results were used *)
+  | Cached
+    (* This indicates that the job never ran because cached results were used *)
   | Queued_for of float (* elapsed time in milliseconds *)
-  | Running of { queued_for: float; ran_for: float }
-  | Finished of { queued_for: float; ran_for: float option }
+  | Running of { queued_for : float; ran_for : float }
+  | Finished of { queued_for : float; ran_for : float option }
 [@@deriving show]
 
 let info_to_string = function
   | Cached -> " (cached)"
-  | Queued_for v ->
-      Fmt.str " (%a queued)" duration_pp (Duration.of_f v)
+  | Queued_for v -> Fmt.str " (%a queued)" duration_pp (Duration.of_f v)
   | Running v ->
-      Fmt.str " (%a queued) (running for %a)" duration_pp (Duration.of_f v.queued_for) duration_pp (Duration.of_f v.ran_for)
-  | Finished {queued_for; ran_for=None} ->
+      Fmt.str " (%a queued) (running for %a)" duration_pp
+        (Duration.of_f v.queued_for)
+        duration_pp (Duration.of_f v.ran_for)
+  | Finished { queued_for; ran_for = None } ->
       Fmt.str "  (%a queued) (ran for -)" duration_pp (Duration.of_f queued_for)
-  | Finished {queued_for; ran_for=Some ran_for'} ->
-      Fmt.str "  (%a queued) (ran for %a)" duration_pp (Duration.of_f queued_for) duration_pp (Duration.of_f ran_for')
+  | Finished { queued_for; ran_for = Some ran_for' } ->
+      Fmt.str "  (%a queued) (ran for %a)" duration_pp
+        (Duration.of_f queued_for) duration_pp (Duration.of_f ran_for')
 
-let timestamps_of_job job_id : (timestamps option) =
+let timestamps_of_job job_id : timestamps option =
   let timestamp_from_job_map =
     match Current.Job.lookup_running job_id with
-  | Some job -> begin
-      match Lwt.state (Current.Job.start_time job) with
-      | Lwt.Sleep | Lwt.Fail _ -> None
-      | Lwt.Return t -> Some t
-    end
-  | None -> None
+    | Some job -> (
+        match Lwt.state (Current.Job.start_time job) with
+        | Lwt.Sleep | Lwt.Fail _ -> None
+        | Lwt.Return t -> Some t)
+    | None -> None
   in
   let job_db_entry = Current_cache.Db.query ~job_prefix:job_id () in
   match job_db_entry with
-  | [ { Current_cache.Db.ready; running; finished; _ } ] ->
-    (match timestamp_from_job_map with
-    | Some started -> Some (Running { ready; started}) (* The job is running so we work off the start time in the Job map *)
-    | None ->
-      (match running with
-      | None -> Some (Queued ready)
-      | Some _ -> Some (Finished { ready; started=running; finished })))
+  | [ { Current_cache.Db.ready; running; finished; _ } ] -> (
+      match timestamp_from_job_map with
+      | Some started ->
+          Some (Running { ready; started })
+          (* The job is running so we work off the start time in the Job map *)
+      | None -> (
+          match running with
+          | None -> Some (Queued ready)
+          | Some _ -> Some (Finished { ready; started = running; finished })))
   | _ ->
-      Log.err (fun f -> f "[Error] - Timestamp lookup: No entry found for job_id: %s" job_id);
+      Log.err (fun f ->
+          f "[Error] - Timestamp lookup: No entry found for job_id: %s" job_id);
       None
 
-let info_from_timestamps
-    ?(current_time=Unix.gettimeofday ())
+let info_from_timestamps ?(current_time = Unix.gettimeofday ())
     (ts : timestamps) : run_time_info =
   match ts with
   | Queued v -> Queued_for (current_time -. v)
-  | Running { ready; started } -> Running { queued_for = started -. ready;
-                                            ran_for = current_time -. started }
-  | Finished { ready; started; finished } ->
-    if finished < current_time then
-      Cached
-    else
-      match started with
-      | None -> Finished { queued_for = finished -. ready; ran_for = None }
-      | Some v -> Finished { queued_for = v -. ready; ran_for = Some (finished -. v) }
+  | Running { ready; started } ->
+      Running
+        { queued_for = started -. ready; ran_for = current_time -. started }
+  | Finished { ready; started; finished } -> (
+      if finished < current_time then Cached
+      else
+        match started with
+        | None -> Finished { queued_for = finished -. ready; ran_for = None }
+        | Some v ->
+            Finished { queued_for = v -. ready; ran_for = Some (finished -. v) }
+      )
 
 let merge (st1 : timestamps) (st2 : timestamps) =
   match st1 with
-  | Queued v1 ->
-    (match st2 with
-    | Queued v2 -> Queued (Float.min v1 v2)
-    | Running { ready; started } -> Running { ready = (Float.min v1 ready); started }
-    | Finished v2 -> Queued (Float.min v1 v2.ready))
-
-  | Running v1 ->
-    (match st2 with
-    | Queued v2 -> Running { ready = (Float.min v1.ready v2); started = v1.started }
-    | Running v2 -> Running { ready = (Float.min v1.ready v2.ready);
-                              started = (Float.min v1.started v2.started) }
-    | Finished v2 ->
-      (match v2.started with
-       | None -> Running { ready = (Float.min v1.ready v2.ready);
-                           started = v1.started }
-       | Some started' -> Running { ready = (Float.min v1.ready v2.ready);
-                                   started = (Float.min v1.started started') }))
-
-  | Finished { ready; started = None; finished } ->
-    (match st2 with
-    | Queued v2 -> Queued (Float.min ready v2)
-    | Running v2  -> Running { ready = (Float.min ready v2.ready);
-                               started = v2.started }
-    | Finished v2 -> Finished { ready = (Float.min ready v2.ready);
-                                started = None;
-                                finished = (Float.max finished v2.finished) })
-
-  | Finished { ready; started=Some started; finished } ->
-    (match st2 with
-    | Queued v2 -> Queued (Float.min ready v2)
-    | Running v2  -> Running { ready = (Float.min ready v2.ready);
-                               started = (Float.min started v2.started) }
-    | Finished v2 ->
-      (match v2.started with
-       | None -> Finished { ready = (Float.min ready v2.ready);
-                            started = None;
-                            finished = (Float.max finished v2.finished) }
-      | Some started' ->
-        Finished { ready = (Float.min ready v2.ready);
-                   started = Some (Float.min started started');
-                   finished = (Float.max finished v2.finished) }))
-
+  | Queued v1 -> (
+      match st2 with
+      | Queued v2 -> Queued (Float.min v1 v2)
+      | Running { ready; started } ->
+          Running { ready = Float.min v1 ready; started }
+      | Finished v2 -> Queued (Float.min v1 v2.ready))
+  | Running v1 -> (
+      match st2 with
+      | Queued v2 ->
+          Running { ready = Float.min v1.ready v2; started = v1.started }
+      | Running v2 ->
+          Running
+            {
+              ready = Float.min v1.ready v2.ready;
+              started = Float.min v1.started v2.started;
+            }
+      | Finished v2 -> (
+          match v2.started with
+          | None ->
+              Running
+                { ready = Float.min v1.ready v2.ready; started = v1.started }
+          | Some started' ->
+              Running
+                {
+                  ready = Float.min v1.ready v2.ready;
+                  started = Float.min v1.started started';
+                }))
+  | Finished { ready; started = None; finished } -> (
+      match st2 with
+      | Queued v2 -> Queued (Float.min ready v2)
+      | Running v2 ->
+          Running { ready = Float.min ready v2.ready; started = v2.started }
+      | Finished v2 ->
+          Finished
+            {
+              ready = Float.min ready v2.ready;
+              started = None;
+              finished = Float.max finished v2.finished;
+            })
+  | Finished { ready; started = Some started; finished } -> (
+      match st2 with
+      | Queued v2 -> Queued (Float.min ready v2)
+      | Running v2 ->
+          Running
+            {
+              ready = Float.min ready v2.ready;
+              started = Float.min started v2.started;
+            }
+      | Finished v2 -> (
+          match v2.started with
+          | None ->
+              Finished
+                {
+                  ready = Float.min ready v2.ready;
+                  started = None;
+                  finished = Float.max finished v2.finished;
+                }
+          | Some started' ->
+              Finished
+                {
+                  ready = Float.min ready v2.ready;
+                  started = Some (Float.min started started');
+                  finished = Float.max finished v2.finished;
+                }))
 
 let merge' (st1 : timestamps option) (st2 : timestamps option) =
   match (st1, st2) with

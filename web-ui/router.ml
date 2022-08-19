@@ -1,23 +1,24 @@
 open Lwt.Infix
 
 (* ocaml-crunch is used to generate the module Static.
- See also https://github.com/aantron/dream/tree/master/example/w-one-binary *)
+   See also https://github.com/aantron/dream/tree/master/example/w-one-binary *)
 let loader root path _request =
   match Static.read (Filename.concat root path) with
   | None -> Dream.empty `Not_Found
   | Some asset -> Dream.respond asset
 
-let create ci = 
+let create ci =
   Dream.router
     [
-      Dream.get "/css/ansi.css" (fun _ -> Dream.respond ~headers:[("content-type", "text/css")] Ansi.css);
-      Dream.get "/css/**" @@ (Dream.static ~loader "/css");
-      Dream.get "/badge/:org/:repo/:branch" @@ (fun request ->
-          Controller.Badges.handle
-            ~org:(Dream.param request "org")
-            ~repo:(Dream.param request "repo")
-            ~branch:(Dream.param request "branch")
-            ci);
+      Dream.get "/css/ansi.css" (fun _ ->
+          Dream.respond ~headers:[ ("content-type", "text/css") ] Ansi.css);
+      Dream.get "/css/**" @@ Dream.static ~loader "/css";
+      ( Dream.get "/badge/:org/:repo/:branch" @@ fun request ->
+        Controller.Badges.handle
+          ~org:(Dream.param request "org")
+          ~repo:(Dream.param request "repo")
+          ~branch:(Dream.param request "branch")
+          ci );
       Dream.get "/" (fun _ -> Dream.html @@ Controller.Index.render);
       Dream.get "/github" (fun _ -> Controller.Github.list_orgs ci);
       Dream.get "/github/:org" (fun request ->
@@ -65,8 +66,7 @@ let create ci =
           | _ ->
               Dream.log "Form validation failed";
               Dream.empty `Bad_Request);
-      Dream.post "github/:org/:repo/commit/:hash/rebuild-failed"
-        (fun request ->
+      Dream.post "github/:org/:repo/commit/:hash/rebuild-failed" (fun request ->
           Dream.form request >>= function
           | `Ok _ ->
               Controller.Github.rebuild_steps ~rebuild_failed_only:true
@@ -77,8 +77,7 @@ let create ci =
           | _ ->
               Dream.log "Form validation failed";
               Dream.empty `Bad_Request);
-      Dream.post "github/:org/:repo/commit/:hash/rebuild-all"
-        (fun request ->
+      Dream.post "github/:org/:repo/commit/:hash/rebuild-all" (fun request ->
           Dream.form request >>= function
           | `Ok _ ->
               Controller.Github.rebuild_steps ~rebuild_failed_only:false

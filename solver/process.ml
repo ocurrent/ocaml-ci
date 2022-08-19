@@ -30,5 +30,4 @@ let exec cmd =
 let pread cmd =
   let proc = Lwt_process.open_process_in cmd in
   Lwt_io.read proc#stdout >>= fun output ->
-  proc#status >|= check_status cmd >|= fun () ->
-  output
+  proc#status >|= check_status cmd >|= fun () -> output

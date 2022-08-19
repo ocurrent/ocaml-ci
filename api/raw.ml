@@ -1,1 +1,1 @@
-include Schema.MakeRPC(Capnp_rpc_lwt)
+include Schema.MakeRPC (Capnp_rpc_lwt)

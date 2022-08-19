@@ -7,7 +7,6 @@ let ocaml_ci_error_template _error _debug_info suggested_response =
   and reason = Dream.status_to_string status in
 
   Dream.set_header suggested_response "Content-Type" Dream.text_html;
-  Dream.set_body suggested_response begin
-    Template.instance [ p [ txt (Fmt.str "%d %s" code reason) ] ]
-  end;
+  Dream.set_body suggested_response
+    (Template.instance [ p [ txt (Fmt.str "%d %s" code reason) ] ]);
   Lwt.return suggested_response

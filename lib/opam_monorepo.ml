@@ -1,5 +1,4 @@
 type info = string * OpamFile.OPAM.t
-
 type lock_file_version = V0_2 | V0_3 [@@deriving yojson, ord]
 
 (** The kind of switch the package will be built in. *)
@@ -17,9 +16,7 @@ type config = {
 [@@deriving yojson, ord]
 
 let label c = c.lock_file_path
-
 let selection_of_config c = c.selection
-
 let opam_locked = ".opam.locked"
 
 let lockfiles_in ~dir =
@@ -28,9 +25,7 @@ let lockfiles_in ~dir =
     |> Array.to_list
     |> List.filter (Astring.String.is_suffix ~affix:opam_locked)
   in
-  match lock_files with
-  | [] -> None
-  | l -> Some l
+  match lock_files with [] -> None | l -> Some l
 
 let guard = function true -> Some () | false -> None
 
@@ -47,23 +42,23 @@ let x_opam_monorepo_version opam =
 let rec mapm ~f l =
   match l with
   | [] -> Some []
-  | x::xs ->
-    let (let*) = Option.bind in
-    let* y = f x in
-    let* ys = mapm ~f xs in
-    Some (y::ys)
+  | x :: xs ->
+      let ( let* ) = Option.bind in
+      let* y = f x in
+      let* ys = mapm ~f xs in
+      Some (y :: ys)
 
 let detect ~dir =
   let ( let* ) = Option.bind in
   let* lock_file_paths = lockfiles_in ~dir in
   let* () = guard (file_exists_in ~dir ~name:"dune-project") in
   mapm lock_file_paths ~f:(fun lock_file_path ->
-    let full_path = Filename.concat (Fpath.to_string dir) lock_file_path in
-    let lock_file_contents =
-      OpamFile.OPAM.read (OpamFile.make (OpamFilename.of_string full_path))
-    in
-    let* _ = x_opam_monorepo_version lock_file_contents in
-    Some (lock_file_path, lock_file_contents))
+      let full_path = Filename.concat (Fpath.to_string dir) lock_file_path in
+      let lock_file_contents =
+        OpamFile.OPAM.read (OpamFile.make (OpamFilename.of_string full_path))
+      in
+      let* _ = x_opam_monorepo_version lock_file_contents in
+      Some (lock_file_path, lock_file_contents))
 
 let packages_in_depends f =
   let get_atom = function OpamFormula.Atom a -> a | _ -> assert false in
@@ -84,13 +79,13 @@ let lock_file_version_of_string = function
   | "0.2" -> V0_2
   | "0.3" -> V0_3
   | "0.1" as s ->
-    Printf.ksprintf failwith
-      "lockfile version %s is not supported anymore. \
-       Please re-run opam-monorepo lock from a recent version of opam-monorepo." s
+      Printf.ksprintf failwith
+        "lockfile version %s is not supported anymore. Please re-run \
+         opam-monorepo lock from a recent version of opam-monorepo."
+        s
   | v -> Printf.ksprintf failwith "unknown x-opam-monorepo-version %S" v
 
 let exactly v = Printf.sprintf {|{ = "%s" }|} v
-
 let between a b = Printf.sprintf {|{ >= "%s" & < "%s" }|} a b
 
 let plugin_version = function
@@ -133,7 +128,8 @@ let selection ~info:(lock_file_path, lock_file) ~platforms ~solve =
   let dune_version = opam_monorepo_dep_version ~lock_file ~package:"dune" in
   let lock_file_version =
     x_opam_monorepo_version lock_file
-    |> Option.get |> lock_file_version_of_string
+    |> Option.get
+    |> lock_file_version_of_string
   in
   let monorepo_version = plugin_version lock_file_version in
   let deps_package = "opam-monorepo-deps.dev" in
@@ -167,13 +163,16 @@ let initialize_switch ~network = function
       let open Obuilder_spec in
       [ run ~network "opam switch create %s" compiler_package ]
 
-let install_opam_provided_packages ~network ~cache ~lock_file_path ~lock_file_version =
+let install_opam_provided_packages ~network ~cache ~lock_file_path
+    ~lock_file_version =
   let open Obuilder_spec in
   match lock_file_version with
   | V0_2 -> []
   | V0_3 ->
       [
-        run ~network ~cache "opam install --yes --ignore-pin-depends --deps-only ./%s" lock_file_path;
+        run ~network ~cache
+          "opam install --yes --ignore-pin-depends --deps-only ./%s"
+          lock_file_path;
       ]
 
 let spec ~base ~repo ~config ~variant =
@@ -189,14 +188,17 @@ let spec ~base ~repo ~config ~variant =
   stage ~from:base
   @@ [ comment "%s" (Variant.to_string variant); user ~uid:1000 ~gid:1000 ]
   @ initialize_switch ~network switch_type
-  @ Opam_build.install_project_deps ~opam_version:`V2_1 ~opam_files:[] ~selection
+  @ Opam_build.install_project_deps ~opam_version:`V2_1 ~opam_files:[]
+      ~selection
   @ [
       workdir "/src";
       run "sudo chown opam /src";
       copy [ dune_project; lock_file_path ] ~dst:"/src/";
-      run ~network ~cache:[ download_cache ] "opam monorepo depext --yes --lock ./%s" lock_file_path;
-  ]
-  @ install_opam_provided_packages ~network ~cache:[ download_cache ] ~lock_file_path ~lock_file_version
+      run ~network ~cache:[ download_cache ]
+        "opam monorepo depext --yes --lock ./%s" lock_file_path;
+    ]
+  @ install_opam_provided_packages ~network ~cache:[ download_cache ]
+      ~lock_file_path ~lock_file_version
   @ [
       run ~network ~cache:[ download_cache ] "opam exec -- opam monorepo pull";
       copy [ "." ] ~dst:"/src/";

@@ -1,5 +1,13 @@
 (library
  (public_name ocaml-ci-web.controller)
  (name controller)
- (libraries lwt ocaml-ci-api dream unix yojson ppx_deriving_yojson.runtime ocaml-ci-web.view)
- (preprocess (pps ppx_deriving_yojson)))
+ (libraries
+  lwt
+  ocaml-ci-api
+  dream
+  unix
+  yojson
+  ppx_deriving_yojson.runtime
+  ocaml-ci-web.view)
+ (preprocess
+  (pps ppx_deriving_yojson)))

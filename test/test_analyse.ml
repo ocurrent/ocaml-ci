@@ -12,33 +12,35 @@ module Analysis = struct
     | Vendored of { path : string }
   [@@deriving yojson, eq]
 
-  let ocamlformat_source_type (t:t) =
+  let ocamlformat_source_type (t : t) =
     let osrc = ocamlformat_source t in
     Option.map
       (fun (osrc : Ocaml_ci.Analyse_ocamlformat.source) ->
-         match osrc with
-         | Opam { version; opam_repo_commit = _ } -> Opam { version }
-         | Vendored { path } -> Vendored { path })
+        match osrc with
+        | Opam { version; opam_repo_commit = _ } -> Opam { version }
+        | Vendored { path } -> Vendored { path })
       osrc
 
   let set_equality = Alcotest.(equal (slist string String.compare))
 
   type selection = {
     ocaml_version : string;
-    only_packages : string list [@default []];
+    only_packages : string list; [@default []]
   }
   [@@deriving yojson, eq]
 
-  let selection_type (t:t) =
+  let selection_type (t : t) =
     match selections t with
     | `Opam_monorepo _ -> "opam-monorepo"
     | `Opam_build _ -> "opam"
 
-  let selection (t:Ocaml_ci.Selection.t) =
-    let ocaml_version = Ocaml_version.to_string (Ocaml_ci.Variant.ocaml_version t.variant) in
+  let selection (t : Ocaml_ci.Selection.t) =
+    let ocaml_version =
+      Ocaml_version.to_string (Ocaml_ci.Variant.ocaml_version t.variant)
+    in
     { ocaml_version; only_packages = t.only_packages }
 
-  let selections (t:t) =
+  let selections (t : t) =
     match selections t with
     | `Opam_monorepo _ -> []
     | `Opam_build s -> List.map selection s
@@ -56,8 +58,7 @@ module Analysis = struct
     let solver = Ocaml_ci.Solver_pool.spawn_local ~solver_dir () in
     Lwt_switch.add_hook (Some switch) (fun () ->
         Capnp_rpc_lwt.Capability.dec_ref solver;
-        Lwt.return_unit
-      );
+        Lwt.return_unit);
     of_dir ~solver ~job ~platforms ~opam_repository_commit d
     |> Lwt_result.map (fun t ->
            {
@@ -74,26 +75,26 @@ end
 let unwrap_result ~job = function
   | Ok x -> x
   | Error (`Msg m) ->
-    print_endline "---job log---";
-    let id = Current.Job.id job in
-    begin match Current.Job.log_path id with
+      print_endline "---job log---";
+      let id = Current.Job.id job in
+      (match Current.Job.log_path id with
       | Error (`Msg m) -> print_endline m
       | Ok path ->
-        let ch = open_in_bin (Fpath.to_string path) in
-        let len = in_channel_length ch in
-        print_endline @@ really_input_string ch len;
-        close_in ch
-    end;
-    print_endline "---end job log---";
-    failwith m
+          let ch = open_in_bin (Fpath.to_string path) in
+          let len = in_channel_length ch in
+          print_endline @@ really_input_string ch len;
+          close_in ch);
+      print_endline "---end job log---";
+      failwith m
 
 let error_t = Alcotest.of_pp (fun f (`Msg m) -> Fmt.string f m)
 
 let expect_test name ~project ~expected =
   Alcotest_lwt.test_case name `Quick (fun _switch () ->
       let ( // ) = Filename.concat in
-      let root = Filename.current_dir_name // "_test" // name // "src" in
-      let solver_dir = Filename.current_dir_name // "_test" // name in
+      let src_dir = Filename.get_temp_dir_name () // "test-copy" in
+      let root = src_dir // "_test" // name // "src" in
+      let solver_dir = src_dir // "_test" // name in
       let repo = solver_dir // "opam-repository-builder" in
       let job =
         let label = "test_analyse-" ^ name in
@@ -134,36 +135,37 @@ let expect_test name ~project ~expected =
       >|= unwrap_result ~job
       >>= fun hash ->
       Current.Process.exec ~job ~cancellable:true ~cwd:(Fpath.v solver_dir)
-        ("", [| "git"; "clone"; "--bare"; "opam-repository-builder"; "opam-repository" |])
+        ( "",
+          [|
+            "git";
+            "clone";
+            "--bare";
+            "opam-repository-builder";
+            "opam-repository";
+          |] )
       >|= unwrap_result ~job
       >>= fun () ->
       let opam_repository_commit =
-        Current_git.Commit_id.v
-          ~repo:"opam-repository"
-          ~hash:(String.trim hash)
+        Current_git.Commit_id.v ~repo:"opam-repository" ~hash:(String.trim hash)
           ~gref:"master"
       in
       Lwt_switch.with_switch (fun switch ->
-          Analysis.of_dir ~switch ~job ~platforms:Test_platforms.v ~solver_dir ~opam_repository_commit
-            (Fpath.v root)
-        )
+          Analysis.of_dir ~switch ~job ~platforms:Test_platforms.v ~solver_dir
+            ~opam_repository_commit (Fpath.v root))
       >|= fun result ->
-      begin match result, expected with
+      (match (result, expected) with
       | Error _, Ok _ ->
-        let path =
-          Current.Job.(log_path (id job))
-          |> Result.get_ok |> Fpath.to_string
-        in
-        let ch = open_in_bin path in
-        let len = in_channel_length ch in
-        let log = really_input_string ch len in
-        close_in ch;
-        Printf.printf "Log:\n%s\n%!" log;
-      | _ -> ()
-      end;
+          let path =
+            Current.Job.(log_path (id job)) |> Result.get_ok |> Fpath.to_string
+          in
+          let ch = open_in_bin path in
+          let len = in_channel_length ch in
+          let log = really_input_string ch len in
+          close_in ch;
+          Printf.printf "Log:\n%s\n%!" log
+      | _ -> ());
       Alcotest.(check (result Analysis.t error_t)) name expected result;
-      Gc.full_major ()
-    )
+      Gc.full_major ())
 
 (* example duniverse containing a single package *)
 let duniverse =
@@ -182,15 +184,17 @@ let test_simple =
   in
   let expected =
     let open Analysis in
-    Ok {
-      opam_files = [ "example.opam" ];
-      selection_type = "opam";
-      selections = [
-        { ocaml_version = "4.10"; only_packages = [] };
-        { ocaml_version = "4.09"; only_packages = [] }
-      ];
-      ocamlformat_source_type = Some (Opam { version = "0.12" });
-    }
+    Ok
+      {
+        opam_files = [ "example.opam" ];
+        selection_type = "opam";
+        selections =
+          [
+            { ocaml_version = "4.10"; only_packages = [] };
+            { ocaml_version = "4.09"; only_packages = [] };
+          ];
+        ocamlformat_source_type = Some (Opam { version = "0.12" });
+      }
   in
   expect_test "simple" ~project ~expected
 
@@ -214,15 +218,17 @@ let test_multiple_opam =
   in
   let expected =
     let open Analysis in
-    Ok {
-      opam_files = [ "example.opam"; "example-foo.opam"; "example-bar.opam" ];
-      selection_type = "opam";
-      selections = [
-        { ocaml_version = "4.10"; only_packages = [] };
-        { ocaml_version = "4.09"; only_packages = [] }
-      ];
-      ocamlformat_source_type = None;
-    }
+    Ok
+      {
+        opam_files = [ "example.opam"; "example-foo.opam"; "example-bar.opam" ];
+        selection_type = "opam";
+        selections =
+          [
+            { ocaml_version = "4.10"; only_packages = [] };
+            { ocaml_version = "4.09"; only_packages = [] };
+          ];
+        ocamlformat_source_type = None;
+      }
   in
   expect_test "multiple_opam" ~project ~expected
 
@@ -238,15 +244,17 @@ let test_filter_packages =
   in
   let expected =
     let open Analysis in
-    Ok {
-      opam_files = [ "example-new.opam"; "example.opam" ];
-      selection_type = "opam";
-      selections = [
-        { ocaml_version = "4.10"; only_packages = [] };
-        { ocaml_version = "4.09"; only_packages = ["example.dev"] };
-      ];
-      ocamlformat_source_type = None;
-    }
+    Ok
+      {
+        opam_files = [ "example-new.opam"; "example.opam" ];
+        selection_type = "opam";
+        selections =
+          [
+            { ocaml_version = "4.10"; only_packages = [] };
+            { ocaml_version = "4.09"; only_packages = [ "example.dev" ] };
+          ];
+        ocamlformat_source_type = None;
+      }
   in
   expect_test "filter_packages" ~project ~expected
 
@@ -259,48 +267,55 @@ let test_filter_packages_no_solution =
       File ("example-new.opam", opam ~ocaml:{|{ >= "5.0" }|});
     ]
   in
-  let expected = Error (`Msg {|No solution found for "example-new.dev" on any supported platform|}) in
+  let expected =
+    Error
+      (`Msg
+        {|No solution found for "example-new.dev" on any supported platform|})
+  in
   expect_test "filter_packages_no_solution" ~project ~expected
 
 let test_opam_monorepo =
   let project =
     let open Gen_project in
-    [ File ("example.opam", opam_monorepo_spec_file);
-      File ("example.opam.locked",
-            opam_monorepo_lock_file ~monorepo_version:(Some "0.2"));
+    [
+      File ("example.opam", opam_monorepo_spec_file);
+      File
+        ( "example.opam.locked",
+          opam_monorepo_lock_file ~monorepo_version:(Some "0.2") );
       File ("dune-project", empty_file);
     ]
   in
   let expected =
     let open Analysis in
-    Ok {
-      opam_files = [ "example.opam" ];
-      selection_type = "opam-monorepo";
-      selections = [];
-      ocamlformat_source_type = None;
-    }
+    Ok
+      {
+        opam_files = [ "example.opam" ];
+        selection_type = "opam-monorepo";
+        selections = [];
+        ocamlformat_source_type = None;
+      }
   in
   expect_test "opam-monorepo" ~project ~expected
 
 let test_opam_monorepo_no_version =
   let project =
     let open Gen_project in
-    [ File ("example.opam", opam_monorepo_spec_file);
-      File ("example.opam.locked",
-            opam_monorepo_lock_file ~monorepo_version:None);
+    [
+      File ("example.opam", opam_monorepo_spec_file);
+      File
+        ("example.opam.locked", opam_monorepo_lock_file ~monorepo_version:None);
       File ("dune-project", empty_file);
     ]
   in
   let expected =
     let open Analysis in
-    Ok {
-      opam_files = [ "example.opam" ];
-      selection_type = "opam";
-      selections = [
-        { ocaml_version = "4.10"; only_packages = [] };
-      ];
-      ocamlformat_source_type = None;
-    }
+    Ok
+      {
+        opam_files = [ "example.opam" ];
+        selection_type = "opam";
+        selections = [ { ocaml_version = "4.10"; only_packages = [] } ];
+        ocamlformat_source_type = None;
+      }
   in
   expect_test "opam-monorepo-no-version" ~project ~expected
 
@@ -311,15 +326,17 @@ let test_ocamlformat_self =
   in
   let expected =
     let open Analysis in
-    Ok {
-      opam_files = [ "ocamlformat.opam" ];
-      selection_type = "opam";
-      selections = [
-        { ocaml_version = "4.10"; only_packages = [] };
-        { ocaml_version = "4.09"; only_packages = [] };
-      ];
-      ocamlformat_source_type = Some (Vendored { path = "." });
-    }
+    Ok
+      {
+        opam_files = [ "ocamlformat.opam" ];
+        selection_type = "opam";
+        selections =
+          [
+            { ocaml_version = "4.10"; only_packages = [] };
+            { ocaml_version = "4.09"; only_packages = [] };
+          ];
+        ocamlformat_source_type = Some (Vendored { path = "." });
+      }
   in
   expect_test "ocamlformat_self" ~project ~expected
 

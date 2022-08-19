@@ -5,10 +5,10 @@ module Analysis : sig
   val ocamlformat_selection : t -> Selection.t option
   val ocamlformat_source : t -> Analyse_ocamlformat.source option
 
-  val selections : t -> [
-      | `Opam_build of Selection.t list
-      | `Opam_monorepo of Opam_monorepo.config list
-    ]
+  val selections :
+    t ->
+    [ `Opam_build of Selection.t list
+    | `Opam_monorepo of Opam_monorepo.config list ]
 
   val of_dir :
     solver:Ocaml_ci_api.Solver.t ->
@@ -25,5 +25,6 @@ val examine :
   opam_repository_commit:Current_git.Commit_id.t Current.t ->
   Current_git.Commit.t Current.t ->
   Analysis.t Current.t
-(** [examine ~solver ~platforms ~opam_repository_commit src] analyses the source code [src] and selects
-    package versions to test using [opam_repository_commit]. *)
+(** [examine ~solver ~platforms ~opam_repository_commit src] analyses the source
+    code [src] and selects package versions to test using
+    [opam_repository_commit]. *)

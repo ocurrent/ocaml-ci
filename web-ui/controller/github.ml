@@ -5,13 +5,14 @@ module Capability = Capnp_rpc_lwt.Capability
 let ( >>!= ) x f =
   x >>= function
   | Error (`Capnp ex) ->
-    Dream.log "Internal server error: %s" (Fmt.to_to_string Capnp_rpc.Error.pp ex);
-    Dream.empty `Internal_Server_Error
+      Dream.log "Internal server error: %s"
+        (Fmt.to_to_string Capnp_rpc.Error.pp ex);
+      Dream.empty `Internal_Server_Error
   | Ok y -> f y
 
-(*  job is synonymous with step.
-    'step' is used in a user-facing context.
-    'job' is an internal concept. *)
+(* job is synonymous with step.
+   'step' is used in a user-facing context.
+   'job' is an internal concept. *)
 let job_url ~org ~repo ~hash variant =
   Fmt.str "/github/%s/%s/commit/%s/variant/%s" org repo hash variant
 
@@ -82,23 +83,23 @@ let rebuild_step ~org ~repo ~hash ~variant request ci =
       Dream.empty `Internal_Server_Error
 
 let cancel_steps ~org ~repo ~hash request ci =
-  let cancel_many (commit : Client.Commit.t) (job_infos : Client.job_info list) =
-   let init = ([], 0) in
-     let f (success, failed) (job_info : Client.job_info) =
-            match job_info.outcome with
-            | Aborted | Failed _ | Passed | Undefined _ ->
-                Lwt.return (success, failed)
-            | Active | NotStarted -> (
-                let variant = job_info.Client.variant in
-                let job = Client.Commit.job_of_variant commit variant in
-                Current_rpc.Job.cancel job >|= function
-                | Ok () -> (job_info :: success, failed)
-                | Error (`Capnp ex) ->
-                    Dream.log "Error cancelling job: %a" Capnp_rpc.Error.pp ex;
-                    (success, succ failed))
+  let cancel_many (commit : Client.Commit.t) (job_infos : Client.job_info list)
+      =
+    let init = ([], 0) in
+    let f (success, failed) (job_info : Client.job_info) =
+      match job_info.outcome with
+      | Aborted | Failed _ | Passed | Undefined _ -> Lwt.return (success, failed)
+      | Active | NotStarted -> (
+          let variant = job_info.Client.variant in
+          let job = Client.Commit.job_of_variant commit variant in
+          Current_rpc.Job.cancel job >|= function
+          | Ok () -> (job_info :: success, failed)
+          | Error (`Capnp ex) ->
+              Dream.log "Error cancelling job: %a" Capnp_rpc.Error.pp ex;
+              (success, succ failed))
     in
     Lwt_list.fold_left_s f init job_infos
-    in
+  in
   Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
   Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
   Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash)
@@ -118,7 +119,8 @@ let rebuild_steps ~rebuild_failed_only ~org ~repo ~hash request ci =
   let rebuild_many commit job_infos =
     let go job_info commit success failed =
       let variant = job_info.Client.variant in
-      if variant = "(analysis)" then (* Do not rebuild analysis -- this triggers other jobs *)
+      if variant = "(analysis)" then
+        (* Do not rebuild analysis -- this triggers other jobs *)
         Lwt.return (success, failed)
       else
         let job = Client.Commit.job_of_variant commit variant in
