@@ -1,10 +1,25 @@
 module Client = Ocaml_ci_api.Client
 module Common = Ocaml_ci_api.Common
 module StatusTree = Status_tree
+module Build_status = Build_status
 
 open Tyxml.Html
 
 let short_hash = Astring.String.with_range ~len:6
+
+let rec intersperse ~sep = function
+  | [] -> []
+  | [ x ] -> [ x ]
+  | x :: xs -> x :: sep :: intersperse ~sep xs
+
+(* Paths for HTML links *)
+let prefix = "github"
+let org_url org = Fmt.str "/%s/%s" prefix org
+let repo_url org repo = Fmt.str "/%s/%s/%s" prefix org repo
+let commit_url ~org ~repo hash = Fmt.str "/%s/%s/%s/commit/%s" prefix org repo hash
+let job_url ~org ~repo ~hash variant = Fmt.str "/%s/%s/%s/commit/%s/variant/%s" prefix org repo hash variant
+let github_branch_url ~org ~repo ref = Fmt.str "https://github.com/%s/%s/tree/%s" org repo ref
+let github_pr_url ~org ~repo id = Fmt.str "https://github.com/%s/%s/pull/%s" org repo id
 
 let breadcrumbs steps page_title =
   let add (prefix, results) (label, link) =
@@ -16,24 +31,11 @@ let breadcrumbs steps page_title =
   let steps = li [ b [ txt page_title ] ] :: steps in
   ol ~a:[ a_class [ "breadcrumbs" ] ] (List.rev steps)
 
-let org_url org = Fmt.str "/github/%s" org
-let repo_url org repo = Fmt.str "/github/%s/%s" org repo
-let commit_url ~org ~repo hash = Fmt.str "/github/%s/%s/commit/%s" org repo hash
-
-let job_url ~org ~repo ~hash variant =
-  Fmt.str "/github/%s/%s/commit/%s/variant/%s" org repo hash variant
-
-let github_branch_url ~org ~repo ref =
-  Fmt.str "https://github.com/%s/%s/tree/%s" org repo ref
-
-let github_pr_url ~org ~repo id =
-  Fmt.str "https://github.com/%s/%s/pull/%s" org repo id
-
-let format_org org = li [ a ~a:[ a_href (org_url org) ] [ txt org ] ]
+let format_org org =
+  li [ a ~a:[ a_href (org_url org) ] [ txt org ] ]
 
 let format_repo ~org { Client.Org.name; master_status } =
-  li
-    ~a:[ a_class [ Build_status.class_name master_status ] ]
+  li ~a:[ a_class [ Build_status.class_name master_status ] ]
     [ a ~a:[ a_href (repo_url org name) ] [ txt name ] ]
 
 let orgs_v ~orgs = [ breadcrumbs [] "github"; ul (List.map format_org orgs) ]
@@ -53,11 +55,6 @@ let refs_v ~org ~repo ~refs =
          ~a:[ a_class [ Build_status.class_name status ] ]
          [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt branch ] ])
 
-let rec intersperse ~sep = function
-  | [] -> []
-  | [ x ] -> [ x ]
-  | x :: xs -> x :: sep :: intersperse ~sep xs
-
 let statuses ss =
   let rec render_status = function
     | StatusTree.Leaf (s, elms) ->
@@ -75,8 +72,7 @@ let statuses ss =
         li ~a:[ a_class [ status_class_name ] ] elms
     | StatusTree.Branch (b, ss) ->
         li
-          [
-            txt b; ul ~a:[ a_class [ "statuses" ] ] (List.map render_status ss);
+          [ txt b; ul ~a:[ a_class [ "statuses" ] ] (List.map render_status ss);
           ]
   in
   ul ~a:[ a_class [ "statuses" ] ] (List.map render_status ss)
@@ -84,8 +80,7 @@ let statuses ss =
 let link_github_refs ~org ~repo = function
   | [] -> txt "(not at the head of any monitored branch or PR)"
   | refs ->
-      p
-        (txt "(for "
+      p (txt "(for "
          :: intersperse ~sep:(txt ", ")
               (refs
               |> List.map @@ fun r ->
@@ -93,19 +88,13 @@ let link_github_refs ~org ~repo = function
                  | "refs" :: "heads" :: branch ->
                      let branch = Astring.String.concat ~sep:"/" branch in
                      span
-                       [
-                         txt "branch ";
-                         a
-                           ~a:[ a_href (github_branch_url ~org ~repo branch) ]
-                           [ txt branch ];
+                       [ txt "branch ";
+                         a ~a:[ a_href (github_branch_url ~org ~repo branch) ] [ txt branch ];
                        ]
                  | [ "refs"; "pull"; id; "head" ] ->
                      span
-                       [
-                         txt "PR ";
-                         a
-                           ~a:[ a_href (github_pr_url ~org ~repo id) ]
-                           [ txt ("#" ^ id) ];
+                       [ txt "PR ";
+                         a ~a:[ a_href (github_pr_url ~org ~repo id) ] [ txt ("#" ^ id) ];
                        ]
                  | _ -> txt (Fmt.str "Bad ref format %S" r))
         @ [ txt ")" ])
@@ -136,8 +125,7 @@ let list_repos ~org ~repos = Template.instance @@ repos_v ~org ~repos
 
 let list_refs ~org ~repo ~refs =
   Template.instance
-    [
-      breadcrumbs [ ("github", "github"); (org, org) ] repo;
+    [ breadcrumbs [ ("github", "github"); (org, org) ] repo;
       refs_v ~org ~repo ~refs;
     ]
 
@@ -149,30 +137,10 @@ let cancel_success_message success =
   | [] -> div [ span [ txt @@ Fmt.str "No jobs were cancelled." ] ]
   | success -> ul (List.map format_job_info success)
 
-let cancel_fail_message failed =
-  match failed with
+let cancel_fail_message = function
   | n when n <= 0 -> div []
-  | 1 ->
-      div
-        [
-          span
-            [
-              txt
-              @@ Fmt.str
-                   "1 job could not be cancelled. Check logs for more detail.";
-            ];
-        ]
-  | n ->
-      div
-        [
-          span
-            [
-              txt
-              @@ Fmt.str
-                   "%d jobs could not be cancelled. Check logs for more detail."
-                   n;
-            ];
-        ]
+  | 1 -> div [ span [ txt @@ Fmt.str "1 job could not be cancelled. Check logs for more detail."; ]; ]
+  | n -> div [ span [ txt @@ Fmt.str "%d jobs could not be cancelled. Check logs for more detail." n; ]; ]
 
 let rebuild_success_message success =
   let format_job_info ji =
@@ -182,29 +150,10 @@ let rebuild_success_message success =
   | [] -> div [ span [ txt @@ Fmt.str "No jobs were rebuilt." ] ]
   | success -> ul (List.map format_job_info success)
 
-let rebuild_fail_message failed =
-  match failed with
+let rebuild_fail_message = function
   | n when n <= 0 -> div []
-  | 1 ->
-      div
-        [
-          span
-            [
-              txt
-              @@ Fmt.str
-                   "1 job could not be rebuilt. Check logs for more detail.";
-            ];
-        ]
-  | n ->
-      div
-        [
-          span
-            [
-              txt
-              @@ Fmt.str
-                   "%d jobs could not be rebuilt. Check logs for more detail." n;
-            ];
-        ]
+  | 1 -> div [ span [ txt @@ Fmt.str "1 job could not be rebuilt. Check logs for more detail."; ]; ]
+  | n -> div [ span [ txt @@ Fmt.str "%d jobs could not be rebuilt. Check logs for more detail." n; ]; ]
 
 let return_link ~org ~repo ~hash =
   let uri = commit_url ~org ~repo hash in
