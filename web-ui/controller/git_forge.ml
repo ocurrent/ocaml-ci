@@ -1,6 +1,6 @@
-open Lwt.Infix
-
 module Make (View: Git_forge_s.View) = struct 
+  open Lwt.Infix
+
   module Client = Ocaml_ci_api.Client
   module Capability = Capnp_rpc_lwt.Capability
 

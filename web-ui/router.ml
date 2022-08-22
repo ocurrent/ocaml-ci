@@ -19,7 +19,6 @@ let create ~github ~gitlab =
             github);
       Dream.get "/" (fun _ -> Dream.html @@ Controller.Index.render);
 
-
       Dream.get "/gitlab" (fun _ -> Controller.Gitlab.list_orgs gitlab);
       Dream.get "/gitlab/:org" (fun request ->
           Controller.Gitlab.list_repos ~org:(Dream.param request "org") gitlab);
@@ -34,7 +33,8 @@ let create ~github ~gitlab =
             ~repo:(Dream.param request "repo")
             ~hash:(Dream.param request "hash")
             request gitlab);
-Dream.get "gitlab/:org/:repo/commit/:hash/variant/:variant"
+
+      Dream.get "/gitlab/:org/:repo/commit/:hash/variant/:variant"
         (fun request ->
           Controller.Gitlab.show_step
             ~org:(Dream.param request "org")
@@ -42,7 +42,7 @@ Dream.get "gitlab/:org/:repo/commit/:hash/variant/:variant"
             ~hash:(Dream.param request "hash")
             ~variant:(Dream.param request "variant")
             request gitlab);
-      Dream.post "gitlab/:org/:repo/commit/:hash/variant/:variant/rebuild"
+      Dream.post "/gitlab/:org/:repo/commit/:hash/variant/:variant/rebuild"
         (fun request ->
           Dream.form request >>= function
           | `Ok _ ->
@@ -55,7 +55,7 @@ Dream.get "gitlab/:org/:repo/commit/:hash/variant/:variant"
           | _ ->
               Dream.log "Form validation failed";
               Dream.empty `Bad_Request);
-      Dream.post "gitlab/:org/:repo/commit/:hash/cancel" (fun request ->
+      Dream.post "/gitlab/:org/:repo/commit/:hash/cancel" (fun request ->
           Dream.form request >>= function
           | `Ok _ ->
               Controller.Gitlab.cancel_steps
@@ -66,7 +66,7 @@ Dream.get "gitlab/:org/:repo/commit/:hash/variant/:variant"
           | _ ->
               Dream.log "Form validation failed";
               Dream.empty `Bad_Request);
-      Dream.post "gitlab/:org/:repo/commit/:hash/rebuild-failed"
+      Dream.post "/gitlab/:org/:repo/commit/:hash/rebuild-failed"
         (fun request ->
           Dream.form request >>= function
           | `Ok _ ->
@@ -78,7 +78,7 @@ Dream.get "gitlab/:org/:repo/commit/:hash/variant/:variant"
           | _ ->
               Dream.log "Form validation failed";
               Dream.empty `Bad_Request);
-      Dream.post "gitlab/:org/:repo/commit/:hash/rebuild-all"
+      Dream.post "/gitlab/:org/:repo/commit/:hash/rebuild-all"
         (fun request ->
           Dream.form request >>= function
           | `Ok _ ->

@@ -1,9 +1,3 @@
-(rule
- (targets git_forge_s.ml)
- (deps git_forge_s.mli)
- (action
-  (copy %{deps} %{targets})))
-
 (library
  (public_name ocaml-ci-web.controller)
  (name controller)
