@@ -12,5 +12,5 @@
 	branch = master
 [submodule "ocaml-dockerfile"]
 	path = ocaml-dockerfile
-	url = https://github.com/avsm/ocaml-dockerfile.git
+	url = https://github.com/ocurrent/ocaml-dockerfile.git
 	branch = master

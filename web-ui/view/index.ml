@@ -10,15 +10,9 @@ let render =
           a
             ~a:[ a_href "https://github.com/apps/ocaml-ci" ]
             [ txt "The OCaml-CI GitHub App" ];
-          txt " for details.";
-        ];
-      ul
-        [
-          li
-            [
-              a
-                ~a:[ a_href "/github" ]
-                [ txt "Registered GitHub organisations" ];
-            ];
+          txt " for details."; ];
+      ul [
+          li [ a ~a:[ a_href "/github" ] [ txt "Registered GitHub organisations" ]; ];
+          li [ a ~a:[ a_href "/gitlab" ] [ txt "Registered GitLab organisations" ]; ];
         ];
     ]

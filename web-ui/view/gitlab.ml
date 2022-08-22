@@ -16,72 +16,34 @@ let breadcrumbs steps page_title =
   let steps = li [ b [ txt page_title ] ] :: steps in
   ol ~a:[ a_class [ "breadcrumbs" ] ] (List.rev steps)
 
-let org_url org = Fmt.str "/github/%s" org
-let repo_url org repo = Fmt.str "/github/%s/%s" org repo
-let commit_url ~org ~repo hash = Fmt.str "/github/%s/%s/commit/%s" org repo hash
+let org_url org = Fmt.str "/gitlab/%s" org
+let repo_url org repo = Fmt.str "/gitlab/%s/%s" org repo
+let commit_url ~org ~repo hash = Fmt.str "/gitlab/%s/%s/commit/%s" org repo hash
 
 let job_url ~org ~repo ~hash variant =
-  Fmt.str "/github/%s/%s/commit/%s/variant/%s" org repo hash variant
+  Fmt.str "/gitlab/%s/%s/commit/%s/variant/%s" org repo hash variant
 
-let github_branch_url ~org ~repo ref =
-  Fmt.str "https://github.com/%s/%s/tree/%s" org repo ref
+let format_org org =
+  li [ a ~a:[ a_href (org_url org) ] [ txt org ] ]
 
-let github_pr_url ~org ~repo id =
-  Fmt.str "https://github.com/%s/%s/pull/%s" org repo id
-
-let format_org org = li [ a ~a:[ a_href (org_url org) ] [ txt org ] ]
-
-let format_repo ~org { Client.Org.name; master_status } =
-  li
-    ~a:[ a_class [ Build_status.class_name master_status ] ]
-    [ a ~a:[ a_href (repo_url org name) ] [ txt name ] ]
-
-let orgs_v ~orgs = [ breadcrumbs [] "github"; ul (List.map format_org orgs) ]
-
-let repos_v ~org ~repos =
-  [
-    breadcrumbs [ ("github", "github") ] org;
-    ul ~a:[ a_class [ "statuses" ] ] (List.map (format_repo ~org) repos);
-  ]
-
-let refs_v ~org ~repo ~refs =
-  ul
-    ~a:[ a_class [ "statuses" ] ]
-    (Client.Ref_map.bindings refs
-    |> List.map @@ fun (branch, (commit, status)) ->
-       li
-         ~a:[ a_class [ Build_status.class_name status ] ]
-         [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt branch ] ])
+let orgs_v ~orgs =
+  Tyxml.Html.[ breadcrumbs [] "gitlab"; ul (List.map format_org orgs) ]
 
 let rec intersperse ~sep = function
   | [] -> []
   | [ x ] -> [ x ]
   | x :: xs -> x :: sep :: intersperse ~sep xs
 
-let statuses ss =
-  let rec render_status = function
-    | StatusTree.Leaf (s, elms) ->
-        let status_class_name =
-          match (s : Client.State.t) with
-          | NotStarted -> "not-started"
-          | Aborted -> "aborted"
-          | Failed m when Astring.String.is_prefix ~affix:"[SKIP]" m ->
-              "skipped"
-          | Failed _ -> "failed"
-          | Passed -> "passed"
-          | Active -> "active"
-          | Undefined _ -> "undefined"
-        in
-        li ~a:[ a_class [ status_class_name ] ] elms
-    | StatusTree.Branch (b, ss) ->
-        li
-          [
-            txt b; ul ~a:[ a_class [ "statuses" ] ] (List.map render_status ss);
-          ]
-  in
-  ul ~a:[ a_class [ "statuses" ] ] (List.map render_status ss)
+let gitlab_branch_url ~org ~repo ref =
+  Fmt.str "https://gitlab.com/%s/%s/-/tree/%s" org repo ref
 
-let link_github_refs ~org ~repo = function
+
+let gitlab_mr_url ~org ~repo id =
+  Fmt.str "https://gitlab.com/%s/%s/-/merge_requests/%s" org repo id
+
+let link_gitlab_refs ~org ~repo =
+  let open Tyxml.Html in
+  function
   | [] -> txt "(not at the head of any monitored branch or PR)"
   | refs ->
       p
@@ -96,7 +58,7 @@ let link_github_refs ~org ~repo = function
                        [
                          txt "branch ";
                          a
-                           ~a:[ a_href (github_branch_url ~org ~repo branch) ]
+                           ~a:[ a_href (gitlab_branch_url ~org ~repo branch) ]
                            [ txt branch ];
                        ]
                  | [ "refs"; "pull"; id; "head" ] ->
@@ -104,44 +66,45 @@ let link_github_refs ~org ~repo = function
                        [
                          txt "PR ";
                          a
-                           ~a:[ a_href (github_pr_url ~org ~repo id) ]
+                           ~a:[ a_href (gitlab_mr_url ~org ~repo id) ]
                            [ txt ("#" ^ id) ];
                        ]
                  | _ -> txt (Fmt.str "Bad ref format %S" r))
         @ [ txt ")" ])
 
-let link_jobs ~org ~repo ~hash ?selected jobs =
-  let render_job trees { Client.variant; outcome } =
-    let uri = job_url ~org ~repo ~hash variant in
-    match
-      List.rev
-        (Astring.String.cuts ~sep:(Fmt.str "%c" Common.status_sep) variant)
-    with
-    | [] -> assert false
-    | label_txt :: k ->
-        let k = List.rev k in
-        let x =
-          let label =
-            txt (Fmt.str "%s (%a)" label_txt Client.State.pp outcome)
-          in
-          let label = if selected = Some variant then b [ label ] else label in
-          (outcome, [ a ~a:[ a_href uri ] [ label ] ])
-        in
-        StatusTree.add k x trees
-  in
-  statuses (List.fold_left render_job [] jobs)
 
 let list_orgs ~orgs = Template.instance @@ orgs_v ~orgs
+
+let format_repo ~org { Client.Org.name; master_status } =
+  li
+    ~a:[ a_class [ Build_status.class_name master_status ] ]
+    [ a ~a:[ a_href (repo_url org name) ] [ txt name ] ]
+
+let repos_v ~org ~repos =
+  [
+    breadcrumbs [ ("gitlab", "gitlab") ] org;
+    ul ~a:[ a_class [ "statuses" ] ] (List.map (format_repo ~org) repos);
+  ]
+
 let list_repos ~org ~repos = Template.instance @@ repos_v ~org ~repos
+
+let refs_v ~org ~repo ~refs =
+  ul
+    ~a:[ a_class [ "statuses" ] ]
+    (Client.Ref_map.bindings refs
+     |> List.map @@ fun (branch, (commit, status)) ->
+                    li
+                      ~a:[ a_class [ Build_status.class_name status ] ]
+                      [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt branch ] ])
 
 let list_refs ~org ~repo ~refs =
   Template.instance
     [
-      breadcrumbs [ ("github", "github"); (org, org) ] repo;
+      breadcrumbs [ ("gitlab", "gitlab"); (org, org) ] repo;
       refs_v ~org ~repo ~refs;
     ]
-
 let cancel_success_message success =
+  let open Tyxml.Html in
   let format_job_info ji =
     li [ span [ txt @@ Fmt.str "Cancelling job: %s" ji.Client.variant ] ]
   in
@@ -150,6 +113,7 @@ let cancel_success_message success =
   | success -> ul (List.map format_job_info success)
 
 let cancel_fail_message failed =
+  let open Tyxml.Html in
   match failed with
   | n when n <= 0 -> div []
   | 1 ->
@@ -175,6 +139,7 @@ let cancel_fail_message failed =
         ]
 
 let rebuild_success_message success =
+  let open Tyxml.Html in
   let format_job_info ji =
     li [ span [ txt @@ Fmt.str "Rebuilding job: %s" ji.Client.variant ] ]
   in
@@ -183,6 +148,7 @@ let rebuild_success_message success =
   | success -> ul (List.map format_job_info success)
 
 let rebuild_fail_message failed =
+  let open Tyxml.Html in
   match failed with
   | n when n <= 0 -> div []
   | 1 ->
@@ -207,27 +173,82 @@ let rebuild_fail_message failed =
         ]
 
 let return_link ~org ~repo ~hash =
+  let open Tyxml.Html in
   let uri = commit_url ~org ~repo hash in
   a ~a:[ a_href uri ] [ txt @@ Fmt.str "Return to %s" (short_hash hash) ]
 
+let statuses ss =
+  let open Tyxml.Html in
+  let rec render_status = function
+    | StatusTree.Leaf (s, elms) ->
+       let status_class_name =
+         match (s : Client.State.t) with
+         | NotStarted -> "not-started"
+         | Aborted -> "aborted"
+         | Failed m when Astring.String.is_prefix ~affix:"[SKIP]" m ->
+            "skipped"
+         | Failed _ -> "failed"
+         | Passed -> "passed"
+         | Active -> "active"
+         | Undefined _ -> "undefined"
+       in
+       li ~a:[ a_class [ status_class_name ] ] elms
+    | StatusTree.Branch (b, ss) ->
+       li
+         [
+           txt b; ul ~a:[ a_class [ "statuses" ] ] (List.map render_status ss);
+         ]
+  in
+  ul ~a:[ a_class [ "statuses" ] ] (List.map render_status ss)
+
+let link_jobs ~org ~repo ~hash ?selected jobs =
+  let open Tyxml.Html in
+  let render_job trees { Client.variant; outcome } =
+    let uri = job_url ~org ~repo ~hash variant in
+    match
+      List.rev
+        (Astring.String.cuts ~sep:(Fmt.str "%c" Common.status_sep) variant)
+    with
+    | [] -> assert false
+    | label_txt :: k ->
+       let k = List.rev k in
+       let x =
+         let label =
+           txt (Fmt.str "%s (%a)" label_txt Client.State.pp outcome)
+         in
+         let label = if selected = Some variant then b [ label ] else label in
+         (outcome, [ a ~a:[ a_href uri ] [ label ] ])
+       in
+       StatusTree.add k x trees
+  in
+  statuses (List.fold_left render_job [] jobs)
+
 (* TODO: Clean up so that success and fail messages appear in flash messages and we do a redirect
-   instead of providing a return link *)
-let list_steps ~org ~repo ~refs ~hash ~jobs ?(success_msg = div [])
-    ?(fail_msg = div []) ?(return_link = div []) ?(flash_messages = [])
-    ~csrf_token () =
+instead of providing a return link *)
+let list_steps ~org ~repo ~refs ~hash ~jobs
+    ?(success_msg =
+      let open Tyxml.Html in
+      div [])
+    ?(fail_msg =
+      let open Tyxml.Html in
+      div [])
+    ?(return_link =
+      let open Tyxml.Html in
+      div []) ?(flash_messages = []) ~csrf_token () =
+  let open Tyxml.Html in
   let can_cancel =
     let check job_info =
-      match job_info.Client.outcome with
-      | Active | NotStarted -> true
-      | Aborted | Failed _ | Passed | Undefined _ -> false
+        match job_info.Client.outcome with
+        | Active | NotStarted -> true
+        | Aborted | Failed _ | Passed | Undefined _ -> false
     in
     List.exists check jobs
   in
   let can_rebuild =
     let check job_info =
-      match job_info.Client.outcome with
-      | Active | NotStarted | Passed -> false
-      | Aborted | Failed _ | Undefined _ -> true
+        match job_info.Client.outcome with
+        | Active | NotStarted | Passed -> false
+        | Aborted | Failed _ | Undefined _ -> true
     in
     List.exists check jobs
   in
@@ -267,9 +288,9 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ?(success_msg = div [])
   Template.instance ~flash_messages
     [
       breadcrumbs
-        [ ("github", "github"); (org, org); (repo, repo) ]
+        [ ("gitlab", "gitlab"); (org, org); (repo, repo) ]
         (short_hash hash);
-      link_github_refs ~org ~repo refs;
+      link_gitlab_refs ~org ~repo refs;
       link_jobs ~org ~repo ~hash jobs;
       success_msg;
       fail_msg;
@@ -283,32 +304,34 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
     let can_rebuild = status.Current_rpc.Job.can_rebuild in
     let buttons =
       if can_rebuild then
-        [
-          form
-            ~a:[ a_action (variant ^ "/rebuild"); a_method `Post ]
-            [
-              Unsafe.data csrf_token;
-              input ~a:[ a_input_type `Submit; a_value "Rebuild" ] ();
-            ];
-        ]
+        Tyxml.Html.
+          [
+            form
+              ~a:[ a_action (variant ^ "/rebuild"); a_method `Post ]
+              [
+                Unsafe.data csrf_token;
+                input ~a:[ a_input_type `Submit; a_value "Rebuild" ] ();
+              ];
+          ]
       else []
     in
     let body =
       Template.instance ~flash_messages
-        [
-          breadcrumbs
-            [
-              ("github", "github");
-              (org, org);
-              (repo, repo);
-              (short_hash hash, "commit/" ^ hash);
-            ]
-            variant;
-          link_github_refs ~org ~repo refs;
-          link_jobs ~org ~repo ~hash ~selected:variant jobs;
-          div buttons;
-          pre [ txt "@@@" ];
-        ]
+        Tyxml.Html.
+          [
+            breadcrumbs
+              [
+                ("gitlab", "gitlab");
+                (org, org);
+                (repo, repo);
+                (short_hash hash, "commit/" ^ hash);
+              ]
+              variant;
+            link_gitlab_refs ~org ~repo refs;
+            link_jobs ~org ~repo ~hash ~selected:variant jobs;
+            div buttons;
+            pre [ txt "@@@" ];
+          ]
     in
     Astring.String.cut ~sep:"@@@" body |> Option.get
   in
@@ -327,7 +350,8 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
         | Ok (data, next) ->
             Dream.log "Fetching logs";
             Dream.write response_stream (Ansi.process ansi data) >>= fun () ->
-            Dream.flush response_stream >>= fun () -> loop next
+            Dream.flush response_stream >>= fun () ->
+            loop next
         | Error (`Capnp ex) ->
             Dream.log "Error fetching logs: %a" Capnp_rpc.Error.pp ex;
             Dream.write response_stream

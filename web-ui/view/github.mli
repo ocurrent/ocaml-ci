@@ -1,22 +1,6 @@
 module Client = Ocaml_ci_api.Client
 module Common = Ocaml_ci_api.Common
 
-module Build_status : sig
-  type t = Client.Build_status.t
-
-  val pp : t Fmt.t
-  val class_name : t -> string
-end
-
-module StatusTree : sig
-  type key = string
-
-  type 'a tree = Leaf of 'a | Branch of key * 'a t
-  and 'a t = 'a tree list
-
-  val add : key list -> 'a -> 'a t -> 'a t
-end
-
 val short_hash : ?first:int -> string -> string
 
 val breadcrumbs :
@@ -50,7 +34,7 @@ val intersperse : sep:'a -> 'a list -> 'a list
 
 val statuses :
   (Client.State.t * [< Html_types.li_content_fun ] Tyxml_html.elt list)
-  StatusTree.tree
+  Status_tree.tree
   list ->
   [> Html_types.ul ] Tyxml_html.elt
 

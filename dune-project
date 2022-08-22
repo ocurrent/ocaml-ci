@@ -59,6 +59,25 @@
   (alcotest (and (>= 1.0.0) :with-test))
   (alcotest-lwt (and (>= 1.0.1) :with-test))))
 (package
+ (name ocaml-ci-gitlab)
+ (synopsis "Test OCaml projects on GitLab")
+ (description "Test OCaml projects on GitLab")
+ (depends
+  (ocaml (>= 4.08.0))
+  (alcotest :with-test)
+  (odoc :with-doc)
+  current
+  current_git
+  current_gitlab
+  (gitlab-unix (>= 0.1.5))
+  current_docker
+  (prometheus-app (>= 1.2))
+  (fmt (>= 0.8.9))
+  (cmdliner (>= 1.1.0))
+  ocaml-ci
+  ocaml-ci-service
+  (logs (>= 0.7.0))))
+(package
  (name ocaml-ci-solver)
  (synopsis "Choose package versions to test")
  (depends
