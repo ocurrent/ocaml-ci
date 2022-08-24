@@ -1,0 +1,6 @@
+(library
+ (name client_utilities)
+ (public_name client-utilities)
+ (preprocess
+  (pps ppx_deriving.std ppx_deriving_yojson))
+ (libraries logs current.cache ocaml-ci-api str))

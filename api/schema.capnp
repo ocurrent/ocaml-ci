@@ -34,7 +34,26 @@ struct JobInfo {
     # that the server crashed while building, and when it came back up we
     # no longer wanted to test that commit anyway.
   }
+
+  queuedAt  :union {
+    ts         @6 :Float64;
+    # timestamp as seconds since epoch
+    none       @7 :Void;
+  }
+
+  startedAt :union {
+    ts         @8 :Float64;
+    # timestamp as seconds since epoch
+    none       @9 :Void;
+  }
+
+  finishedAt :union {
+    ts         @10 :Float64;
+    # timestamp as seconds since epoch
+    none       @11 :Void;
+  }
 }
+
 
 interface Commit {
   jobs  @0 () -> (jobs :List(JobInfo));
