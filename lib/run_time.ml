@@ -66,9 +66,9 @@ let timestamps_eq st1 st2 =
         cmp_floats ready1 ready2 && cmp_floats finished1 finished2
     | Finished {ready=ready1; started=Some started1; finished=finished1}, Finished {ready=ready2; started=Some started2; finished=finished2} ->
         cmp_floats ready1 ready2 && cmp_floats started1 started2 && cmp_floats finished1 finished2
-    | Queued _, (Running _ | Finished _ ) -> false
-    | Running _, (Queued _ | Finished _) -> false
-    | Finished {started=None; _}, (Queued _ | Running _ | Finished {started=Some _; _}) -> false
+    | Queued _, (Running _ | Finished _ )
+    | Running _, (Queued _ | Finished _) 
+    | Finished {started=None; _}, (Queued _ | Running _ | Finished {started=Some _; _})
     | Finished {started=Some _; _}, (Queued _ | Running _ | Finished {started=None; _}) -> false
 
 let info_to_string = function
