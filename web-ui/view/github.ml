@@ -145,7 +145,7 @@ let link_github_refs ~org ~repo = function
         @ [ txt ")" ])
 
 let link_jobs ~org ~repo ~hash ?selected jobs =
-  let render_job trees { Client.variant; outcome } =
+  let render_job trees { Client.variant; outcome; _ } =
     let uri = job_url ~org ~repo ~hash variant in
     match
       List.rev

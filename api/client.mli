@@ -20,7 +20,13 @@ module State : sig
   val pp : t Fmt.t
 end
 
-type job_info = { variant : variant; outcome : State.t }
+type job_info = {
+  variant : variant;
+  outcome : State.t;
+  queued_at : float option;
+  started_at : float option;
+  finished_at : float option;
+}
 
 module Commit : sig
   type t = Raw.Client.Commit.t Capability.t

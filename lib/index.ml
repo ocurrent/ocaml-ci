@@ -215,17 +215,20 @@ let get_jobs ~owner ~name hash =
   let t = Lazy.force db in
   Db.query t.get_jobs Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash ]
   |> List.map @@ function
-     | Sqlite3.Data.[ TEXT variant; TEXT job_id; NULL; NULL ] ->
-         let outcome =
-           if Current.Job.lookup_running job_id = None then `Aborted
-           else `Active
-         in
-         (variant, outcome)
-     | Sqlite3.Data.[ TEXT variant; TEXT _; INT ok; BLOB outcome ] ->
-         let outcome = if ok = 1L then `Passed else `Failed outcome in
-         (variant, outcome)
-     | Sqlite3.Data.[ TEXT variant; NULL; NULL; NULL ] -> (variant, `Not_started)
-     | row -> Fmt.failwith "get_jobs: invalid result: %a" Db.dump_row row
+  | Sqlite3.Data.[ TEXT variant; TEXT job_id; NULL; NULL ] ->
+    let outcome = if Current.Job.lookup_running job_id = None then `Aborted else `Active in
+    let ts = Run_time.timestamps_of_job job_id in
+    variant, outcome, ts
+  | Sqlite3.Data.[ TEXT variant; TEXT job_id; INT ok; BLOB outcome ] ->
+    let outcome =
+      if ok = 1L then `Passed else `Failed outcome
+    in
+    let ts = Run_time.timestamps_of_job job_id in
+    variant, outcome, ts
+  | Sqlite3.Data.[ TEXT variant; NULL; NULL; NULL ] ->
+    variant, `Not_started, None
+  | row ->
+    Fmt.failwith "get_jobs: invalid result: %a" Db.dump_row row
 
 let get_job ~owner ~name ~hash ~variant =
   let t = Lazy.force db in

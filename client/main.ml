@@ -86,8 +86,10 @@ let list_refs repo =
            Fmt.pr "%s %s (%a)@." hash gref Client.Build_status.pp status)
          refs
 
-let pp_job f { Client.variant; outcome } =
-  Fmt.pf f "%s (%a)" variant Client.State.pp outcome
+let pp_job f { Client.variant; outcome; queued_at; started_at; finished_at } =
+  Fmt.pf f "%s (%a) (Queued_at: %g) (Started_at: %g) (Finished_at: %g)"
+    variant Client.State.pp outcome (Option.value queued_at ~default:(-1.))
+    (Option.value started_at ~default:(-1.)) (Option.value finished_at ~default:(-1.))
 
 let list_variants commit =
   Client.Commit.jobs commit

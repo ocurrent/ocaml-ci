@@ -1,11 +1,24 @@
 module Index = Ocaml_ci.Index
 module Ref_map = Index.Ref_map
+module Run_time = Ocaml_ci.Run_time
+
 
 let jobs =
-  let state f (variant, state) =
-    Fmt.pf f "%s:%a" variant Index.pp_job_state state
+  let state f (variant, state, (ts : Run_time.timestamps option)) =
+    let ts' =
+    match ts with
+    | None -> ""
+    | Some ts -> Fmt.str "%a" Run_time.pp_timestamps ts
+    in
+    Fmt.pf f "%s:%a:%s" variant Index.pp_job_state state ts'
   in
-  Alcotest.testable (Fmt.Dump.list state) ( = )
+  let equal (v1, s1, ts1) (v2, s2, ts2) =
+    match ts1, ts2 with
+    | None, None -> v1=v2 && s1=s2
+    | None, Some _ | Some _, None -> false
+    | Some ts1, Some ts2 -> v1 = v2 && s1 = s2 && Run_time.timestamps_eq ts1 ts2
+  in
+  Alcotest.testable (Fmt.Dump.list state) (List.equal equal)
 
 let commits_jobs =
   let state f (variant, hash, job_id) =
@@ -44,9 +57,11 @@ let test_get_jobs () =
      finished, build) \n\
      VALUES ('test', x'00', 'job1', x'01', 1, x'02', '2019-11-01 09:00', \
      '2019-11-01 09:01', '2019-11-01 09:02', 0)";
-  Index.record ~repo ~hash ~status:`Pending ~gref:"master"
-    [ ("analysis", Some "job1"); ("alpine", None) ];
-  let expected = [ ("alpine", `Not_started); ("analysis", `Passed) ] in
+  Index.record ~repo ~hash ~status:`Pending ~gref:"master" [ ("analysis", Some "job1"); ("alpine", None) ];
+  let job_1_ts : Run_time.timestamps = Run_time.Finished { ready=1572598800.;
+                                                           started=Some 1572598860.;
+                                                           finished=1572598920. } in
+  let expected = [ ("alpine", `Not_started, None); ("analysis", `Passed, Some job_1_ts) ] in
   let result = Index.get_jobs ~owner ~name hash in
   Alcotest.(check jobs) "Jobs" expected result;
 
@@ -57,13 +72,16 @@ let test_get_jobs () =
      '2019-11-01 09:04', '2019-11-01 09:05', 0)";
   Index.record ~repo ~hash ~status:`Failed ~gref:"master"
     [ ("analysis", Some "job1"); ("alpine", Some "job2") ];
-  let expected = [ ("alpine", `Failed "!"); ("analysis", `Passed) ] in
+  let job_2_ts : Run_time.timestamps = Run_time.Finished { ready=1572598980.;
+                                                           started=Some 1572599040.;
+                                                           finished=1572599100. } in
+  let expected = [ ("alpine", `Failed "!", Some job_2_ts); ("analysis", `Passed, Some job_1_ts) ] in
   let result = Index.get_jobs ~owner ~name hash in
   Alcotest.(check jobs) "Jobs" expected result;
 
   Index.record ~repo ~hash ~status:`Passed ~gref:"master"
     [ ("analysis", Some "job1") ];
-  let expected = [ ("analysis", `Passed) ] in
+  let expected = [ ("analysis", `Passed, Some job_1_ts) ] in
   let result = Index.get_jobs ~owner ~name hash in
   Alcotest.(check jobs) "Jobs" expected result
 

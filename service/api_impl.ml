@@ -2,68 +2,94 @@ module Rpc = Current_rpc.Impl (Current)
 module Raw = Ocaml_ci_api.Raw
 module String_map = Map.Make (String)
 module Index = Ocaml_ci.Index
+module Run_time = Ocaml_ci.Run_time
+
 open Capnp_rpc_lwt
 
 let make_commit ~engine ~owner ~name hash =
   let module Commit = Raw.Service.Commit in
-  Commit.local
-  @@ object
-       inherit Commit.service
+  Commit.local @@ object
+    inherit Commit.service
 
-       method jobs_impl _params release_param_caps =
-         let open Commit.Jobs in
-         release_param_caps ();
-         let jobs = Index.get_jobs ~owner ~name hash in
-         let response, results = Service.Response.create Results.init_pointer in
-         let arr = Results.jobs_init results (List.length jobs) in
-         jobs
-         |> List.iteri (fun i (variant, outcome) ->
-                let slot = Capnp.Array.get arr i in
-                Raw.Builder.JobInfo.variant_set slot variant;
-                let state = Raw.Builder.JobInfo.state_init slot in
-                let module S = Raw.Builder.JobInfo.State in
-                match outcome with
-                | `Not_started -> S.not_started_set state
-                | `Passed -> S.passed_set state
-                | `Aborted -> S.aborted_set state
-                | `Active -> S.active_set state
-                | `Failed msg -> S.failed_set state msg);
-         Service.return response
+    method jobs_impl _params release_param_caps =
+      let open Commit.Jobs in
+      release_param_caps ();
+      let jobs = Index.get_jobs ~owner ~name hash in
+      let response, results = Service.Response.create Results.init_pointer in
+      let arr = Results.jobs_init results (List.length jobs) in
+      jobs |> List.iteri (fun i (variant, outcome, ts) ->
+          let slot = Capnp.Array.get arr i in
+          Raw.Builder.JobInfo.variant_set slot variant;
+          let queued_at, started_at, finished_at = match ts with
+          | None -> None, None, None
+          | Some Run_time.Queued v -> Some v, None, None
+          | Some Running v -> Some v.ready, Some v.started, None
+          | Some Finished v -> Some v.ready, v.started, Some v.finished
+          in
+          let queued_at_t = Raw.Builder.JobInfo.queued_at_init slot in
+          let module S = Raw.Builder.JobInfo.QueuedAt in
+          begin
+            match queued_at with
+            | None -> S.none_set queued_at_t
+            | Some v -> S.ts_set queued_at_t v
+          end;
+          let started_at_t = Raw.Builder.JobInfo.started_at_init slot in
+          let module S = Raw.Builder.JobInfo.StartedAt in
+          begin
+            match started_at with
+            | None -> S.none_set started_at_t
+            | Some v -> S.ts_set started_at_t v
+          end;
+          let finished_at_t = Raw.Builder.JobInfo.finished_at_init slot in
+          let module S = Raw.Builder.JobInfo.FinishedAt in
+          begin
+            match finished_at with
+            | None -> S.none_set finished_at_t
+            | Some v -> S.ts_set finished_at_t v
+          end;
+          let state = Raw.Builder.JobInfo.state_init slot in
+          let module S = Raw.Builder.JobInfo.State in
+          match outcome with
+          | `Not_started -> S.not_started_set state
+          | `Passed -> S.passed_set state
+          | `Aborted -> S.aborted_set state
+          | `Active -> S.active_set state
+          | `Failed msg -> S.failed_set state msg
+        );
+      Service.return response
 
-       method job_of_variant_impl params release_param_caps =
-         let open Commit.JobOfVariant in
-         let variant = Params.variant_get params in
-         release_param_caps ();
-         match Index.get_job ~owner ~name ~hash ~variant with
-         | Error `No_such_variant -> Service.fail "No such variant %S" variant
-         | Ok None -> Service.fail "No job for variant %S yet" variant
-         | Ok (Some id) ->
-             let job = Rpc.job ~engine id in
-             let response, results =
-               Service.Response.create Results.init_pointer
-             in
-             Results.job_set results (Some job);
-             Capability.dec_ref job;
-             Service.return response
+    method job_of_variant_impl params release_param_caps =
+      let open Commit.JobOfVariant in
+      let variant = Params.variant_get params in
+      release_param_caps ();
+      match Index.get_job ~owner ~name ~hash ~variant with
+      | Error `No_such_variant -> Service.fail "No such variant %S" variant
+      | Ok None -> Service.fail "No job for variant %S yet" variant
+      | Ok (Some id) ->
+        let job = Rpc.job ~engine id in
+        let response, results = Service.Response.create Results.init_pointer in
+        Results.job_set results (Some job);
+        Capability.dec_ref job;
+        Service.return response
 
-       method refs_impl _params release_param_caps =
-         let open Commit.Refs in
-         release_param_caps ();
-         let refs =
-           Index.get_active_refs { Ocaml_ci.Repo_id.owner; name }
-           |> Index.Ref_map.bindings
-           |> List.filter_map (fun (name, h) ->
-                  if h = hash then Some name else None)
-         in
-         let response, results = Service.Response.create Results.init_pointer in
-         Results.refs_set_list results refs |> ignore;
-         Service.return response
+    method refs_impl _params release_param_caps =
+      let open Commit.Refs in
+      release_param_caps ();
+      let refs =
+        Index.get_active_refs { Ocaml_ci.Repo_id.owner; name }
+        |> Index.Ref_map.bindings
+        |> List.filter_map (fun (name, h) -> if h = hash then Some name else None)
+      in
+      let response, results = Service.Response.create Results.init_pointer in
+      Results.refs_set_list results refs |> ignore;
+      Service.return response
 
-       method status_impl _params release_param_caps =
-         let open Commit.Status in
-         release_param_caps ();
-         let response, results = Service.Response.create Results.init_pointer in
-         (Index.get_status ~owner ~name ~hash |> function
+    method status_impl _params release_param_caps =
+      let open Commit.Status in
+      release_param_caps ();
+      let response, results = Service.Response.create Results.init_pointer in
+      Index.get_status ~owner ~name ~hash
+      |> (function
           | `Not_started -> Results.status_set results NotStarted
           | `Pending -> Results.status_set results Pending
           | `Failed -> Results.status_set results Failed
