@@ -2,13 +2,12 @@ let setup_logs default_level =
   Prometheus_unix.Logging.init ?default_level ();
   Dream.initialize_log ()
 
-let main interface port backend_cap gitlab_backend_cap prometheus_config log_level =
+let main interface port github_pipeline_cap gitlab_pipeline_cap prometheus_config log_level =
   let open Lwt.Infix in
   Lwt_main.run begin
     let () = setup_logs log_level in
-    (* TODO This uses mutable refs and won't work for 2 capnp connections. *)
-    Backend.Make.ci backend_cap >>= fun github ->
-    Backend.Make.ci gitlab_backend_cap >>= fun gitlab ->
+    Backend.connect github_pipeline_cap >>= fun github ->
+    Backend.connect gitlab_pipeline_cap >>= fun gitlab ->
     let web = Dream.serve ~interface ~port ~error_handler:(Dream.error_template View.Client_error.ocaml_ci_error_template)
     @@ Dream.logger
     @@ Dream.memory_sessions

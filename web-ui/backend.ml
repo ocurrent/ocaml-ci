@@ -7,6 +7,7 @@ let retry_delay =
 module Metrics = struct
   open Prometheus
 
+  (* This lines up with status.ci.ocamllabs.io dashboard for backend connection as ocaml-ci-web / connections *)
   let namespace = "ocamlci"
   let subsystem = "web"
 
@@ -21,6 +22,7 @@ type t = {
   mutable last_failed : float;
 }
 
+(* TODO How can we test the reconnect logic? *)
 let rec reconnect t =
   Prometheus.Gauge.set Metrics.backend_down 1.0;
   let now = Unix.gettimeofday () in
@@ -61,11 +63,9 @@ let make sr =
 
 let ci t = t.ci
 
-module Make = struct
-  let ci config_file =
-    let vat = Capnp_rpc_unix.client_only_vat () in
-    let backend_sr config_file =
-      Capnp_rpc_unix.Vat.import_exn vat config_file
-    in
-    ci @@ make @@ backend_sr config_file
-end
+let connect config_file =
+  let vat = Capnp_rpc_unix.client_only_vat () in
+  let backend_sr config_file =
+    Capnp_rpc_unix.Vat.import_exn vat config_file
+  in
+  ci @@ make @@ backend_sr config_file

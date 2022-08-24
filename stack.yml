@@ -44,11 +44,10 @@ services:
       - 'net.ipv4.tcp_keepalive_time=60'
 
   gitlab:
-    image: ocurrent/ocaml-ci-gitlab-service:live 
-    # image: ocaml-ci-gitlab-service 
+    image: ocurrent/ocaml-ci-gitlab-service:live
+    # image: ocaml-ci-gitlab-service
     # For local deploys using docker -c ci.ocamllabs.io build -t ocaml-ci-gitlab-service -f Dockerfile.gitlab .
     command: --gitlab-oauth /run/secrets/ocaml-ci-gitlab-oauth --gitlab-token-file /run/secrets/ocaml-ci-gitlab-token --gitlab-webhook-secret-file /run/secrets/ocaml-ci-gitlab-webhook-secret --submission-service /run/secrets/ocaml-ci-submission.cap --capnp-public-address=tcp:ci.ocamllabs.io:8202 --capnp-listen-address=tcp:0.0.0.0:9000 -v
-
     environment:
       - "CI_PROFILE=production"
       - "DOCKER_BUILDKIT=1"
@@ -69,8 +68,11 @@ services:
 
   web:
     image: ocurrent/ocaml-ci-web:live
-    command: --backend /capnp-secrets/ocaml-ci-admin.cap --listen-prometheus=9090
+    # image: ocaml-ci-web
+    # For local deploys using docker -c ci.ocamllabs.io build -t ocaml-ci-web -f Dockerfile.web .
+    command: --backend /capnp-secrets/ocaml-ci-admin.cap --gitlab-backend /gitlab-capnp-secrets/ocaml-ci-admin.cap --listen-prometheus=9090
     volumes:
       - 'capnp-secrets:/capnp-secrets:ro'
+      - 'gitlab-capnp-secrets:/gitlab-capnp-secrets:ro'
     sysctls:
       - 'net.ipv4.tcp_keepalive_time=60'

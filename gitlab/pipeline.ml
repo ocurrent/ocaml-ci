@@ -56,8 +56,6 @@ end
 let gitlab_installations = 
   gitlab_repos |> List.map (fun x -> { Installation.name = x.Gitlab.Repo_id.owner }) |> List.sort_uniq Installation.compare
 
-(* [{Installation.name = "tmcgilchrist"}; {Installation.name = "nomadic-labs"}] *)
-
 let set_active_installations (accounts : Installation.t list Current.t) =
   let+ accounts = accounts in
   accounts
