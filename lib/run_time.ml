@@ -42,6 +42,8 @@ let duration_pp ppf t =
     else (* if us > 0 then *)
       Fmt.pf ppf "%Ld.%03Ldus" us ns
 
+let cmp_floats v1 v2 = abs_float(v1 -. v2) < 0.0000001
+
 type timestamps =
   | Queued of float (* timestamp -- step is ready and queued *)
   | Running of { ready : float; started : float }
@@ -55,6 +57,19 @@ type run_time_info =
   | Running of { queued_for : float; ran_for : float }
   | Finished of { queued_for : float; ran_for : float option }
 [@@deriving show]
+
+let timestamps_eq st1 st2 =
+    match (st1, st2) with
+    | Queued v1, Queued v2 -> cmp_floats v1 v2
+    | Running v1, Running v2 -> cmp_floats v1.ready v2.ready && cmp_floats v1.started v2.started
+    | Finished {ready=ready1; started=None; finished=finished1}, Finished {ready=ready2; started=None; finished=finished2} ->
+        cmp_floats ready1 ready2 && cmp_floats finished1 finished2
+    | Finished {ready=ready1; started=Some started1; finished=finished1}, Finished {ready=ready2; started=Some started2; finished=finished2} ->
+        cmp_floats ready1 ready2 && cmp_floats started1 started2 && cmp_floats finished1 finished2
+    | Queued _, (Running _ | Finished _ ) -> false
+    | Running _, (Queued _ | Finished _) -> false
+    | Finished {started=None; _}, (Queued _ | Running _ | Finished {started=Some _; _}) -> false
+    | Finished {started=Some _; _}, (Queued _ | Running _ | Finished {started=None; _}) -> false
 
 let info_to_string = function
   | Cached -> " (cached)"
@@ -184,10 +199,11 @@ let merge' (st1 : timestamps option) (st2 : timestamps option) =
   | None, Some st2 -> Some st2
   | Some st1, Some st2 -> Some (merge st1 st2)
 
-let of_build ~owner ~name ~hash =
+let of_build build =
   (* TODO: The below is useful for print debugging - cleanup and remove once stable. *)
   (* let mtimestamps = Index.get_job_ids ~owner ~name ~hash |> List.map timestamps_of_job in *)
   (* List.iter (fun t -> Option.get(t) |> Fmt.str "%a" pp_timestamps |> print_string) mtimestamps; *)
-  Index.get_job_ids ~owner ~name ~hash
+  (* Index.get_job_ids ~owner ~name ~hash *)
+  build
   |> List.map timestamps_of_job
   |> List.fold_left merge' None

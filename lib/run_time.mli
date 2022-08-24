@@ -39,6 +39,9 @@ type run_time_info =
           - Finished - has a queued_for and an optional ran_for duration. The
             ran_for duration will be None when it did not run. *)
 
+val timestamps_eq : timestamps -> timestamps -> bool
+(** equality of timestamps - useful for tests *)
+
 val pp_timestamps : Format.formatter -> timestamps -> unit
 (** ppx_derived show formatter for timestamps *)
 
@@ -60,5 +63,5 @@ val merge : timestamps -> timestamps -> timestamps
 (** Merges two timestamps describe the timings of the 'build' that is
     represented by the two steps that correspond to the given timestamps. *)
 
-val of_build : owner:string -> name:string -> hash:string -> timestamps option
-(** Derives the timestamps of a build identified by (owner, name, hash) *)
+val of_build : string list -> timestamps option
+(** Derives the timestamps of a build specified by `[ job_id ]` *)
