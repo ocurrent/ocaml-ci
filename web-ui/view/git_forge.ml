@@ -62,3 +62,51 @@ module type View = sig
     string * int64 ->
     Dream.response Lwt.t
 end
+
+(* Common utility functions for Git_forge views. *)
+let short_hash = Astring.String.with_range ~len:6
+
+let rec intersperse ~sep = function
+  | [] -> []
+  | [ x ] -> [ x ]
+  | x :: xs -> x :: sep :: intersperse ~sep xs
+
+
+(* Common view partials for Git_forge views. *)
+open Tyxml.Html
+module StatusTree = Status_tree
+module Client = Ocaml_ci_api.Client
+
+let breadcrumbs steps page_title =
+  let add (prefix, results) (label, link) =
+    let prefix = Fmt.str "%s/%s" prefix link in
+    let link = li [ a ~a:[ a_href prefix ] [ txt label ] ] in
+    (prefix, link :: results)
+  in
+  let _, steps = List.fold_left add ("", []) steps in
+  let steps = li [ b [ txt page_title ] ] :: steps in
+  ol ~a:[ a_class [ "breadcrumbs" ] ] (List.rev steps)
+
+let statuses ss =
+  let rec render_status = function
+    | StatusTree.Leaf (s, elms) ->
+       let status_class_name =
+         match (s : Client.State.t) with
+         | NotStarted -> "not-started"
+         | Aborted -> "aborted"
+         | Failed m when Astring.String.is_prefix ~affix:"[SKIP]" m ->
+            "skipped"
+         | Failed _ -> "failed"
+         | Passed -> "passed"
+         | Active -> "active"
+         | Undefined _ -> "undefined"
+       in
+       li ~a:[ a_class [ status_class_name ] ] elms
+    | StatusTree.Branch (b, ss) ->
+       li
+         [ txt b; ul ~a:[ a_class [ "statuses" ] ] (List.map render_status ss);
+         ]
+  in
+  ul ~a:[ a_class [ "statuses" ] ] (List.map render_status ss)
+
+

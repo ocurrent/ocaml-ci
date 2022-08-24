@@ -1,1 +1,1 @@
-include Git_forge_s.View
+include Git_forge.View

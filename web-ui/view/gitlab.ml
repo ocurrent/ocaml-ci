@@ -4,13 +4,7 @@ module StatusTree = Status_tree
 module Build_status = Build_status
 
 open Tyxml.Html
-
-let short_hash = Astring.String.with_range ~len:6
-
-let rec intersperse ~sep = function
-  | [] -> []
-  | [ x ] -> [ x ]
-  | x :: xs -> x :: sep :: intersperse ~sep xs
+open Git_forge
 
 (* Paths for HTML links *)
 let prefix = "gitlab"
@@ -21,29 +15,18 @@ let job_url ~org ~repo ~hash variant = Fmt.str "/%s/%s/%s/commit/%s/variant/%s" 
 let gitlab_branch_url ~org ~repo ref = Fmt.str "https://gitlab.com/%s/%s/-/tree/%s" org repo ref
 let gitlab_mr_url ~org ~repo id = Fmt.str "https://gitlab.com/%s/%s/-/merge_requests/%s" org repo id
 
-let breadcrumbs steps page_title =
-  let add (prefix, results) (label, link) =
-    let prefix = Fmt.str "%s/%s" prefix link in
-    let link = li [ a ~a:[ a_href prefix ] [ txt label ] ] in
-    (prefix, link :: results)
-  in
-  let _, steps = List.fold_left add ("", []) steps in
-  let steps = li [ b [ txt page_title ] ] :: steps in
-  ol ~a:[ a_class [ "breadcrumbs" ] ] (List.rev steps)
-
 let format_org org =
   li [ a ~a:[ a_href (org_url org) ] [ txt org ] ]
 
 let format_repo ~org { Client.Org.name; master_status } =
-  li
-    ~a:[ a_class [ Build_status.class_name master_status ] ]
+  li ~a:[ a_class [ Build_status.class_name master_status ] ]
     [ a ~a:[ a_href (repo_url org name) ] [ txt name ] ]
 
 let orgs_v ~orgs =
-  [ breadcrumbs [] "gitlab"; ul (List.map format_org orgs) ]
+  [ breadcrumbs [] prefix; ul (List.map format_org orgs) ]
 
 let repos_v ~org ~repos =
-  [ breadcrumbs [ ("gitlab", "gitlab") ] org;
+  [ breadcrumbs [ (prefix, prefix) ] org;
     ul ~a:[ a_class [ "statuses" ] ] (List.map (format_repo ~org) repos);
   ]
 
@@ -53,28 +36,6 @@ let refs_v ~org ~repo ~refs =
     |> List.map @@ fun (branch, (commit, status)) ->
        li ~a:[ a_class [ Build_status.class_name status ] ]
          [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt branch ] ])
-
-let statuses ss =
-  let rec render_status = function
-    | StatusTree.Leaf (s, elms) ->
-       let status_class_name =
-         match (s : Client.State.t) with
-         | NotStarted -> "not-started"
-         | Aborted -> "aborted"
-         | Failed m when Astring.String.is_prefix ~affix:"[SKIP]" m ->
-            "skipped"
-         | Failed _ -> "failed"
-         | Passed -> "passed"
-         | Active -> "active"
-         | Undefined _ -> "undefined"
-       in
-       li ~a:[ a_class [ status_class_name ] ] elms
-    | StatusTree.Branch (b, ss) ->
-       li
-         [ txt b; ul ~a:[ a_class [ "statuses" ] ] (List.map render_status ss);
-         ]
-  in
-  ul ~a:[ a_class [ "statuses" ] ] (List.map render_status ss)
 
 let link_gitlab_refs ~org ~repo = function
   | [] -> txt "(not at the head of any monitored branch or merge request)"
@@ -130,7 +91,7 @@ let list_repos ~org ~repos = Template.instance @@ repos_v ~org ~repos
 
 let list_refs ~org ~repo ~refs =
   Template.instance
-    [ breadcrumbs [ ("gitlab", "gitlab"); (org, org) ] repo;
+    [ breadcrumbs [ (prefix, prefix); (org, org) ] repo;
       refs_v ~org ~repo ~refs;
     ]
 
@@ -222,7 +183,7 @@ let list_steps ~org ~repo ~refs ~hash ~jobs
   Template.instance ~flash_messages
     [
       breadcrumbs
-        [ ("gitlab", "gitlab"); (org, org); (repo, repo) ]
+        [ (prefix, prefix); (org, org); (repo, repo) ]
         (short_hash hash);
       link_gitlab_refs ~org ~repo refs;
       link_jobs ~org ~repo ~hash jobs;
@@ -252,10 +213,7 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
       Template.instance ~flash_messages
         [
           breadcrumbs
-            [
-              ("gitlab", "gitlab");
-              (org, org);
-              (repo, repo);
+            [ (prefix, prefix); (org, org); (repo, repo);
               (short_hash hash, "commit/" ^ hash);
             ]
             variant;
