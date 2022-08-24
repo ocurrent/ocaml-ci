@@ -1,2 +1,2 @@
-include Git_forge_s.Controller
+include Git_forge.Controller
 
