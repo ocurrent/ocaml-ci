@@ -1,6 +1,7 @@
 module type View = View.Git_forge.View
 
 module Client = Ocaml_ci_api.Client
+module Run_time = Client_utilities.Run_time
 
 module type Controller = sig
   val list_orgs : Backend.t -> Dream.response Lwt.t
@@ -97,9 +98,11 @@ module Make (View : View) = struct
     Client.Commit.refs commit >>!= fun refs ->
     let csrf_token = Dream.csrf_tag request in
     let flash_messages = Dream.flash_messages request in
+    let first_step_queued_at = Run_time.first_step_queued_at jobs in
+    let total_run_time = Run_time.total_of_run_times jobs in
     Dream.respond
     @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~csrf_token ~flash_messages
-         ()
+         ~first_step_queued_at ~total_run_time ()
 
   let show_step ~org ~repo ~hash ~variant request ci =
     Backend.ci ci >>= fun ci ->
@@ -120,8 +123,21 @@ module Make (View : View) = struct
     Capability.inc_ref job_cap;
     let csrf_token = Dream.csrf_tag request in
     let flash_messages = Dream.flash_messages request in
+    let build_created_at =
+      Option.join @@ Result.to_option @@ Run_time.build_created_at ~build:jobs
+    in
+    let step_info =
+      let filter (j : Client.job_info) = j.variant = variant in
+      List.find_opt filter jobs
+    in
+    (* TODO: Don't swallow the result here - log it at least *)
+    let timestamps =
+      Option.join
+      @@ Option.map Result.to_option
+      @@ Option.map Run_time.timestamps_from_job_info step_info
+    in
     View.show_step ~org ~repo ~refs ~hash ~jobs ~variant ~status ~csrf_token
-      ~flash_messages ~job:job_cap chunk
+      ~flash_messages ~timestamps ~build_created_at ~job:job_cap chunk
 
   let rebuild_step ~org ~repo ~hash ~variant request ci =
     Backend.ci ci >>= fun ci ->
@@ -172,9 +188,11 @@ module Make (View : View) = struct
     let fail_msg = View.cancel_fail_message failed in
     let return_link = View.return_link ~org ~repo ~hash in
     let csrf_token = Dream.csrf_tag request in
+    let first_step_queued_at = Run_time.first_step_queued_at jobs in
+    let total_run_time = Run_time.total_of_run_times jobs in
     Dream.respond
     @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~success_msg ~fail_msg
-         ~return_link ~csrf_token ()
+         ~return_link ~csrf_token ~first_step_queued_at ~total_run_time ()
 
   let rebuild_steps ~rebuild_failed_only ~org ~repo ~hash request ci =
     Backend.ci ci >>= fun ci ->
@@ -215,7 +233,9 @@ module Make (View : View) = struct
     let fail_msg = View.rebuild_fail_message failed in
     let return_link = View.return_link ~org ~repo ~hash in
     let csrf_token = Dream.csrf_tag request in
+    let first_step_queued_at = Run_time.first_step_queued_at jobs in
+    let total_run_time = Run_time.total_of_run_times jobs in
     Dream.respond
     @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~success_msg ~fail_msg
-         ~return_link ~csrf_token ()
+         ~return_link ~csrf_token ~first_step_queued_at ~total_run_time ()
 end

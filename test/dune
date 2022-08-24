@@ -5,6 +5,7 @@
   alcotest
   alcotest-lwt
   ppx_deriving_yojson.runtime
+  client-utilities
   logs.fmt)
  (preprocess
   (pps ppx_deriving.eq ppx_deriving_yojson)))

@@ -31,7 +31,13 @@ module Build_status = struct
     | Undefined x -> Fmt.pf f "unknown:%d" x
 end
 
-type job_info = { variant : variant; outcome : State.t }
+type job_info = {
+  variant : variant;
+  outcome : State.t;
+  queued_at : float option;
+  started_at : float option;
+  finished_at : float option;
+}
 
 module CI = struct
   type t = Raw.Client.CI.t Capability.t
@@ -120,7 +126,25 @@ module Commit = struct
               let variant = Raw.Reader.JobInfo.variant_get job in
               let state = Raw.Reader.JobInfo.state_get job in
               let outcome = Raw.Reader.JobInfo.State.get state in
-              { variant; outcome })
+              let queued_at = Raw.Reader.JobInfo.queued_at_get job in
+              let queued_at =
+                match Raw.Reader.JobInfo.QueuedAt.get queued_at with
+                | Raw.Reader.JobInfo.QueuedAt.None | Undefined _ -> None
+                | Raw.Reader.JobInfo.QueuedAt.Ts v -> Some v
+              in
+              let started_at = Raw.Reader.JobInfo.started_at_get job in
+              let started_at =
+                match Raw.Reader.JobInfo.StartedAt.get started_at with
+                | Raw.Reader.JobInfo.StartedAt.None | Undefined _ -> None
+                | Raw.Reader.JobInfo.StartedAt.Ts v -> Some v
+              in
+              let finished_at = Raw.Reader.JobInfo.finished_at_get job in
+              let finished_at =
+                match Raw.Reader.JobInfo.FinishedAt.get finished_at with
+                | Raw.Reader.JobInfo.FinishedAt.None | Undefined _ -> None
+                | Raw.Reader.JobInfo.FinishedAt.Ts v -> Some v
+              in
+              { variant; outcome; queued_at; started_at; finished_at })
 
   let refs t =
     let open Raw.Client.Commit.Refs in

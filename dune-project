@@ -118,5 +118,14 @@
   (logs (>= 0.7.0))
   (lwt (>= 5.6.1))
   ocaml-ci-api
+  client-utilities
   (prometheus-app (>= 1.2))
-  tyxml))
+  tyxml
+  (timedesc (>= 0.9.0))))
+(package
+(name client-utilities)
+(synopsis "Utilities for clients")
+(depends
+  (logs (>= 0.7.0))
+  current_rpc
+))

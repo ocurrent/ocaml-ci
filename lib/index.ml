@@ -220,11 +220,14 @@ let get_jobs ~owner ~name hash =
            if Current.Job.lookup_running job_id = None then `Aborted
            else `Active
          in
-         (variant, outcome)
-     | Sqlite3.Data.[ TEXT variant; TEXT _; INT ok; BLOB outcome ] ->
+         let ts = Run_time.timestamps_of_job job_id in
+         (variant, outcome, ts)
+     | Sqlite3.Data.[ TEXT variant; TEXT job_id; INT ok; BLOB outcome ] ->
          let outcome = if ok = 1L then `Passed else `Failed outcome in
-         (variant, outcome)
-     | Sqlite3.Data.[ TEXT variant; NULL; NULL; NULL ] -> (variant, `Not_started)
+         let ts = Run_time.timestamps_of_job job_id in
+         (variant, outcome, ts)
+     | Sqlite3.Data.[ TEXT variant; NULL; NULL; NULL ] ->
+         (variant, `Not_started, None)
      | row -> Fmt.failwith "get_jobs: invalid result: %a" Db.dump_row row
 
 let get_job ~owner ~name ~hash ~variant =

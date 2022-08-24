@@ -1,5 +1,6 @@
 module type View = sig
   module Client = Ocaml_ci_api.Client
+  module Run_time = Client_utilities.Run_time
   module Build_status = Build_status
 
   val prefix : string
@@ -35,6 +36,8 @@ module type View = sig
     refs:string list ->
     hash:string ->
     jobs:Client.job_info list ->
+    first_step_queued_at:float ->
+    total_run_time:float ->
     ?success_msg:
       ([< Html_types.div_content_fun > `Div `Ol `P `PCDATA `Ul ] as 'a)
       Tyxml_html.elt ->
@@ -55,6 +58,8 @@ module type View = sig
     job:Current_rpc.Job.t ->
     status:Current_rpc.Job.status ->
     csrf_token:string ->
+    timestamps:Run_time.timestamps option ->
+    build_created_at:float option ->
     ?flash_messages:(string * string) list ->
     string * int64 ->
     Dream.response Lwt.t
