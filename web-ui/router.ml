@@ -13,12 +13,18 @@ let create ~github ~gitlab =
       Dream.get "/css/ansi.css" (fun _ ->
           Dream.respond ~headers:[ ("content-type", "text/css") ] Ansi.css);
       Dream.get "/css/**" @@ Dream.static ~loader "/css";
-      ( Dream.get "/badge/:org/:repo/:branch" @@ fun request ->
+      Dream.get "/badge/:org/:repo/:branch" (fun request ->
         Controller.Badges.handle
           ~org:(Dream.param request "org")
           ~repo:(Dream.param request "repo")
           ~branch:(Dream.param request "branch")
-          github );
+          github);
+      Dream.get "/badge/gitlab/:org/:repo/:branch" (fun request ->
+          Controller.Badges.handle
+            ~org:(Dream.param request "org")
+            ~repo:(Dream.param request "repo")
+            ~branch:(Dream.param request "branch")
+            gitlab);
       Dream.get "/" (fun _ -> Dream.html @@ Controller.Index.render);
       Dream.get "/gitlab" (fun _ -> Controller.Gitlab.list_orgs gitlab);
       Dream.get "/gitlab/:org" (fun request ->
