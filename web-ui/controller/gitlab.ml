@@ -1,1 +1,1 @@
-include Git_forge.Make(View.Gitlab)
+include Git_forge.Make (View.Gitlab)

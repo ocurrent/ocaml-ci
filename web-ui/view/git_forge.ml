@@ -4,17 +4,15 @@ module type View = sig
 
   val prefix : string
 
-  val cancel_success_message : 
+  val cancel_success_message :
     Client.job_info list -> [> `Div | `Ul ] Tyxml_html.elt
 
-  val cancel_fail_message : 
-    int -> [> Html_types.div ] Tyxml_html.elt
+  val cancel_fail_message : int -> [> Html_types.div ] Tyxml_html.elt
 
-  val rebuild_success_message : 
+  val rebuild_success_message :
     Client.job_info list -> [> `Div | `Ul ] Tyxml_html.elt
 
-  val rebuild_fail_message : 
-    int -> [> Html_types.div ] Tyxml_html.elt
+  val rebuild_fail_message : int -> [> Html_types.div ] Tyxml_html.elt
 
   val return_link :
     org:string ->
@@ -23,7 +21,6 @@ module type View = sig
     [> [> Html_types.txt ] Html_types.a ] Tyxml_html.elt
 
   val list_orgs : orgs:string list -> string
-
   val list_repos : org:string -> repos:Client.Org.repo_info list -> string
 
   val list_refs :
@@ -71,7 +68,6 @@ let rec intersperse ~sep = function
   | [ x ] -> [ x ]
   | x :: xs -> x :: sep :: intersperse ~sep xs
 
-
 (* Common view partials for Git_forge views. *)
 open Tyxml.Html
 module StatusTree = Status_tree
@@ -90,23 +86,22 @@ let breadcrumbs steps page_title =
 let statuses ss =
   let rec render_status = function
     | StatusTree.Leaf (s, elms) ->
-       let status_class_name =
-         match (s : Client.State.t) with
-         | NotStarted -> "not-started"
-         | Aborted -> "aborted"
-         | Failed m when Astring.String.is_prefix ~affix:"[SKIP]" m ->
-            "skipped"
-         | Failed _ -> "failed"
-         | Passed -> "passed"
-         | Active -> "active"
-         | Undefined _ -> "undefined"
-       in
-       li ~a:[ a_class [ status_class_name ] ] elms
+        let status_class_name =
+          match (s : Client.State.t) with
+          | NotStarted -> "not-started"
+          | Aborted -> "aborted"
+          | Failed m when Astring.String.is_prefix ~affix:"[SKIP]" m ->
+              "skipped"
+          | Failed _ -> "failed"
+          | Passed -> "passed"
+          | Active -> "active"
+          | Undefined _ -> "undefined"
+        in
+        li ~a:[ a_class [ status_class_name ] ] elms
     | StatusTree.Branch (b, ss) ->
-       li
-         [ txt b; ul ~a:[ a_class [ "statuses" ] ] (List.map render_status ss);
-         ]
+        li
+          [
+            txt b; ul ~a:[ a_class [ "statuses" ] ] (List.map render_status ss);
+          ]
   in
   ul ~a:[ a_class [ "statuses" ] ] (List.map render_status ss)
-
-

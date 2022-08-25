@@ -65,7 +65,5 @@ let ci t = t.ci
 
 let connect config_file =
   let vat = Capnp_rpc_unix.client_only_vat () in
-  let backend_sr config_file =
-    Capnp_rpc_unix.Vat.import_exn vat config_file
-  in
+  let backend_sr config_file = Capnp_rpc_unix.Vat.import_exn vat config_file in
   ci @@ make @@ backend_sr config_file

@@ -1,6 +1,14 @@
 (library
  (public_name ocaml-ci-web.controller)
  (name controller)
- (libraries lwt ocaml-ci-api dream unix yojson ppx_deriving_yojson.runtime ocaml-ci-web.view)
+ (libraries
+  lwt
+  ocaml-ci-api
+  dream
+  unix
+  yojson
+  ppx_deriving_yojson.runtime
+  ocaml-ci-web.view)
  (modules git_forge badges github gitlab index)
- (preprocess (pps ppx_deriving_yojson)))
+ (preprocess
+  (pps ppx_deriving_yojson)))

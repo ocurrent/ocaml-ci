@@ -1,2 +1,1 @@
-include Git_forge.Make(View.Github)
-
+include Git_forge.Make (View.Github)
