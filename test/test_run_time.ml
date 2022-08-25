@@ -12,7 +12,9 @@ let database = Alcotest.(list string)
 let cmp_floats v1 v2 = abs_float (v1 -. v2) < 0.0000001
 
 let timestamps =
-  let state f (st: Run_time.timestamps) = Fmt.pf f "%a" Run_time.pp_timestamps st in
+  let state f (st : Run_time.timestamps) =
+    Fmt.pf f "%a" Run_time.pp_timestamps st
+  in
   Alcotest.testable (Fmt.Dump.list state) (List.equal Run_time.eq_timestamps)
 
 let run_time_info =
@@ -238,11 +240,16 @@ let test_timestamps_of_build () =
 
     Note: 2019-11-01 09:00:00 is 1572598800 milliseconds from epoch
   *)
-  let expected : Run_time.timestamps = Run_time.Finished { ready=1572598800.;
-                                                           started=Some 1572598860.;
-                                                           finished=1572599100. } in
+  let expected : Run_time.timestamps =
+    Run_time.Finished
+      {
+        ready = 1572598800.;
+        started = Some 1572598860.;
+        finished = 1572599100.;
+      }
+  in
   let result = Option.get @@ Run_time.of_build [ "job1"; "job2" ] in
-  Alcotest.(check timestamps) "timestamps_of_build" [expected] [result]
+  Alcotest.(check timestamps) "timestamps_of_build" [ expected ] [ result ]
 
 let test_timestamps_of_queued_build () =
   let db = setup () in
@@ -275,7 +282,7 @@ let test_timestamps_of_queued_build () =
   *)
   let expected : Run_time.timestamps = Run_time.Queued 1572598800. in
   let result = Option.get @@ Run_time.of_build [ "job1"; "job2" ] in
-  Alcotest.(check timestamps) "timestamps_of_build" [expected] [result]
+  Alcotest.(check timestamps) "timestamps_of_build" [ expected ] [ result ]
 
 let test_timestamps_of_three_steps_build () =
   let db = setup () in
@@ -315,12 +322,16 @@ let test_timestamps_of_three_steps_build () =
 
     Note: 2019-11-01 09:00:00 is 1572598800 milliseconds from epoch
   *)
-
-  let expected : Run_time.timestamps = Run_time.Finished {ready=1572598800.;
-                                                          started=Some 1572598860.;
-                                                          finished=1572599340.} in
+  let expected : Run_time.timestamps =
+    Run_time.Finished
+      {
+        ready = 1572598800.;
+        started = Some 1572598860.;
+        finished = 1572599340.;
+      }
+  in
   let result = Option.get @@ Run_time.of_build [ "job1"; "job2"; "job3" ] in
-  Alcotest.(check timestamps) "timestamps_of_build" [expected] [result]
+  Alcotest.(check timestamps) "timestamps_of_build" [ expected ] [ result ]
 
 let tests =
   [

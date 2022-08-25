@@ -24,11 +24,11 @@ val record :
 (** [record ~repo ~hash ~gref jobs] updates the entry for [repo, hash] to point
     at [jobs]. *)
 
-val get_jobs : owner:string -> name:string -> string -> (string * job_state * Run_time.timestamps option) list
-(** [get_jobs ~owner ~name commit] is the last known set of OCurrent jobs for hash [commit] in repository [owner/name]. *)
-
 val get_jobs :
-  owner:string -> name:string -> string -> (string * job_state) list
+  owner:string ->
+  name:string ->
+  string ->
+  (string * job_state * Run_time.timestamps option) list
 (** [get_jobs ~owner ~name commit] is the last known set of OCurrent jobs for
     hash [commit] in repository [owner/name]. *)
 
