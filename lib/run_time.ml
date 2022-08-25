@@ -58,7 +58,7 @@ type run_time_info =
   | Finished of { queued_for : float; ran_for : float option }
 [@@deriving show]
 
-let timestamps_eq st1 st2 =
+let eq_timestamps st1 st2 =
     match (st1, st2) with
     | Queued v1, Queued v2 -> cmp_floats v1 v2
     | Running v1, Running v2 -> cmp_floats v1.ready v2.ready && cmp_floats v1.started v2.started

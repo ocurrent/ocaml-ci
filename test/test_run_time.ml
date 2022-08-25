@@ -13,7 +13,7 @@ let cmp_floats v1 v2 = abs_float (v1 -. v2) < 0.0000001
 
 let timestamps =
   let state f (st: Run_time.timestamps) = Fmt.pf f "%a" Run_time.pp_timestamps st in
-  Alcotest.testable (Fmt.Dump.list state) (List.equal Run_time.timestamps_eq)
+  Alcotest.testable (Fmt.Dump.list state) (List.equal Run_time.eq_timestamps)
 
 let run_time_info =
   let state f (rt : Run_time.run_time_info) =

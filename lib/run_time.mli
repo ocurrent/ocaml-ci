@@ -39,7 +39,7 @@ type run_time_info =
           - Finished - has a queued_for and an optional ran_for duration. The
             ran_for duration will be None when it did not run. *)
 
-val timestamps_eq : timestamps -> timestamps -> bool
+val eq_timestamps : timestamps -> timestamps -> bool
 (** equality of timestamps - useful for tests *)
 
 val pp_timestamps : Format.formatter -> timestamps -> unit

@@ -16,7 +16,7 @@ let jobs =
     match ts1, ts2 with
     | None, None -> v1=v2 && s1=s2
     | None, Some _ | Some _, None -> false
-    | Some ts1, Some ts2 -> v1 = v2 && s1 = s2 && Run_time.timestamps_eq ts1 ts2
+    | Some ts1, Some ts2 -> v1 = v2 && s1 = s2 && Run_time.eq_timestamps ts1 ts2
   in
   Alcotest.testable (Fmt.Dump.list state) (List.equal equal)
 
