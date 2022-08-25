@@ -17,6 +17,7 @@ depends: [
   "ocaml-ci-api"
   "prometheus-app" {>= "1.2"}
   "tyxml"
+  "timedesc" {>= "0.9.0"}
   "odoc" {with-doc}
 ]
 build: [

@@ -100,4 +100,5 @@
   (lwt (>= 5.6.1))
   ocaml-ci-api
   (prometheus-app (>= 1.2))
-  tyxml))
+  tyxml
+  (timedesc (>= 0.9.0))))

@@ -175,6 +175,30 @@ let list_refs ~org ~repo ~refs =
       refs_v ~org ~repo ~refs;
     ]
 
+let show_timestamps step_info =
+  let to_iso8601 (tt : float) =
+    let ts = Timedesc.of_timestamp_float_s tt in
+    Timedesc.to_iso8601 @@ Option.get ts
+  in
+  match step_info with
+  | None -> div [ span [ txt @@ Fmt.str "-" ] ]
+  | Some step_info ->
+      let queued_at =
+        Option.fold ~none:"-" ~some:to_iso8601 step_info.Client.queued_at
+      in
+      let started_at =
+        Option.fold ~none:"-" ~some:to_iso8601 step_info.Client.started_at
+      in
+      let finished_at =
+        Option.fold ~none:"-" ~some:to_iso8601 step_info.Client.finished_at
+      in
+      ul
+        [
+          li [ txt @@ Fmt.str "Queued at: %s" queued_at ];
+          li [ txt @@ Fmt.str "Started at: %s" started_at ];
+          li [ txt @@ Fmt.str "Finished at: %s" finished_at ];
+        ]
+
 let cancel_success_message success =
   let format_job_info ji =
     li [ span [ txt @@ Fmt.str "Cancelling job: %s" ji.Client.variant ] ]
@@ -327,6 +351,9 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
         ]
       else []
     in
+    let step_info =
+      List.find_opt (fun (j : Client.job_info) -> j.variant = variant) jobs
+    in
     let body =
       Template.instance ~flash_messages
         [
@@ -340,6 +367,7 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
             variant;
           link_github_refs ~org ~repo refs;
           link_jobs ~org ~repo ~hash ~selected:variant jobs;
+          show_timestamps step_info;
           div buttons;
           pre [ txt "@@@" ];
         ]
