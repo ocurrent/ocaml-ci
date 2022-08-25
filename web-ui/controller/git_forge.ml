@@ -1,68 +1,77 @@
 module type View = View.Git_forge.View
 
 module Client = Ocaml_ci_api.Client
+
 module type Controller = sig
   val list_orgs : Client.CI.t -> Dream.response Lwt.t
-
   val list_repos : org:string -> Client.CI.t -> Dream.server Dream.message Lwt.t
 
-  val list_refs : org:string -> repo:string -> Client.CI.t -> Dream.server Dream.message Lwt.t
+  val list_refs :
+    org:string -> repo:string -> Client.CI.t -> Dream.server Dream.message Lwt.t
 
-  val list_steps : org:string ->
-                   repo:string ->
-                   hash:string ->
-                   Dream.request -> Client.CI.t -> Dream.response Lwt.t
+  val list_steps :
+    org:string ->
+    repo:string ->
+    hash:string ->
+    Dream.request ->
+    Client.CI.t ->
+    Dream.response Lwt.t
 
-  val show_step : org:string ->
-                  repo:string ->
-                  hash:string ->
-                  variant:string ->
-                  Dream.client Dream.message ->
-                  Client.CI.t ->
-                  Dream.server Dream.message Lwt.t
+  val show_step :
+    org:string ->
+    repo:string ->
+    hash:string ->
+    variant:string ->
+    Dream.client Dream.message ->
+    Client.CI.t ->
+    Dream.server Dream.message Lwt.t
 
-  val rebuild_step : org:string ->
-                     repo:string ->
-                     hash:string ->
-                     variant:string ->
-                     Dream.client Dream.message ->
-                     Client.CI.t ->
-                     Dream.server Dream.message Lwt.t
+  val rebuild_step :
+    org:string ->
+    repo:string ->
+    hash:string ->
+    variant:string ->
+    Dream.client Dream.message ->
+    Client.CI.t ->
+    Dream.server Dream.message Lwt.t
 
-  val cancel_steps : org:string ->
-                     repo:string ->
-                     hash:string ->
-                     Dream.request -> Client.CI.t -> Dream.response Lwt.t
+  val cancel_steps :
+    org:string ->
+    repo:string ->
+    hash:string ->
+    Dream.request ->
+    Client.CI.t ->
+    Dream.response Lwt.t
 
-  val rebuild_steps : rebuild_failed_only:bool ->
-                      org:string ->
-                      repo:string ->
-                      hash:string ->
-                      Dream.client Dream.message ->
-                      Client.CI.t ->
-                      Dream.server Dream.message Lwt.t
+  val rebuild_steps :
+    rebuild_failed_only:bool ->
+    org:string ->
+    repo:string ->
+    hash:string ->
+    Dream.client Dream.message ->
+    Client.CI.t ->
+    Dream.server Dream.message Lwt.t
 end
 
 (* Abstract controller for any Git_forge that implements `Ocaml_ci_api.Client` API *)
-module Make (View: View) = struct 
+module Make (View : View) = struct
   open Lwt.Infix
-
   module Client = Ocaml_ci_api.Client
   module Capability = Capnp_rpc_lwt.Capability
 
   let ( >>!= ) x f =
     x >>= function
     | Error (`Capnp ex) ->
-       Dream.log "Internal server error: %s" (Fmt.to_to_string Capnp_rpc.Error.pp ex);
-       Dream.empty `Internal_Server_Error
+        Dream.log "Internal server error: %s"
+          (Fmt.to_to_string Capnp_rpc.Error.pp ex);
+        Dream.empty `Internal_Server_Error
     | Ok y -> f y
 
   let job_url ~org ~repo ~hash variant =
     Fmt.str "/%s/%s/%s/commit/%s/variant/%s" View.prefix org repo hash variant
 
   let list_orgs ci =
-    Client.CI.orgs ci >>!= fun orgs ->
-   Dream.respond @@ View.list_orgs ~orgs
+    Client.CI.orgs ci >>!= fun orgs -> Dream.respond @@ View.list_orgs ~orgs
 
   let list_repos ~org ci =
     Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
@@ -85,8 +94,8 @@ module Make (View: View) = struct
     let csrf_token = Dream.csrf_tag request in
     let flash_messages = Dream.flash_messages request in
     Dream.respond
-    @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~csrf_token
-         ~flash_messages ()
+    @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~csrf_token ~flash_messages
+         ()
 
   let show_step ~org ~repo ~hash ~variant request ci =
     Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
@@ -106,8 +115,8 @@ module Make (View: View) = struct
     Capability.inc_ref job_cap;
     let csrf_token = Dream.csrf_tag request in
     let flash_messages = Dream.flash_messages request in
-    View.show_step ~org ~repo ~refs ~hash ~jobs ~variant ~status
-      ~csrf_token ~flash_messages ~job:job_cap chunk
+    View.show_step ~org ~repo ~refs ~hash ~jobs ~variant ~status ~csrf_token
+      ~flash_messages ~job:job_cap chunk
 
   let rebuild_step ~org ~repo ~hash ~variant request ci =
     Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
@@ -127,23 +136,24 @@ module Make (View: View) = struct
         Dream.empty `Internal_Server_Error
 
   let cancel_steps ~org ~repo ~hash request ci =
-    let cancel_many (commit : Client.Commit.t) (job_infos : Client.job_info list) =
-     let init = ([], 0) in
-       let f (success, failed) (job_info : Client.job_info) =
-              match job_info.outcome with
-              | Aborted | Failed _ | Passed | Undefined _ ->
-                  Lwt.return (success, failed)
-              | Active | NotStarted -> (
-                  let variant = job_info.Client.variant in
-                  let job = Client.Commit.job_of_variant commit variant in
-                  Current_rpc.Job.cancel job >|= function
-                  | Ok () -> (job_info :: success, failed)
-                  | Error (`Capnp ex) ->
-                      Dream.log "Error cancelling job: %a" Capnp_rpc.Error.pp ex;
-                      (success, succ failed))
+    let cancel_many (commit : Client.Commit.t)
+        (job_infos : Client.job_info list) =
+      let init = ([], 0) in
+      let f (success, failed) (job_info : Client.job_info) =
+        match job_info.outcome with
+        | Aborted | Failed _ | Passed | Undefined _ ->
+            Lwt.return (success, failed)
+        | Active | NotStarted -> (
+            let variant = job_info.Client.variant in
+            let job = Client.Commit.job_of_variant commit variant in
+            Current_rpc.Job.cancel job >|= function
+            | Ok () -> (job_info :: success, failed)
+            | Error (`Capnp ex) ->
+                Dream.log "Error cancelling job: %a" Capnp_rpc.Error.pp ex;
+                (success, succ failed))
       in
       Lwt_list.fold_left_s f init job_infos
-      in
+    in
     Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
     Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
     Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash)
@@ -163,7 +173,8 @@ module Make (View: View) = struct
     let rebuild_many commit job_infos =
       let go job_info commit success failed =
         let variant = job_info.Client.variant in
-        if variant = "(analysis)" then (* Do not rebuild analysis -- this triggers other jobs *)
+        if variant = "(analysis)" then
+          (* Do not rebuild analysis -- this triggers other jobs *)
           Lwt.return (success, failed)
         else
           let job = Client.Commit.job_of_variant commit variant in
@@ -179,7 +190,8 @@ module Make (View: View) = struct
         if rebuild_failed_only then
           match job_info.outcome with
           | Active | NotStarted | Passed -> Lwt.return (success, failed)
-          | Aborted | Failed _ | Undefined _ -> go job_info commit success failed
+          | Aborted | Failed _ | Undefined _ ->
+              go job_info commit success failed
         else go job_info commit success failed
       in
       Lwt_list.fold_left_s f init job_infos
@@ -198,5 +210,4 @@ module Make (View: View) = struct
     Dream.respond
     @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~success_msg ~fail_msg
          ~return_link ~csrf_token ()
-
 end
