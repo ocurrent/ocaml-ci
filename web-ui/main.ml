@@ -1,14 +1,15 @@
+module Backend = Controller.Backend
+
 let setup_logs default_level =
   Prometheus_unix.Logging.init ?default_level ();
   Dream.initialize_log ()
 
 let main interface port github_pipeline_cap gitlab_pipeline_cap
     prometheus_config log_level =
-  let open Lwt.Infix in
   Lwt_main.run
     (let () = setup_logs log_level in
-     Backend.connect github_pipeline_cap >>= fun github ->
-     Backend.connect gitlab_pipeline_cap >>= fun gitlab ->
+     let github = Backend.make github_pipeline_cap in
+     let gitlab = Backend.make gitlab_pipeline_cap in
      let web =
        Dream.serve ~interface ~port
          ~error_handler:

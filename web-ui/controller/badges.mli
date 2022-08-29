@@ -39,5 +39,5 @@ val handle :
   org:string ->
   repo:string ->
   branch:string ->
-  Client.CI.t ->
+  Backend.t ->
   Dream.response Lwt.t
