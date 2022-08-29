@@ -70,7 +70,7 @@ services:
     image: ocurrent/ocaml-ci-web:live
     # image: ocaml-ci-web
     # For local deploys using docker -c ci.ocamllabs.io build -t ocaml-ci-web -f Dockerfile.web .
-    command: --backend /capnp-secrets/ocaml-ci-admin.cap --gitlab-backend /gitlab-capnp-secrets/ocaml-ci-admin.cap --listen-prometheus=9090
+    command: --backend /capnp-secrets/ocaml-ci-admin.cap --gitlab-backend /gitlab-capnp-secrets/ocaml-ci-gitlab-admin.cap --listen-prometheus=9090
     volumes:
       - 'capnp-secrets:/capnp-secrets:ro'
       - 'gitlab-capnp-secrets:/gitlab-capnp-secrets:ro'

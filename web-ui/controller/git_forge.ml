@@ -3,18 +3,18 @@ module type View = View.Git_forge.View
 module Client = Ocaml_ci_api.Client
 
 module type Controller = sig
-  val list_orgs : Client.CI.t -> Dream.response Lwt.t
-  val list_repos : org:string -> Client.CI.t -> Dream.server Dream.message Lwt.t
+  val list_orgs : Backend.t -> Dream.response Lwt.t
+  val list_repos : org:string -> Backend.t -> Dream.server Dream.message Lwt.t
 
   val list_refs :
-    org:string -> repo:string -> Client.CI.t -> Dream.server Dream.message Lwt.t
+    org:string -> repo:string -> Backend.t -> Dream.server Dream.message Lwt.t
 
   val list_steps :
     org:string ->
     repo:string ->
     hash:string ->
     Dream.request ->
-    Client.CI.t ->
+    Backend.t ->
     Dream.response Lwt.t
 
   val show_step :
@@ -23,7 +23,7 @@ module type Controller = sig
     hash:string ->
     variant:string ->
     Dream.client Dream.message ->
-    Client.CI.t ->
+    Backend.t ->
     Dream.server Dream.message Lwt.t
 
   val rebuild_step :
@@ -32,7 +32,7 @@ module type Controller = sig
     hash:string ->
     variant:string ->
     Dream.client Dream.message ->
-    Client.CI.t ->
+    Backend.t ->
     Dream.server Dream.message Lwt.t
 
   val cancel_steps :
@@ -40,7 +40,7 @@ module type Controller = sig
     repo:string ->
     hash:string ->
     Dream.request ->
-    Client.CI.t ->
+    Backend.t ->
     Dream.response Lwt.t
 
   val rebuild_steps :
@@ -49,7 +49,7 @@ module type Controller = sig
     repo:string ->
     hash:string ->
     Dream.client Dream.message ->
-    Client.CI.t ->
+    Backend.t ->
     Dream.server Dream.message Lwt.t
 end
 
@@ -71,20 +71,24 @@ module Make (View : View) = struct
     Fmt.str "/%s/%s/%s/commit/%s/variant/%s" View.prefix org repo hash variant
 
   let list_orgs ci =
-    Client.CI.orgs ci >>!= fun orgs -> Dream.respond @@ View.list_orgs ~orgs
+    Backend.ci ci >>= Client.CI.orgs >>!= fun orgs ->
+    Dream.respond @@ View.list_orgs ~orgs
 
   let list_repos ~org ci =
+    Backend.ci ci >>= fun ci ->
     Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
     Client.Org.repos org_cap >>!= fun repos ->
     Dream.respond @@ View.list_repos ~org ~repos
 
   let list_refs ~org ~repo ci =
+    Backend.ci ci >>= fun ci ->
     Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
     Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
     Client.Repo.refs repo_cap >>!= fun refs ->
     Dream.respond @@ View.list_refs ~org ~repo ~refs
 
   let list_steps ~org ~repo ~hash request ci =
+    Backend.ci ci >>= fun ci ->
     Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
     Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
     Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash)
@@ -98,6 +102,7 @@ module Make (View : View) = struct
          ()
 
   let show_step ~org ~repo ~hash ~variant request ci =
+    Backend.ci ci >>= fun ci ->
     Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
     Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
     Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash)
@@ -119,6 +124,7 @@ module Make (View : View) = struct
       ~flash_messages ~job:job_cap chunk
 
   let rebuild_step ~org ~repo ~hash ~variant request ci =
+    Backend.ci ci >>= fun ci ->
     Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
     Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
     Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash)
@@ -136,6 +142,7 @@ module Make (View : View) = struct
         Dream.empty `Internal_Server_Error
 
   let cancel_steps ~org ~repo ~hash request ci =
+    Backend.ci ci >>= fun ci ->
     let cancel_many (commit : Client.Commit.t)
         (job_infos : Client.job_info list) =
       let init = ([], 0) in
@@ -170,6 +177,7 @@ module Make (View : View) = struct
          ~return_link ~csrf_token ()
 
   let rebuild_steps ~rebuild_failed_only ~org ~repo ~hash request ci =
+    Backend.ci ci >>= fun ci ->
     let rebuild_many commit job_infos =
       let go job_info commit success failed =
         let variant = job_info.Client.variant in

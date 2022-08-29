@@ -8,7 +8,8 @@
   unix
   yojson
   ppx_deriving_yojson.runtime
+  prometheus-app
+  capnp-rpc-unix
   ocaml-ci-web.view)
- (modules git_forge badges github gitlab index)
  (preprocess
   (pps ppx_deriving_yojson)))

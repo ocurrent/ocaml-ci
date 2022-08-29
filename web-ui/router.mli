@@ -1,4 +1,2 @@
 val create :
-  github:Ocaml_ci_api.Client.CI.t ->
-  gitlab:Ocaml_ci_api.Client.CI.t ->
-  Dream.handler
+  github:Controller.Backend.t -> gitlab:Controller.Backend.t -> Dream.handler

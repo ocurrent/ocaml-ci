@@ -81,7 +81,8 @@ let run_capnp capnp_public_address capnp_listen_address =
       let service_id = Capnp_rpc_unix.Vat_config.derived_id config "ci" in
       let restore = Capnp_rpc_net.Restorer.single service_id rpc_engine in
       Capnp_rpc_unix.serve config ~restore >>= fun vat ->
-      Capnp_rpc_unix.Cap_file.save_service vat service_id Conf.Capnp.cap_file
+      Capnp_rpc_unix.Cap_file.save_service vat service_id
+        (Conf.Capnp.cap_secrets ^ "/ocaml-ci-gitlab-admin.cap")
       |> or_die;
       Logs.app (fun f ->
           f "Wrote capability reference to %S" Conf.Capnp.cap_file);

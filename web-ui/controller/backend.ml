@@ -54,7 +54,9 @@ and monitor t =
       Dream.log "Failed to connect to backend: %a" Fmt.exn ex;
       reconnect t)
 
-let make sr =
+let make config_file =
+  let vat = Capnp_rpc_unix.client_only_vat () in
+  let sr = Capnp_rpc_unix.Vat.import_exn vat config_file in
   let ci = Sturdy_ref.connect_exn sr in
   let t = { sr; ci; last_failed = 0.0 } in
   Prometheus.Gauge.set Metrics.backend_down 1.0;
@@ -62,8 +64,3 @@ let make sr =
   t
 
 let ci t = t.ci
-
-let connect config_file =
-  let vat = Capnp_rpc_unix.client_only_vat () in
-  let backend_sr config_file = Capnp_rpc_unix.Vat.import_exn vat config_file in
-  ci @@ make @@ backend_sr config_file

@@ -59,6 +59,7 @@ let ( let*! ) x f =
   | Ok y -> f y
 
 let handle ~org ~repo ~branch ci =
+  Backend.ci ci >>= fun ci ->
   let ref_name = Fmt.str "refs/heads/%s" branch in
   Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
   Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
