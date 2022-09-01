@@ -66,7 +66,8 @@ val timestamps_from_job_info :
   Ocaml_ci_api.Client.job_info -> (timestamps, string) result
 (** Derives timestamps from an instance of job_info *)
 
-val first_step_queued_at : Ocaml_ci_api.Client.job_info list -> float
+val first_step_queued_at :
+  Ocaml_ci_api.Client.job_info list -> (float, string) result
 (** Derives timestamps from a list of job_info *)
 
 val build_created_at :
@@ -75,4 +76,9 @@ val build_created_at :
     the queued_at timestamp of the analysis step or None if there is not exactly
     one analysis step in the list. *)
 
+val total_time : run_time_info -> float
+(** The total time taken -- the sum of the queued and running times *)
+
 val total_of_run_times : Ocaml_ci_api.Client.job_info list -> float
+(** Takes a list of job_info which is meant to be the steps in a build. Returns
+    total of run times of the steps in the build.*)

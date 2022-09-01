@@ -47,7 +47,7 @@ let duration_pp ppf t =
 let cmp_floats v1 v2 = abs_float (v1 -. v2) < 0.0000001
 
 type timestamps =
-  | Queued of float (* timestamp -- step is ready and queued *)
+  | Queued of float
   | Running of { queued_at : float; started_at : float }
   | Finished of {
       queued_at : float;
@@ -59,7 +59,7 @@ type timestamps =
 type run_time_info =
   | Cached
     (* This indicates that the job never ran because cached results were used *)
-  | Queued_for of float (* elapsed time in milliseconds *)
+  | Queued_for of float (* elapsed time in seconds *)
   | Running of { queued_for : float; ran_for : float }
   | Finished of { queued_for : float; ran_for : float option }
 [@@deriving show]
@@ -184,7 +184,7 @@ let build_created_at ~build =
   | [ h ] -> Ok h.queued_at
   | _ :: _ -> Error "Multiple analysis steps found"
 
-let total_run_time = function
+let total_time = function
   | Cached -> 0.
   | Queued_for v -> v
   | Running v -> v.queued_for +. v.ran_for
@@ -198,10 +198,12 @@ let total_of_run_times (build : Client.job_info list) =
   build
   |> List.filter_map (fun ji -> Result.to_option @@ timestamps_from_job_info ji)
   |> List.map (run_times_from_timestamps ~build_created_at)
-  |> List.fold_left (fun subtotal rt -> subtotal +. total_run_time rt) 0.
+  |> List.fold_left (fun subtotal rt -> subtotal +. total_time rt) 0.
 
-let first_step_queued_at (jil : Client.job_info list) : float =
-  let minn accum (ji : Client.job_info) =
-    Option.fold ~none:accum ~some:(fun v -> min accum v) ji.queued_at
-  in
-  List.fold_left minn max_float jil
+let first_step_queued_at (jil : Client.job_info list) =
+  if jil = [] then Error "Empty build"
+  else
+    let minn accum (ji : Client.job_info) =
+      Option.fold ~none:accum ~some:(fun v -> min accum v) ji.queued_at
+    in
+    Ok (List.fold_left minn max_float jil)

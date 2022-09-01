@@ -72,7 +72,7 @@ let test_info_from_timestamps_cached () =
   let st : Run_time.timestamps =
     Finished { queued_at = 42.; started_at = Some 60.; finished_at = 82. }
   in
-  let expected = Run_time.Cached (* finished < build_created_at *) in
+  let expected = Run_time.Cached (* because finished < build_created_at *) in
   let result =
     Run_time.run_times_from_timestamps ~build_created_at ~current_time st
   in
@@ -192,6 +192,254 @@ let test_timestamps_from_job_info_finished_with_errors =
   in
   List.iter test [ Failed ""; Aborted ]
 
+let test_queued_for_cached =
+  let rt : Run_time.run_time_info = Cached in
+  let expected = 0. in
+  let result = Run_time.queued_for rt in
+  Alcotest.(check (float 0.001)) "queued_for Cached" expected result
+
+let test_queued_for_queued =
+  let rt : Run_time.run_time_info = Queued_for 42.2 in
+  let expected = 42.2 in
+  let result = Run_time.queued_for rt in
+  Alcotest.(check (float 0.001)) "queued_for Queued" expected result
+
+let test_queued_for_running =
+  let rt : Run_time.run_time_info =
+    Running { queued_for = 42.2; ran_for = 24.4 }
+  in
+  let expected = 42.2 in
+  let result = Run_time.queued_for rt in
+  Alcotest.(check (float 0.001)) "queued_for Running" expected result
+
+let test_queued_for_finished =
+  let rt : Run_time.run_time_info =
+    Finished { queued_for = 42.2; ran_for = Some 24.4 }
+  in
+  let rt' : Run_time.run_time_info =
+    Finished { queued_for = 42.2; ran_for = None }
+  in
+  let expected = 42.2 in
+  let result = Run_time.queued_for rt in
+  let result' = Run_time.queued_for rt' in
+  Alcotest.(check (float 0.001)) "queued_for Finished" expected result;
+  Alcotest.(check (float 0.001)) "queued_for Finished" expected result'
+
+let test_ran_for_cached =
+  let rt : Run_time.run_time_info = Cached in
+  let expected = 0. in
+  let result = Run_time.queued_for rt in
+  Alcotest.(check (float 0.001)) "ran_for Cached" expected result
+
+let test_ran_for_queued =
+  let rt : Run_time.run_time_info = Queued_for 42.2 in
+  let expected = 0. in
+  let result = Run_time.ran_for rt in
+  Alcotest.(check (float 0.001)) "ran_for Queued" expected result
+
+let test_ran_for_running =
+  let rt : Run_time.run_time_info =
+    Running { queued_for = 42.2; ran_for = 24.4 }
+  in
+  let expected = 24.4 in
+  let result = Run_time.ran_for rt in
+  Alcotest.(check (float 0.001)) "ran_for Running" expected result
+
+let test_ran_for_finished =
+  let rt : Run_time.run_time_info =
+    Finished { queued_for = 42.2; ran_for = Some 24.4 }
+  in
+  let rt' : Run_time.run_time_info =
+    Finished { queued_for = 42.2; ran_for = None }
+  in
+  let expected = 24.4 in
+  let result = Run_time.ran_for rt in
+  Alcotest.(check (float 0.001)) "ran_for Finished" expected result;
+  let expected' = 0. in
+  let result' = Run_time.ran_for rt' in
+  Alcotest.(check (float 0.001)) "ran_for Finished" expected' result'
+
+let test_total_time_cached =
+  let rt : Run_time.run_time_info = Cached in
+  let expected = 0. in
+  let result = Run_time.queued_for rt in
+  Alcotest.(check (float 0.001)) "total_time Cached" expected result
+
+let test_total_time_queued =
+  let rt : Run_time.run_time_info = Queued_for 42.2 in
+  let expected = 42.2 in
+  let result = Run_time.total_time rt in
+  Alcotest.(check (float 0.001)) "total_time Queued" expected result
+
+let test_total_time_running =
+  let rt : Run_time.run_time_info =
+    Running { queued_for = 42.2; ran_for = 24.4 }
+  in
+  let expected = 66.6 in
+  let result = Run_time.total_time rt in
+  Alcotest.(check (float 0.001)) "ran_for Running" expected result
+
+let test_total_time_finished =
+  let rt : Run_time.run_time_info =
+    Finished { queued_for = 42.2; ran_for = Some 24.4 }
+  in
+  let rt' : Run_time.run_time_info =
+    Finished { queued_for = 42.2; ran_for = None }
+  in
+  let expected = 66.6 in
+  let result = Run_time.total_time rt in
+  Alcotest.(check (float 0.001)) "ran_for Finished" expected result;
+  let expected' = 42.2 in
+  let result' = Run_time.total_time rt' in
+  Alcotest.(check (float 0.001)) "ran_for Finished" expected' result'
+
+let test_build_created_at_empty =
+  let expected = Error "No analysis step found" in
+  let result = Run_time.build_created_at ~build:[] in
+  Alcotest.(check (Alcotest.result (option (float 0.001)) string))
+    "build_created_for empty" expected result
+
+let test_build_created_at_happy_path =
+  let analysis_step : Client.job_info =
+    {
+      variant = "(analysis)";
+      outcome = Passed;
+      queued_at = Some 1234567.;
+      started_at = Some 1234570.;
+      finished_at = Some 1234575.;
+    }
+  in
+  let lint_step : Client.job_info =
+    {
+      variant = "(lint-fmt)";
+      outcome = Passed;
+      queued_at = Some 1234576.;
+      started_at = Some 1234579.;
+      finished_at = Some 1234585.;
+    }
+  in
+  let build_step : Client.job_info =
+    {
+      variant = "foo-11-4.14";
+      outcome = Active;
+      queued_at = Some 1234576.;
+      started_at = Some 1234579.;
+      finished_at = None;
+    }
+  in
+  let build = [ analysis_step; lint_step; build_step ] in
+  let expected = Ok (Some 1234567.) in
+  let result = Run_time.build_created_at ~build in
+  Alcotest.(check (Alcotest.result (option (float 0.001)) string))
+    "build_created_for happy" expected result
+
+let test_build_created_at_mangled =
+  let analysis_step : Client.job_info =
+    {
+      variant = "(analysis)";
+      outcome = Passed;
+      queued_at = Some 1234567.;
+      started_at = Some 1234570.;
+      finished_at = Some 1234575.;
+    }
+  in
+  let analysis_step_2 : Client.job_info =
+    {
+      variant = "(analysis)";
+      outcome = Passed;
+      queued_at = Some 1234576.;
+      started_at = Some 1234579.;
+      finished_at = Some 1234585.;
+    }
+  in
+  let build_step : Client.job_info =
+    {
+      variant = "foo-11-4.14";
+      outcome = Active;
+      queued_at = Some 1234576.;
+      started_at = Some 1234579.;
+      finished_at = None;
+    }
+  in
+  let build = [ analysis_step; analysis_step_2; build_step ] in
+  let expected = Error "Multiple analysis steps found" in
+  let result = Run_time.build_created_at ~build in
+  Alcotest.(check (Alcotest.result (option (float 0.001)) string))
+    "build_created_for multiple" expected result
+
+let test_total_of_run_times =
+  let analysis_step : Client.job_info =
+    {
+      variant = "(analysis)";
+      outcome = Passed;
+      queued_at = Some 1234567.;
+      started_at = Some 1234570.;
+      finished_at = Some 1234575.;
+    }
+  in
+  let lint_step : Client.job_info =
+    {
+      variant = "(lint-fmt)";
+      outcome = Passed;
+      queued_at = Some 1234576.;
+      started_at = Some 1234579.;
+      finished_at = Some 1234585.;
+    }
+  in
+  let build_step : Client.job_info =
+    {
+      variant = "foo-11-4.14";
+      outcome = Passed;
+      queued_at = Some 1234576.;
+      started_at = Some 1234579.;
+      finished_at = Some 1234590.;
+    }
+  in
+  let build = [ analysis_step; lint_step; build_step ] in
+  let expected = 3. +. 5. +. 3. +. 6. +. 3. +. 11. in
+  let result = Run_time.total_of_run_times build in
+  Alcotest.(check (float 0.001)) "total_of_run_times" expected result
+
+let test_first_step_queued_at =
+  let step_1 : Client.job_info =
+    {
+      variant = "variant";
+      outcome = Passed;
+      queued_at = Some 1234567.;
+      started_at = Some 1234570.;
+      finished_at = Some 1234575.;
+    }
+  in
+  let step_2 : Client.job_info =
+    {
+      variant = "variant";
+      outcome = Passed;
+      queued_at = Some 1234576.;
+      started_at = Some 1234579.;
+      finished_at = Some 1234585.;
+    }
+  in
+  let step_3 : Client.job_info =
+    {
+      variant = "variant-11-4.14";
+      outcome = Passed;
+      queued_at = Some 1234576.;
+      started_at = Some 1234579.;
+      finished_at = Some 1234590.;
+    }
+  in
+  let empty = [] in
+  let expected = Error "Empty build" in
+  let result = Run_time.first_step_queued_at empty in
+  Alcotest.(check (result (float 0.001) string))
+    "first_step_queued_at Empty" expected result;
+
+  let build = [ step_1; step_2; step_3 ] in
+  let expected = Ok 1234567. in
+  let result = Run_time.first_step_queued_at build in
+  Alcotest.(check (result (float 0.001) string))
+    "first_step_queued_at not-empty" expected result
+
 let tests =
   [
     Alcotest_lwt.test_case_sync "info_from_timestamps_queued" `Quick
@@ -212,4 +460,38 @@ let tests =
       (fun () -> test_timestamps_from_job_info_finished);
     Alcotest_lwt.test_case_sync "timestamps_from_job_info_finished_error" `Quick
       (fun () -> test_timestamps_from_job_info_finished_with_errors);
+    Alcotest_lwt.test_case_sync "queued_for_cached" `Quick (fun () ->
+        test_queued_for_cached);
+    Alcotest_lwt.test_case_sync "queued_for_queued" `Quick (fun () ->
+        test_queued_for_queued);
+    Alcotest_lwt.test_case_sync "queued_for_running" `Quick (fun () ->
+        test_queued_for_running);
+    Alcotest_lwt.test_case_sync "queued_for_finished" `Quick (fun () ->
+        test_queued_for_finished);
+    Alcotest_lwt.test_case_sync "ran_for_cached" `Quick (fun () ->
+        test_ran_for_cached);
+    Alcotest_lwt.test_case_sync "ran_for_queued" `Quick (fun () ->
+        test_ran_for_queued);
+    Alcotest_lwt.test_case_sync "ran_for_running" `Quick (fun () ->
+        test_ran_for_running);
+    Alcotest_lwt.test_case_sync "ran_for_finished" `Quick (fun () ->
+        test_ran_for_finished);
+    Alcotest_lwt.test_case_sync "total_time_cached" `Quick (fun () ->
+        test_total_time_cached);
+    Alcotest_lwt.test_case_sync "total_time_queued" `Quick (fun () ->
+        test_total_time_queued);
+    Alcotest_lwt.test_case_sync "total_time_running" `Quick (fun () ->
+        test_total_time_running);
+    Alcotest_lwt.test_case_sync "total_time_finished" `Quick (fun () ->
+        test_total_time_finished);
+    Alcotest_lwt.test_case_sync "build_created_at Empty" `Quick (fun () ->
+        test_build_created_at_empty);
+    Alcotest_lwt.test_case_sync "build_created_at Happy Path" `Quick (fun () ->
+        test_build_created_at_happy_path);
+    Alcotest_lwt.test_case_sync "build_created_at Mangled" `Quick (fun () ->
+        test_build_created_at_mangled);
+    Alcotest_lwt.test_case_sync "total of run times" `Quick (fun () ->
+        test_total_of_run_times);
+    Alcotest_lwt.test_case_sync "first step queued at" `Quick (fun () ->
+        test_first_step_queued_at);
   ]
