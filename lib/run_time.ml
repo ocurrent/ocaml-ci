@@ -7,7 +7,7 @@ module Log = (val Logs.src_log src : Logs.LOG)
 let cmp_floats v1 v2 = abs_float (v1 -. v2) < 0.0000001
 
 type timestamps =
-  | Queued of float (* timestamp -- step is ready and queued *)
+  | Queued of float
   | Running of { queued_at : float; started_at : float }
   | Finished of {
       queued_at : float;

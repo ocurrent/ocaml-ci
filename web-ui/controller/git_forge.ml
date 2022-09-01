@@ -99,10 +99,15 @@ module Make (View : View) = struct
     let csrf_token = Dream.csrf_tag request in
     let flash_messages = Dream.flash_messages request in
     let first_step_queued_at = Run_time.first_step_queued_at jobs in
-    let total_run_time = Run_time.total_of_run_times jobs in
-    Dream.respond
-    @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~csrf_token ~flash_messages
-         ~first_step_queued_at ~total_run_time ()
+    match first_step_queued_at with
+    | Error e ->
+        Dream.log "Error - %s" e;
+        Dream.empty `Internal_Server_Error
+    | Ok first_step_queued_at ->
+        let total_run_time = Run_time.total_of_run_times jobs in
+        Dream.respond
+        @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~csrf_token
+             ~first_step_queued_at ~total_run_time ~flash_messages ()
 
   let show_step ~org ~repo ~hash ~variant request ci =
     Backend.ci ci >>= fun ci ->
@@ -130,11 +135,16 @@ module Make (View : View) = struct
       let filter (j : Client.job_info) = j.variant = variant in
       List.find_opt filter jobs
     in
-    (* TODO: Don't swallow the result here - log it at least *)
+    let timestamps = Option.map Run_time.timestamps_from_job_info step_info in
     let timestamps =
-      Option.join
-      @@ Option.map Result.to_option
-      @@ Option.map Run_time.timestamps_from_job_info step_info
+      match timestamps with
+      | None ->
+          Dream.log "Error - No step-info.";
+          None
+      | Some (Error e) ->
+          Dream.log "Error - %s" e;
+          None
+      | Some (Ok t) -> Some t
     in
     View.show_step ~org ~repo ~refs ~hash ~jobs ~variant ~status ~csrf_token
       ~flash_messages ~timestamps ~build_created_at ~job:job_cap chunk
@@ -189,10 +199,15 @@ module Make (View : View) = struct
     let return_link = View.return_link ~org ~repo ~hash in
     let csrf_token = Dream.csrf_tag request in
     let first_step_queued_at = Run_time.first_step_queued_at jobs in
-    let total_run_time = Run_time.total_of_run_times jobs in
-    Dream.respond
-    @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~success_msg ~fail_msg
-         ~return_link ~csrf_token ~first_step_queued_at ~total_run_time ()
+    match first_step_queued_at with
+    | Error e ->
+        Dream.log "Error - %s" e;
+        Dream.empty `Internal_Server_Error
+    | Ok first_step_queued_at ->
+        let total_run_time = Run_time.total_of_run_times jobs in
+        Dream.respond
+        @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~success_msg ~fail_msg
+             ~return_link ~csrf_token ~first_step_queued_at ~total_run_time ()
 
   let rebuild_steps ~rebuild_failed_only ~org ~repo ~hash request ci =
     Backend.ci ci >>= fun ci ->
@@ -234,8 +249,13 @@ module Make (View : View) = struct
     let return_link = View.return_link ~org ~repo ~hash in
     let csrf_token = Dream.csrf_tag request in
     let first_step_queued_at = Run_time.first_step_queued_at jobs in
-    let total_run_time = Run_time.total_of_run_times jobs in
-    Dream.respond
-    @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~success_msg ~fail_msg
-         ~return_link ~csrf_token ~first_step_queued_at ~total_run_time ()
+    match first_step_queued_at with
+    | Error e ->
+        Dream.log "Error - %s" e;
+        Dream.empty `Internal_Server_Error
+    | Ok first_step_queued_at ->
+        let total_run_time = Run_time.total_of_run_times jobs in
+        Dream.respond
+        @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~success_msg ~fail_msg
+             ~return_link ~csrf_token ~first_step_queued_at ~total_run_time ()
 end

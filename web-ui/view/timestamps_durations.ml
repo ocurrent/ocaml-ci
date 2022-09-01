@@ -28,22 +28,22 @@ let of_step step_info =
 
 let ul_timestamps_durations ~queued_at ~finished_at ~queued_for ~ran_for =
   let queued_for_msg, ran_for_msg =
-    match (queued_for, ran_for) with
-    | 0., 0. -> ("Queued for: 0s (Cached)", "Ran for: 0s (Cached)")
-    | v1, v2 ->
-        ( Fmt.str "Queued for: %a" Run_time.duration_pp (Duration.of_f v1),
-          Fmt.str "Ran for: %a" Run_time.duration_pp (Duration.of_f v2) )
+    if queued_for = 0. && ran_for = 0. then
+      ("Queued for: - (Cached)", "Ran for: - (Cached)")
+    else
+      ( Fmt.str "Queued for: %a" Run_time.duration_pp (Duration.of_f queued_for),
+        Fmt.str "Ran for: %a" Run_time.duration_pp (Duration.of_f ran_for) )
   in
-  let queued_at = Option.fold ~none:"-" ~some:to_iso8601 queued_at in
-  let finished_at = Option.fold ~none:"-" ~some:to_iso8601 finished_at in
+  let queued_at_msg = Option.fold ~none:"-" ~some:to_iso8601 queued_at in
+  let finished_at_msg = Option.fold ~none:"-" ~some:to_iso8601 finished_at in
   ul
     [
       li
         ~a:[ a_class [ "statuses" ] ]
-        [ txt @@ Fmt.str "Created at: %s" queued_at ];
+        [ txt @@ Fmt.str "Created at: %s" queued_at_msg ];
       li
         ~a:[ a_class [ "statuses" ] ]
-        [ txt @@ Fmt.str "Finished at: %s" finished_at ];
+        [ txt @@ Fmt.str "Finished at: %s" finished_at_msg ];
       li
         ~a:[ a_class [ "statuses" ] ]
         [ txt @@ Fmt.str "Last build %s" queued_for_msg ];
