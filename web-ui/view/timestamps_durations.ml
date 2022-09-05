@@ -81,18 +81,16 @@ let show_step (ts : Run_time.timestamps option) ~build_created_at =
             ~finished_at:(Some v.finished_at) ~queued_for ~ran_for)
 
 let show_build ~first_step_queued_at ~total_run_time =
+  let queued_at_msg =
+    Option.fold ~none:"-" ~some:to_iso8601 first_step_queued_at
+  in
   div
     [
+      span [ txt @@ Fmt.str "Build first created at: %s" queued_at_msg ];
       span
         [
           txt
-          @@ Fmt.str "Build first created at: %s"
-               (to_iso8601 first_step_queued_at);
-        ];
-      span
-        [
-          txt
-          @@ Fmt.str " -- Last build ran for: %a" Run_time.duration_pp
+          @@ Fmt.str " :: Last build ran for: %a" Run_time.duration_pp
                (Duration.of_f total_run_time);
         ];
     ]

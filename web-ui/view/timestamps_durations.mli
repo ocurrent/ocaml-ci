@@ -17,6 +17,6 @@ val show_step :
   [> `Div | `Ul ] Tyxml_html.elt
 
 val show_build :
-  first_step_queued_at:float ->
+  first_step_queued_at:float option ->
   total_run_time:float ->
   [> Html_types.div ] Tyxml_html.elt

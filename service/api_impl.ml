@@ -17,42 +17,42 @@ let make_commit ~engine ~owner ~name hash =
          let jobs = Index.get_jobs ~owner ~name hash in
          let response, results = Service.Response.create Results.init_pointer in
          let arr = Results.jobs_init results (List.length jobs) in
-         jobs
-         |> List.iteri (fun i (variant, outcome, ts) ->
-                let slot = Capnp.Array.get arr i in
-                Raw.Builder.JobInfo.variant_set slot variant;
-                let queued_at, started_at, finished_at =
-                  match ts with
-                  | None -> (None, None, None)
-                  | Some (Run_time.Queued v) -> (Some v, None, None)
-                  | Some (Running v) ->
-                      (Some v.queued_at, Some v.started_at, None)
-                  | Some (Finished v) ->
-                      (Some v.queued_at, v.started_at, Some v.finished_at)
-                in
-                let queued_at_t = Raw.Builder.JobInfo.queued_at_init slot in
-                let module S = Raw.Builder.JobInfo.QueuedAt in
-                (match queued_at with
-                | None -> S.none_set queued_at_t
-                | Some v -> S.ts_set queued_at_t v);
-                let started_at_t = Raw.Builder.JobInfo.started_at_init slot in
-                let module S = Raw.Builder.JobInfo.StartedAt in
-                (match started_at with
-                | None -> S.none_set started_at_t
-                | Some v -> S.ts_set started_at_t v);
-                let finished_at_t = Raw.Builder.JobInfo.finished_at_init slot in
-                let module S = Raw.Builder.JobInfo.FinishedAt in
-                (match finished_at with
-                | None -> S.none_set finished_at_t
-                | Some v -> S.ts_set finished_at_t v);
-                let state = Raw.Builder.JobInfo.state_init slot in
-                let module S = Raw.Builder.JobInfo.State in
-                match outcome with
-                | `Not_started -> S.not_started_set state
-                | `Passed -> S.passed_set state
-                | `Aborted -> S.aborted_set state
-                | `Active -> S.active_set state
-                | `Failed msg -> S.failed_set state msg);
+         let f i (variant, outcome, ts) =
+           let slot = Capnp.Array.get arr i in
+           Raw.Builder.JobInfo.variant_set slot variant;
+           let queued_at, started_at, finished_at =
+             match ts with
+             | None -> (None, None, None)
+             | Some (Run_time.Queued v) -> (Some v, None, None)
+             | Some (Running v) -> (Some v.queued_at, Some v.started_at, None)
+             | Some (Finished v) ->
+                 (Some v.queued_at, v.started_at, Some v.finished_at)
+           in
+           let queued_at_t = Raw.Builder.JobInfo.queued_at_init slot in
+           let module S = Raw.Builder.JobInfo.QueuedAt in
+           (match queued_at with
+           | None -> S.none_set queued_at_t
+           | Some v -> S.ts_set queued_at_t v);
+           let started_at_t = Raw.Builder.JobInfo.started_at_init slot in
+           let module S = Raw.Builder.JobInfo.StartedAt in
+           (match started_at with
+           | None -> S.none_set started_at_t
+           | Some v -> S.ts_set started_at_t v);
+           let finished_at_t = Raw.Builder.JobInfo.finished_at_init slot in
+           let module S = Raw.Builder.JobInfo.FinishedAt in
+           (match finished_at with
+           | None -> S.none_set finished_at_t
+           | Some v -> S.ts_set finished_at_t v);
+           let state = Raw.Builder.JobInfo.state_init slot in
+           let module S = Raw.Builder.JobInfo.State in
+           match outcome with
+           | `Not_started -> S.not_started_set state
+           | `Passed -> S.passed_set state
+           | `Aborted -> S.aborted_set state
+           | `Active -> S.active_set state
+           | `Failed msg -> S.failed_set state msg
+         in
+         jobs |> List.iteri f;
          Service.return response
 
        method job_of_variant_impl params release_param_caps =
