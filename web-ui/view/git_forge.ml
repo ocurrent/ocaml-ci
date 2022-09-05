@@ -36,7 +36,7 @@ module type View = sig
     refs:string list ->
     hash:string ->
     jobs:Client.job_info list ->
-    first_step_queued_at:float ->
+    first_step_queued_at:float option ->
     total_run_time:float ->
     ?success_msg:
       ([< Html_types.div_content_fun > `Div `Ol `P `PCDATA `Ul ] as 'a)
