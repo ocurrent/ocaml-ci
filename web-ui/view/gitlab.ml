@@ -2,7 +2,7 @@ module Client = Ocaml_ci_api.Client
 module Common = Ocaml_ci_api.Common
 module StatusTree = Status_tree
 module Build_status = Build_status
-module Run_time = Client_utilities.Run_time
+module Run_time = Ocaml_ci_client_lib.Run_time
 open Tyxml.Html
 open Git_forge
 

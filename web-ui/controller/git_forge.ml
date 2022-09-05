@@ -1,7 +1,7 @@
 module type View = View.Git_forge.View
 
 module Client = Ocaml_ci_api.Client
-module Run_time = Client_utilities.Run_time
+module Run_time = Ocaml_ci_client_lib.Run_time
 
 module type Controller = sig
   val list_orgs : Backend.t -> Dream.response Lwt.t

@@ -123,8 +123,8 @@
   tyxml
   (timedesc (>= 0.9.0))))
 (package
-(name client-utilities)
-(synopsis "Utilities for clients")
+(name ocaml-ci-client-lib)
+(synopsis "Lib for clients")
 (depends
   (logs (>= 0.7.0))
   current_rpc

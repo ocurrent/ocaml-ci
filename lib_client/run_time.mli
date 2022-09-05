@@ -17,7 +17,6 @@ type timestamps =
 
           The step is either:
 
-          - Cached - a previously run instance was used and the step did not run
           - Queued - the associated timestamp indicates when it was ready to run
             (enqueued)
           - Running - with timestamps for when it was ready and when it started
