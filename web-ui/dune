@@ -17,4 +17,4 @@
   ocaml-ci-api
   ocaml-ci-web.controller
   ocaml-ci-web.view
-  client-utilities))
+  ocaml-ci-client-lib))

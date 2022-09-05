@@ -1,5 +1,5 @@
 module Index = Ocaml_ci.Index
-module Run_time = Client_utilities.Run_time
+module Run_time = Ocaml_ci_client_lib.Run_time
 module Job = Current.Job
 module Client = Ocaml_ci_api.Client
 
