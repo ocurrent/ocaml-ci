@@ -1,6 +1,6 @@
 module Client = Ocaml_ci_api.Client
 
-let src = Logs.Src.create "ocaml_ci.run_time" ~doc:"ocaml-ci run-time"
+let src = Logs.Src.create "ocaml_ci.run_time.lib_client" ~doc:"ocaml-ci lib-client run-time"
 
 module Log = (val Logs.src_log src : Logs.LOG)
 
