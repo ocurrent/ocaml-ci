@@ -118,7 +118,7 @@
   (logs (>= 0.7.0))
   (lwt (>= 5.6.1))
   ocaml-ci-api
-  client-utilities
+  ocaml-ci-client-lib
   (prometheus-app (>= 1.2))
   tyxml
   (timedesc (>= 0.9.0))))
