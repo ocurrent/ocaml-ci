@@ -13,6 +13,7 @@ let create ~github ~gitlab =
       Dream.get "/css/ansi.css" (fun _ ->
           Dream.respond ~headers:[ ("content-type", "text/css") ] Ansi.css);
       Dream.get "/css/**" @@ Dream.static ~loader "/css";
+      Dream.get "/images/**" @@ Dream.static ~loader "/images";
       Dream.get "/badge/:org/:repo/:branch" (fun request ->
           Controller.Badges.handle
             ~org:(Dream.param request "org")

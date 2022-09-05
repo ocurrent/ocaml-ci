@@ -1,5 +1,4 @@
 module Client = Ocaml_ci_api.Client
-module Common = Ocaml_ci_api.Common
 module StatusTree = Status_tree
 module Build_status = Build_status
 module Run_time = Ocaml_ci_client_lib.Run_time
@@ -19,6 +18,9 @@ let job_url ~org ~repo ~hash variant =
 
 let github_branch_url ~org ~repo ref =
   Fmt.str "https://github.com/%s/%s/tree/%s" org repo ref
+
+let github_commit_url ~org ~repo ~hash =
+  Fmt.str "https://github.com/%s/%s/commit/%s" org repo hash
 
 let github_pr_url ~org ~repo id =
   Fmt.str "https://github.com/%s/%s/pull/%s" org repo id
@@ -46,6 +48,21 @@ let refs_v ~org ~repo ~refs =
        li
          ~a:[ a_class [ Build_status.class_name status ] ]
          [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt branch ] ])
+
+let link_github_commit ~org ~repo ~hash =
+  a ~a:[ a_href (github_commit_url ~org ~repo ~hash) ] [ txt hash ]
+
+let link_github_refs' ~org ~repo refs =
+  let f r =
+    match Astring.String.cuts ~sep:"/" r with
+    | "refs" :: "heads" :: branch ->
+        let branch = Astring.String.concat ~sep:"/" branch in
+        a ~a:[ a_href (github_branch_url ~org ~repo branch) ] [ txt branch ]
+    | [ "refs"; "pull"; id; "head" ] ->
+        a ~a:[ a_href (github_pr_url ~org ~repo id) ] [ txt ("PR#" ^ id) ]
+    | _ -> txt ""
+  in
+  match refs with [] -> txt "" | r :: _ -> f r
 
 let link_github_refs ~org ~repo = function
   | [] -> txt "(not at the head of any monitored branch or PR)"
@@ -81,7 +98,9 @@ let link_jobs ~org ~repo ~hash ?selected jobs =
     let uri = job_url ~org ~repo ~hash variant in
     match
       List.rev
-        (Astring.String.cuts ~sep:(Fmt.str "%c" Common.status_sep) variant)
+        (Astring.String.cuts
+           ~sep:(Fmt.str "%c" Ocaml_ci_api.Common.status_sep)
+           variant)
     with
     | [] -> assert false
     | label_txt :: k ->
@@ -178,7 +197,8 @@ let return_link ~org ~repo ~hash =
    instead of providing a return link *)
 let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
     ~total_run_time ?(success_msg = div []) ?(fail_msg = div [])
-    ?(return_link = div []) ?(flash_messages = []) ~csrf_token () =
+    ?(return_link = div []) ?(flash_messages = [])
+    ?(build_status : Client.State.t = Passed) ~csrf_token () =
   let can_cancel =
     let check job_info =
       match job_info.Client.outcome with
@@ -195,7 +215,7 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
     in
     List.exists check jobs
   in
-  let buttons =
+  let _buttons =
     if can_cancel then
       [
         form
@@ -228,18 +248,60 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
       ]
     else []
   in
-  Template.instance ~flash_messages
+  let branch =
+    if refs = [] then ""
+    else
+      match Astring.String.cuts ~sep:"/" (List.hd refs) with
+      | "refs" :: "heads" :: branch -> Astring.String.concat ~sep:"/" branch
+      | _ -> ""
+  in
+  let title_card =
+    Build.title_card ~status:build_status ~card_title:(short_hash hash)
+      ~hash_link:(link_github_commit ~org ~repo ~hash:(short_hash hash))
+      ~ref_link:(link_github_refs' ~org ~repo refs)
+      ~first_created_at:(Timestamps_durations.pp_timestamp first_step_queued_at)
+      ~ran_for:(Timestamps_durations.pp_duration (Some total_run_time))
+      ~buttons:Common.rebuild_button
+  in
+  let steps_table_div =
+    div
+      ~a:
+        [ a_class [ "bg-gray-50 px-6 py-3 text-gray-500 text-xs font-medium" ] ]
+        (* TODO: We need to start with no stage separation - introduce Analysis/Checks and Build steps later *)
+      [ txt "Build" ]
+  in
+  let steps_table =
+    List.fold_left
+      (fun l j ->
+        let build_created_at = Option.value ~default:0. first_step_queued_at in
+        let ts = Result.to_option @@ Run_time.timestamps_from_job_info j in
+        let rt =
+          Option.map (Run_time.run_times_from_timestamps ~build_created_at) ts
+        in
+        let created_at = Timestamps_durations.pp_timestamp j.queued_at in
+        let queued_for =
+          Timestamps_durations.pp_duration (Option.map Run_time.queued_for rt)
+        in
+        let ran_for =
+          Timestamps_durations.pp_duration (Option.map Run_time.ran_for rt)
+        in
+        List.append l
+          [
+            Build.step_row ~step_title:j.variant ~created_at ~queued_for
+              ~ran_for ~status:j.outcome;
+          ])
+      [ steps_table_div ] jobs
+  in
+  Template_v1.instance ~flash_messages
     [
-      breadcrumbs
+      Common.breadcrumbs
         [ ("github", "github"); (org, org); (repo, repo) ]
-        (short_hash hash);
-      link_github_refs ~org ~repo refs;
-      link_jobs ~org ~repo ~hash jobs;
+        (Fmt.str "%s (%s)" (short_hash hash) branch);
+      title_card;
+      Build.tabulate_steps steps_table;
       success_msg;
       fail_msg;
       return_link;
-      Timestamps_durations.show_build ~first_step_queued_at ~total_run_time;
-      div buttons;
     ]
 
 let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token

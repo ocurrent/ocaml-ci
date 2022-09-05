@@ -177,7 +177,9 @@ let return_link ~org ~repo ~hash =
    instead of providing a return link *)
 let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
     ~total_run_time ?(success_msg = div []) ?(fail_msg = div [])
-    ?(return_link = div []) ?(flash_messages = []) ~csrf_token () =
+    ?(return_link = div []) ?(flash_messages = [])
+    ?(build_status : Client.State.t = Passed) ~csrf_token () =
+  let () = ignore build_status in
   let can_cancel =
     let check job_info =
       match job_info.Client.outcome with

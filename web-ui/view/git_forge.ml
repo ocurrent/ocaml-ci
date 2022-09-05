@@ -44,6 +44,7 @@ module type View = sig
     ?fail_msg:'a Tyxml_html.elt ->
     ?return_link:'a Tyxml_html.elt ->
     ?flash_messages:(string * string) list ->
+    ?build_status:Client.State.t ->
     csrf_token:string ->
     unit ->
     string
