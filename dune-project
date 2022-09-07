@@ -128,4 +128,5 @@
 (depends
   (logs (>= 0.7.0))
   current_rpc
+  current
 ))
