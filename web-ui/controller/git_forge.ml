@@ -212,24 +212,30 @@ module Make (View : View) = struct
     Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
     Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash)
     @@ fun commit_cap ->
-    Client.Commit.refs commit_cap >>!= fun refs ->
+    (* Client.Commit.refs commit_cap >>!= fun refs -> *)
     Client.Commit.jobs commit_cap >>!= fun jobs ->
     cancel_many commit_cap jobs >>= fun (success, failed) ->
-    let success_msg = View.cancel_success_message success in
-    let fail_msg = View.cancel_fail_message failed in
-    let return_link = View.return_link ~org ~repo ~hash in
-    let csrf_token = Dream.csrf_tag request in
-    let first_step_queued_at =
-      match Run_time.first_step_queued_at jobs with
-      | Error e ->
-          Dream.log "Error - %s" e;
-          None
-      | Ok v -> Some v
+    let success_msg = View.cancel_success_message_v1 success in
+    let fail_msg = View.cancel_fail_message_v1 failed in
+    let flash_messages =
+      List.map (fun (`Success, m) -> ("Success", m)) success_msg
+      @ List.map (fun (`Fail, m) -> ("Error", m)) fail_msg
     in
-    let total_run_time = Run_time.total_of_run_times jobs in
-    Dream.respond
-    @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~success_msg ~fail_msg
-         ~return_link ~csrf_token ~first_step_queued_at ~total_run_time ()
+    (* let return_link = View.return_link ~org ~repo ~hash in
+       let csrf_token = Dream.csrf_tag request in
+       let first_step_queued_at =
+         match Run_time.first_step_queued_at jobs with
+         | Error e ->
+             Dream.log "Error - %s" e;
+             None
+         | Ok v -> Some v
+       in
+       let total_run_time = Run_time.total_of_run_times jobs in *)
+    List.iter (fun (s, m) -> Dream.add_flash_message request s m) flash_messages;
+    Dream.redirect request (Fmt.str "/github/%s/%s/commit/%s" org repo hash)
+  (* Dream.respond
+     @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~flash_messages
+          ~return_link ~csrf_token ~first_step_queued_at ~total_run_time () *)
 
   let rebuild_steps ~rebuild_failed_only ~org ~repo ~hash request ci =
     Backend.ci ci >>= fun ci ->
@@ -263,22 +269,28 @@ module Make (View : View) = struct
     Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
     Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash)
     @@ fun commit_cap ->
-    Client.Commit.refs commit_cap >>!= fun refs ->
+    (* Client.Commit.refs commit_cap >>!= fun refs -> *)
     Client.Commit.jobs commit_cap >>!= fun jobs ->
     rebuild_many commit_cap jobs >>= fun (success, failed) ->
-    let success_msg = View.rebuild_success_message success in
-    let fail_msg = View.rebuild_fail_message failed in
-    let return_link = View.return_link ~org ~repo ~hash in
-    let csrf_token = Dream.csrf_tag request in
-    let first_step_queued_at =
-      match Run_time.first_step_queued_at jobs with
-      | Error e ->
-          Dream.log "Error - %s" e;
-          None
-      | Ok v -> Some v
+    let success_msg = View.rebuild_success_message_v1 success in
+    let fail_msg = View.rebuild_fail_message_v1 failed in
+    let flash_messages =
+      List.map (fun (`Success, m) -> ("Success", m)) success_msg
+      @ List.map (fun (`Fail, m) -> ("Error", m)) fail_msg
     in
-    let total_run_time = Run_time.total_of_run_times jobs in
-    Dream.respond
-    @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~success_msg ~fail_msg
-         ~return_link ~csrf_token ~first_step_queued_at ~total_run_time ()
+    (* let return_link = View.return_link ~org ~repo ~hash in
+       let csrf_token = Dream.csrf_tag request in
+       let first_step_queued_at =
+         match Run_time.first_step_queued_at jobs with
+         | Error e ->
+             Dream.log "Error - %s" e;
+             None
+         | Ok v -> Some v
+       in
+       let total_run_time = Run_time.total_of_run_times jobs in *)
+    List.iter (fun (s, m) -> Dream.add_flash_message request s m) flash_messages;
+    Dream.redirect request (Fmt.str "/github/%s/%s/commit/%s" org repo hash)
+  (* Dream.respond
+     @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~flash_messages
+          ~return_link ~csrf_token ~first_step_queued_at ~total_run_time () *)
 end

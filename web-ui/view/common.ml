@@ -59,7 +59,8 @@ let icon_success =
       ])
 
 let icon_active =
-  Tyxml.Html.(div ~a:[ a_class [ "icon-status icon-status--active" ] ] [div []])
+  Tyxml.Html.(
+    div ~a:[ a_class [ "icon-status icon-status--active" ] ] [ div [] ])
 
 let icon_queued =
   Tyxml.Html.(div ~a:[ a_class [ "icon-status icon-status--default" ] ] [])
@@ -72,60 +73,53 @@ let status_icon (status : Ocaml_ci_api.Client.State.t) =
   | Active -> icon_active
   | Undefined _ -> icon_failed
 
-
 (* https://grantw.uk/articles/submit-a-html-form-with-alpine-js/ *)
 let form_for ~x_ref ~action ~csrf_token ~submit_button ~input_value =
-  Tyxml.Html.(form
-    ~a:[
-      Tyxml_helpers.x_ref x_ref;
-      a_action action;
-      a_method `Post
-     ]
-     [
-      Unsafe.data csrf_token;
-      submit_button;
-      input
-        ~a:[ a_name "filter"; a_input_type `Hidden; a_value input_value ]
-        ();
-     ]
-  )
+  Tyxml.Html.(
+    form
+      ~a:[ Tyxml_helpers.x_ref x_ref; a_action action; a_method `Post ]
+      [
+        Unsafe.data csrf_token;
+        submit_button;
+        input
+          ~a:[ a_name "filter"; a_input_type `Hidden; a_value input_value ]
+          ();
+      ])
+
 let form_rebuild_all ~hash ~csrf_token =
   let submit_button =
-    (Tyxml.Html.(button [txt "Rebuild All"] ~a:[ Tyxml_helpers.at_click "$refs.rebuildAllForm.submit()"]))
+    Tyxml.Html.(
+      button
+        [ txt "Rebuild All" ]
+        ~a:[ Tyxml_helpers.at_click "$refs.rebuildAllForm.submit()" ])
   in
 
-  form_for
-  ~csrf_token
-  ~submit_button
-  ~x_ref:"rebuildAllForm"
-  ~action:(hash ^ "/rebuild-all")
-  ~input_value: "none"
+  form_for ~csrf_token ~submit_button ~x_ref:"rebuildAllForm"
+    ~action:(hash ^ "/rebuild-all") ~input_value:"none"
 
 let form_rebuild_failed ~hash ~csrf_token =
   let submit_button =
-    (Tyxml.Html.(button [txt "Rebuild Failed"] ~a:[ Tyxml_helpers.at_click "$refs.rebuildFailedForm.submit()"]))
+    Tyxml.Html.(
+      button
+        [ txt "Rebuild Failed" ]
+        ~a:[ Tyxml_helpers.at_click "$refs.rebuildFailedForm.submit()" ])
   in
-  form_for
-  ~csrf_token
-  ~x_ref:"rebuildFailedForm"
-  ~action:(hash ^ "/rebuild-failed")
-  ~submit_button
-  ~input_value: "failed"
+  form_for ~csrf_token ~x_ref:"rebuildFailedForm"
+    ~action:(hash ^ "/rebuild-failed") ~submit_button ~input_value:"failed"
 
 let form_cancel ~hash ~csrf_token =
   let submit_button =
-    (Tyxml.Html.(
-      button [txt "Cancel"]
-      ~a:[ a_class [ "btn btn-primary" ];
-        Tyxml_helpers.at_click "$refs.cancelForm.submit()"]))
+    Tyxml.Html.(
+      button
+        [ txt "Cancel" ]
+        ~a:
+          [
+            a_class [ "btn btn-primary" ];
+            Tyxml_helpers.at_click "$refs.cancelForm.submit()";
+          ])
   in
-  form_for
-  ~csrf_token
-  ~x_ref:"cancelForm"
-  ~action:(hash ^ "/cancel")
-  ~submit_button
-  ~input_value: "Cancel"
-
+  form_for ~csrf_token ~x_ref:"cancelForm" ~action:(hash ^ "/cancel")
+    ~submit_button ~input_value:"Cancel"
 
 let rebuild_button ~hash ~csrf_token =
   [
@@ -169,7 +163,10 @@ let rebuild_button ~hash ~csrf_token =
             Tyxml_helpers.x_show "rebuildMenu";
             Tyxml_helpers.x_transition;
           ]
-        [ form_rebuild_all ~hash ~csrf_token; form_rebuild_failed ~hash ~csrf_token ]);
+        [
+          form_rebuild_all ~hash ~csrf_token;
+          form_rebuild_failed ~hash ~csrf_token;
+        ]);
   ]
 
 let right_arrow_head =
@@ -194,12 +191,12 @@ let right_arrow_head =
           [];
       ])
 
-let flash ?(status = "info") flash_message =
+let flash ?(status = "Info") flash_message =
   let flash_message_css_status =
     match status with
-    | "info" -> "flash-message--info"
-    | "success" -> "flash-message"
-    | "error" -> "flash-message--error"
+    | "Info" -> "flash-message--info"
+    | "Success" -> "flash-message"
+    | "Error" -> "flash-message--error"
     | _ -> "flash-message--info"
   in
   let close_button =
@@ -243,6 +240,10 @@ let flash ?(status = "info") flash_message =
           Tyxml_helpers.x_show "flashMessage";
         ]
       [ txt flash_message; close_button ])
+
+let flash_messages msgs =
+  Tyxml.Html.div
+    [ Tyxml.Html.div (List.map (fun (status, msg) -> flash ~status msg) msgs) ]
 
 let breadcrumbs steps page_title =
   let separator =

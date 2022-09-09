@@ -61,16 +61,9 @@ let header =
         ];
     ]
 
-let instance ?(flash_messages : (string * string) list = []) contents =
+let instance contents =
   html_to_string
     (html head
        (body
           ~a:[ a_class [ "" ] ]
-          [
-            header;
-            div
-              (List.map
-                 (fun (status, msg) -> Common.flash ~status msg)
-                 flash_messages);
-            div ~a:[ a_class [ "container-fluid"; "py-12" ] ] contents;
-          ]))
+          [ header; div ~a:[ a_class [ "container-fluid"; "py-12" ] ] contents ]))

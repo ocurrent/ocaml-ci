@@ -91,7 +91,9 @@ let step_row ~step_title ~created_at ~queued_for ~ran_for ~status ~step_uri =
                    items-center";
                 ];
             ]
-          [ div [ txt @@ Fmt.str "Ran for %s" ran_for ]; Common.right_arrow_head ];
+          [
+            div [ txt @@ Fmt.str "Ran for %s" ran_for ]; Common.right_arrow_head;
+          ];
       ])
 
 let tabulate_steps step_rows =

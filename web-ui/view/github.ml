@@ -134,6 +134,14 @@ let cancel_success_message success =
   | [] -> div [ span [ txt @@ Fmt.str "No jobs were cancelled." ] ]
   | success -> ul (List.map format_job_info success)
 
+let cancel_success_message_v1 success =
+  let format_job_info ji =
+    (`Success, Fmt.str "Cancelling job: %s" ji.Client.variant)
+  in
+  match success with
+  | [] -> [ (`Success, Fmt.str "No jobs were cancelled.") ]
+  | success -> List.map format_job_info success
+
 let cancel_fail_message = function
   | n when n <= 0 -> div []
   | 1 ->
@@ -158,6 +166,20 @@ let cancel_fail_message = function
             ];
         ]
 
+let cancel_fail_message_v1 : int -> ([> `Fail ] * uri) list_wrap = function
+  | n when n <= 0 -> []
+  | 1 ->
+      [
+        ( `Fail,
+          Fmt.str "1 job could not be cancelled. Check logs for more detail." );
+      ]
+  | n ->
+      [
+        ( `Fail,
+          Fmt.str "%d jobs could not be cancelled. Check logs for more detail."
+            n );
+      ]
+
 let rebuild_success_message success =
   let format_job_info ji =
     li [ span [ txt @@ Fmt.str "Rebuilding job: %s" ji.Client.variant ] ]
@@ -165,6 +187,14 @@ let rebuild_success_message success =
   match success with
   | [] -> div [ span [ txt @@ Fmt.str "No jobs were rebuilt." ] ]
   | success -> ul (List.map format_job_info success)
+
+let rebuild_success_message_v1 success =
+  let format_job_info ji =
+    (`Success, Fmt.str "Rebuilding job: %s" ji.Client.variant)
+  in
+  match success with
+  | [] -> [ (`Success, Fmt.str "No jobs were rebuilt.") ]
+  | success -> List.map format_job_info success
 
 let rebuild_fail_message = function
   | n when n <= 0 -> div []
@@ -189,6 +219,20 @@ let rebuild_fail_message = function
             ];
         ]
 
+let rebuild_fail_message_v1 = function
+  | n when n <= 0 -> []
+  | 1 ->
+      [
+        ( `Fail,
+          Fmt.str "1 job could not be rebuilt. Check logs for more detail." );
+      ]
+  | n ->
+      [
+        ( `Fail,
+          Fmt.str "%d jobs could not be rebuilt. Check logs for more detail." n
+        );
+      ]
+
 let return_link ~org ~repo ~hash =
   let uri = commit_url ~org ~repo hash in
   a ~a:[ a_href uri ] [ txt @@ Fmt.str "Return to %s" (short_hash hash) ]
@@ -199,6 +243,10 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
     ~total_run_time ?(success_msg = div []) ?(fail_msg = div [])
     ?(return_link = div []) ?(flash_messages = [])
     ?(build_status : Client.State.t = Passed) ~csrf_token () =
+  (*FIXME: Fix the interface for this function so that we drop the things we are now ignoring *)
+  ignore success_msg;
+  ignore fail_msg;
+  ignore return_link;
   let can_cancel =
     let check job_info =
       match job_info.Client.outcome with
@@ -216,10 +264,8 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
     List.exists check jobs
   in
   let buttons =
-    if can_cancel then
-      [ Common.form_cancel ~hash ~csrf_token ]
-    else if can_rebuild then
-      Common.rebuild_button ~hash ~csrf_token
+    if can_cancel then [ Common.form_cancel ~hash ~csrf_token ]
+    else if can_rebuild then Common.rebuild_button ~hash ~csrf_token
     else []
   in
   let branch =
@@ -267,16 +313,14 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
           ])
       [ steps_table_div ] jobs
   in
-  Template_v1.instance ~flash_messages
+  Template_v1.instance
     [
       Common.breadcrumbs
         [ ("github", "github"); (org, org); (repo, repo) ]
         (Fmt.str "%s (%s)" (short_hash hash) branch);
       title_card;
+      Common.flash_messages flash_messages;
       Build.tabulate_steps steps_table;
-      success_msg;
-      fail_msg;
-      return_link;
     ]
 
 let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token

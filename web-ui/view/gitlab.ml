@@ -114,6 +114,14 @@ let cancel_success_message success =
   | [] -> div [ span [ txt @@ Fmt.str "No jobs were cancelled." ] ]
   | success -> ul (List.map format_job_info success)
 
+let cancel_success_message_v1 success =
+  let format_job_info ji =
+    (`Success, Fmt.str "Cancelling job: %s" ji.Client.variant)
+  in
+  match success with
+  | [] -> [ (`Success, Fmt.str "No jobs were cancelled.") ]
+  | success -> List.map format_job_info success
+
 let cancel_fail_message = function
   | n when n <= 0 -> div []
   | 1 ->
@@ -138,6 +146,20 @@ let cancel_fail_message = function
             ];
         ]
 
+let cancel_fail_message_v1 : int -> ([> `Fail ] * uri) list_wrap = function
+  | n when n <= 0 -> []
+  | 1 ->
+      [
+        ( `Fail,
+          Fmt.str "1 job could not be cancelled. Check logs for more detail." );
+      ]
+  | n ->
+      [
+        ( `Fail,
+          Fmt.str "%d jobs could not be cancelled. Check logs for more detail."
+            n );
+      ]
+
 let rebuild_success_message success =
   let format_job_info ji =
     li [ span [ txt @@ Fmt.str "Rebuilding job: %s" ji.Client.variant ] ]
@@ -145,6 +167,14 @@ let rebuild_success_message success =
   match success with
   | [] -> div [ span [ txt @@ Fmt.str "No jobs were rebuilt." ] ]
   | success -> ul (List.map format_job_info success)
+
+let rebuild_success_message_v1 success =
+  let format_job_info ji =
+    (`Success, Fmt.str "Rebuilding job: %s" ji.Client.variant)
+  in
+  match success with
+  | [] -> [ (`Success, Fmt.str "No jobs were rebuilt.") ]
+  | success -> List.map format_job_info success
 
 let rebuild_fail_message = function
   | n when n <= 0 -> div []
@@ -168,6 +198,20 @@ let rebuild_fail_message = function
                    "%d jobs could not be rebuilt. Check logs for more detail." n;
             ];
         ]
+
+let rebuild_fail_message_v1 : int -> ([> `Fail ] * uri) list_wrap = function
+  | n when n <= 0 -> []
+  | 1 ->
+      [
+        ( `Fail,
+          Fmt.str "1 job could not be rebuilt. Check logs for more detail." );
+      ]
+  | n ->
+      [
+        ( `Fail,
+          Fmt.str "%d jobs could not be rebuilt. Check logs for more detail." n
+        );
+      ]
 
 let return_link ~org ~repo ~hash =
   let uri = commit_url ~org ~repo hash in
