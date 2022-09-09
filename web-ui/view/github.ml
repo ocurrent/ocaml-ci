@@ -215,37 +215,11 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
     in
     List.exists check jobs
   in
-  let _buttons =
+  let buttons =
     if can_cancel then
-      [
-        form
-          ~a:[ a_action (hash ^ "/cancel"); a_method `Post ]
-          [
-            Unsafe.data csrf_token;
-            input ~a:[ a_input_type `Submit; a_value "Cancel" ] ();
-          ];
-      ]
+      [ Common.form_cancel ~hash ~csrf_token ]
     else if can_rebuild then
-      [
-        form
-          ~a:[ a_action (hash ^ "/rebuild-failed"); a_method `Post ]
-          [
-            Unsafe.data csrf_token;
-            button [ txt "Rebuild Failed" ];
-            input
-              ~a:[ a_name "filter"; a_input_type `Hidden; a_value "failed" ]
-              ();
-          ];
-        form
-          ~a:[ a_action (hash ^ "/rebuild-all"); a_method `Post ]
-          [
-            Unsafe.data csrf_token;
-            button [ txt "Rebuild All" ];
-            input
-              ~a:[ a_name "filter"; a_input_type `Hidden; a_value "none" ]
-              ();
-          ];
-      ]
+      Common.rebuild_button ~hash ~csrf_token
     else []
   in
   let branch =
@@ -261,7 +235,7 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
       ~ref_link:(link_github_refs' ~org ~repo refs)
       ~first_created_at:(Timestamps_durations.pp_timestamp first_step_queued_at)
       ~ran_for:(Timestamps_durations.pp_duration (Some total_run_time))
-      ~buttons:Common.rebuild_button
+      ~buttons
   in
   let steps_table_div =
     div
@@ -285,10 +259,11 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
         let ran_for =
           Timestamps_durations.pp_duration (Option.map Run_time.ran_for rt)
         in
+        let step_uri = job_url ~org ~repo ~hash j.variant in
         List.append l
           [
             Build.step_row ~step_title:j.variant ~created_at ~queued_for
-              ~ran_for ~status:j.outcome;
+              ~ran_for ~status:j.outcome ~step_uri;
           ])
       [ steps_table_div ] jobs
   in

@@ -54,10 +54,10 @@ let title_card ~status ~card_title ~hash_link ~ref_link ~first_created_at
           ];
       ])
 
-let step_row ~step_title ~created_at ~queued_for ~ran_for ~status =
+let step_row ~step_title ~created_at ~queued_for ~ran_for ~status ~step_uri =
   Tyxml.Html.(
     a
-      ~a:[ a_class [ "table-row" ]; a_href "#" ]
+      ~a:[ a_class [ "table-row" ]; a_href step_uri ]
       [
         div
           ~a:[ a_class [ "flex items-center space-x-3" ] ]
@@ -91,8 +91,7 @@ let step_row ~step_title ~created_at ~queued_for ~ran_for ~status =
                    items-center";
                 ];
             ]
-            (* TODO: the 'running for' string will need to switch on status *)
-          [ txt @@ Fmt.str "Ran for %s" ran_for; Common.right_arrow_head ];
+          [ div [ txt @@ Fmt.str "Ran for %s" ran_for ]; Common.right_arrow_head ];
       ])
 
 let tabulate_steps step_rows =
