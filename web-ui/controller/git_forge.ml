@@ -66,20 +66,10 @@ module Make (View : View) = struct
         Dream.log "Internal server error: %s"
           (Fmt.to_to_string Capnp_rpc.Error.pp ex);
         Dream.empty `Internal_Server_Error
+    | Error (`Msg v) ->
+        Dream.log "Internal server error: %s" v;
+        Dream.empty `Internal_Server_Error
     | Ok y -> f y
-
-  let ( >>!!= ) x f =
-    x >>= function
-    | Ok y -> f y
-    | v -> (
-        match v with
-        | Error (`Capnp ex) ->
-            Dream.log "Internal server error: %s"
-              (Fmt.to_to_string Capnp_rpc.Error.pp ex);
-            Dream.empty `Internal_Server_Error
-        | _ ->
-            (* FIXME: This is trying to match `Msg of variant *)
-            Dream.empty `Internal_Server_Error)
 
   let job_url ~org ~repo ~hash variant =
     Fmt.str "/%s/%s/%s/commit/%s/variant/%s" View.prefix org repo hash variant
@@ -107,15 +97,10 @@ module Make (View : View) = struct
     Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
     Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash)
     @@ fun commit_cap ->
-    Client.Commit.status commit_cap >>!!= fun status ->
+    Client.Commit.status commit_cap >>!= fun status ->
     Client.Commit.jobs commit_cap >>!= fun jobs ->
     Client.Commit.refs commit_cap >>!= fun refs ->
-    let build_status : Client.State.t =
-      match status with
-      | `Failed -> Failed ""
-      | `Pending | `Not_started -> NotStarted
-      | `Passed -> Passed
-    in
+    let build_status = Client.State.from_build_status status in
     let csrf_token = Dream.csrf_tag request in
     let flash_messages = Dream.flash_messages request in
     let first_step_queued_at =
@@ -221,21 +206,8 @@ module Make (View : View) = struct
       List.map (fun (`Success, m) -> ("Success", m)) success_msg
       @ List.map (fun (`Fail, m) -> ("Error", m)) fail_msg
     in
-    (* let return_link = View.return_link ~org ~repo ~hash in
-       let csrf_token = Dream.csrf_tag request in
-       let first_step_queued_at =
-         match Run_time.first_step_queued_at jobs with
-         | Error e ->
-             Dream.log "Error - %s" e;
-             None
-         | Ok v -> Some v
-       in
-       let total_run_time = Run_time.total_of_run_times jobs in *)
     List.iter (fun (s, m) -> Dream.add_flash_message request s m) flash_messages;
     Dream.redirect request (Fmt.str "/github/%s/%s/commit/%s" org repo hash)
-  (* Dream.respond
-     @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~flash_messages
-          ~return_link ~csrf_token ~first_step_queued_at ~total_run_time () *)
 
   let rebuild_steps ~rebuild_failed_only ~org ~repo ~hash request ci =
     Backend.ci ci >>= fun ci ->
@@ -278,19 +250,6 @@ module Make (View : View) = struct
       List.map (fun (`Success, m) -> ("Success", m)) success_msg
       @ List.map (fun (`Fail, m) -> ("Error", m)) fail_msg
     in
-    (* let return_link = View.return_link ~org ~repo ~hash in
-       let csrf_token = Dream.csrf_tag request in
-       let first_step_queued_at =
-         match Run_time.first_step_queued_at jobs with
-         | Error e ->
-             Dream.log "Error - %s" e;
-             None
-         | Ok v -> Some v
-       in
-       let total_run_time = Run_time.total_of_run_times jobs in *)
     List.iter (fun (s, m) -> Dream.add_flash_message request s m) flash_messages;
     Dream.redirect request (Fmt.str "/github/%s/%s/commit/%s" org repo hash)
-  (* Dream.respond
-     @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~flash_messages
-          ~return_link ~csrf_token ~first_step_queued_at ~total_run_time () *)
 end
