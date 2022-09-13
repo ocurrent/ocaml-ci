@@ -86,6 +86,21 @@ let form_for ~x_ref ~action ~csrf_token ~submit_button ~input_value =
           ();
       ])
 
+let form_rebuild_step ~variant ~csrf_token =
+  let submit_button =
+    Tyxml.Html.(
+      button
+        [ txt "Rebuild" ]
+        ~a:
+          [
+            a_class [ "btn btn-primary" ];
+            Tyxml_helpers.at_click "$refs.rebuildStepForm.submit()";
+          ])
+  in
+
+  form_for ~csrf_token ~submit_button ~x_ref:"rebuildStepForm"
+    ~action:(variant ^ "/rebuild") ~input_value:"Rebuild"
+
 let form_rebuild_all ~hash ~csrf_token =
   let submit_button =
     Tyxml.Html.(

@@ -166,7 +166,10 @@ module Make (View : View) = struct
     Capability.with_ref (Current_rpc.Job.rebuild job_cap) @@ fun new_job_cap ->
     Capability.await_settled new_job_cap >>= function
     | Ok () ->
-        let () = Dream.add_flash_message request "Rebuilding" variant in
+        let () =
+          Dream.add_flash_message request "Success"
+            (Fmt.str "Rebuilding %s" variant)
+        in
         let uri = job_url ~org ~repo ~hash variant in
         Dream.redirect request uri
     | Error { Capnp_rpc.Exception.reason; _ } ->

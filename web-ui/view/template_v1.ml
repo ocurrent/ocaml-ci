@@ -22,6 +22,7 @@ let head =
         (txt "");
       link ~rel:[ `Stylesheet ]
         ~href:
+          (* TODO: Copy fonts and js over to static instead of going to Google *)
           "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
         ();
       link ~rel:[ `Stylesheet ] ~href:"/css/tailwind.css" ();

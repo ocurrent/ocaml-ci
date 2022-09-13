@@ -64,58 +64,6 @@ let link_github_refs' ~org ~repo refs =
   in
   match refs with [] -> txt "" | r :: _ -> f r
 
-let link_github_refs ~org ~repo = function
-  | [] -> txt "(not at the head of any monitored branch or PR)"
-  | refs ->
-      p
-        (txt "(for "
-         :: intersperse ~sep:(txt ", ")
-              (refs
-              |> List.map @@ fun r ->
-                 match Astring.String.cuts ~sep:"/" r with
-                 | "refs" :: "heads" :: branch ->
-                     let branch = Astring.String.concat ~sep:"/" branch in
-                     span
-                       [
-                         txt "branch ";
-                         a
-                           ~a:[ a_href (github_branch_url ~org ~repo branch) ]
-                           [ txt branch ];
-                       ]
-                 | [ "refs"; "pull"; id; "head" ] ->
-                     span
-                       [
-                         txt "PR ";
-                         a
-                           ~a:[ a_href (github_pr_url ~org ~repo id) ]
-                           [ txt ("#" ^ id) ];
-                       ]
-                 | _ -> txt (Fmt.str "Bad ref format %S" r))
-        @ [ txt ")" ])
-
-let link_jobs ~org ~repo ~hash ?selected jobs =
-  let render_job trees { Client.variant; outcome; _ } =
-    let uri = job_url ~org ~repo ~hash variant in
-    match
-      List.rev
-        (Astring.String.cuts
-           ~sep:(Fmt.str "%c" Ocaml_ci_api.Common.status_sep)
-           variant)
-    with
-    | [] -> assert false
-    | label_txt :: k ->
-        let k = List.rev k in
-        let x =
-          let label =
-            txt (Fmt.str "%s (%a)" label_txt Client.State.pp outcome)
-          in
-          let label = if selected = Some variant then b [ label ] else label in
-          (outcome, [ a ~a:[ a_href uri ] [ label ] ])
-        in
-        StatusTree.add k x trees
-  in
-  statuses (List.fold_left render_job [] jobs)
-
 let list_orgs ~orgs = Template.instance @@ orgs_v ~orgs
 let list_repos ~org ~repos = Template.instance @@ repos_v ~org ~repos
 
@@ -268,6 +216,7 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
     else if can_rebuild then Common.rebuild_button ~hash ~csrf_token
     else []
   in
+  (* TODO: Factor out this branch-from-ref code *)
   let branch =
     if refs = [] then ""
     else
@@ -327,45 +276,107 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
     ~timestamps ~build_created_at ?(flash_messages = []) (data, next) =
   let header, footer =
     let can_rebuild = status.Current_rpc.Job.can_rebuild in
-    let buttons =
-      if can_rebuild then
-        [
-          form
-            ~a:[ a_action (variant ^ "/rebuild"); a_method `Post ]
-            [
-              Unsafe.data csrf_token;
-              input ~a:[ a_input_type `Submit; a_value "Rebuild" ] ();
-            ];
-        ]
-      else []
+    let button =
+      if can_rebuild then Some (Common.form_rebuild_step ~variant ~csrf_token)
+      else None
+    in
+    let branch =
+      if refs = [] then ""
+      else
+        match Astring.String.cuts ~sep:"/" (List.hd refs) with
+        | "refs" :: "heads" :: branch -> Astring.String.concat ~sep:"/" branch
+        | _ -> ""
+    in
+    (* FIXME: This will throw an exception and cause a noisy 500 - is that ok? *)
+    let step_info = List.find (fun j -> j.Client.variant = variant) jobs in
+    let build_status = step_info.outcome in
+    let build_created_at = Option.value ~default:0. build_created_at in
+    let run_time =
+      Option.map
+        (Run_time.run_times_from_timestamps ~build_created_at)
+        timestamps
+    in
+    let title_card =
+      Step.title_card ~status:build_status ~card_title:variant
+        ~hash_link:(link_github_commit ~org ~repo ~hash:(short_hash hash))
+        ~created_at:(Timestamps_durations.pp_timestamp step_info.queued_at)
+        ~finished_at:(Timestamps_durations.pp_timestamp step_info.finished_at)
+        ~queued_for:
+          (Timestamps_durations.pp_duration
+             (Option.map Run_time.queued_for run_time))
+        ~ran_for:
+          (Timestamps_durations.pp_duration
+             (Option.map Run_time.ran_for run_time))
+        ~button
     in
     let body =
-      Template.instance ~flash_messages
+      Template_v1.instance
         [
-          breadcrumbs
+          Common.breadcrumbs
             [
               ("github", "github");
               (org, org);
               (repo, repo);
-              (short_hash hash, "commit/" ^ hash);
+              ( Fmt.str "%s (%s)" (short_hash hash) branch,
+                Fmt.str "commit/%s" hash );
             ]
             variant;
-          link_github_refs ~org ~repo refs;
-          link_jobs ~org ~repo ~hash ~selected:variant jobs;
-          Timestamps_durations.show_step ~build_created_at timestamps;
-          div buttons;
-          pre [ txt "@@@" ];
+          title_card;
+          Common.flash_messages flash_messages;
+          div
+            ~a:[ a_class [ "container-fluid mt-8 flex flex-col" ] ]
+            [
+              div
+                ~a:
+                  [
+                    a_class
+                      [ "flex space-x-6 border-b border-gray-200 mb-6 text-sm" ];
+                  ]
+                [
+                  a
+                    ~a:[ a_class [ "font-medium pb-2" ]; a_href "#" ]
+                    [ txt "Logs" ];
+                ];
+              div
+                [
+                  div
+                    ~a:[ a_class [ "mt-6 bg-gray-900 rounded-lg relative" ] ]
+                    [ div ~a:[ a_class [ "overflow-auto" ] ] [ txt "@@@" ] ];
+                ];
+            ];
         ]
     in
     Astring.String.cut ~sep:"@@@" body |> Option.get
   in
   let ansi = Ansi.create () in
+  let line_number = ref 0 in
+  let decorate data : string =
+    let aux l log_line =
+      line_number := !line_number + 1;
+      Fmt.str "%s\n%s" l
+        (Fmt.to_to_string (pp_elt ())
+           (div
+              ~a:[ a_class [ "code-line" ]; a_id (Fmt.str "L%d" !line_number) ]
+              [
+                div
+                  ~a:[ a_class [ "code-line__number" ] ]
+                  [ txt (Fmt.str "%d" !line_number) ];
+                div
+                  ~a:[ a_class [ "code-line__code" ] ]
+                  [ Unsafe.data log_line ];
+              ]))
+    in
+    List.fold_left aux "" data
+  in
   let open Lwt.Infix in
   Dream.stream
     ~headers:[ ("Content-type", "text/html; charset=utf-8") ]
     (fun response_stream ->
       Dream.write response_stream header >>= fun () ->
-      Dream.write response_stream (Ansi.process ansi data) >>= fun () ->
+      let data' =
+        data |> Ansi.process ansi |> Astring.String.cuts ~sep:"\n" |> decorate
+      in
+      Dream.write response_stream data' >>= fun () ->
       let rec loop next =
         Current_rpc.Job.log job ~start:next >>= function
         | Ok ("", _) ->
@@ -373,7 +384,14 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
             Dream.close response_stream
         | Ok (data, next) ->
             Dream.log "Fetching logs";
-            Dream.write response_stream (Ansi.process ansi data) >>= fun () ->
+            (* Can we keep track of line numbers and decorate the data into divs etc. here *)
+            let data' =
+              data
+              |> Ansi.process ansi
+              |> Astring.String.cuts ~sep:"\n"
+              |> decorate
+            in
+            Dream.write response_stream data' >>= fun () ->
             Dream.flush response_stream >>= fun () -> loop next
         | Error (`Capnp ex) ->
             Dream.log "Error fetching logs: %a" Capnp_rpc.Error.pp ex;
