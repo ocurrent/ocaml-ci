@@ -200,7 +200,6 @@ module Make (View : View) = struct
     Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
     Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash)
     @@ fun commit_cap ->
-    (* Client.Commit.refs commit_cap >>!= fun refs -> *)
     Client.Commit.jobs commit_cap >>!= fun jobs ->
     cancel_many commit_cap jobs >>= fun (success, failed) ->
     let success_msg = View.cancel_success_message_v1 success in

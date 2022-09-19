@@ -3,6 +3,7 @@ open Lwt.Infix
 (* ocaml-crunch is used to generate the module Static.
    See also https://github.com/aantron/dream/tree/master/example/w-one-binary *)
 let loader root path _request =
+  Dream.log "In loader. root: %s path: %s" root path;
   match Static.read (Filename.concat root path) with
   | None -> Dream.empty `Not_Found
   | Some asset -> Dream.respond asset
@@ -12,8 +13,11 @@ let create ~github ~gitlab =
     [
       Dream.get "/css/ansi.css" (fun _ ->
           Dream.respond ~headers:[ ("content-type", "text/css") ] Ansi.css);
+      Dream.get "/favicon.ico" @@ Dream.static ~loader "/";
       Dream.get "/css/**" @@ Dream.static ~loader "/css";
       Dream.get "/images/**" @@ Dream.static ~loader "/images";
+      Dream.get "/js/**" @@ Dream.static ~loader "/js";
+      Dream.get "/fonts/**" @@ Dream.static ~loader "/fonts";
       Dream.get "/badge/:org/:repo/:branch" (fun request ->
           Controller.Badges.handle
             ~org:(Dream.param request "org")

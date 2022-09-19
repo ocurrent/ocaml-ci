@@ -15,13 +15,13 @@ let title_card ~status ~card_title ~hash_link ~ref_link ~first_created_at
                   ~a:[ a_class [ "flex items-center" ] ]
                   [
                     h1 ~a:[ a_class [ "text-xl" ] ] [ txt card_title ];
-                    a
-                      ~a:
-                        [
-                          a_class [ "btn btn-secondary btn-sm ml-4" ];
-                          a_href "#";
-                        ]
-                      [ txt "View Build History" ];
+                    (* a
+                       ~a:
+                         [
+                           a_class [ "btn btn-secondary btn-sm ml-4" ];
+                           a_href "#";
+                         ]
+                       [ txt "View Build History" ]; *)
                   ];
                 div
                   ~a:[ a_class [ "text-gray-500" ] ]

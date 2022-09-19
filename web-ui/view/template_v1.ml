@@ -14,17 +14,8 @@ let head =
             a_name "viewport"; a_content "width=device-width, initial-scale=1.0";
           ]
         ();
-      script
-        ~a:
-          [
-            a_defer (); a_src "https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js";
-          ]
-        (txt "");
-      link ~rel:[ `Stylesheet ]
-        ~href:
-          (* TODO: Copy fonts and js over to static instead of going to Google *)
-          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-        ();
+      script ~a:[ a_defer (); a_src "/js/alpine.js" ] (txt "");
+      link ~rel:[ `Stylesheet ] ~href:"/fonts/inter.css" ();
       link ~rel:[ `Stylesheet ] ~href:"/css/tailwind.css" ();
     ]
 
