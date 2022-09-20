@@ -1,5 +1,15 @@
-let title_card ~status ~card_title ~hash_link ~ref_link ~first_created_at
+let title_card ~status ~card_title ~hash_link ~ref_links ~first_created_at
     ~ran_for ~buttons =
+  let ref_links =
+    let initial =
+      Tyxml.Html.
+        [ div [ hash_link ]; div [ txt "-" ]; div [ txt first_created_at ] ]
+    in
+    List.fold_left
+      (fun l ref_link ->
+        List.append l Tyxml.Html.[ div [ txt "-" ]; div [ ref_link ] ])
+      initial ref_links
+  in
   Tyxml.Html.(
     div
       ~a:[ a_class [ "justify-between items-center flex" ] ]
@@ -25,17 +35,7 @@ let title_card ~status ~card_title ~hash_link ~ref_link ~first_created_at
                   ];
                 div
                   ~a:[ a_class [ "text-gray-500" ] ]
-                  [
-                    div
-                      ~a:[ a_class [ "flex space-x-2 text-sm" ] ]
-                      [
-                        div [ hash_link ];
-                        div [ txt "-" ];
-                        div [ txt first_created_at ];
-                        div [ txt "-" ];
-                        div [ ref_link ];
-                      ];
-                  ];
+                  [ div ~a:[ a_class [ "flex space-x-2 text-sm" ] ] ref_links ];
               ];
           ];
         div

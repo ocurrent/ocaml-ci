@@ -62,7 +62,7 @@ let link_github_refs' ~org ~repo refs =
         a ~a:[ a_href (github_pr_url ~org ~repo id) ] [ txt ("PR#" ^ id) ]
     | _ -> txt ""
   in
-  match refs with [] -> txt "" | r :: _ -> f r
+  List.map f refs
 
 let list_orgs ~orgs = Template.instance @@ orgs_v ~orgs
 let list_repos ~org ~repos = Template.instance @@ repos_v ~org ~repos
@@ -216,18 +216,10 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
     else if can_rebuild then Common.rebuild_button ~hash ~csrf_token
     else []
   in
-  (* TODO: Factor out this branch-from-ref code *)
-  let branch =
-    if refs = [] then ""
-    else
-      match Astring.String.cuts ~sep:"/" (List.hd refs) with
-      | "refs" :: "heads" :: branch -> Astring.String.concat ~sep:"/" branch
-      | _ -> ""
-  in
   let title_card =
     Build.title_card ~status:build_status ~card_title:(short_hash hash)
       ~hash_link:(link_github_commit ~org ~repo ~hash:(short_hash hash))
-      ~ref_link:(link_github_refs' ~org ~repo refs)
+      ~ref_links:(link_github_refs' ~org ~repo refs)
       ~first_created_at:(Timestamps_durations.pp_timestamp first_step_queued_at)
       ~ran_for:(Timestamps_durations.pp_duration (Some total_run_time))
       ~buttons
@@ -266,7 +258,7 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
     [
       Common.breadcrumbs
         [ ("github", "github"); (org, org); (repo, repo) ]
-        (Fmt.str "%s (%s)" (short_hash hash) branch);
+        (Fmt.str "%s" (short_hash hash));
       title_card;
       Common.flash_messages flash_messages;
       Build.tabulate_steps steps_table;
