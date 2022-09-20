@@ -13,6 +13,10 @@ struct RefInfo {
   ref         @0 :Text;
   hash        @1 :Text;
   state       @2 :BuildStatus;
+  started     :union {
+    ts        @3 :Float64;
+    none      @4 :Void;
+  }
   # The state of the ref's head commit
 }
 
@@ -78,6 +82,9 @@ interface Repo {
   # The hash doesn't need to be the full hash, but must be at least 6 characters long.
 
   commitOfRef @5 (ref :Text) -> (commit :Commit);
+  # ref should be of the form "refs/heads/..." or "refs/pull/4/head"
+
+  historyOfRef @6 (ref :Text) -> (refs :List(RefInfo));
   # ref should be of the form "refs/heads/..." or "refs/pull/4/head"
 }
 
