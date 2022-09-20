@@ -137,7 +137,9 @@ let make_repo ~engine ~owner ~name =
                 let status =
                   to_build_status (Index.get_status ~owner ~name ~hash)
                 in
-                Raw.Builder.RefInfo.state_set slot status);
+                Raw.Builder.RefInfo.state_set slot status;
+                let started_t = Raw.Builder.RefInfo.started_init slot in
+                Raw.Builder.RefInfo.Started.none_set started_t);
          Service.return response
 
        method obsolete_refs_of_commit_impl _ release_param_caps =
@@ -177,6 +179,48 @@ let make_repo ~engine ~owner ~name =
              in
              Results.commit_set results (Some commit);
              Service.return response
+
+       (* method history_of_ref_impl params release_param_caps = *)
+       (*   let open Repo.HistoryOfRef in *)
+       (*   let gref = Params.ref_get params in *)
+       (*   release_param_caps (); *)
+       (*   let history = Index.get_build_history ~owner ~name ~gref in *)
+       (*   let response, results = Service.Response.create Results.init_pointer in *)
+       (*   let arr = Results.refs_init results (List.length history) in *)
+       (*   history *)
+       (*   |> List.iteri (fun i (_, hash, _) -> *)
+       (*          let slot = Capnp.Array.get arr i in *)
+       (*          Raw.Builder.RefInfo.ref_set slot gref; *)
+       (*          Raw.Builder.RefInfo.hash_set slot hash; *)
+       (*          let status = *)
+       (*            to_build_status (Index.get_status ~owner ~name ~hash) *)
+       (*          in *)
+       (*          Raw.Builder.RefInfo.state_set slot status; *)
+       (*          let started_t = Raw.Builder.RefInfo.started_init slot in *)
+       (*          Raw.Builder.RefInfo.Started.none_set started_t); *)
+       (*   Service.return response *)
+
+       method history_of_ref_impl params release_param_caps =
+         let open Repo.HistoryOfRef in
+         let gref = Params.ref_get params in
+         release_param_caps ();
+         let history = Index.get_build_history_with_time ~owner ~name ~gref in
+         let response, results = Service.Response.create Results.init_pointer in
+         let arr = Results.refs_init results (List.length history) in
+         history
+         |> List.iteri (fun i (_, hash, started) ->
+                let slot = Capnp.Array.get arr i in
+                Raw.Builder.RefInfo.ref_set slot gref;
+                Raw.Builder.RefInfo.hash_set slot hash;
+                let status =
+                  to_build_status (Index.get_status ~owner ~name ~hash)
+                in
+                Raw.Builder.RefInfo.state_set slot status;
+                let started_t = Raw.Builder.RefInfo.started_init slot in
+                match started with
+                | None -> Raw.Builder.RefInfo.Started.none_set started_t
+                | Some time -> Raw.Builder.RefInfo.Started.ts_set started_t time);
+         Service.return response
 
        method obsolete_job_of_commit_impl _ release_param_caps =
          release_param_caps ();
