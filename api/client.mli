@@ -68,6 +68,14 @@ module Repo : sig
 
   val commit_of_ref : t -> git_ref -> Commit.t
   (** [commit_of_ref t gref] is the commit at the head of Git reference [gref]. *)
+
+  val history_of_ref :
+    t ->
+    git_ref ->
+    ( (Build_status.t * float option) Ref_map.t,
+      [> `Capnp of Capnp_rpc.Error.t ] )
+    Lwt_result.t
+  (** [history_of_ref t gref] is the list of builds for the Git reference [gref] *)
 end
 
 module Org : sig

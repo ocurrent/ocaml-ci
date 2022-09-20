@@ -11,6 +11,7 @@ type t = {
   get_job : Sqlite3.stmt;
   get_job_ids : Sqlite3.stmt;
   get_commits_job_ids_for_ref : Sqlite3.stmt;
+  get_commit_jobs_ids_for_ref_with_ready : Sqlite3.stmt;
   full_hash : Sqlite3.stmt;
 }
 
@@ -87,6 +88,12 @@ ALTER TABLE ci_build_index
        Sqlite3.prepare db
          "SELECT variant, hash, job_id FROM ci_build_index WHERE owner = ? AND \
           name = ? AND gref = ?"
+     and get_commit_jobs_ids_for_ref_with_ready =
+       Sqlite3.prepare db
+         "SELECT ci_build_index.variant, hash, strftime('%s', cache.ready) \
+          FROM ci_build_index INNER JOIN cache ON ci_build_index.job_id = \
+          cache.job_id WHERE owner = ? AND name = ? AND gref = ? AND \
+          ci_build_index.job_id IS NOT NULL"
      and full_hash =
        Sqlite3.prepare db
          "SELECT DISTINCT hash FROM ci_build_index WHERE owner = ? AND name = \
@@ -99,6 +106,7 @@ ALTER TABLE ci_build_index
        get_job;
        get_job_ids;
        get_commits_job_ids_for_ref;
+       get_commit_jobs_ids_for_ref_with_ready;
        full_hash;
      })
 
@@ -120,6 +128,19 @@ let get_build_history ~owner ~name ~gref =
      | Sqlite3.Data.[ TEXT variant; TEXT hash; TEXT id ] ->
          (variant, hash, Some id)
      | row -> Fmt.failwith "get_build_history: invalid row %a" Db.dump_row row
+
+let get_build_history_with_time ~owner ~name ~gref =
+  let t = Lazy.force db in
+  Db.query t.get_commit_jobs_ids_for_ref_with_ready
+    Sqlite3.Data.[ TEXT owner; TEXT name; TEXT gref ]
+  |> List.map @@ function
+     | Sqlite3.Data.[ TEXT variant; TEXT hash; TEXT started ] ->
+         (variant, hash, Float.of_string_opt started)
+     | Sqlite3.Data.[ TEXT _variant; TEXT _hash; NULL ] ->
+         Fmt.failwith "get_build_history_by_time: null job"
+     | row ->
+         Fmt.failwith "get_build_history_by_time: invalid row %a" Db.dump_row
+           row
 
 module Status_cache = struct
   let cache = Hashtbl.create 1_000

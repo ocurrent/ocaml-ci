@@ -110,6 +110,30 @@ module Repo = struct
     let request, params = Capability.Request.create Params.init_pointer in
     Params.ref_set params gref;
     Capability.call_for_caps t method_id request Results.commit_get_pipelined
+
+  let history_of_ref t gref =
+    let open Raw.Client.Repo.HistoryOfRef in
+    let request, params = Capability.Request.create Params.init_pointer in
+    Params.ref_set params gref;
+    Capability.call_for_value t method_id request
+    |> Lwt_result.map @@ fun history ->
+       Results.refs_get_list history
+       |> List.fold_left
+            (fun acc slot ->
+              let open Build_status in
+              let hash = Raw.Reader.RefInfo.hash_get slot in
+              let state = Raw.Reader.RefInfo.state_get slot in
+              let started = Raw.Reader.RefInfo.started_get slot in
+              let time =
+                match Raw.Reader.RefInfo.Started.get started with
+                | Raw.Reader.RefInfo.Started.None | Undefined _ -> None
+                | Raw.Reader.RefInfo.Started.Ts v -> Some v
+              in
+              match (state, Ref_map.find_opt hash acc) with
+              | state, None -> Ref_map.add hash (state, time) acc
+              | Passed, Some (state', _) -> Ref_map.add hash (state', time) acc
+              | Failed, _ | _ -> acc)
+            Ref_map.empty
 end
 
 module Commit = struct

@@ -40,6 +40,13 @@ module type View = sig
     refs:(string * Build_status.t) Client.Ref_map.t ->
     string
 
+  val list_history :
+    org:string ->
+    repo:string ->
+    ref:string ->
+    history:(string * Client.Build_status.t) list ->
+    string
+
   val list_steps :
     org:string ->
     repo:string ->
