@@ -66,6 +66,9 @@ module Make (View : View) = struct
         Dream.log "Internal server error: %s"
           (Fmt.to_to_string Capnp_rpc.Error.pp ex);
         Dream.empty `Internal_Server_Error
+    | Error (`Msg v) ->
+        Dream.log "Internal server error: %s" v;
+        Dream.empty `Internal_Server_Error
     | Ok y -> f y
 
   let job_url ~org ~repo ~hash variant =
@@ -93,9 +96,11 @@ module Make (View : View) = struct
     Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
     Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
     Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash)
-    @@ fun commit ->
-    Client.Commit.jobs commit >>!= fun jobs ->
-    Client.Commit.refs commit >>!= fun refs ->
+    @@ fun commit_cap ->
+    Client.Commit.status commit_cap >>!= fun status ->
+    Client.Commit.jobs commit_cap >>!= fun jobs ->
+    Client.Commit.refs commit_cap >>!= fun refs ->
+    let build_status = Client.State.from_build_status status in
     let csrf_token = Dream.csrf_tag request in
     let flash_messages = Dream.flash_messages request in
     let first_step_queued_at =
@@ -108,7 +113,7 @@ module Make (View : View) = struct
     let total_run_time = Run_time.total_of_run_times jobs in
     Dream.respond
     @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~csrf_token
-         ~first_step_queued_at ~total_run_time ~flash_messages ()
+         ~first_step_queued_at ~total_run_time ~flash_messages ~build_status ()
 
   let show_step ~org ~repo ~hash ~variant request ci =
     Backend.ci ci >>= fun ci ->
@@ -161,7 +166,10 @@ module Make (View : View) = struct
     Capability.with_ref (Current_rpc.Job.rebuild job_cap) @@ fun new_job_cap ->
     Capability.await_settled new_job_cap >>= function
     | Ok () ->
-        let () = Dream.add_flash_message request "Rebuilding" variant in
+        let () =
+          Dream.add_flash_message request "Success"
+            (Fmt.str "Rebuilding %s" variant)
+        in
         let uri = job_url ~org ~repo ~hash variant in
         Dream.redirect request uri
     | Error { Capnp_rpc.Exception.reason; _ } ->
@@ -192,24 +200,16 @@ module Make (View : View) = struct
     Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
     Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash)
     @@ fun commit_cap ->
-    Client.Commit.refs commit_cap >>!= fun refs ->
     Client.Commit.jobs commit_cap >>!= fun jobs ->
     cancel_many commit_cap jobs >>= fun (success, failed) ->
-    let success_msg = View.cancel_success_message success in
-    let fail_msg = View.cancel_fail_message failed in
-    let return_link = View.return_link ~org ~repo ~hash in
-    let csrf_token = Dream.csrf_tag request in
-    let first_step_queued_at =
-      match Run_time.first_step_queued_at jobs with
-      | Error e ->
-          Dream.log "Error - %s" e;
-          None
-      | Ok v -> Some v
+    let success_msg = View.cancel_success_message_v1 success in
+    let fail_msg = View.cancel_fail_message_v1 failed in
+    let flash_messages =
+      List.map (fun (`Success, m) -> ("Success", m)) success_msg
+      @ List.map (fun (`Fail, m) -> ("Error", m)) fail_msg
     in
-    let total_run_time = Run_time.total_of_run_times jobs in
-    Dream.respond
-    @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~success_msg ~fail_msg
-         ~return_link ~csrf_token ~first_step_queued_at ~total_run_time ()
+    List.iter (fun (s, m) -> Dream.add_flash_message request s m) flash_messages;
+    Dream.redirect request (Fmt.str "/github/%s/%s/commit/%s" org repo hash)
 
   let rebuild_steps ~rebuild_failed_only ~org ~repo ~hash request ci =
     Backend.ci ci >>= fun ci ->
@@ -243,22 +243,15 @@ module Make (View : View) = struct
     Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
     Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash)
     @@ fun commit_cap ->
-    Client.Commit.refs commit_cap >>!= fun refs ->
+    (* Client.Commit.refs commit_cap >>!= fun refs -> *)
     Client.Commit.jobs commit_cap >>!= fun jobs ->
     rebuild_many commit_cap jobs >>= fun (success, failed) ->
-    let success_msg = View.rebuild_success_message success in
-    let fail_msg = View.rebuild_fail_message failed in
-    let return_link = View.return_link ~org ~repo ~hash in
-    let csrf_token = Dream.csrf_tag request in
-    let first_step_queued_at =
-      match Run_time.first_step_queued_at jobs with
-      | Error e ->
-          Dream.log "Error - %s" e;
-          None
-      | Ok v -> Some v
+    let success_msg = View.rebuild_success_message_v1 success in
+    let fail_msg = View.rebuild_fail_message_v1 failed in
+    let flash_messages =
+      List.map (fun (`Success, m) -> ("Success", m)) success_msg
+      @ List.map (fun (`Fail, m) -> ("Error", m)) fail_msg
     in
-    let total_run_time = Run_time.total_of_run_times jobs in
-    Dream.respond
-    @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~success_msg ~fail_msg
-         ~return_link ~csrf_token ~first_step_queued_at ~total_run_time ()
+    List.iter (fun (s, m) -> Dream.add_flash_message request s m) flash_messages;
+    Dream.redirect request (Fmt.str "/github/%s/%s/commit/%s" org repo hash)
 end

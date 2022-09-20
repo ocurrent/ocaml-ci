@@ -18,6 +18,11 @@ module State = struct
     | Passed -> Fmt.string f "passed"
     | Active -> Fmt.string f "active"
     | Undefined x -> Fmt.pf f "unknown:%d" x
+
+  let from_build_status = function
+    | `Failed -> Failed ""
+    | `Pending | `Not_started -> NotStarted
+    | `Passed -> Passed
 end
 
 module Build_status = struct

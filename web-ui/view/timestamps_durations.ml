@@ -6,6 +6,14 @@ let to_iso8601 (tt : float) =
   let ts = Timedesc.of_timestamp_float_s tt in
   Timedesc.to_iso8601 @@ Option.get ts
 
+let to_ts_string (tt : float) =
+  let ts = Timedesc.of_timestamp_float_s tt in
+  Timedesc.to_string
+    ~format:
+      "{mon:Xxx} {day:0X} {hour:0X}:{min:0X} \
+       {tzoff-sign}{tzoff-hour:0X}:{tzoff-min:0X}"
+  @@ Option.get ts
+
 let ul_timestamps ~queued_at ~started_at ~finished_at =
   let queued_at = Option.fold ~none:"-" ~some:to_iso8601 queued_at in
   let started_at = Option.fold ~none:"-" ~some:to_iso8601 started_at in
@@ -94,3 +102,9 @@ let show_build ~first_step_queued_at ~total_run_time =
                (Duration.of_f total_run_time);
         ];
     ]
+
+let pp_timestamp v = Option.fold ~none:"-" ~some:to_ts_string v
+
+let pp_duration =
+  Option.fold ~none:"-" ~some:(fun v ->
+      Fmt.str "%a" Run_time.duration_pp (Duration.of_f v))

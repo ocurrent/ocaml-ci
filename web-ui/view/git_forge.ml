@@ -15,6 +15,16 @@ module type View = sig
 
   val rebuild_fail_message : int -> [> Html_types.div ] Tyxml_html.elt
 
+  val cancel_success_message_v1 :
+    Client.job_info list -> ([> `Success ] * string) list
+
+  val cancel_fail_message_v1 : int -> ([> `Fail ] * string) list
+
+  val rebuild_success_message_v1 :
+    Client.job_info list -> ([> `Success ] * string) list
+
+  val rebuild_fail_message_v1 : int -> ([> `Fail ] * string) list
+
   val return_link :
     org:string ->
     repo:string ->
@@ -44,6 +54,7 @@ module type View = sig
     ?fail_msg:'a Tyxml_html.elt ->
     ?return_link:'a Tyxml_html.elt ->
     ?flash_messages:(string * string) list ->
+    ?build_status:Client.State.t ->
     csrf_token:string ->
     unit ->
     string

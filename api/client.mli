@@ -18,6 +18,7 @@ module State : sig
   type t = Raw.Reader.JobInfo.State.unnamed_union_t
 
   val pp : t Fmt.t
+  val from_build_status : [< `Failed | `Not_started | `Passed | `Pending ] -> t
 end
 
 type job_info = {
