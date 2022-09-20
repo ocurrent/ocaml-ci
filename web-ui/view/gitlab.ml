@@ -47,6 +47,15 @@ let refs_v ~org ~repo ~refs =
          ~a:[ a_class [ Build_status.class_name status ] ]
          [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt branch ] ])
 
+let history_v ~org ~repo ~history =
+  ul
+    ~a:[ a_class [ "statuses" ] ]
+    (history
+    |> List.map @@ fun (commit, status) ->
+       li
+         ~a:[ a_class [ Build_status.class_name status ] ]
+         [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt commit ] ])
+
 let link_gitlab_refs ~org ~repo = function
   | [] -> txt "(not at the head of any monitored branch or merge request)"
   | refs ->
@@ -104,6 +113,14 @@ let list_refs ~org ~repo ~refs =
   Template.instance
     [
       breadcrumbs [ (prefix, prefix); (org, org) ] repo; refs_v ~org ~repo ~refs;
+    ]
+
+let list_history ~org ~repo ~ref ~history =
+  Template.instance
+    [
+      breadcrumbs [ (prefix, prefix); (org, org) ] repo;
+      link_gitlab_refs ~org ~repo [ ref ];
+      history_v ~org ~repo ~history;
     ]
 
 let cancel_success_message success =

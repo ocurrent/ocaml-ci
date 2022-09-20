@@ -49,8 +49,46 @@ let refs_v ~org ~repo ~refs =
          ~a:[ a_class [ Build_status.class_name status ] ]
          [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt branch ] ])
 
+let history_v ~org ~repo ~history =
+  ul
+    ~a:[ a_class [ "statuses" ] ]
+    (history
+    |> List.map @@ fun (commit, status) ->
+       li
+         ~a:[ a_class [ Build_status.class_name status ] ]
+         [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt commit ] ])
+
 let link_github_commit ~org ~repo ~hash =
   a ~a:[ a_href (github_commit_url ~org ~repo ~hash) ] [ txt hash ]
+
+let link_github_refs ~org ~repo = function
+  | [] -> txt "(not at the head of any monitored branch or PR)"
+  | refs ->
+      p
+        (txt "(for "
+         :: intersperse ~sep:(txt ", ")
+              (refs
+              |> List.map @@ fun r ->
+                 match Astring.String.cuts ~sep:"/" r with
+                 | "refs" :: "heads" :: branch ->
+                     let branch = Astring.String.concat ~sep:"/" branch in
+                     span
+                       [
+                         txt "branch ";
+                         a
+                           ~a:[ a_href (github_branch_url ~org ~repo branch) ]
+                           [ txt branch ];
+                       ]
+                 | [ "refs"; "pull"; id; "head" ] ->
+                     span
+                       [
+                         txt "PR ";
+                         a
+                           ~a:[ a_href (github_pr_url ~org ~repo id) ]
+                           [ txt ("#" ^ id) ];
+                       ]
+                 | _ -> txt (Fmt.str "Bad ref format %S" r))
+        @ [ txt ")" ])
 
 let link_github_refs' ~org ~repo refs =
   let f r =
@@ -72,6 +110,14 @@ let list_refs ~org ~repo ~refs =
     [
       breadcrumbs [ ("github", "github"); (org, org) ] repo;
       refs_v ~org ~repo ~refs;
+    ]
+
+let list_history ~org ~repo ~ref ~history =
+  Template.instance
+    [
+      breadcrumbs [ ("github", "github"); (org, org) ] repo;
+      link_github_refs ~org ~repo [ ref ];
+      history_v ~org ~repo ~history;
     ]
 
 let cancel_success_message success =

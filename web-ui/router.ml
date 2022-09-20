@@ -108,6 +108,25 @@ let create ~github ~gitlab =
             ~org:(Dream.param request "org")
             ~repo:(Dream.param request "repo")
             github);
+      Dream.get "/github/:org/:repo/history/branch/**" (fun request ->
+          let fpath = Dream.target request |> Dream.from_path in
+          let rec f = function
+            | [] -> Dream.empty `Not_Found
+            | "branch" :: refs ->
+                let gref = String.concat Filename.dir_sep refs in
+                Controller.Github.list_history
+                  ~org:(Dream.param request "org")
+                  ~repo:(Dream.param request "repo")
+                  ~gref:(`Branch gref) github
+            | _ :: paths -> f paths
+          in
+          f fpath);
+      Dream.get "/github/:org/:repo/history/pull/:number" (fun request ->
+          let number = Dream.param request "number" in
+          Controller.Github.list_history
+            ~org:(Dream.param request "org")
+            ~repo:(Dream.param request "repo")
+            ~gref:(`Pull number) github);
       Dream.get "/github/:org/:repo/commit/:hash" (fun request ->
           Controller.Github.list_steps
             ~org:(Dream.param request "org")

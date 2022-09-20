@@ -10,6 +10,13 @@ module type Controller = sig
   val list_refs :
     org:string -> repo:string -> Backend.t -> Dream.server Dream.message Lwt.t
 
+  val list_history :
+    org:string ->
+    repo:string ->
+    gref:[ `Branch of string | `Pull of string ] ->
+    Backend.t ->
+    Dream.response Lwt.t
+
   val list_steps :
     org:string ->
     repo:string ->
@@ -114,6 +121,26 @@ module Make (View : View) = struct
     Dream.respond
     @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~csrf_token
          ~first_step_queued_at ~total_run_time ~flash_messages ~build_status ()
+
+  let list_history ~org ~repo ~gref ci =
+    Backend.ci ci >>= fun ci ->
+    Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
+    Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
+    let ref =
+      match gref with
+      | `Branch b -> Fmt.str "refs/heads/%s" b
+      | `Pull n -> Fmt.str "refs/pull/%s/head" n
+    in
+    Client.Repo.history_of_ref repo_cap ref >>!= fun history ->
+    let history =
+      Client.Ref_map.bindings history
+      |> List.filter (fun (_, (_, time)) -> Option.is_some time)
+      |> List.map (fun (hash, (state, time)) ->
+             (hash, (state, Option.get time)))
+      |> List.sort (fun (_, (_, t1)) (_, (_, t2)) -> compare t2 t1)
+      |> List.map (fun (hash, (state, _)) -> (hash, state))
+    in
+    Dream.respond @@ View.list_history ~org ~repo ~ref ~history
 
   let show_step ~org ~repo ~hash ~variant request ci =
     Backend.ci ci >>= fun ci ->
