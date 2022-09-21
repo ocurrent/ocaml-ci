@@ -11,7 +11,7 @@ type t = {
   get_job : Sqlite3.stmt;
   get_job_ids : Sqlite3.stmt;
   get_commits_job_ids_for_ref : Sqlite3.stmt;
-  get_commit_jobs_ids_for_ref_with_ready : Sqlite3.stmt;
+  get_git_fetch_outcome_by_time : Sqlite3.stmt;
   full_hash : Sqlite3.stmt;
 }
 
@@ -88,12 +88,10 @@ ALTER TABLE ci_build_index
        Sqlite3.prepare db
          "SELECT variant, hash, job_id FROM ci_build_index WHERE owner = ? AND \
           name = ? AND gref = ?"
-     and get_commit_jobs_ids_for_ref_with_ready =
+     and get_git_fetch_outcome_by_time =
        Sqlite3.prepare db
-         "SELECT ci_build_index.variant, hash, strftime('%s', cache.ready) \
-          FROM ci_build_index INNER JOIN cache ON ci_build_index.job_id = \
-          cache.job_id WHERE owner = ? AND name = ? AND gref = ? AND \
-          ci_build_index.job_id IS NOT NULL"
+         " SELECT key, strftime('%s', ready) FROM cache WHERE op LIKE \
+          'git-fetch' AND key LIKE ? ORDER BY ready DESC"
      and full_hash =
        Sqlite3.prepare db
          "SELECT DISTINCT hash FROM ci_build_index WHERE owner = ? AND name = \
@@ -106,7 +104,7 @@ ALTER TABLE ci_build_index
        get_job;
        get_job_ids;
        get_commits_job_ids_for_ref;
-       get_commit_jobs_ids_for_ref_with_ready;
+       get_git_fetch_outcome_by_time;
        full_hash;
      })
 
@@ -131,16 +129,19 @@ let get_build_history ~owner ~name ~gref =
 
 let get_build_history_with_time ~owner ~name ~gref =
   let t = Lazy.force db in
-  Db.query t.get_commit_jobs_ids_for_ref_with_ready
-    Sqlite3.Data.[ TEXT owner; TEXT name; TEXT gref ]
-  |> List.map @@ function
-     | Sqlite3.Data.[ TEXT variant; TEXT hash; TEXT started ] ->
-         (variant, hash, Float.of_string_opt started)
-     | Sqlite3.Data.[ TEXT _variant; TEXT _hash; NULL ] ->
-         Fmt.failwith "get_build_history_by_time: null job"
-     | row ->
-         Fmt.failwith "get_build_history_by_time: invalid row %a" Db.dump_row
-           row
+  let repo = Fmt.str "%%%s/%s.git %%" owner name in
+  Logs.debug (fun l -> l "Trying to fetch %s on %s" repo gref);
+  Db.query t.get_git_fetch_outcome_by_time Sqlite3.Data.[ TEXT repo ]
+  |> (List.map @@ function
+      | Sqlite3.Data.[ BLOB key; TEXT ready ] -> (
+          let key = String.split_on_char ' ' key in
+          match key with
+          | [ _; gref; hash ] -> (gref, hash, Float.of_string_opt ready)
+          | _ -> Fmt.failwith "get_build_history_slow: wrong key format")
+      | row ->
+          Fmt.failwith "get_build_history_slow: invalid row %a" Db.dump_row row)
+  |> List.filter (fun (gref', _, time) ->
+         if Option.is_none time then false else gref = gref')
 
 module Status_cache = struct
   let cache = Hashtbl.create 1_000
