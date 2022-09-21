@@ -26,15 +26,15 @@ let platforms =
   Current.list_seq (List.map v v2_1)
 
 (* Link for GitHub statuses. *)
-let url ~owner ~name ~hash =
+let url ~owner ~name ~hash ~gref =
   Uri.of_string
-    (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s" owner name
-       hash)
+    (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s/%s" owner
+       name hash gref)
 
 (* Link for GitHub CheckRun details. *)
-let url_variant ~owner ~name ~hash ~variant =
-  Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s/variant/%s"
-    owner name hash variant
+let url_variant ~owner ~name ~hash ~variant ~gref =
+  Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s/variant/%s/%s"
+    owner name hash variant gref
 
 let opam_repository_commit =
   let repo = { Github.Repo_id.owner = "ocaml"; name = "opam-repository" } in
@@ -43,11 +43,13 @@ let opam_repository_commit =
 let github_status_of_state ~head result results =
   let+ head = head and+ result = result and+ results = results in
   let { Github.Repo_id.owner; name } = Github.Api.Commit.repo_id head in
+  let commit_id = Github.Api.Commit.id head in
+  let gref = Current_git.Commit_id.gref commit_id in
   let hash = Github.Api.Commit.hash head in
-  let url = url ~owner ~name ~hash in
+  let url = url ~owner ~name ~hash ~gref in
   let pp_status f = function
     | variant, (build, _job_id) -> (
-        let job_url = url_variant ~owner ~name ~hash ~variant in
+        let job_url = url_variant ~owner ~name ~hash ~variant ~gref in
         match build with
         | Ok `Checked | Ok `Built ->
             Fmt.pf f "%s [%s (%s)](%s)" "✅" variant "passed" job_url
