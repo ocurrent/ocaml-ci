@@ -440,6 +440,35 @@ let test_first_step_queued_at =
   Alcotest.(check (result (float 0.001) string))
     "first_step_queued_at not-empty" expected result
 
+let test_duration_pp =
+  let ten_power_9 : int64 = 1000000000L in
+
+  let expected = "0s" in
+  let result = Fmt.str "%a" Run_time.duration_pp 0L in
+  Alcotest.(check string) "Os are printed without microseconds" expected result;
+
+  let expected = "12s" in
+  let result = Fmt.str "%a" Run_time.duration_pp (Int64.mul 12L ten_power_9) in
+  Alcotest.(check string) "Os are printed without microseconds" expected result;
+
+  let expected = "1m02s" in
+  let result = Fmt.str "%a" Run_time.duration_pp (Int64.mul 62L ten_power_9) in
+  Alcotest.(check string) "Minutes and seconds" expected result;
+
+  let expected = "1h01m" in
+  let result =
+    Fmt.str "%a" Run_time.duration_pp (Int64.mul 3662L ten_power_9)
+  in
+  Alcotest.(check string)
+    "Seconds are not printed for durations in excess of an hour" expected result;
+
+  let expected = "1d00h" in
+  let result =
+    Fmt.str "%a" Run_time.duration_pp (Int64.mul 86462L ten_power_9)
+  in
+  Alcotest.(check string)
+    "Minutes are not printed for durations in excess of a day" expected result
+
 let tests =
   [
     Alcotest_lwt.test_case_sync "info_from_timestamps_queued" `Quick
@@ -494,4 +523,6 @@ let tests =
         test_total_of_run_times);
     Alcotest_lwt.test_case_sync "first step queued at" `Quick (fun () ->
         test_first_step_queued_at);
+    Alcotest_lwt.test_case_sync "duration_pp" `Quick (fun () ->
+        test_duration_pp);
   ]

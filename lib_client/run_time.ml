@@ -31,20 +31,8 @@ let duration_pp ppf t =
           Fmt.pf ppf "%dm%02ds" min sec
   else
     (* below one minute *)
-    let fields t =
-      let sec = to_sec_64 t in
-      let left = Int64.sub t (of_sec_64 sec) in
-      let ms = to_ms_64 left in
-      let left = Int64.sub left (of_ms_64 ms) in
-      let us = to_us_64 left in
-      let ns = Int64.(sub left (of_us_64 us)) in
-      (sec, ms, us, ns)
-    in
-    let s, ms, us, ns = fields t in
-    if s > 0L then Fmt.pf ppf "%Lds" s
-    else if ms > 0L then Fmt.pf ppf "%Ldms" ms
-    else (* if us > 0 then *)
-      Fmt.pf ppf "%Ld.%03Ldus" us ns
+    let sec = to_sec t in
+    Fmt.pf ppf "%ds" sec
 
 let cmp_floats v1 v2 = abs_float (v1 -. v2) < 0.0000001
 
