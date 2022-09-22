@@ -28,13 +28,14 @@ let platforms =
 (* Link for GitHub statuses. *)
 let url ~owner ~name ~hash ~gref =
   Uri.of_string
-    (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s/%s" owner
+    (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s/-/%s" owner
        name hash gref)
 
 (* Link for GitHub CheckRun details. *)
 let url_variant ~owner ~name ~hash ~variant ~gref =
-  Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s/variant/%s/%s"
-    owner name hash variant gref
+  Printf.sprintf
+    "https://ci.ocamllabs.io/github/%s/%s/commit/%s/variant/%s/-/%s" owner name
+    hash variant gref
 
 let opam_repository_commit =
   let repo = { Github.Repo_id.owner = "ocaml"; name = "opam-repository" } in
