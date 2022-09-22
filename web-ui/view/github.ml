@@ -388,21 +388,28 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
   in
   let ansi = Ansi.create () in
   let line_number = ref 0 in
+  let last_line_blank = ref false in
   let decorate data : string =
-    let aux l log_line =
-      line_number := !line_number + 1;
-      Fmt.str "%s\n%s" l
-        (Fmt.to_to_string (pp_elt ())
-           (div
-              ~a:[ a_class [ "code-line" ]; a_id (Fmt.str "L%d" !line_number) ]
-              [
-                div
-                  ~a:[ a_class [ "code-line__number" ] ]
-                  [ txt (Fmt.str "%d" !line_number) ];
-                div
-                  ~a:[ a_class [ "code-line__code" ] ]
-                  [ Unsafe.data log_line ];
-              ]))
+    let aux (l : string) log_line =
+      if !last_line_blank && log_line = "" then
+        (* Squash consecutive new lines *)
+        l
+      else (
+        last_line_blank := log_line = "";
+        line_number := !line_number + 1;
+        Fmt.str "%s\n%s" l
+          (Fmt.str "%a" (pp_elt ())
+             (div
+                ~a:
+                  [ a_class [ "code-line" ]; a_id (Fmt.str "L%d" !line_number) ]
+                [
+                  div
+                    ~a:[ a_class [ "code-line__number" ] ]
+                    [ txt (Fmt.str "%d" !line_number) ];
+                  div
+                    ~a:[ a_class [ "code-line__code" ] ]
+                    [ pre [ Unsafe.data log_line ] ];
+                ])))
     in
     List.fold_left aux "" data
   in
