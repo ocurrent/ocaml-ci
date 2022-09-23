@@ -25,7 +25,11 @@ To add the CI to your own project:
 2. Configure just the repositories you want to test (start with one!). If you select `All Repositories` we won't build anything.
 3. Ask us to add you to the alpha-testers list by submitting a PR against this
    repository adding yourself to `--github-account-allowlist` in `stack.yml`. eg https://github.com/ocurrent/ocaml-ci/pull/346
-4. Report bugs :-)
+4. Add a status badge from the OCaml-CI endpoint with:
+   ```
+   [![OCaml-CI Build Status](https://img.shields.io/endpoint?url=https://ci.ocamllabs.io/badge/<user>/<repo>/<branch>&logo=ocaml)](https://ci.ocamllabs.io/github/<user>/<repo>)
+   ```
+5. Report bugs :-)
 
 ## Installation
 
