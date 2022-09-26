@@ -15,6 +15,7 @@ let head =
           ]
         ();
       script ~a:[ a_defer (); a_src "/js/alpine.js" ] (txt "");
+      script ~a:[ a_defer (); a_src "/js/alpine-clipboard.js" ] (txt "");
       link ~rel:[ `Stylesheet ] ~href:"/fonts/inter.css" ();
       link ~rel:[ `Stylesheet ] ~href:"/css/tailwind.css" ();
       link ~rel:[ `Stylesheet ] ~href:"/css/ansi.css" ();
@@ -54,9 +55,16 @@ let header =
         ];
     ]
 
-let instance contents =
+let instance ?scripts contents =
+  let script_contents =
+    match scripts with None -> div [] | Some scripts -> scripts
+  in
   html_to_string
     (html head
        (body
           ~a:[ a_class [ "" ] ]
-          [ header; div ~a:[ a_class [ "container-fluid"; "py-12" ] ] contents ]))
+          [
+            header;
+            div ~a:[ a_class [ "container-fluid"; "py-12" ] ] contents;
+            script_contents;
+          ]))

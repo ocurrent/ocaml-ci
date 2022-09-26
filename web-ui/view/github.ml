@@ -348,7 +348,7 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
         ~button
     in
     let body =
-      Template_v1.instance
+      Template_v1.instance ~scripts:Step.log_highlight_js
         [
           Common.breadcrumbs
             [
@@ -362,8 +362,87 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
           title_card;
           Common.flash_messages flash_messages;
           div
-            ~a:[ a_class [ "container-fluid mt-8 flex flex-col" ] ]
+            ~a:
+              [
+                a_class [ "container-fluid mt-8 flex flex-col" ];
+                Tyxml_helpers.x_data
+                  "{ url: window.location.href, logs: true, artefacts: false, \
+                   codeCoverage: false, codeCopied: false, linkCopied: false, \
+                   startingLine: null, endingLine: null, manualSelection: \
+                   false}";
+              ]
             [
+              div
+                ~a:
+                  [
+                    a_class [ "notification" ];
+                    Tyxml_helpers.x_cloak;
+                    Tyxml_helpers.x_show "linkCopied";
+                    Tyxml_helpers.x_transition;
+                  ]
+                [
+                  div
+                    ~a:[ a_class [ "flex items-center space-x-2" ] ]
+                    [
+                      div
+                        ~a:[ a_class [ "icon-status icon-status--success" ] ]
+                        [
+                          Tyxml.Svg.(
+                            Tyxml.Html.svg
+                              ~a:
+                                [
+                                  a_class [ "h-4 w-4" ];
+                                  a_viewBox (0., 0., 20., 20.);
+                                  a_fill (`Color ("#12B76A", None));
+                                ]
+                              [
+                                path
+                                  ~a:
+                                    [
+                                      Tyxml_helpers.a_svg_custom "fill-rule"
+                                        "evenodd";
+                                      Tyxml_helpers.a_svg_custom "clip-rule"
+                                        "evenodd";
+                                      a_d
+                                        "M16.707 5.293a1 1 0 010 1.414l-8 8a1 \
+                                         1 0 01-1.414 0l-4-4a1 1 0 \
+                                         011.414-1.414L8 12.586l7.293-7.293a1 \
+                                         1 0 011.414 0z";
+                                    ]
+                                  [];
+                              ]);
+                        ];
+                      div [ txt "Link copied" ];
+                    ];
+                  Tyxml.Html.button
+                    ~a:
+                      [
+                        a_class [ "icon-button" ];
+                        Tyxml_helpers.at_click "linkCopied=false";
+                      ]
+                    [
+                      Tyxml.Svg.(
+                        Tyxml.Html.svg
+                          ~a:
+                            [
+                              a_fill `None;
+                              a_viewBox (0., 0., 24., 24.);
+                              a_stroke_width (2.5, Some `Px);
+                              a_stroke `CurrentColor;
+                              a_class [ "w-4 h-4" ];
+                            ]
+                          [
+                            path
+                              ~a:
+                                [
+                                  a_stroke_linecap `Round;
+                                  a_stroke_linejoin `Round;
+                                  a_d "M4.5 19.5l15-15m-15 0l15 15";
+                                ]
+                              [];
+                          ]);
+                    ];
+                ];
               div
                 ~a:
                   [
@@ -378,12 +457,55 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
               div
                 [
                   div
-                    ~a:[ a_class [ "mt-6 bg-gray-900 rounded-lg relative" ] ]
-                    [ div ~a:[ a_class [ "overflow-auto" ] ] [ txt "@@@" ] ];
+                    ~a:
+                      [
+                        a_class [ "mt-6 bg-gray-900 rounded-lg relative" ];
+                        Tyxml_helpers.x_data "codeLink";
+                        Tyxml_helpers.x_init "highlightLine";
+                      ]
+                    [
+                      Tyxml.Html.button
+                        ~a:
+                          [
+                            a_class [ "copy-link-btn" ];
+                            Tyxml_helpers.at_click "copyCode";
+                            Tyxml_helpers.x_show "manualSelection";
+                            Tyxml_helpers.x_ref "copyLinkBtn";
+                          ]
+                        [
+                          Tyxml.Svg.(
+                            Tyxml.Html.svg
+                              ~a:
+                                [
+                                  a_class [ "w-4 h-4" ];
+                                  a_fill `None;
+                                  a_viewBox (0., 0., 24., 24.);
+                                  a_stroke_width (2., Some `Px);
+                                  a_stroke `CurrentColor;
+                                ]
+                              [
+                                path
+                                  ~a:
+                                    [
+                                      a_stroke_linecap `Round;
+                                      a_stroke_linejoin `Round;
+                                      a_d
+                                        "M13.19 8.688a4.5 4.5 0 011.242 \
+                                         7.244l-4.5 4.5a4.5 4.5 0 \
+                                         01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 \
+                                         4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 \
+                                         0 001.242 7.244";
+                                    ]
+                                  [];
+                              ]);
+                        ];
+                      div ~a:[ a_class [ "overflow-auto" ] ] [ txt "@@@" ];
+                    ];
                 ];
             ];
         ]
     in
+
     Astring.String.cut ~sep:"@@@" body |> Option.get
   in
   let ansi = Ansi.create () in
@@ -401,7 +523,15 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
           (Fmt.str "%a" (pp_elt ())
              (div
                 ~a:
-                  [ a_class [ "code-line" ]; a_id (Fmt.str "L%d" !line_number) ]
+                  [
+                    a_class [ "code-line" ];
+                    Tyxml_helpers.colon_class
+                      "parseInt($el.id.substring(1, $el.id.length)) >= \
+                       startingLine && parseInt($el.id.substring(1, \
+                       $el.id.length)) <= endingLine ? 'highlight' : ''";
+                    Tyxml_helpers.at_click "highlightLine";
+                    a_id (Fmt.str "L%d" !line_number);
+                  ]
                 [
                   div
                     ~a:[ a_class [ "code-line__number" ] ]
@@ -429,7 +559,6 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
             Dream.close response_stream
         | Ok (data, next) ->
             Dream.log "Fetching logs";
-            (* Can we keep track of line numbers and decorate the data into divs etc. here *)
             let data' =
               data
               |> Ansi.process ansi
