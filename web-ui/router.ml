@@ -148,6 +148,14 @@ let create ~github ~gitlab =
             ~hash:(Dream.param request "hash")
             ~variant:(Dream.param request "variant")
             request github);
+      (* This route will support the upcoming change to add refs to the context of a step
+         For now - we ignore any ref information and treat it as the route above. *)
+      Dream.get "/github/:org/:repo/commit/:hash/variant/:variant/-/**"
+        (fun request ->
+          let target =
+            List.hd (Astring.String.cuts ~sep:"/-/" (Dream.target request))
+          in
+          Dream.redirect request target);
       Dream.post "/github/:org/:repo/commit/:hash/variant/:variant/rebuild"
         (fun request ->
           Dream.form request >>= function
