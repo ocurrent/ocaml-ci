@@ -17,6 +17,7 @@ let head =
       script ~a:[ a_defer (); a_src "/js/alpine.js" ] (txt "");
       link ~rel:[ `Stylesheet ] ~href:"/fonts/inter.css" ();
       link ~rel:[ `Stylesheet ] ~href:"/css/tailwind.css" ();
+      link ~rel:[ `Stylesheet ] ~href:"/css/ansi.css" ();
     ]
 
 let header =
