@@ -133,6 +133,13 @@ let create ~github ~gitlab =
             ~repo:(Dream.param request "repo")
             ~hash:(Dream.param request "hash")
             request github);
+      (* This route will support the upcoming change to add refs to the context of a commit
+         For now - we ignore any ref information and treat it as the route above. *)
+      Dream.get "/github/:org/:repo/commit/:hash/-/**" (fun request ->
+          let target =
+            List.hd (Astring.String.cuts ~sep:"/-/" (Dream.target request))
+          in
+          Dream.redirect request target);
       Dream.get "/github/:org/:repo/commit/:hash/variant/:variant"
         (fun request ->
           Controller.Github.show_step
