@@ -180,26 +180,6 @@ let make_repo ~engine ~owner ~name =
              Results.commit_set results (Some commit);
              Service.return response
 
-       (* method history_of_ref_impl params release_param_caps = *)
-       (*   let open Repo.HistoryOfRef in *)
-       (*   let gref = Params.ref_get params in *)
-       (*   release_param_caps (); *)
-       (*   let history = Index.get_build_history ~owner ~name ~gref in *)
-       (*   let response, results = Service.Response.create Results.init_pointer in *)
-       (*   let arr = Results.refs_init results (List.length history) in *)
-       (*   history *)
-       (*   |> List.iteri (fun i (_, hash, _) -> *)
-       (*          let slot = Capnp.Array.get arr i in *)
-       (*          Raw.Builder.RefInfo.ref_set slot gref; *)
-       (*          Raw.Builder.RefInfo.hash_set slot hash; *)
-       (*          let status = *)
-       (*            to_build_status (Index.get_status ~owner ~name ~hash) *)
-       (*          in *)
-       (*          Raw.Builder.RefInfo.state_set slot status; *)
-       (*          let started_t = Raw.Builder.RefInfo.started_init slot in *)
-       (*          Raw.Builder.RefInfo.Started.none_set started_t); *)
-       (*   Service.return response *)
-
        method history_of_ref_impl params release_param_caps =
          let open Repo.HistoryOfRef in
          let gref = Params.ref_get params in
