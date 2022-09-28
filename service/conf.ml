@@ -48,7 +48,7 @@ module Builders = struct
 end
 
 module OV = Ocaml_version
-module DD = Dockerfile_distro
+module DD = Dockerfile_opam.Distro
 
 let default_compiler = OV.(Releases.latest |> without_patch)
 let trunk_compiler = OV.(Sources.trunk |> without_patch)
