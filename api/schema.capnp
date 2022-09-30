@@ -17,6 +17,7 @@ struct RefInfo {
     ts        @3 :Float64;
     none      @4 :Void;
   }
+  title       @5 :Text;
   # The state of the ref's head commit
 }
 
@@ -68,6 +69,8 @@ interface Commit {
   # Get the set of branches and PRs with this commit at their head.
 
   status @3 () -> (status :BuildStatus);
+
+  title @4 (hash :Text) -> (title :Text);
 }
 
 interface Repo {

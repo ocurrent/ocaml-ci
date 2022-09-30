@@ -122,6 +122,7 @@ module Repo = struct
             (fun acc slot ->
               let open Build_status in
               let hash = Raw.Reader.RefInfo.hash_get slot in
+              let title = Raw.Reader.RefInfo.title_get slot in
               let state = Raw.Reader.RefInfo.state_get slot in
               let started = Raw.Reader.RefInfo.started_get slot in
               let time =
@@ -130,8 +131,9 @@ module Repo = struct
                 | Raw.Reader.RefInfo.Started.Ts v -> Some v
               in
               match (state, Ref_map.find_opt hash acc) with
-              | state, None -> Ref_map.add hash (state, time) acc
-              | Passed, Some (state', _) -> Ref_map.add hash (state', time) acc
+              | state, None -> Ref_map.add hash (title, state, time) acc
+              | Passed, Some (title', state', _) ->
+                  Ref_map.add hash (title', state', time) acc
               | Failed, _ | _ -> acc)
             Ref_map.empty
 end

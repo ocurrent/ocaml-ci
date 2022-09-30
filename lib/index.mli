@@ -56,7 +56,7 @@ val get_build_history_with_time :
   owner:string ->
   name:string ->
   gref:string ->
-  (string * string * float option) list
+  (string * string * string * float option) list
 (** [get_build_history_with_time ~owner ~name ~gref] is a list of builds for the
     branch gref of the repo identfied by (owner, name). The builds are
     identified by triples (variant, hash, Some timestamp) *)
