@@ -54,6 +54,12 @@ let title_card ~status ~card_title ~hash_link ~ref_links ~first_created_at
           ];
       ])
 
+let tabulate rows =
+  Tyxml.Html.(
+    div
+      ~a:[ a_class [ "container-fluid mt-8 flex flex-col space-y-6" ] ]
+      [ div ~a:[ a_class [ "table-container" ] ] rows ])
+
 let step_row ~step_title ~created_at ~queued_for ~ran_for ~status ~step_uri =
   Tyxml.Html.(
     a
@@ -96,8 +102,32 @@ let step_row ~step_title ~created_at ~queued_for ~ran_for ~status ~step_uri =
           ];
       ])
 
-let tabulate_steps step_rows =
+let commit_row ~commit_title ~short_hash ~created_at ~status ~commit_uri =
   Tyxml.Html.(
-    div
-      ~a:[ a_class [ "container-fluid mt-8 flex flex-col space-y-6" ] ]
-      [ div ~a:[ a_class [ "table-container" ] ] step_rows ])
+    a
+      ~a:[ a_class [ "table-row" ]; a_href commit_uri ]
+      [
+        div
+          ~a:[ a_class [ "flex items-center space-x-3" ] ]
+          [
+            Common.status_icon_build status;
+            div
+              ~a:[ a_class [ "flex items-center space-x-3" ] ]
+              [
+                div
+                  ~a:[ a_class [ "flex flex-col" ] ]
+                  [
+                    div
+                      ~a:[ a_class [ "text-gray-900 text-sm font-medium" ] ]
+                      [ txt commit_title ];
+                    div
+                      ~a:[ a_class [ "flex text-sm space-x-2" ] ]
+                      [
+                        div [ txt short_hash ];
+                        div [ txt "-" ];
+                        div [ txt created_at ];
+                      ];
+                  ];
+              ];
+          ];
+      ])

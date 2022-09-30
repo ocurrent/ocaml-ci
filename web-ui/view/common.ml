@@ -73,6 +73,14 @@ let status_icon (status : Ocaml_ci_api.Client.State.t) =
   | Active -> icon_active
   | Undefined _ -> icon_failed
 
+let status_icon_build (status : Build_status.t) =
+  match status with
+  | NotStarted -> icon_queued
+  | Failed  -> icon_failed
+  | Passed -> icon_success
+  | Pending -> icon_active
+  | Undefined _ -> icon_failed
+
 (* https://grantw.uk/articles/submit-a-html-form-with-alpine-js/ *)
 let form_for ~x_ref ~action ~csrf_token ~submit_button ~input_value =
   Tyxml.Html.(

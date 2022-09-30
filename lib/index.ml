@@ -136,11 +136,11 @@ let get_build_history_with_time ~owner ~name ~gref =
       | Sqlite3.Data.[ BLOB key; TEXT ready ] -> (
           let key = String.split_on_char ' ' key in
           match key with
-          | [ _; gref; hash ] -> (gref, hash, Float.of_string_opt ready)
+          | [ _; gref; hash ] -> (gref, hash, "Commit Title (history)", Float.of_string_opt ready)
           | _ -> Fmt.failwith "get_build_history_slow: wrong key format")
       | row ->
           Fmt.failwith "get_build_history_slow: invalid row %a" Db.dump_row row)
-  |> List.filter (fun (gref', _, time) ->
+  |> List.filter (fun (gref', _, _, time) ->
          if Option.is_none time then false else gref = gref')
 
 module Status_cache = struct

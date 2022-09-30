@@ -94,6 +94,13 @@ let make_commit ~engine ~owner ~name hash =
           | `Failed -> Results.status_set results Failed
           | `Passed -> Results.status_set results Passed);
          Service.return response
+
+        method title_impl _params release_param_caps =
+          let open Commit.Title in
+          release_param_caps ();
+          let response, results = Service.Response.create Results.init_pointer in
+          Results.title_set results "Commit Title (API)";
+          Service.return response
      end
 
 let to_build_status =
@@ -134,6 +141,7 @@ let make_repo ~engine ~owner ~name =
                 let slot = Capnp.Array.get arr i in
                 Raw.Builder.RefInfo.ref_set slot gref;
                 Raw.Builder.RefInfo.hash_set slot hash;
+                Raw.Builder.RefInfo.title_set slot "Commit Title (refs)";
                 let status =
                   to_build_status (Index.get_status ~owner ~name ~hash)
                 in
@@ -188,7 +196,7 @@ let make_repo ~engine ~owner ~name =
          let response, results = Service.Response.create Results.init_pointer in
          let arr = Results.refs_init results (List.length history) in
          history
-         |> List.iteri (fun i (_, hash, started) ->
+         |> List.iteri (fun i (_, hash, title, started) ->
                 let slot = Capnp.Array.get arr i in
                 Raw.Builder.RefInfo.ref_set slot gref;
                 Raw.Builder.RefInfo.hash_set slot hash;
@@ -196,6 +204,7 @@ let make_repo ~engine ~owner ~name =
                   to_build_status (Index.get_status ~owner ~name ~hash)
                 in
                 Raw.Builder.RefInfo.state_set slot status;
+                Raw.Builder.RefInfo.title_set slot title;
                 let started_t = Raw.Builder.RefInfo.started_init slot in
                 match started with
                 | None -> Raw.Builder.RefInfo.Started.none_set started_t

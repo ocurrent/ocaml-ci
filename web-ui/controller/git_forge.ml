@@ -134,11 +134,11 @@ module Make (View : View) = struct
     Client.Repo.history_of_ref repo_cap ref >>!= fun history ->
     let history =
       Client.Ref_map.bindings history
-      |> List.filter (fun (_, (_, time)) -> Option.is_some time)
-      |> List.map (fun (hash, (state, time)) ->
-             (hash, (state, Option.get time)))
-      |> List.sort (fun (_, (_, t1)) (_, (_, t2)) -> compare t2 t1)
-      |> List.map (fun (hash, (state, _)) -> (hash, state))
+      |> List.filter (fun (_, (_, _, time)) -> Option.is_some time)
+      |> List.map (fun (hash, (title, state, time)) ->
+             (hash, (title, state, Option.get time)))
+      |> List.sort (fun (_, (_, _, t1)) (_, (_, _, t2)) -> compare t2 t1)
+      |> List.map (fun (hash, (title, state, t)) -> (hash, title, state, t))
     in
     Dream.respond @@ View.list_history ~org ~repo ~ref ~history
 
