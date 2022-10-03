@@ -106,16 +106,12 @@ let run_capnp capnp_public_address capnp_listen_address =
 
 module Gitlab = struct
   (* Access control policy. *)
-  let has_role user role =
-    match user with
-    | None ->
-        role = `Viewer (* Unauthenticated users can only look at things. *)
-    | Some user -> (
-        match (Current_web.User.id user, role) with
-        | "gitlab:tmcgilchrist", _ -> true (* This user has all roles *)
-        | _, (`Viewer | `Builder) ->
-            true (* Any GitLab user can cancel and rebuild *)
-        | _ -> false)
+  let has_role user = function
+    | `Viewer | `Monitor -> true
+    | `Builder | `Admin -> (
+        match Option.map Current_web.User.id user with
+        | Some "gitlab:tmcgilchrist" -> true
+        | Some _ | None -> false)
 
   let webhook_route ~webhook_secret =
     Routes.(
