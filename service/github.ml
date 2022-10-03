@@ -1,13 +1,13 @@
 (* Access control policy. *)
 let has_role user = function
   | `Viewer | `Monitor -> true
-  | _ -> (
+  | `Builder | `Admin -> (
       match Option.map Current_web.User.id user with
       | Some
           ( "github:talex5" | "github:avsm" | "github:kit-ty-kate"
           | "github:samoht" | "github:tmcgilchrist" | "github:dra27" ) ->
           true
-      | _ -> false)
+      | Some _ | None -> false)
 
 let webhook_route ~engine ~get_job_ids ~webhook_secret =
   Routes.(
