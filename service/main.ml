@@ -52,6 +52,25 @@ let setup_log default_level =
 
 let or_die = function Ok x -> x | Error (`Msg m) -> failwith m
 
+let check_dir x =
+  Lwt.catch
+    (fun () ->
+      Lwt_unix.stat x >|= function
+      | Unix.{ st_kind = S_DIR; _ } -> `Present
+      | _ -> Fmt.failwith "Exists, but is not a directory: %S" x)
+    (function
+      | Unix.Unix_error (Unix.ENOENT, _, _) -> Lwt.return `Missing
+      | exn -> Lwt.fail exn)
+
+let ensure_dir path =
+  check_dir path >>= function
+  | `Present ->
+      Logs.info (fun f -> f "Directory %s exists" path);
+      Lwt.return_unit
+  | `Missing ->
+      Logs.info (fun f -> f "Creating %s directory" path);
+      Lwt_unix.mkdir path 0o777
+
 let run_capnp capnp_public_address capnp_listen_address =
   match (capnp_public_address, capnp_listen_address) with
   | None, None -> Lwt.return (Capnp_rpc_unix.client_only_vat (), None)
@@ -72,6 +91,7 @@ let run_capnp capnp_public_address capnp_listen_address =
         | None -> listen_address
         | Some public_address -> public_address
       in
+      ensure_dir Conf.Capnp.cap_secrets >>= fun () ->
       let config =
         Capnp_rpc_unix.Vat_config.create ~public_address
           ~secret_key:(`File Conf.Capnp.secret_key) listen_address
