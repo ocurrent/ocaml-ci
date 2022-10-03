@@ -8,8 +8,8 @@ let main interface port github_pipeline_cap gitlab_pipeline_cap
     prometheus_config log_level =
   Lwt_main.run
     (let () = setup_logs log_level in
-     let github = Backend.make github_pipeline_cap in
-     let gitlab = Backend.make gitlab_pipeline_cap in
+     let github = Option.map Backend.make github_pipeline_cap in
+     let gitlab = Option.map Backend.make gitlab_pipeline_cap in
      let web =
        Dream.serve ~interface ~port
          ~error_handler:
@@ -37,14 +37,14 @@ let port =
        ~docv:"PORT" [ "port" ]
 
 let backend_cap =
-  Arg.required
+  Arg.value
   @@ Arg.opt (Arg.some Capnp_rpc_unix.sturdy_uri) None
   @@ Arg.info
        ~doc:"The capability file giving access to the GitHub backend service."
        ~docv:"CAP" [ "backend" ]
 
 let gitlab_backend_cap =
-  Arg.required
+  Arg.value
   @@ Arg.opt (Arg.some Capnp_rpc_unix.sturdy_uri) None
   @@ Arg.info
        ~doc:"The capability file giving access to the GitLab backend service."

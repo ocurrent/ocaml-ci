@@ -1,6 +1,6 @@
 open Tyxml.Html
 
-let render =
+let render github gitlab =
   Template.instance
     [
       p [ txt "Welcome to OCaml-CI!" ];
@@ -14,17 +14,21 @@ let render =
         ];
       ul
         [
-          li
-            [
-              a
-                ~a:[ a_href "/github" ]
-                [ txt "Registered GitHub organisations" ];
-            ];
-          li
-            [
-              a
-                ~a:[ a_href "/gitlab" ]
-                [ txt "Registered GitLab organisations" ];
-            ];
+          (if Option.is_some github then
+           li
+             [
+               a
+                 ~a:[ a_href "/github" ]
+                 [ txt "Registered GitHub organisations" ];
+             ]
+          else li [ txt "No GitHub organisations" ]);
+          (if Option.is_some gitlab then
+           li
+             [
+               a
+                 ~a:[ a_href "/gitlab" ]
+                 [ txt "Registered GitLab organisations" ];
+             ]
+          else li [ txt "No GitLab organisations" ]);
         ];
     ]
