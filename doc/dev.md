@@ -24,11 +24,7 @@ Pull request
 Push
 ```
 
-### Running a scheduler and a worker
-
-You will need to run a scheduler and a worker to connect it to the CI. Follow the instruction from [ocurrent/ocluster](https://github.com/ocurrent/ocluster#the-scheduler-service).
-
-### Running the server locally
+### Running the GitHub pipeline locally
 
 You will need the following:
 
@@ -52,14 +48,37 @@ This will generate a capability file. See the logs for `Wrote capability referen
 
 You should see the admin site on `localhost:8080`
 
+### Running the GitLab pipeline locally
+
+You will need the following:
+
+1. The GitLab API token with permissions to the repositories to build
+2. GitLab secret associated with webhooks
+3. A capability file for submitting jobs to a cluster, in this case the main ocaml-ci cluster as documented in https://github.com/ocurrent/ocluster#admin
+
+``` shell
+dune exec -- ocaml-ci-gitlab \                             
+  --gitlab-token-file <your-gitlab-token> \
+  --gitlab-webhook-secret-file <your-gitlab-secret> \
+  --submission-service <path-to-the-submission-capability-file> \
+  --capnp-listen-address tcp:127.0.0.1:9800
+```
+
+This will generate a capability file. See the logs for `Wrote capability reference to "./capnp-secrets/ocaml-ci-gitlab-admin.cap"`
+
 ### Running the web client locally
 
 Using the capability file written out by the service, run the web client as follows:
 
 ```
 dune exec -- ocaml-ci-web \
-  --backend ./capnp-secrets/ocaml-ci-admin.cap
+  --backend ./capnp-secrets/ocaml-ci-admin.cap \
+  --gitlab-backend ./capnp-secrets/ocaml-ci-gitlab-admin.cap
 ```
 
 You should see the client site on `localhost:8090`
 
+### Running a scheduler and a worker (OPTIONAL)
+
+You can run a scheduler and a worker to connect it to the CI. 
+Follow the instruction from [ocurrent/ocluster](https://github.com/ocurrent/ocluster#the-scheduler-service).
