@@ -76,7 +76,7 @@ dune exec -- ocaml-ci-web \
   --gitlab-backend ./capnp-secrets/ocaml-ci-gitlab-admin.cap
 ```
 
-You should see the client site on `localhost:8090`
+You should see the client site on `localhost:8090` note that both backends are optional so you can run just the github or gitlab pipelines.
 
 ### Running a scheduler and a worker (OPTIONAL)
 
