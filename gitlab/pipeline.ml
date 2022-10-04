@@ -4,6 +4,18 @@ module Git = Current_git
 module Gitlab = Current_gitlab
 module Docker = Current_docker.Default
 
+module Metrics = struct
+  open Prometheus
+
+  let namespace = "ocurrent"
+  let subsystem = "gitlab"
+
+  let repositories_total =
+    let help = "Total number of active repositories" in
+    Gauge.v_label ~label_name:"account" ~help ~namespace ~subsystem
+      "repositories_total"
+end
+
 let platforms =
   let schedule = Current_cache.Schedule.v ~valid_for:(Duration.of_day 30) () in
   let v
@@ -136,6 +148,9 @@ let set_active_repos ~(installation : Installation.t Current.t)
        (fun acc r -> Index.Repo_set.add r.Gitlab.Repo_id.name acc)
        Index.Repo_set.empty
   |> Index.set_active_repos ~owner:installation.Installation.name;
+  Prometheus.Gauge.set
+    (Metrics.repositories_total installation.Installation.name)
+    (float_of_int (List.length repos));
   repos
 
 let set_active_refs ~(repo : Gitlab.Repo_id.t Current.t) xs =
@@ -299,10 +314,8 @@ let v ?ocluster ~app ~solver () =
   in
   Current.with_context opam_repository_commit @@ fun () ->
   Current.with_context platforms @@ fun () ->
-  let installations =
-    Current.return gitlab_installations |> set_active_installations
-  in
-  installations
+  Current.return gitlab_installations
+  |> set_active_installations
   |> Current.list_iter ~collapse_key:"org" (module Installation)
      @@ fun installation ->
      let repos = repositories installation |> set_active_repos ~installation in
