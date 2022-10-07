@@ -449,11 +449,7 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
                     a_class
                       [ "flex space-x-6 border-b border-gray-200 mb-6 text-sm" ];
                   ]
-                [
-                  a
-                    ~a:[ a_class [ "font-medium pb-2" ]; a_href "#" ]
-                    [ txt "Logs" ];
-                ];
+                [ h3 ~a:[ a_class [ "font-medium pb-2" ] ] [ txt "Logs" ] ];
               div
                 [
                   div
