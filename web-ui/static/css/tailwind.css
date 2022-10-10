@@ -1320,6 +1320,10 @@ video {
   table-layout: auto;
 }
 
+.table-fixed {
+  table-layout: fixed;
+}
+
 .-rotate-90 {
   --tw-rotate: -90deg;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
@@ -1707,7 +1711,7 @@ body {
   }
 }
 
-.input-text, 
+.input-text,
 .dropdown {
   height: 2.75rem;
   width: 9rem;
@@ -1717,7 +1721,7 @@ body {
   border-color: rgb(209 213 219 / var(--tw-border-opacity));
 }
 
-.input-text:focus, 
+.input-text:focus,
 .dropdown:focus {
   --tw-border-opacity: 1;
   border-color: rgb(156 163 175 / var(--tw-border-opacity));
@@ -1761,8 +1765,8 @@ table {
   min-width: 350px;
 }
 
-table tr th,
-table tr td {
+.custom-table tr th,
+.custom-table tr td {
   padding: 5px;
   border-bottom-width: 1px;
   --tw-border-opacity: 1;
@@ -1773,7 +1777,7 @@ table tr td {
   padding-bottom: 1rem;
 }
 
-table tr th {
+.custom-table tr th {
   border-top-width: 1px;
   --tw-border-opacity: 1;
   border-color: rgb(229 231 235 / var(--tw-border-opacity));
@@ -1787,31 +1791,31 @@ table tr th {
   text-align: left;
 }
 
-table tr td {
+.custom-table tr td {
   background: #fff;
 }
 
 /* top-left border-radius */
 
-table tr:first-child th:first-child {
+.custom-table tr:first-child th:first-child {
   border-top-left-radius: 6px;
 }
 
 /* top-right border-radius */
 
-table tr:first-child th:last-child {
+.custom-table tr:first-child th:last-child {
   border-top-right-radius: 6px;
 }
 
 /* bottom-left border-radius */
 
-table tr:last-child td:first-child {
+.custom-table tr:last-child td:first-child {
   border-bottom-left-radius: 6px;
 }
 
 /* bottom-right border-radius */
 
-table tr:last-child td:last-child {
+.custom-table tr:last-child td:last-child {
   border-bottom-right-radius: 6px;
 }
 
@@ -2127,16 +2131,12 @@ select {
   position: absolute;
 }
 
-.code-line {
-  display: flex;
-}
-
-.code-line:first-child .code-line__number, 
+.code-line:first-child .code-line__number,
 .code-line:first-child .code-line__code {
   padding-top: 0.75rem;
 }
 
-.code-line:last-child .code-line__number, 
+.code-line:last-child .code-line__number,
 .code-line:last-child .code-line__code {
   padding-bottom: 0.75rem;
 }
@@ -2147,6 +2147,7 @@ select {
   -webkit-user-select: none;
      -moz-user-select: none;
           user-select: none;
+  border-style: none;
   --tw-bg-opacity: 1;
   background-color: rgb(31 41 55 / var(--tw-bg-opacity));
   padding-left: 1.5rem;
@@ -2156,8 +2157,9 @@ select {
 }
 
 .code-line__code {
-  flex: 1 1 0%;
   white-space: pre;
+  border-style: none;
+  background-color: transparent;
   padding-left: 1.5rem;
   padding-right: 1.5rem;
   --tw-text-opacity: 1;

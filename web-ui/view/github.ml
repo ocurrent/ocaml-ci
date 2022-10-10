@@ -495,7 +495,13 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
                                   [];
                               ]);
                         ];
-                      div ~a:[ a_class [ "overflow-auto" ] ] [ txt "@@@" ];
+                      div
+                        ~a:
+                          [
+                            a_class
+                              [ "table-overflow overflow-auto rounded-lg" ];
+                          ]
+                        [ txt "@@@" ];
                     ];
                 ];
             ];
@@ -507,7 +513,7 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
   let ansi = Ansi.create () in
   let line_number = ref 0 in
   let last_line_blank = ref false in
-  let decorate data : string =
+  let tabulate data : string =
     let aux (l : string) log_line =
       if !last_line_blank && log_line = "" then
         (* Squash consecutive new lines *)
@@ -517,7 +523,7 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
         line_number := !line_number + 1;
         Fmt.str "%s\n%s" l
           (Fmt.str "%a" (pp_elt ())
-             (div
+             (tr
                 ~a:
                   [
                     a_class [ "code-line" ];
@@ -529,15 +535,15 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
                     a_id (Fmt.str "L%d" !line_number);
                   ]
                 [
-                  div
+                  td
                     ~a:[ a_class [ "code-line__number" ] ]
                     [ txt (Fmt.str "%d" !line_number) ];
-                  div
+                  td
                     ~a:[ a_class [ "code-line__code" ] ]
                     [ pre [ Unsafe.data log_line ] ];
                 ])))
     in
-    List.fold_left aux "" data
+    Fmt.str "%s%s" (List.fold_left aux "<table><tbody>" data) "</tbody></table>"
   in
   let open Lwt.Infix in
   Dream.stream
@@ -545,7 +551,7 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
     (fun response_stream ->
       Dream.write response_stream header >>= fun () ->
       let data' =
-        data |> Ansi.process ansi |> Astring.String.cuts ~sep:"\n" |> decorate
+        data |> Ansi.process ansi |> Astring.String.cuts ~sep:"\n" |> tabulate
       in
       Dream.write response_stream data' >>= fun () ->
       let rec loop next =
@@ -559,7 +565,7 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
               data
               |> Ansi.process ansi
               |> Astring.String.cuts ~sep:"\n"
-              |> decorate
+              |> tabulate
             in
             Dream.write response_stream data' >>= fun () ->
             Dream.flush response_stream >>= fun () -> loop next
