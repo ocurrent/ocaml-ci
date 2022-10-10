@@ -41,38 +41,38 @@ table {
   min-width: 350px;
 }
 
-table tr th,
-table tr td {
+.custom-table tr th,
+.custom-table tr td {
   padding: 5px;
   @apply px-6 py-4 border-b border-gray-200;
 }
 
-table tr th {
+.custom-table tr th {
   @apply bg-gray-50 border-t border-gray-200 text-gray-500 text-xs font-medium;
   text-align: left;
 }
 
-table tr td {
+.custom-table tr td {
   background: #fff;
 }
 
 /* top-left border-radius */
-table tr:first-child th:first-child {
+.custom-table tr:first-child th:first-child {
   border-top-left-radius: 6px;
 }
 
 /* top-right border-radius */
-table tr:first-child th:last-child {
+.custom-table tr:first-child th:last-child {
   border-top-right-radius: 6px;
 }
 
 /* bottom-left border-radius */
-table tr:last-child td:first-child {
+.custom-table tr:last-child td:first-child {
   border-bottom-left-radius: 6px;
 }
 
 /* bottom-right border-radius */
-table tr:last-child td:last-child {
+.custom-table tr:last-child td:last-child {
   border-bottom-right-radius: 6px;
 }
 
@@ -200,9 +200,6 @@ select {
   position: absolute;
 }
 
-.code-line {
-  display: flex;
-}
 
 .code-line:first-child .code-line__number,
 .code-line:first-child .code-line__code {
@@ -215,11 +212,11 @@ select {
 }
 
 .code-line__number {
-  @apply bg-gray-800 px-6 w-14 text-gray-400 cursor-pointer select-none;
+  @apply bg-gray-800 px-6 w-14 text-gray-400 cursor-pointer select-none border-none;
 }
 
 .code-line__code {
-  @apply px-6 text-gray-300 whitespace-pre flex-1;
+  @apply px-6 text-gray-300 whitespace-pre bg-transparent border-none;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   border-left: 1px solid transparent;
 
