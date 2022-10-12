@@ -25,6 +25,21 @@ let gitlab_mr_url ~org ~repo id =
 
 let format_org org = li [ a ~a:[ a_href (org_url org) ] [ txt org ] ]
 
+let ref_name r = 
+  match Astring.String.cuts ~sep:"/" r with
+  | "refs" :: "heads" :: branch -> Astring.String.concat ~sep:"/" branch
+  | [ "refs"; "pull"; id; "head" ] -> id
+  | _ -> Fmt.str "Bad ref format %S" r
+
+let ref_breadcrumb r head_hash =
+  match Astring.String.cuts ~sep:"/" r with
+  | "refs" :: "heads" :: branch ->
+      let branch = Astring.String.concat ~sep:"/" branch in
+      (branch, Fmt.str "commit/%s" head_hash)
+  | [ "refs"; "pull"; id; "head" ] ->
+      ("#" ^ id, Fmt.str "pull/%s" head_hash)
+  | _ -> (Fmt.str "Bad ref format %S" r, "")
+
 let format_repo ~org { Client.Org.name; master_status } =
   li
     ~a:[ a_class [ Build_status.class_name master_status ] ]
@@ -46,15 +61,6 @@ let refs_v ~org ~repo ~refs =
        li
          ~a:[ a_class [ Build_status.class_name status ] ]
          [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt branch ] ])
-
-(* let history_v ~org ~repo ~history =
-  ul
-    ~a:[ a_class [ "statuses" ] ]
-    (history
-    |> List.map @@ fun (commit, status) ->
-       li
-         ~a:[ a_class [ Build_status.class_name status ] ]
-         [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt commit ] ]) *)
 
 let link_gitlab_refs ~org ~repo = function
   | [] -> txt "(not at the head of any monitored branch or merge request)"
@@ -116,13 +122,53 @@ let list_refs ~org ~repo ~refs =
     ]
 
 let list_history ~org ~repo ~ref ~history =
-  ignore history;
-  Template.instance
-    [
-      breadcrumbs [ (prefix, prefix); (org, org) ] repo;
-      link_gitlab_refs ~org ~repo [ ref ];
-      (* history_v ~org ~repo ~history; *)
+  let head_hash =
+    match history with
+    | [] -> ""
+    | (hash, _, _, _)::_ -> hash
+  in
+  let commit_table_div =
+    div
+      ~a:
+        [ a_class [ "bg-gray-50 px-6 py-3 text-gray-500 text-xs font-medium" ] ]
+        (* TODO: We need to start with no stage separation - introduce Analysis/Checks and Build steps later *)
+      [ txt (
+        let len = List.length history in
+        if len = 1 then "Build (1)"
+        else Fmt.str "Builds (%d)" len) ]
+  in
+  let commit_table =
+    List.fold_left
+      (fun l (u, title, status, t) ->
+        let created_at = Timestamps_durations.pp_timestamp (Some t) in
+        List.append l
+          [
+            Build.commit_row ~commit_title:(title) ~short_hash:(short_hash u) ~created_at ~status ~commit_uri:(commit_url ~org ~repo u);
+          ])
+      [ commit_table_div ] history
+  in
+  let title =
+    div ~a:[ a_class [ "justify-between items-center flex" ] ] [
+      div ~a:[ a_class [ "flex flex-items-center space-x-4" ] ] [
+        div ~a:[ a_class [ "flex flex-col space-y-1" ] ] [
+          h1 ~a:[ a_class [ "text-xl" ] ] [ txt (Fmt.str "Build History for \"%s\"" (ref_name ref)) ] ;
+          div ~a:[ a_class [ "text-gray-500" ] ] [
+            div ~a:[ a_class [ "flex text-sm space-x-2 " ] ] [
+              txt (Fmt.str "Here is your build history for %s on %s" (ref_name ref) repo)
+            ]
+          ]
+        ]
+      ]
     ]
+  in
+  Template_v1.instance
+    [
+      breadcrumbs
+        [ (prefix, prefix); (org, org); (repo, repo); ref_breadcrumb ref head_hash ]
+        ("Build History");
+      title;
+      Build.tabulate commit_table;
+  ]
 
 let cancel_success_message success =
   let format_job_info ji =
