@@ -2,6 +2,7 @@ module type View = View.Git_forge.View
 
 module Client = Ocaml_ci_api.Client
 module Run_time = Ocaml_ci_client_lib.Run_time
+module Timestamps_durations = View.Timestamps_durations
 
 module type Controller = sig
   val list_orgs : Backend.t -> Dream.response Lwt.t
@@ -33,6 +34,14 @@ module type Controller = sig
     Dream.client Dream.message ->
     Backend.t ->
     Dream.server Dream.message Lwt.t
+
+  val show_step_json :
+    org:string ->
+    repo:string ->
+    hash:string ->
+    variant:string ->
+    Backend.t ->
+    Dream.response Lwt.t
 
   val rebuild_step :
     org:string ->
@@ -66,6 +75,24 @@ module Make (View : View) = struct
   open Lwt.Infix
   module Client = Ocaml_ci_api.Client
   module Capability = Capnp_rpc_lwt.Capability
+
+  type step_t = {
+    status : string;
+    created_at : string;
+    finished_at : string;
+    queued_for : string;
+    ran_for : string;
+  }
+
+  let yojson_of_step_t t =
+    `Assoc
+      [
+        ("status", `String t.status);
+        ("created_at", `String t.created_at);
+        ("queued_for", `String t.queued_for);
+        ("finished_at", `String t.finished_at);
+        ("ran_for", `String t.ran_for);
+      ]
 
   let ( >>!= ) x f =
     x >>= function
@@ -281,4 +308,70 @@ module Make (View : View) = struct
     in
     List.iter (fun (s, m) -> Dream.add_flash_message request s m) flash_messages;
     Dream.redirect request (Fmt.str "/github/%s/%s/commit/%s" org repo hash)
+
+  let show_step_json ~org ~repo ~hash ~variant ci =
+    Backend.ci ci >>= fun ci ->
+    Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
+    Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
+    Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash)
+    @@ fun commit_cap ->
+    let jobs = Client.Commit.jobs commit_cap in
+    Capability.with_ref (Client.Commit.job_of_variant commit_cap variant)
+    @@ fun job_cap ->
+    jobs >>!= fun jobs ->
+    Capability.inc_ref job_cap;
+    let build_created_at =
+      Option.value ~default:0.
+      @@ Option.join
+      @@ Result.to_option
+      @@ Run_time.build_created_at ~build:jobs
+    in
+    let step_info =
+      let filter (j : Client.job_info) = j.variant = variant in
+      List.find_opt filter jobs
+    in
+    let build_status =
+      Option.value ~default:(Undefined 1)
+        (Option.map (fun i -> i.Client.outcome) step_info)
+    in
+    let timestamps = Option.map Run_time.timestamps_from_job_info step_info in
+    let timestamps =
+      match timestamps with
+      | None ->
+          Dream.log "Error - No step-info.";
+          None
+      | Some (Error e) ->
+          Dream.log "Error - %s" e;
+          None
+      | Some (Ok t) -> Some t
+    in
+    let run_time =
+      Option.map
+        (Run_time.run_times_from_timestamps ~build_created_at)
+        timestamps
+    in
+    let step_json =
+      yojson_of_step_t
+        {
+          status = Fmt.str "%a" Client.State.pp build_status;
+          created_at =
+            Option.value ~default:""
+              (Option.map
+                 (fun i -> Timestamps_durations.pp_timestamp i.Client.queued_at)
+                 step_info);
+          finished_at =
+            Option.value ~default:""
+              (Option.map
+                 (fun i ->
+                   Timestamps_durations.pp_timestamp i.Client.finished_at)
+                 step_info);
+          queued_for =
+            Timestamps_durations.pp_duration
+              (Option.map Run_time.queued_for run_time);
+          ran_for =
+            Timestamps_durations.pp_duration
+              (Option.map Run_time.ran_for run_time);
+        }
+    in
+    Dream.json (Yojson.to_string step_json)
 end

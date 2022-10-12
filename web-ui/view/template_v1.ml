@@ -65,6 +65,6 @@ let instance ?scripts contents =
           ~a:[ a_class [ "" ] ]
           [
             header;
-            div ~a:[ a_class [ "container-fluid"; "py-12" ] ] contents;
             script_contents;
+            div ~a:[ a_class [ "container-fluid"; "py-12" ] ] contents;
           ]))

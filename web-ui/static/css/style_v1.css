@@ -279,9 +279,7 @@ select {
   -webkit-text-fill-color: white;
 }
 
-.x-cloak {
-  display: none !important;
-}
+[x-cloak] { display: none !important; }
 
 /* Flash messages and notifications */
 
