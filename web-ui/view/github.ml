@@ -36,11 +36,11 @@ let ref_name r =
 let ref_breadcrumb r head_hash =
   match Astring.String.cuts ~sep:"/" r with
   | "refs" :: "heads" :: branch ->
-    let branch = Astring.String.concat ~sep:"/" branch in
-    (branch, Fmt.str "commit/%s" head_hash)
-| [ "refs"; "pull"; id; "head" ] ->
-    ("#" ^ id, Fmt.str "pull/%s" head_hash)
-| _ -> (Fmt.str "Bad ref format %S" r, "")
+      let branch = Astring.String.concat ~sep:"/" branch in
+      (branch, Fmt.str "commit/%s" head_hash)
+  | [ "refs"; "pull"; id; "head" ] ->
+      ("#" ^ id, Fmt.str "pull/%s" head_hash)
+  | _ -> (Fmt.str "Bad ref format %S" r, "")
 
 let format_repo ~org { Client.Org.name; master_status } =
   li
@@ -63,15 +63,6 @@ let refs_v ~org ~repo ~refs =
        li
          ~a:[ a_class [ Build_status.class_name status ] ]
          [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt branch ] ])
-
-(* let history_v ~org ~repo ~history =
-  ul
-    ~a:[ a_class [ "statuses" ] ]
-    (history
-    |> List.map @@ fun (commit, status) ->
-       li
-         ~a:[ a_class [ Build_status.class_name status ] ]
-         [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt commit ] ]) *)
 
 let link_github_commit ~org ~repo ~hash =
   a ~a:[ a_href (github_commit_url ~org ~repo ~hash) ] [ txt hash ]
@@ -99,6 +90,11 @@ let list_refs ~org ~repo ~refs =
     ]
 
 let list_history ~org ~repo ~ref ~history =
+  let head_hash =
+    match history with
+    | [] -> ""
+    | (hash, _, _, _)::_ -> hash
+  in
   let commit_table_div =
     div
       ~a:
@@ -119,28 +115,26 @@ let list_history ~org ~repo ~ref ~history =
           ])
       [ commit_table_div ] history
   in
-  let head_hash =
-    match history with
-    | [] -> ""
-    | (hash, _, _, _)::_ -> hash
+  let title =
+    div ~a:[ a_class [ "justify-between items-center flex" ] ] [
+      div ~a:[ a_class [ "flex flex-items-center space-x-4" ] ] [
+        div ~a:[ a_class [ "flex flex-col space-y-1" ] ] [
+          h1 ~a:[ a_class [ "text-xl" ] ] [ txt (Fmt.str "Build History for \"%s\"" (ref_name ref)) ] ;
+          div ~a:[ a_class [ "text-gray-500" ] ] [
+            div ~a:[ a_class [ "flex text-sm space-x-2 " ] ] [
+              txt (Fmt.str "Here is your build history for %s on %s" (ref_name ref) repo)
+            ]
+          ]
+        ]
+      ]
+    ]
   in
   Template_v1.instance
     [
       Common.breadcrumbs
-        [ ("Organisations", "github"); (org, org); (repo, repo); ref_breadcrumb ref head_hash ]
+        [ (prefix, prefix); (org, org); (repo, repo); ref_breadcrumb ref head_hash ]
         ("Build History");
-      div ~a:[ a_class [ "justify-between items-center flex" ] ] [
-        div ~a:[ a_class [ "flex flex-items-center space-x-4" ] ] [
-          div ~a:[ a_class [ "flex flex-col space-y-1" ] ] [
-            h1 ~a:[ a_class [ "text-xl" ] ] [ txt (Fmt.str "Build History for \"%s\"" (ref_name ref)) ] ;
-            div ~a:[ a_class [ "text-gray-500" ] ] [
-              div ~a:[ a_class [ "flex text-sm space-x-2 " ] ] [
-                txt (Fmt.str "Here is your build history for %s on %s" (ref_name ref) repo)
-              ]
-            ]
-          ]
-        ]
-      ];
+      title;
       Build.tabulate commit_table;
   ]
 
