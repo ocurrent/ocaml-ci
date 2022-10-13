@@ -28,7 +28,7 @@ let format_org org = li [ a ~a:[ a_href (org_url org) ] [ txt org ] ]
 let ref_name r = 
   match Astring.String.cuts ~sep:"/" r with
   | "refs" :: "heads" :: branch -> Astring.String.concat ~sep:"/" branch
-  | [ "refs"; "pull"; id; "head" ] -> id
+  | [ "refs"; "merge-requests"; id; "head" ] -> id
   | _ -> Fmt.str "Bad ref format %S" r
 
 let ref_breadcrumb r head_hash =
@@ -36,7 +36,7 @@ let ref_breadcrumb r head_hash =
   | "refs" :: "heads" :: branch ->
       let branch = Astring.String.concat ~sep:"/" branch in
       (branch, Fmt.str "commit/%s" head_hash)
-  | [ "refs"; "pull"; id; "head" ] ->
+  | [ "refs"; "merge-requests"; id; "head" ] ->
       ("#" ^ id, Fmt.str "pull/%s" head_hash)
   | _ -> (Fmt.str "Bad ref format %S" r, "")
 

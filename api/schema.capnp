@@ -17,7 +17,7 @@ struct RefInfo {
     ts        @3 :Float64;
     none      @4 :Void;
   }
-  title       @5 :Text;
+  message     @5 :Text;
   # The state of the ref's head commit
 }
 
@@ -61,16 +61,16 @@ struct JobInfo {
 
 
 interface Commit {
-  jobs  @0 () -> (jobs :List(JobInfo));
+  jobs         @0 () -> (jobs :List(JobInfo));
 
   jobOfVariant @1 (variant :Text) -> (job :OCurrent.Job);
 
-  refs @2 (hash :Text) -> (refs :List(Text));
+  refs         @2 (hash :Text) -> (refs :List(Text));
   # Get the set of branches and PRs with this commit at their head.
 
-  status @3 () -> (status :BuildStatus);
+  status       @3 () -> (status :BuildStatus);
 
-  title @4 (hash :Text) -> (title :Text);
+  message      @4 (hash :Text) -> (title :Text);
 }
 
 interface Repo {

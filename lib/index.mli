@@ -11,6 +11,13 @@ type job_state =
 
 type build_status = [ `Not_started | `Pending | `Failed | `Passed ]
 
+type ref_info = {
+  hash: string;
+  message: string;
+  gref: string;
+  started_at: float option;
+}
+
 val init : unit -> unit
 (** Ensure the database is initialised (for unit-tests). *)
 
@@ -18,6 +25,7 @@ val record :
   repo:Repo_id.t ->
   hash:string ->
   status:build_status ->
+  message:string ->
   gref:string ->
   (string * Current.job_id option) list ->
   unit
@@ -43,23 +51,16 @@ val get_job :
 
 val get_job_ids : owner:string -> name:string -> hash:string -> string list
 
+val get_message : owner:string -> name:string -> hash:string -> string
+
 val get_build_history :
   owner:string ->
   name:string ->
   gref:string ->
-  (string * string * string option) list
-(** [get_build_history ~owner ~name ~gref] is a list of builds for the branch
-    gref of the repo identfied by (owner, name) The builds are identified by
-    triples (variant, hash, Some job_id) *)
-
-val get_build_history_with_time :
-  owner:string ->
-  name:string ->
-  gref:string ->
-  (string * string * string * float option) list
-(** [get_build_history_with_time ~owner ~name ~gref] is a list of builds for the
+  ref_info list
+(** [get_build_history ~owner ~name ~gref] is a list of builds for the
     branch gref of the repo identfied by (owner, name). The builds are
-    identified by triples (variant, hash, Some timestamp) *)
+    identified by ref_info *)
 
 val get_status : owner:string -> name:string -> hash:string -> build_status
 (** [get_status ~owner ~name ~hash] is the latest status for this combination. *)

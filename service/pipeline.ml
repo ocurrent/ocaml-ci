@@ -302,11 +302,12 @@ let v ?ocluster ~app ~solver () =
                { Ocaml_ci.Repo_id.owner = repo.owner; name = repo.name }
              in
              let hash = Current_github.Api.Commit.hash commit in
+             let message = Current_github.Api.Commit.message commit in
              let jobs =
                builds
                |> List.map (fun (variant, (_, job_id)) -> (variant, job_id))
              in
-             Index.record ~repo:repo' ~hash ~status ~gref jobs
+             Index.record ~repo:repo' ~hash ~status ~message ~gref jobs
            and set_github_status =
              builds
              |> github_status_of_state ~head summary
