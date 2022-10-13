@@ -95,11 +95,12 @@ let make_commit ~engine ~owner ~name hash =
           | `Passed -> Results.status_set results Passed);
          Service.return response
 
-        method title_impl _params release_param_caps =
-          let open Commit.Title in
+        method message_impl _params release_param_caps =
+          let open Commit.Message in
           release_param_caps ();
           let response, results = Service.Response.create Results.init_pointer in
-          Results.title_set results "Commit Title (API)";
+          let message = Index.get_message ~owner ~name ~hash in
+          Results.title_set results message;
           Service.return response
      end
 
@@ -141,7 +142,9 @@ let make_repo ~engine ~owner ~name =
                 let slot = Capnp.Array.get arr i in
                 Raw.Builder.RefInfo.ref_set slot gref;
                 Raw.Builder.RefInfo.hash_set slot hash;
-                Raw.Builder.RefInfo.title_set slot "Commit Title (refs)";
+                (* FIXME [benmandrew]: If this is a DB query it is stupidly inefficient *)
+                let message = Index.get_message ~owner ~name ~hash in
+                Raw.Builder.RefInfo.message_set slot message;
                 let status =
                   to_build_status (Index.get_status ~owner ~name ~hash)
                 in
@@ -192,11 +195,11 @@ let make_repo ~engine ~owner ~name =
          let open Repo.HistoryOfRef in
          let gref = Params.ref_get params in
          release_param_caps ();
-         let history = Index.get_build_history_with_time ~owner ~name ~gref in
+         let history = Index.get_build_history ~owner ~name ~gref in
          let response, results = Service.Response.create Results.init_pointer in
          let arr = Results.refs_init results (List.length history) in
          history
-         |> List.iteri (fun i (_, hash, title, started) ->
+         |> List.iteri (fun i Index.({ gref; hash; message; started_at }) ->
                 let slot = Capnp.Array.get arr i in
                 Raw.Builder.RefInfo.ref_set slot gref;
                 Raw.Builder.RefInfo.hash_set slot hash;
@@ -204,9 +207,9 @@ let make_repo ~engine ~owner ~name =
                   to_build_status (Index.get_status ~owner ~name ~hash)
                 in
                 Raw.Builder.RefInfo.state_set slot status;
-                Raw.Builder.RefInfo.title_set slot title;
+                Raw.Builder.RefInfo.message_set slot message;
                 let started_t = Raw.Builder.RefInfo.started_init slot in
-                match started with
+                match started_at with
                 | None -> Raw.Builder.RefInfo.Started.none_set started_t
                 | Some time -> Raw.Builder.RefInfo.Started.ts_set started_t time);
          Service.return response

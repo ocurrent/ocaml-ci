@@ -356,11 +356,13 @@ let v ?ocluster ~app ~solver () =
                { Ocaml_ci.Repo_id.owner = repo.owner; name = repo.name }
              in
              let hash = Gitlab.Api.Commit.hash commit in
+             (* FIXME [benmandrew] *)
+             let message = "Gitlab placeholder message" in
              let jobs =
                builds
                |> List.map (fun (variant, (_, job_id)) -> (variant, job_id))
              in
-             Index.record ~repo:repo' ~hash ~status ~gref jobs
+             Index.record ~repo:repo' ~hash ~status ~message ~gref jobs
            and set_gitlab_status =
              gitlab_status_of_state head summary
              |> Gitlab.Api.Commit.set_status head "ocaml-ci"
