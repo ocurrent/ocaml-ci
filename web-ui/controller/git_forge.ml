@@ -1,8 +1,8 @@
+module type Api = View.Git_forge.Api
 module type View = View.Git_forge.View
 
 module Client = Ocaml_ci_api.Client
 module Run_time = Ocaml_ci_client_lib.Run_time
-module Timestamps_durations = View.Timestamps_durations
 
 module type Controller = sig
   val list_orgs : Backend.t -> Dream.response Lwt.t
@@ -35,14 +35,6 @@ module type Controller = sig
     Backend.t ->
     Dream.server Dream.message Lwt.t
 
-  val show_step_json :
-    org:string ->
-    repo:string ->
-    hash:string ->
-    variant:string ->
-    Backend.t ->
-    Dream.response Lwt.t
-
   val rebuild_step :
     org:string ->
     repo:string ->
@@ -69,41 +61,34 @@ module type Controller = sig
     Backend.t ->
     Dream.server Dream.message Lwt.t
 end
-
 (* Abstract controller for any Git_forge that implements `Ocaml_ci_api.Client` API *)
+
+module type Api_controller = sig
+  val show_step :
+    org:string ->
+    repo:string ->
+    hash:string ->
+    variant:string ->
+    Backend.t ->
+    Dream.response Lwt.t
+end
+
+let ( >>!= ) x f =
+  let open Lwt.Infix in
+  x >>= function
+  | Error (`Capnp ex) ->
+      Dream.log "Internal server error: %s"
+        (Fmt.to_to_string Capnp_rpc.Error.pp ex);
+      Dream.empty `Internal_Server_Error
+  | Error (`Msg v) ->
+      Dream.log "Internal server error: %s" v;
+      Dream.empty `Internal_Server_Error
+  | Ok y -> f y
+
 module Make (View : View) = struct
   open Lwt.Infix
   module Client = Ocaml_ci_api.Client
   module Capability = Capnp_rpc_lwt.Capability
-
-  type step_t = {
-    status : string;
-    created_at : string;
-    finished_at : string;
-    queued_for : string;
-    ran_for : string;
-  }
-
-  let yojson_of_step_t t =
-    `Assoc
-      [
-        ("status", `String t.status);
-        ("created_at", `String t.created_at);
-        ("queued_for", `String t.queued_for);
-        ("finished_at", `String t.finished_at);
-        ("ran_for", `String t.ran_for);
-      ]
-
-  let ( >>!= ) x f =
-    x >>= function
-    | Error (`Capnp ex) ->
-        Dream.log "Internal server error: %s"
-          (Fmt.to_to_string Capnp_rpc.Error.pp ex);
-        Dream.empty `Internal_Server_Error
-    | Error (`Msg v) ->
-        Dream.log "Internal server error: %s" v;
-        Dream.empty `Internal_Server_Error
-    | Ok y -> f y
 
   let job_url ~org ~repo ~hash variant =
     Fmt.str "/%s/%s/%s/commit/%s/variant/%s" View.prefix org repo hash variant
@@ -308,8 +293,17 @@ module Make (View : View) = struct
     in
     List.iter (fun (s, m) -> Dream.add_flash_message request s m) flash_messages;
     Dream.redirect request (Fmt.str "/github/%s/%s/commit/%s" org repo hash)
+end
 
-  let show_step_json ~org ~repo ~hash ~variant ci =
+(* This module pertains to the API subsystem of the web-ui. It sets up
+   controllers that support routes used for returning JSON objects - e.g. build and step.
+   These will initially be used to support live-updates of build statuses and timestamps *)
+module Make_API (Api : Api) = struct
+  open Lwt.Infix
+  module Client = Ocaml_ci_api.Client
+  module Capability = Capnp_rpc_lwt.Capability
+
+  let show_step ~org ~repo ~hash ~variant ci =
     Backend.ci ci >>= fun ci ->
     Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
     Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
@@ -330,9 +324,6 @@ module Make (View : View) = struct
       let filter (j : Client.job_info) = j.variant = variant in
       List.find_opt filter jobs
     in
-    let build_status =
-      Option.fold ~none:(Undefined 1) ~some:(fun i -> i.Client.outcome) step_info
-    in
     let timestamps = Option.map Run_time.timestamps_from_job_info step_info in
     let timestamps =
       match timestamps with
@@ -349,24 +340,5 @@ module Make (View : View) = struct
         (Run_time.run_times_from_timestamps ~build_created_at)
         timestamps
     in
-    let step_json =
-      yojson_of_step_t
-        {
-          status = Fmt.str "%a" Client.State.pp build_status;
-          created_at =
-            Option.fold ~none:""
-              ~some:(fun i -> Timestamps_durations.pp_timestamp i.Client.queued_at)
-                 step_info;
-          finished_at =
-            Option.fold ~none:""
-              ~some: (fun i ->Timestamps_durations.pp_timestamp i.Client.finished_at) step_info;
-          queued_for =
-            Timestamps_durations.pp_duration
-              (Option.map Run_time.queued_for run_time);
-          ran_for =
-            Timestamps_durations.pp_duration
-              (Option.map Run_time.ran_for run_time);
-        }
-    in
-    Dream.json (Yojson.to_string step_json)
+    Api.show_step ~step_info ~run_time
 end

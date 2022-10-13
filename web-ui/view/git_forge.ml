@@ -83,6 +83,16 @@ module type View = sig
     Dream.response Lwt.t
 end
 
+module type Api = sig
+  module Client = Ocaml_ci_api.Client
+  module Run_time = Ocaml_ci_client_lib.Run_time
+
+  val show_step :
+    step_info:Client.job_info option ->
+    run_time:Run_time.run_time_info option ->
+    Dream.response Lwt.t
+end
+
 (* Common utility functions for Git_forge views. *)
 let short_hash = Astring.String.with_range ~len:6
 
