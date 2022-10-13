@@ -321,18 +321,17 @@ module Make (View : View) = struct
     jobs >>!= fun jobs ->
     Capability.inc_ref job_cap;
     let build_created_at =
-      Option.value ~default:0.
-      @@ Option.join
-      @@ Result.to_option
-      @@ Run_time.build_created_at ~build:jobs
+      Run_time.build_created_at ~build:jobs
+      |> Result.to_option
+      |> Option.join
+      |> Option.value ~default:0.
     in
     let step_info =
       let filter (j : Client.job_info) = j.variant = variant in
       List.find_opt filter jobs
     in
     let build_status =
-      Option.value ~default:(Undefined 1)
-        (Option.map (fun i -> i.Client.outcome) step_info)
+      Option.fold ~none:(Undefined 1) ~some:(fun i -> i.Client.outcome) step_info
     in
     let timestamps = Option.map Run_time.timestamps_from_job_info step_info in
     let timestamps =
@@ -355,16 +354,12 @@ module Make (View : View) = struct
         {
           status = Fmt.str "%a" Client.State.pp build_status;
           created_at =
-            Option.value ~default:""
-              (Option.map
-                 (fun i -> Timestamps_durations.pp_timestamp i.Client.queued_at)
-                 step_info);
+            Option.fold ~none:""
+              ~some:(fun i -> Timestamps_durations.pp_timestamp i.Client.queued_at)
+                 step_info;
           finished_at =
-            Option.value ~default:""
-              (Option.map
-                 (fun i ->
-                   Timestamps_durations.pp_timestamp i.Client.finished_at)
-                 step_info);
+            Option.fold ~none:""
+              ~some: (fun i ->Timestamps_durations.pp_timestamp i.Client.finished_at) step_info;
           queued_for =
             Timestamps_durations.pp_duration
               (Option.map Run_time.queued_for run_time);
