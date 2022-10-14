@@ -20,10 +20,10 @@ let jobs =
   Alcotest.testable (Fmt.Dump.list state) (List.equal equal)
 
 (* let commits_jobs =
-  let state f (variant, hash, job_id) =
-    Fmt.pf f "%s:%s %a@" variant hash Fmt.(Dump.option string) job_id
-  in
-  Alcotest.testable (Fmt.Dump.list state) ( = ) *)
+   let state f (variant, hash, job_id) =
+     Fmt.pf f "%s:%s %a@" variant hash Fmt.(Dump.option string) job_id
+   in
+   Alcotest.testable (Fmt.Dump.list state) ( = ) *)
 
 let database = Alcotest.(list string)
 
@@ -104,22 +104,22 @@ let test_get_jobs () =
   Alcotest.(check jobs) "Jobs" expected result
 
 (* let test_get_build_history () =
-  let owner = "owner" in
-  let name = "name" in
-  let repo = { Ocaml_ci.Repo_id.owner; name } in
-  let hash = "abc" in
-  let message = "message" in
-  Index.record ~repo ~hash ~status:`Failed ~message ~gref:"master"
-    [ ("analysis", Some "job1"); ("alpine", Some "job2") ];
-  Index.record ~repo ~hash ~status:`Passed ~message ~gref:"master"
-    [ ("analysis", Some "job1") ];
-  Index.record ~repo ~hash:"def" ~status:`Passed ~message ~gref:"master"
-    [ ("lint", Some "job2") ];
-  let expected =
-    [ ("analysis", "abc", Some "job1"); ("lint", "def", Some "job2") ]
-  in
-  let result = Index.get_build_history ~owner ~name ~gref:"master" in
-  Alcotest.(check commits_jobs) "Commits" expected result *)
+   let owner = "owner" in
+   let name = "name" in
+   let repo = { Ocaml_ci.Repo_id.owner; name } in
+   let hash = "abc" in
+   let message = "message" in
+   Index.record ~repo ~hash ~status:`Failed ~message ~gref:"master"
+     [ ("analysis", Some "job1"); ("alpine", Some "job2") ];
+   Index.record ~repo ~hash ~status:`Passed ~message ~gref:"master"
+     [ ("analysis", Some "job1") ];
+   Index.record ~repo ~hash:"def" ~status:`Passed ~message ~gref:"master"
+     [ ("lint", Some "job2") ];
+   let expected =
+     [ ("analysis", "abc", Some "job1"); ("lint", "def", Some "job2") ]
+   in
+   let result = Index.get_build_history ~owner ~name ~gref:"master" in
+   Alcotest.(check commits_jobs) "Commits" expected result *)
 
 let tests =
   [

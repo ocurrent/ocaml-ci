@@ -76,7 +76,7 @@ let status_icon (status : Ocaml_ci_api.Client.State.t) =
 let status_icon_build (status : Build_status.t) =
   match status with
   | NotStarted -> icon_queued
-  | Failed  -> icon_failed
+  | Failed -> icon_failed
   | Passed -> icon_success
   | Pending -> icon_active
   | Undefined _ -> icon_failed

@@ -25,12 +25,11 @@ let github_commit_url ~org ~repo ~hash =
 let github_pr_url ~org ~repo id =
   Printf.sprintf "https://github.com/%s/%s/pull/%s" org repo id
 
-let github_org_url org =
-  Printf.sprintf "https://github.com/%s" org
+let github_org_url org = Printf.sprintf "https://github.com/%s" org
 
 (* let format_org org = li [ a ~a:[ a_href (org_url org) ] [ txt org ] ] *)
 
-let ref_name r = 
+let ref_name r =
   match Astring.String.cuts ~sep:"/" r with
   | "refs" :: "heads" :: branch -> Astring.String.concat ~sep:"/" branch
   | [ "refs"; "pull"; id; "head" ] -> id
@@ -83,46 +82,63 @@ let link_github_refs ~org ~repo refs =
   List.map f refs
 
 let list_orgs ~orgs =
-  ignore orgs;
-  let orgs = ["maiste"; "benmandrew"; "novemberkilo"; "tmcgilchrist"] in
+  (* ignore orgs;
+     let orgs = ["maiste"; "benmandrew"; "novemberkilo"; "tmcgilchrist"] in *)
   let org_table =
-    orgs |> List.map (fun org -> 
-      a ~a:[ a_href (org_url org); a_class [ "item-card flex space-x-4" ] ] [
-        img
-          ~a:[ a_style "border-radius: 50% " ]
-          ~src:(Printf.sprintf "https://github.com/%s.png?size=88" org)
-          ~alt:(Printf.sprintf "%s profile picture" org)
-          ();
-        div ~a:[ a_class [ "flex flex-col" ] ] [
-          div ~a:[ a_class [ "font-semibold text-lg mb-1" ] ] [ txt org ];
-          div ~a:[ a_class [ "text-sm" ] ] [ txt "Placeholder profile bio" ];
-          div ~a:[ a_class [ "flex mt-4 text-sm text-gray-700 font-normal space-x-4" ] ] [
-            div [ txt (github_org_url org) ];
-            div ~a:[ a_class [ "flex items-center space-x-2" ] ] [
-              txt "Placeholder # repositories"
-            ];
-          ];
-        ];
-      ];
-    )
+    orgs
+    |> List.map (fun Client.CI.{ owner; bio; n_repos } ->
+           a
+             ~a:
+               [
+                 a_href (org_url owner); a_class [ "item-card flex space-x-4" ];
+               ]
+             [
+               img
+                 ~a:[ a_style "border-radius: 50% " ]
+                 ~src:(Printf.sprintf "https://github.com/%s.png?size=88" owner)
+                 ~alt:(Printf.sprintf "%s profile picture" owner)
+                 ();
+               div
+                 ~a:[ a_class [ "flex flex-col" ] ]
+                 [
+                   div
+                     ~a:[ a_class [ "font-semibold text-lg mb-1" ] ]
+                     [ txt owner ];
+                   div ~a:[ a_class [ "text-sm" ] ] [ txt bio ];
+                   div
+                     ~a:
+                       [
+                         a_class
+                           [
+                             "flex mt-4 text-sm text-gray-700 font-normal \
+                              space-x-4";
+                           ];
+                       ]
+                     [
+                       div [ txt (github_org_url owner) ];
+                       div
+                         ~a:[ a_class [ "flex items-center space-x-2" ] ]
+                         [ txt (Printf.sprintf "%d repositories" n_repos) ];
+                     ];
+                 ];
+             ])
   in
   let title =
-    div ~a:[ a_class [ "justify-between items-center flex" ] ] [
-      div ~a:[ a_class [ "flex flex-col space-y-1" ] ] [
-        h1 ~a:[ a_class [ "text-xl" ] ] [ txt "Welcome to Ocaml-ci" ] ;
-        div ~a:[ a_class [ "text-gray-500" ] ] [
-          txt "Here are some of our registered Github organisations"
-        ]
+    div
+      ~a:[ a_class [ "justify-between items-center flex" ] ]
+      [
+        div
+          ~a:[ a_class [ "flex flex-col space-y-1" ] ]
+          [
+            h1 ~a:[ a_class [ "text-xl" ] ] [ txt "Welcome to Ocaml-ci" ];
+            div
+              ~a:[ a_class [ "text-gray-500" ] ]
+              [ txt "Here are some of our registered Github organisations" ];
+          ];
       ]
-    ]
   in
   Template_v1.instance
-    [
-      title;
-      div
-        ~a:[ a_class [ "mt-8 flex flex-col space-y-6" ] ]
-        org_table;
-  ]
+    [ title; div ~a:[ a_class [ "mt-8 flex flex-col space-y-6" ] ] org_table ]
 
 let list_repos ~org ~repos = Template.instance @@ repos_v ~org ~repos
 
@@ -135,50 +151,69 @@ let list_refs ~org ~repo ~refs =
 
 let list_history ~org ~repo ~ref ~history =
   let head_hash =
-    match history with
-    | [] -> ""
-    | (hash, _, _, _)::_ -> hash
+    match history with [] -> "" | (hash, _, _, _) :: _ -> hash
   in
   let commit_table =
     let commit_table_head =
       div
         ~a:
-          [ a_class [ "bg-gray-50 px-6 py-3 text-gray-500 text-xs font-medium" ] ]
-        [ txt (
-          Printf.sprintf "Builds (%d)" (List.length history)) ]
+          [
+            a_class [ "bg-gray-50 px-6 py-3 text-gray-500 text-xs font-medium" ];
+          ]
+        [ txt (Printf.sprintf "Builds (%d)" (List.length history)) ]
     in
     let f (u, message, status, t) =
       let created_at = Timestamps_durations.pp_timestamp (Some t) in
-      Build.commit_row
-        ~commit_title:(message)
-        ~short_hash:(short_hash u)
-        ~created_at
-        ~status
-        ~commit_uri:(commit_url ~org ~repo u)
+      Build.commit_row ~commit_title:message ~short_hash:(short_hash u)
+        ~created_at ~status ~commit_uri:(commit_url ~org ~repo u)
     in
     commit_table_head :: List.map f history
   in
   let title =
-    div ~a:[ a_class [ "justify-between items-center flex" ] ] [
-      div ~a:[ a_class [ "flex flex-items-center space-x-4" ] ] [
-        div ~a:[ a_class [ "flex flex-col space-y-1" ] ] [
-          h1 ~a:[ a_class [ "text-xl" ] ] [ txt (Printf.sprintf "Build History for \"%s\"" (ref_name ref)) ] ;
-          div ~a:[ a_class [ "text-gray-500" ] ] [
-            div ~a:[ a_class [ "flex text-sm space-x-2 " ] ] [
-              txt (Printf.sprintf "Here is your build history for %s on %s" (ref_name ref) repo)
-            ]
-          ]
-        ]
+    div
+      ~a:[ a_class [ "justify-between items-center flex" ] ]
+      [
+        div
+          ~a:[ a_class [ "flex flex-items-center space-x-4" ] ]
+          [
+            div
+              ~a:[ a_class [ "flex flex-col space-y-1" ] ]
+              [
+                h1
+                  ~a:[ a_class [ "text-xl" ] ]
+                  [
+                    txt
+                      (Printf.sprintf "Build History for \"%s\"" (ref_name ref));
+                  ];
+                div
+                  ~a:[ a_class [ "text-gray-500" ] ]
+                  [
+                    div
+                      ~a:[ a_class [ "flex text-sm space-x-2 " ] ]
+                      [
+                        txt
+                          (Printf.sprintf
+                             "Here is your build history for %s on %s"
+                             (ref_name ref) repo);
+                      ];
+                  ];
+              ];
+          ];
       ]
-    ]
   in
-  Template_v1.instance [
+  Template_v1.instance
+    [
       Common.breadcrumbs
-        [ (prefix, prefix); (org, org); (repo, repo); ref_breadcrumb ref head_hash ]
-        ("Build History");
+        [
+          (prefix, prefix);
+          (org, org);
+          (repo, repo);
+          ref_breadcrumb ref head_hash;
+        ]
+        "Build History";
       title;
       Build.tabulate commit_table;
-  ]
+    ]
 
 let cancel_success_message success =
   let format_job_info ji =
@@ -202,9 +237,7 @@ let cancel_fail_message = function
       div
         [
           span
-            [
-              txt "1 job could not be cancelled. Check logs for more detail.";
-            ];
+            [ txt "1 job could not be cancelled. Check logs for more detail." ];
         ]
   | n ->
       div
@@ -221,15 +254,12 @@ let cancel_fail_message = function
 let cancel_fail_message_v1 : int -> ([> `Fail ] * uri) list_wrap = function
   | n when n <= 0 -> []
   | 1 ->
-      [
-        ( `Fail,
-          "1 job could not be cancelled. Check logs for more detail." );
-      ]
+      [ (`Fail, "1 job could not be cancelled. Check logs for more detail.") ]
   | n ->
       [
         ( `Fail,
-          Printf.sprintf "%d jobs could not be cancelled. Check logs for more detail."
-            n );
+          Printf.sprintf
+            "%d jobs could not be cancelled. Check logs for more detail." n );
       ]
 
 let rebuild_success_message success =
@@ -253,10 +283,7 @@ let rebuild_fail_message = function
   | 1 ->
       div
         [
-          span
-            [
-              txt "1 job could not be rebuilt. Check logs for more detail.";
-            ];
+          span [ txt "1 job could not be rebuilt. Check logs for more detail." ];
         ]
   | n ->
       div
@@ -271,15 +298,12 @@ let rebuild_fail_message = function
 
 let rebuild_fail_message_v1 = function
   | n when n <= 0 -> []
-  | 1 ->
-      [
-        ( `Fail, "1 job could not be rebuilt. Check logs for more detail." );
-      ]
+  | 1 -> [ (`Fail, "1 job could not be rebuilt. Check logs for more detail.") ]
   | n ->
       [
         ( `Fail,
-          Printf.sprintf "%d jobs could not be rebuilt. Check logs for more detail." n
-        );
+          Printf.sprintf
+            "%d jobs could not be rebuilt. Check logs for more detail." n );
       ]
 
 let return_link ~org ~repo ~hash =

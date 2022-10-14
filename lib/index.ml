@@ -22,10 +22,10 @@ type job_state =
 type build_status = [ `Not_started | `Pending | `Failed | `Passed ]
 
 type ref_info = {
-  hash: string;
-  message: string;
-  gref: string;
-  started_at: float option;
+  hash : string;
+  message : string;
+  gref : string;
+  started_at : float option;
 }
 
 let or_fail label x =
@@ -92,9 +92,9 @@ ALTER TABLE ci_build_index
          "SELECT variant, job_id FROM ci_build_index WHERE owner = ? AND name \
           = ? AND hash = ?"
      (* and get_commits_job_ids_for_ref =
-       Sqlite3.prepare db
-         "SELECT variant, hash, job_id FROM ci_build_index WHERE owner = ? AND \
-          name = ? AND gref = ?" *)
+        Sqlite3.prepare db
+          "SELECT variant, hash, job_id FROM ci_build_index WHERE owner = ? AND \
+           name = ? AND gref = ?" *)
      and get_git_fetch_outcome_by_time =
        Sqlite3.prepare db
          " SELECT key, strftime('%s', ready) FROM cache WHERE op LIKE \
@@ -133,14 +133,14 @@ let get_build_history ~owner ~name ~gref =
       | Sqlite3.Data.[ BLOB key; TEXT ready ] -> (
           let key = String.split_on_char ' ' key in
           match key with
-          | [ _; gref; hash ] -> (gref, hash, "Commit Title (history)", Float.of_string_opt ready)
+          | [ _; gref; hash ] ->
+              (gref, hash, "Commit Title (history)", Float.of_string_opt ready)
           | _ -> Fmt.failwith "get_build_history: wrong key format")
-      | row ->
-          Fmt.failwith "get_build_history: invalid row %a" Db.dump_row row)
+      | row -> Fmt.failwith "get_build_history: invalid row %a" Db.dump_row row)
   |> List.filter (fun (gref', _, _, time) ->
-        if Option.is_none time then false else gref = gref')
+         if Option.is_none time then false else gref = gref')
   |> List.map (fun (gref, hash, message, started_at) ->
-        {gref; hash; message; started_at})
+         { gref; hash; message; started_at })
 
 module Status_cache = struct
   let cache = Hashtbl.create 1_000
@@ -278,6 +278,26 @@ module Owner_set = Set.Make (String)
 let active_owners = ref Owner_set.empty
 let set_active_owners x = active_owners := x
 let get_active_owners () = !active_owners
+
+module Bio_map = Map.Make (String)
+module N_repos_map = Map.Make (String)
+
+let bio = ref Bio_map.empty
+let n_repos = ref N_repos_map.empty
+
+let set_bio ~owner x =
+  bio := Bio_map.add owner x !bio
+
+let get_bio ~owner =
+  Bio_map.find_opt owner !bio
+  |> Option.value ~default:"Placeholder bio"
+
+let set_n_repos ~owner x =
+  n_repos := N_repos_map.add owner x !n_repos
+
+let get_n_repos ~owner =
+  N_repos_map.find_opt owner !n_repos
+  |> Option.value ~default:0
 
 module Owner_map = Map.Make (String)
 module Repo_set = Set.Make (String)

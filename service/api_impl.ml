@@ -95,13 +95,13 @@ let make_commit ~engine ~owner ~name hash =
           | `Passed -> Results.status_set results Passed);
          Service.return response
 
-        method message_impl _params release_param_caps =
-          let open Commit.Message in
-          release_param_caps ();
-          let response, results = Service.Response.create Results.init_pointer in
-          let message = Index.get_message ~owner ~name ~hash in
-          Results.title_set results message;
-          Service.return response
+       method message_impl _params release_param_caps =
+         let open Commit.Message in
+         release_param_caps ();
+         let response, results = Service.Response.create Results.init_pointer in
+         let message = Index.get_message ~owner ~name ~hash in
+         Results.title_set results message;
+         Service.return response
      end
 
 let to_build_status =
@@ -199,7 +199,7 @@ let make_repo ~engine ~owner ~name =
          let response, results = Service.Response.create Results.init_pointer in
          let arr = Results.refs_init results (List.length history) in
          history
-         |> List.iteri (fun i Index.({ gref; hash; message; started_at }) ->
+         |> List.iteri (fun i Index.{ gref; hash; message; started_at } ->
                 let slot = Capnp.Array.get arr i in
                 Raw.Builder.RefInfo.ref_set slot gref;
                 Raw.Builder.RefInfo.hash_set slot hash;
@@ -314,6 +314,16 @@ let make_ci ~engine =
          release_param_caps ();
          let response, results = Service.Response.create Results.init_pointer in
          let owners = Index.get_active_owners () |> Index.Owner_set.elements in
-         Results.orgs_set_list results owners |> ignore;
+         (* Results.orgs_set_list results owners |> ignore;
+            Service.return response *)
+         let arr = Results.orgs_init results (List.length owners) in
+         owners
+         |> List.iteri (fun i owner ->
+                let slot = Capnp.Array.get arr i in
+                Raw.Builder.OrgInfo.owner_set slot owner;
+                let bio = Index.get_bio ~owner in
+                Raw.Builder.OrgInfo.bio_set slot bio;
+                let n_repos = Index.get_n_repos ~owner in
+                Raw.Builder.OrgInfo.n_repos_set_exn slot n_repos);
          Service.return response
      end

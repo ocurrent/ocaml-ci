@@ -12,10 +12,10 @@ type job_state =
 type build_status = [ `Not_started | `Pending | `Failed | `Passed ]
 
 type ref_info = {
-  hash: string;
-  message: string;
-  gref: string;
-  started_at: float option;
+  hash : string;
+  message : string;
+  gref : string;
+  started_at : float option;
 }
 
 val init : unit -> unit
@@ -50,17 +50,13 @@ val get_job :
     combination. *)
 
 val get_job_ids : owner:string -> name:string -> hash:string -> string list
-
 val get_message : owner:string -> name:string -> hash:string -> string
 
 val get_build_history :
-  owner:string ->
-  name:string ->
-  gref:string ->
-  ref_info list
-(** [get_build_history ~owner ~name ~gref] is a list of builds for the
-    branch gref of the repo identfied by (owner, name). The builds are
-    identified by ref_info *)
+  owner:string -> name:string -> gref:string -> ref_info list
+(** [get_build_history ~owner ~name ~gref] is a list of builds for the branch
+    gref of the repo identfied by (owner, name). The builds are identified by
+    ref_info *)
 
 val get_status : owner:string -> name:string -> hash:string -> build_status
 (** [get_status ~owner ~name ~hash] is the latest status for this combination. *)
@@ -83,6 +79,21 @@ val set_active_owners : Owner_set.t -> unit
 val get_active_owners : unit -> Owner_set.t
 (** [get_active_owners ()] is the last value passed to [set_active_owners], or
     [\[\]] if not known yet. *)
+
+val set_bio : owner:string -> string -> unit
+(** [set_bio ~owner bio] records that [owner] has a [bio] *)
+
+val get_bio : owner:string -> string
+(** [get_bio ~owner] is the last value passed to [set_bio] for
+    [owner], or ["Placeholder bio"] if not known yet. *)
+
+val set_n_repos : owner:string -> int -> unit
+(** [set_n_repos ~owner n_repos] records that [owner] has [n_repos] active
+    repositories *)
+
+val get_n_repos : owner:string -> int
+(** [get_n_repos ~owner] is the last value passed to [set_n_repos] for
+    [owner], or [0] if not known yet. *)
 
 val set_active_repos : owner:string -> Repo_set.t -> unit
 (** [set_active_repos ~owner repos] records that [repos] is the set of active

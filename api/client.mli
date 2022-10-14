@@ -96,10 +96,11 @@ end
 module CI : sig
   type t = Raw.Client.CI.t Capability.t
   (** The top-level object for ocaml-ci. *)
+  type org_info = { owner : string; bio : string; n_repos : int }
 
   val org : t -> string -> Org.t
   (** [org t owner] is the GitHub organisation at "https://github.com/$owner".
       It returns an error if ocaml-ci doesn't know about this organisation. *)
 
-  val orgs : t -> (string list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
+  val orgs : t -> (org_info list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
 end
