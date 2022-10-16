@@ -3,12 +3,28 @@ open Current.Syntax
 module Raw = Current_docker.Raw
 module Worker = Ocaml_ci_api.Worker
 
+type base = [ `Docker of Current_docker.Raw.Image.t | `MacOS of string ]
+(* TODO Use docker images for bundling macos binaries. *)
+
+let to_yojson = function
+  | `Docker image ->
+      `List [ `String "docker"; `String (Raw.Image.digest image) ]
+  | `MacOS s -> `List [ `String "macos"; `String s ]
+
+let to_string = function
+  | `Docker image -> Raw.Image.hash image
+  | `MacOS s -> "macos-" ^ s
+
+let base_pp f = function
+  | `Docker image -> Fmt.pf f "%a" Raw.Image.pp image
+  | `MacOS s -> Fmt.pf f "%s" s
+
 type t = {
   label : string;
   builder : Builder.t;
   pool : string; (* OCluster pool *)
   variant : Variant.t;
-  base : Current_docker.Raw.Image.t;
+  base : base;
   vars : Worker.Vars.t;
 }
 
@@ -154,26 +170,51 @@ let query builder ~variant ~host_image image =
        { Query.Key.docker_context; variant }
        { Query.Value.image; host_image }
 
+let get_docker builder variant host_base base arch opam_version label pool =
+  let+ { Query.Outcome.vars; image } =
+    query builder ~variant ~host_image:host_base base
+  in
+  (* It would be better to run the opam query on the platform itself, but for
+     now we run everything on x86_64 and then assume that the other
+     architectures are the same except for the arch flag. *)
+  let vars =
+    {
+      vars with
+      arch = Ocaml_version.to_opam_arch arch;
+      opam_version = Opam_version.to_string_with_patch opam_version;
+    }
+  in
+  let base = Raw.Image.of_hash image in
+  { label; builder; pool; variant; base = `Docker base; vars }
+
 let get ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base
     ~opam_version base =
   match Variant.v ~arch ~distro ~ocaml_version ~opam_version with
   | Error (`Msg m) -> Current.fail m
   | Ok variant ->
-      let+ { Query.Outcome.vars; image } =
-        query builder ~variant ~host_image:host_base base
-      in
-      (* It would be better to run the opam query on the platform itself, but for
-         now we run everything on x86_64 and then assume that the other
-         architectures are the same except for the arch flag. *)
-      let vars =
-        {
-          vars with
-          arch = Ocaml_version.to_opam_arch arch;
-          opam_version = Opam_version.to_string_with_patch opam_version;
-        }
-      in
-      let base = Raw.Image.of_hash image in
-      { label; builder; pool; variant; base; vars }
+      get_docker builder variant host_base base arch opam_version label pool
+
+let get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
+    base =
+  (* Hardcoding opam-vars for macos 12.6 Monterey. *)
+  match Variant.v ~arch ~distro ~ocaml_version ~opam_version with
+  | Error (`Msg m) -> Current.fail m
+  | Ok variant ->
+      Current.component "opam-vars"
+      |> let** (`MacOS s) = base in
+         let vars =
+           {
+             Worker.Vars.arch = Ocaml_version.to_opam_arch arch;
+             os = "macos";
+             os_family = "macos";
+             os_distribution = "macos";
+             os_version = "12.6";
+             ocaml_package = "ocaml-base-compiler";
+             ocaml_version = Fmt.str "%a" Ocaml_version.pp ocaml_version;
+             opam_version = Opam_version.to_string_with_patch opam_version;
+           }
+         in
+         Current.return { label; builder; pool; variant; base = `MacOS s; vars }
 
 let pull ~arch ~schedule ~builder ~distro ~ocaml_version ~opam_version =
   match Variant.v ~arch ~distro ~ocaml_version ~opam_version with

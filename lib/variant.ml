@@ -32,6 +32,12 @@ type t = {
 }
 [@@deriving yojson, ord, eq]
 
+let macos_distributions = [ "macos-homebrew" ]
+
+let os { distro; _ } =
+  if List.exists (String.equal distro) macos_distributions then `macOS
+  else `linux
+
 let v ~arch ~distro ~ocaml_version ~opam_version =
   (* Just check we understand all the variants first *)
   match Ocaml_version.Configure_options.of_t ocaml_version with

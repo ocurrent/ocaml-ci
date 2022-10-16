@@ -38,19 +38,33 @@ let mkdir dirs =
 
 (* Generate instructions to copy all the files in [items] into the
    image, creating the necessary directories first, and then pin them all. *)
-let pin_opam_files ~network groups =
+let pin_opam_files ~network ?work_dir groups =
   if groups = [] then []
   else
     let open Obuilder_spec in
     mkdir groups
     @ (groups
-      |> List.map (fun (dir, files, _) -> copy files ~dst:(Fpath.to_string dir))
-      )
+      |> List.map (fun (dir, files, _) ->
+             copy files
+               ~dst:
+                 (let dir =
+                    Option.map
+                      (fun work_dir -> Fpath.( // ) work_dir dir)
+                      work_dir
+                    |> Option.value ~default:dir
+                  in
+                  Fpath.to_string dir)))
     @ [
         groups
         |> List.concat_map (fun (dir, _, pkgs) ->
                pkgs
                |> List.map (fun pkg ->
+                      let dir =
+                        Option.map
+                          (fun work_dir -> Fpath.( // ) work_dir dir)
+                          work_dir
+                        |> Option.value ~default:dir
+                      in
                       Printf.sprintf "opam pin add -yn %s %s" pkg
                         (Filename.quote (Fpath.to_string dir))))
         |> String.concat " && \n"
@@ -67,6 +81,12 @@ let download_cache = "opam-archives"
 
 let install_project_deps ~opam_version ~opam_files ~selection =
   let { Selection.packages; commit; variant; only_packages } = selection in
+  let prefix =
+    match Variant.os variant with `macOS -> "~/local" | `linux -> "/usr"
+  in
+  let ln =
+    match Variant.os variant with `macOS -> "ln" | `linux -> "sudo ln"
+  in
   let groups = group_opam_files opam_files in
   let root_pkgs = get_root_opam_packages groups in
   let non_root_pkgs =
@@ -77,10 +97,16 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   in
   let open Obuilder_spec in
   let cache =
-    [
-      Obuilder_spec.Cache.v download_cache
-        ~target:"/home/opam/.opam/download-cache";
-    ]
+    match Variant.os variant with
+    | `linux ->
+        [
+          Obuilder_spec.Cache.v download_cache
+            ~target:"/home/opam/.opam/download-cache";
+        ]
+    | `macOS ->
+        [
+          Obuilder_spec.Cache.v download_cache ~target:"~/.opam/download-cache";
+        ]
   in
   let network = [ "host" ] in
   let distro_extras =
@@ -89,7 +115,18 @@ let install_project_deps ~opam_version ~opam_files ~selection =
     else []
   in
   let network = [ "host" ] in
-  let opam_cmd = "/usr/bin/opam-" ^ Opam_version.to_string opam_version in
+
+  let home_dir =
+    match Variant.os selection.Selection.variant with
+    | `macOS -> None
+    | `linux -> Some "/src"
+  in
+  let work_dir =
+    match Variant.os selection.Selection.variant with
+    | `macOS -> Some (Fpath.v "./src/")
+    | `linux -> None
+  in
+  let opam_version_str = Opam_version.to_string opam_version in
   let compatible_root_pkgs = String.concat " " compatible_root_pkgs in
   let non_root_pkgs = String.concat " " non_root_pkgs in
   let opam_depext =
@@ -108,18 +145,22 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   else [])
   @ [ env "CLICOLOR_FORCE" "1" ]
   @ [ env "OPAMCOLOR" "always" ]
+  @ (match home_dir with
+    | Some home_dir -> [ Obuilder_spec.workdir home_dir ]
+    | None -> [])
   @ distro_extras
+  @ [ run "%s -f %s/bin/opam-%s %s/bin/opam" ln prefix opam_version_str prefix ]
+  @ (match home_dir with
+    | Some home_dir -> [ workdir home_dir; run "sudo chown opam /src" ]
+    | None -> [])
   @ [
-      run "sudo ln -f %s /usr/bin/opam" opam_cmd;
-      workdir "/src";
-      run "sudo chown opam /src";
       run ~network ~cache
         "cd ~/opam-repository && (git cat-file -e %s || git fetch origin \
          master) && git reset -q --hard %s && git log --no-decorate -n1 \
          --oneline && opam update -u"
         commit commit;
     ]
-  @ pin_opam_files ~network groups
+  @ pin_opam_files ~network ?work_dir groups
   @ [
       env "DEPS" non_root_pkgs;
       env "CI" "true";
@@ -131,18 +172,30 @@ let install_project_deps ~opam_version ~opam_files ~selection =
 let spec ~base ~opam_version ~opam_files ~selection =
   let open Obuilder_spec in
   let to_name x = OpamPackage.of_string x |> OpamPackage.name_to_string in
+  let home_dir =
+    match Variant.os selection.Selection.variant with
+    | `macOS -> "./src"
+    | `linux -> "/src"
+  in
   let only_packages =
     match selection.Selection.only_packages with
     | [] -> ""
     | pkgs -> " --only-packages=" ^ String.concat "," (List.map to_name pkgs)
   in
+  let run_build =
+    match Variant.os selection.Selection.variant with
+    | `macOS ->
+        run
+          "cd ./src && opam exec -- dune build%s @install @check @runtest && \
+           rm -rf _build"
+          only_packages
+    | `linux ->
+        run
+          "opam exec -- dune build%s @install @check @runtest && rm -rf _build"
+          only_packages
+  in
   stage ~from:base
     (comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant)
      :: user_unix ~uid:1000 ~gid:1000
      :: install_project_deps ~opam_version ~opam_files ~selection
-    @ [
-        copy [ "." ] ~dst:"/src/";
-        run
-          "opam exec -- dune build%s @install @check @runtest && rm -rf _build"
-          only_packages;
-      ])
+    @ [ copy [ "." ] ~dst:home_dir; run_build ])

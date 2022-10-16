@@ -9,7 +9,7 @@ val v :
     platform. [~repo] is the ID of the repository-under-test on GitHub. *)
 
 val make_build_spec :
-  base:Current_docker.Raw.Image.t ->
+  base:Platform.base ->
   repo:Repo_id.t ->
   variant:Variant.t ->
   ty:Spec.ty ->
