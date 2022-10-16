@@ -17,3 +17,4 @@ val docker_tag : t -> string
 val pp : t Fmt.t
 val to_string : t -> string
 val of_string : string -> t
+val os : t -> [> `linux | `macOS ]

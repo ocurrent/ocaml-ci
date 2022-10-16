@@ -1,11 +1,17 @@
 (** A platform on which we wish to perform test builds. *)
 
+type base = [ `Docker of Current_docker.Raw.Image.t | `MacOS of string ]
+
+val to_yojson : base -> Yojson.Safe.t
+val to_string : base -> string
+val base_pp : Format.formatter -> base -> unit
+
 type t = {
   label : string;
   builder : Builder.t;
   pool : string; (* OCluster pool *)
   variant : Variant.t; (* e.g. "debian-10-ocaml-4.08" *)
-  base : Current_docker.Raw.Image.t;
+  base : base; (* Base image to use *)
   vars : Ocaml_ci_api.Worker.Vars.t;
 }
 
@@ -47,3 +53,17 @@ val pull :
   Current_docker.Raw.Image.t Current.t
 (** [pull ~schedule ~builder ~distro ~ocaml_version] pulls
     "ocaml/opam:\{distro\}-ocaml-\{version\}" on [schedule]. *)
+
+val get_macos :
+  arch:Ocaml_version.arch ->
+  label:string ->
+  builder:Builder.t ->
+  pool:string ->
+  distro:string ->
+  ocaml_version:Ocaml_version.t ->
+  opam_version:Opam_version.t ->
+  [< `MacOS of string ] Current.t ->
+  t Current.t
+(** [get_macos ~label ~builder ~variant ~host_base base] creates a [t] by
+    getting the opam variables from [host_base] and returning [base] for
+    subsequent builds. *)

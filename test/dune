@@ -1,5 +1,5 @@
-(executable
- (name test)
+(executables
+ (names test test_lwt)
  (libraries
   ocaml_ci
   alcotest
@@ -19,4 +19,9 @@
   (source_tree migrations)
   (package ocaml-ci-solver))
  (action
-  (run ./test.exe -e)))
+  (run ./test_lwt.exe -e)))
+
+(rule
+ (alias runtest)
+ (action
+  (run ./test.exe)))

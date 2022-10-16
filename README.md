@@ -59,7 +59,8 @@ This is useful if you want to try out changes to the pipeline.
 If you want to build the whole system, the easiest way is using Docker:
 
 ```sh
-docker build -t ocaml-ci-service .
+docker build -f Dockerfile -t ocaml-ci-service .
+docker build -f Dockerfile.gitlab -t ocaml-ci-gitlab .
 docker build -f Dockerfile.web -t ocaml-ci-web .
 ```
 
@@ -83,24 +84,24 @@ To see the branches and PRs that ocaml-ci is monitoring in a repository:
 
 ```bash
 $ ocaml-ci mirage/irmin
-615364620f4233cb82a96144824eb6ad5d1104f0 refs/heads/1.4
-e0fcf0d336544650ca5237b356cfce4a48378245 refs/heads/master
-6c46d1de5e67a3f504fc55af1d644d852c946533 refs/heads/mirage-dev
-28421a152e8e19b3fb5048670629e7e01d0fbea6 refs/pull/523/head
-acfbee7e82fcaaa5a0dad900068dc67f22021f2e refs/pull/678/head
-3fc04e9f6e7574c0f61eacb3187b412b3bababe4 refs/pull/728/head
-32f6c9f303616880994998881ee75c8d1fe0df91 refs/pull/771/head
-b2d4b06f94d13384ae08eb06439ce9c6066419cd refs/pull/815/head
-d8161e6cbf06c3005a080d4df209f7de67d6fa5c refs/pull/851/head
-5e36237d7ce6279878578cf48d8b63937c499e5a refs/pull/858/head
-04a368ecd52ea436bfcd252ed94772f55b5159d5 refs/pull/866/head
-2e838b491a4c0b21750f7a2e6dee88eee1c7d94e refs/pull/867/head
+615364620f4233cb82a96144824eb6ad5d1104f0 refs/heads/1.4 (passed)
+e0fcf0d336544650ca5237b356cfce4a48378245 refs/heads/master (passed)
+6c46d1de5e67a3f504fc55af1d644d852c946533 refs/heads/mirage-dev (passed)
+28421a152e8e19b3fb5048670629e7e01d0fbea6 refs/pull/523/head (passed)
+acfbee7e82fcaaa5a0dad900068dc67f22021f2e refs/pull/678/head (passed)
+3fc04e9f6e7574c0f61eacb3187b412b3bababe4 refs/pull/728/head (passed)
+32f6c9f303616880994998881ee75c8d1fe0df91 refs/pull/771/head (passed)
+b2d4b06f94d13384ae08eb06439ce9c6066419cd refs/pull/815/head (failed)
+d8161e6cbf06c3005a080d4df209f7de67d6fa5c refs/pull/851/head (passed)
+5e36237d7ce6279878578cf48d8b63937c499e5a refs/pull/858/head (failed)
+04a368ecd52ea436bfcd252ed94772f55b5159d5 refs/pull/866/head (passed)
+2e838b491a4c0b21750f7a2e6dee88eee1c7d94e refs/pull/867/head (passed)
 ```
 
 You can pass either the reference (e.g. `refs/heads/master`) or the commit hash to choose one of them.
 
 ```bash
-$ ocaml-ci mirage/irmin refs/heads/master
+$ ocaml-ci mirage/irmin refs/heads/main
 alpine-3.10-ocaml-4.08
 ```
 
@@ -132,7 +133,7 @@ $ ocaml-ci mirage/irmin pull/867 alpine-3.10-ocaml-4.08 cancel
 
 ## Deployment
 
-`ocaml-ci` is deployed as two docker images built from `Dockerfile` and `Dockerfile.web`, with
+`ocaml-ci` is deployed as three docker images built from `Dockerfile`, `Dockerfile.gitlab` and `Dockerfile.web`, with
 the live service following `live-engine` for the backend and `live-www` for the frontend.
 An ocurrent-deployer [pipeline](deploy.ci3.ocamllabs.io) watches these branches, performing a docker build
 and deploy whenever it sees a new commit. The live branches should typically contain commits from `master` plus potentially

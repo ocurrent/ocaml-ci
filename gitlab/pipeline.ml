@@ -16,35 +16,7 @@ module Metrics = struct
       "repositories_total"
 end
 
-let platforms =
-  let schedule = Current_cache.Schedule.v ~valid_for:(Duration.of_day 30) () in
-  let v
-      {
-        Ocaml_ci_service.Conf.label;
-        builder;
-        pool;
-        distro;
-        ocaml_version;
-        arch;
-        opam_version;
-      } =
-    let base =
-      Platform.pull ~arch ~schedule ~builder ~distro ~ocaml_version
-        ~opam_version
-    in
-    let host_base =
-      match arch with
-      | `X86_64 -> base
-      | _ ->
-          Platform.pull ~arch:`X86_64 ~schedule ~builder ~distro ~ocaml_version
-            ~opam_version
-    in
-    Platform.get ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base
-      ~opam_version base
-  in
-  let v2_1 = Ocaml_ci_service.Conf.platforms `V2_1 in
-  Current.list_seq (List.map v v2_1)
-
+let platforms = Ocaml_ci_service.Conf.fetch_platforms ~include_macos:true ()
 let program_name = "ocaml-ci"
 
 (* Link for GitLab statuses. *)
@@ -189,7 +161,7 @@ let get_job_id x =
   let+ md = Current.Analysis.metadata x in
   match md with Some { Current.Metadata.job_id; _ } -> job_id | None -> None
 
-let build_with_docker ?ocluster ~repo ~analysis source =
+let build_with_docker ?ocluster ~repo ~analysis ~platforms source =
   let repo' =
     Current.map
       (fun r ->
@@ -359,7 +331,9 @@ let v ?ocluster ~app ~solver ~migrations () =
            let analysis =
              Analyse.examine ~solver ~platforms ~opam_repository_commit src
            in
-           let builds = build_with_docker ?ocluster ~repo ~analysis src in
+           let builds =
+             build_with_docker ?ocluster ~repo ~analysis ~platforms src
+           in
            let summary =
              builds
              |> Current.map

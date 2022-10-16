@@ -4,26 +4,7 @@ module Git = Current_git
 module Github = Current_github
 module Docker = Current_docker.Default
 
-let platforms =
-  let schedule = Current_cache.Schedule.v ~valid_for:(Duration.of_day 30) () in
-  let v { Conf.label; builder; pool; distro; ocaml_version; arch; opam_version }
-      =
-    let base =
-      Platform.pull ~arch ~schedule ~builder ~distro ~ocaml_version
-        ~opam_version
-    in
-    let host_base =
-      match arch with
-      | `X86_64 -> base
-      | _ ->
-          Platform.pull ~arch:`X86_64 ~schedule ~builder ~distro ~ocaml_version
-            ~opam_version
-    in
-    Platform.get ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base
-      ~opam_version base
-  in
-  let v2_1 = Conf.platforms `V2_1 in
-  Current.list_seq (List.map v v2_1)
+let platforms = Conf.fetch_platforms ~include_macos:true ()
 
 (* Link for GitHub statuses. *)
 let url ~owner ~name ~hash ~gref =
@@ -125,7 +106,7 @@ let get_job_id x =
   let+ md = Current.Analysis.metadata x in
   match md with Some { Current.Metadata.job_id; _ } -> job_id | None -> None
 
-let build_with_docker ?ocluster ~repo ~analysis source =
+let build_with_docker ?ocluster ~repo ~analysis ~platforms source =
   let repo' =
     Current.map
       (fun r ->
@@ -242,13 +223,14 @@ let summarise results =
     | ok, err, _ -> list_errors ~ok err (* Some errors found - report *)
 
 let local_test ~solver repo () =
+  let platforms = Conf.fetch_platforms ~include_macos:false () in
   let src = Git.Local.head_commit repo in
   let repo = Current.return { Github.Repo_id.owner = "local"; name = "test" }
   and analysis =
     Analyse.examine ~solver ~platforms ~opam_repository_commit src
   in
   Current.component "summarise"
-  |> let> results = build_with_docker ~repo ~analysis src in
+  |> let> results = build_with_docker ~repo ~analysis ~platforms src in
      let result =
        results
        |> List.map (fun (variant, (build, _job)) -> (variant, build))
@@ -296,7 +278,7 @@ let v ?ocluster ~app ~solver ~migrations () =
            in
            let builds =
              let repo = Current.map Github.Api.Repo.id repo in
-             build_with_docker ?ocluster ~repo ~analysis src
+             build_with_docker ?ocluster ~repo ~analysis ~platforms src
            in
            let summary =
              builds
