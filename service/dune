@@ -18,7 +18,8 @@
   mirage-crypto-rng.unix
   ocaml_ci
   ocaml-ci-api
-  prometheus-app.unix)
+  prometheus-app.unix
+  dream)
  (preprocess
   (pps ppx_deriving_yojson))
  (modules api_impl conf github pipeline))

@@ -84,16 +84,16 @@ val set_bio : owner:string -> string -> unit
 (** [set_bio ~owner bio] records that [owner] has a [bio] *)
 
 val get_bio : owner:string -> string
-(** [get_bio ~owner] is the last value passed to [set_bio] for
-    [owner], or ["Placeholder bio"] if not known yet. *)
+(** [get_bio ~owner] is the last value passed to [set_bio] for [owner], or
+    ["Placeholder bio"] if not known yet. *)
 
 val set_n_repos : owner:string -> int -> unit
 (** [set_n_repos ~owner n_repos] records that [owner] has [n_repos] active
     repositories *)
 
 val get_n_repos : owner:string -> int
-(** [get_n_repos ~owner] is the last value passed to [set_n_repos] for
-    [owner], or [0] if not known yet. *)
+(** [get_n_repos ~owner] is the last value passed to [set_n_repos] for [owner],
+    or [0] if not known yet. *)
 
 val set_active_repos : owner:string -> Repo_set.t -> unit
 (** [set_active_repos ~owner repos] records that [repos] is the set of active

@@ -284,20 +284,15 @@ module N_repos_map = Map.Make (String)
 
 let bio = ref Bio_map.empty
 let n_repos = ref N_repos_map.empty
-
-let set_bio ~owner x =
-  bio := Bio_map.add owner x !bio
+let set_bio ~owner x = bio := Bio_map.add owner x !bio
 
 let get_bio ~owner =
-  Bio_map.find_opt owner !bio
-  |> Option.value ~default:"Placeholder bio"
+  Bio_map.find_opt owner !bio |> Option.value ~default:"Placeholder bio"
 
-let set_n_repos ~owner x =
-  n_repos := N_repos_map.add owner x !n_repos
+let set_n_repos ~owner x = n_repos := N_repos_map.add owner x !n_repos
 
 let get_n_repos ~owner =
-  N_repos_map.find_opt owner !n_repos
-  |> Option.value ~default:0
+  N_repos_map.find_opt owner !n_repos |> Option.value ~default:0
 
 module Owner_map = Map.Make (String)
 module Repo_set = Set.Make (String)

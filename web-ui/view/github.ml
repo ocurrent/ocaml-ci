@@ -93,9 +93,12 @@ let list_orgs ~orgs =
                  a_href (org_url owner); a_class [ "item-card flex space-x-4" ];
                ]
              [
+               (* Github sometimes returns a blurry smaller profile picture,
+                  so request larger than we need and downsample *)
                img
-                 ~a:[ a_style "border-radius: 50% " ]
-                 ~src:(Printf.sprintf "https://github.com/%s.png?size=88" owner)
+                 ~a:[ a_style "border-radius: 50%; width: 88px" ]
+                 ~src:
+                   (Printf.sprintf "https://github.com/%s.png?size=200" owner)
                  ~alt:(Printf.sprintf "%s profile picture" owner)
                  ();
                div
