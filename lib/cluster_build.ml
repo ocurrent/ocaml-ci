@@ -87,7 +87,8 @@ module Op = struct
           <<'END-OF-DOCKERFILE'@.\o033[34m%s\o033[0m@.END-OF-DOCKERFILE@.docker \
           build .@.@."
          Current_git.Commit_id.pp_user_clone commit
-         (Obuilder_spec.Docker.dockerfile_of_spec ~buildkit:false build_spec));
+         (Obuilder_spec.Docker.dockerfile_of_spec ~buildkit:false ~os:`Unix
+            build_spec));
     let spec_str = Fmt.to_to_string Obuilder_spec.pp build_spec in
     let action = Cluster_api.Submission.obuilder_build spec_str in
     let src = (Git.Commit_id.repo commit, [ Git.Commit_id.hash commit ]) in
