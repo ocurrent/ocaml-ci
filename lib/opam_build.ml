@@ -120,6 +120,8 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   @ pin_opam_files ~network groups
   @ [
       env "DEPS" non_root_pkgs;
+      env "CI" "true";
+      env "OCAMLCI" "true";
       opam_depext;
       run ~network ~cache "opam install $DEPS";
     ]
