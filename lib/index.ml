@@ -1,8 +1,67 @@
 let src = Logs.Src.create "ocaml_ci.index" ~doc:"ocaml-ci indexer"
 
+open Current.Syntax
 module Log = (val Logs.src_log src : Logs.LOG)
 module Db = Current.Db
 module Job_map = Astring.String.Map
+
+module Migration = struct
+  open Lwt.Infix
+
+  let ( >>!= ) = Lwt_result.Infix.( >>= )
+
+  type t = unit
+
+  let id = "ocaml-ci-db"
+
+  module Key = struct
+    type t = float
+
+    let digest = Float.to_string
+    let pp f t = Fmt.pf f "Date %f" t
+  end
+
+  module Value = Current.Unit
+
+  let to_current_error = function
+    | Ok () -> Lwt_result.return ()
+    | Error err ->
+        let msg =
+          match err with
+          | `Unknown_driver s ->
+              Printf.sprintf "omigrate: unknown driver (%s)" s
+          | `Bad_uri s -> Printf.sprintf "omigrate: bad uri (%s)" s
+          | `Invalid_source s ->
+              Printf.sprintf "omigrate: invalid source (%s)" s
+        in
+        Lwt_result.fail (`Msg msg)
+    | _ -> failwith "TODO"
+
+  let migrate source =
+    let db_dir = Current.state_dir "db" in
+    let db_path = Fpath.(to_string (db_dir / "sqlite.db")) in
+    let database = Uri.(make ~scheme:"sqlite3" ~path:db_path () |> to_string) in
+    Omigrate.create ~database >>!= fun () -> Omigrate.up ~source ~database ()
+
+  let build () job _date =
+    Current.Job.start job ~level:Current.Level.Dangerous >>= fun () ->
+    let source =
+      let pwd = Fpath.v (Sys.getcwd ()) in
+      Fpath.(to_string (pwd / "migrations"))
+    in
+    Current.Job.log job "Running migration from migrations/";
+    migrate source >>= to_current_error
+
+  let pp = Key.pp
+  let auto_cancel = true
+end
+
+module Migration_cache = Current_cache.Make (Migration)
+
+let migrate () =
+  Current.component "migrations"
+  |> let> date = Current.return (Unix.time ()) in
+     Migration_cache.get () date
 
 type t = {
   record_job : Sqlite3.stmt;
@@ -21,11 +80,6 @@ type job_state =
 
 type build_status = [ `Not_started | `Pending | `Failed | `Passed ]
 
-let or_fail label x =
-  match x with
-  | Sqlite3.Rc.OK -> ()
-  | err -> Fmt.failwith "Sqlite3 %s error: %s" label (Sqlite3.Rc.to_string err)
-
 let is_valid_hash hash =
   let open Astring in
   String.length hash >= 6 && String.for_all Char.Ascii.is_alphanum hash
@@ -34,34 +88,6 @@ let db =
   lazy
     (let db = Lazy.force Current.Db.v in
      Current_cache.Db.init ();
-     let gref_col_does_not_exist =
-       let q =
-         Sqlite3.prepare db
-           "SELECT count(*) FROM pragma_table_info('ci_build_index') WHERE \
-            name='gref'"
-       in
-       Db.query_one q [] = Sqlite3.Data.[ INT 0L ]
-     in
-     Sqlite3.exec db
-       {|
-CREATE TABLE IF NOT EXISTS ci_build_index (
-  owner     TEXT NOT NULL,
-  name      TEXT NOT NULL,
-  hash      TEXT NOT NULL,
-  variant   TEXT NOT NULL,
-  job_id    TEXT,
-  PRIMARY KEY (owner, name, hash, variant)
-)|}
-     |> or_fail "create table";
-     if gref_col_does_not_exist then
-       let () = Log.info (fun f -> f "ADDING gref col to ci_build_index.") in
-       Sqlite3.exec db
-         {|
-ALTER TABLE ci_build_index
-  ADD COLUMN gref TEXT NOT NULL DEFAULT "-"
-    |}
-       |> or_fail "alter table"
-     else Log.info (fun f -> f "gref col detected.");
      let record_job =
        Sqlite3.prepare db
          "INSERT OR REPLACE INTO ci_build_index (owner, name, hash, variant, \
