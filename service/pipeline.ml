@@ -41,6 +41,8 @@ let opam_repository_commit =
   let repo = { Github.Repo_id.owner = "ocaml"; name = "opam-repository" } in
   Github.Api.Anonymous.head_of repo @@ `Ref "refs/heads/master"
 
+let migrations = Index.migrate ()
+
 let github_status_of_state ~head result results =
   let+ head = head and+ result = result and+ results = results in
   let { Github.Repo_id.owner; name } = Github.Api.Commit.repo_id head in
@@ -260,6 +262,7 @@ let v ?ocluster ~app ~solver () =
   let ocluster =
     Option.map (Cluster_build.config ~timeout:(Duration.of_hour 1)) ocluster
   in
+  Current.with_context migrations @@ fun () ->
   Current.with_context opam_repository_commit @@ fun () ->
   Current.with_context platforms @@ fun () ->
   let installations =
