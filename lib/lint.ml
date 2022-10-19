@@ -47,7 +47,7 @@ let fmt_spec ~base ~ocamlformat_source ~selection =
   let network = [ "host" ] in
   stage ~from:base
   @@ [
-       user ~uid:1000 ~gid:1000;
+       user_unix ~uid:1000 ~gid:1000;
        run ~network ~cache
          "cd ~/opam-repository && (git cat-file -e %s || git fetch origin \
           master) && git reset -q --hard %s && git log --no-decorate -n1 \
@@ -85,7 +85,7 @@ let doc_spec ~base ~opam_files ~selection =
   in
   stage ~from:base
   @@ comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant)
-     :: user ~uid:1000 ~gid:1000
+     :: user_unix ~uid:1000 ~gid:1000
      :: Opam_build.install_project_deps ~opam_version ~opam_files ~selection
   @ [
       (* Warnings-as-errors was introduced in Odoc.1.5.0 *)
@@ -103,7 +103,7 @@ let install_opam_dune_lint ~cache ~network ~base =
   let open Obuilder_spec in
   stage ~from:base
     [
-      user ~uid:1000 ~gid:1000;
+      user_unix ~uid:1000 ~gid:1000;
       run ~cache ~network
         "git -C ~/opam-repository pull origin master && opam update && opam \
          pin add -yn opam-dune-lint.dev \
@@ -126,7 +126,7 @@ let opam_dune_lint_spec ~base ~opam_files ~selection =
       [ ("opam-dune-lint", install_opam_dune_lint ~cache ~network ~base) ]
     ~from:base
   @@ comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant)
-     :: user ~uid:1000 ~gid:1000
+     :: user_unix ~uid:1000 ~gid:1000
      :: Opam_build.install_project_deps ~opam_version ~opam_files ~selection
   @ [
       workdir "/src";
@@ -142,7 +142,7 @@ let opam_lint_spec ~base ~opam_files =
   let open Obuilder_spec in
   stage ~from:base
     [
-      user ~uid:1000 ~gid:1000;
+      user_unix ~uid:1000 ~gid:1000;
       workdir "src";
       copy [ "./" ] ~dst:"./";
       run "opam lint %s" (String.concat " " opam_files);
