@@ -35,7 +35,19 @@ module Migration = struct
               Printf.sprintf "omigrate: invalid source (%s)" s
         in
         Lwt_result.fail (`Msg msg)
-    | _ -> failwith "TODO"
+
+  let to_lwt_exn = function
+    | Ok () -> Lwt_result.return ()
+    | Error err ->
+        let msg =
+          match err with
+          | `Unknown_driver s ->
+              Printf.sprintf "omigrate: unknown driver (%s)" s
+          | `Bad_uri s -> Printf.sprintf "omigrate: bad uri (%s)" s
+          | `Invalid_source s ->
+              Printf.sprintf "omigrate: invalid source (%s)" s
+        in
+        Lwt_result.fail (failwith msg)
 
   let migrate source =
     let db_dir = Current.state_dir "db" in
@@ -54,6 +66,15 @@ module Migration = struct
 
   let pp = Key.pp
   let auto_cancel = true
+
+  (* Functions for a test purpose *)
+
+  let init () =
+    let source =
+      let pwd = Fpath.v (Sys.getcwd ()) in
+      Fpath.(to_string (pwd / "migrations"))
+    in
+    migrate source >>= to_lwt_exn |> Lwt_result.get_exn
 end
 
 module Migration_cache = Current_cache.Make (Migration)
@@ -134,7 +155,7 @@ let db =
        full_hash;
      })
 
-let init () = ignore (Lazy.force db)
+let init () = Lwt.map (fun () -> ignore (Lazy.force db)) (Migration.init ())
 
 let get_job_ids_with_variant t ~owner ~name ~hash =
   Db.query t.get_job_ids Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash ]

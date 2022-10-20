@@ -4,8 +4,9 @@ module Job = Current.Job
 module Client = Ocaml_ci_api.Client
 
 let setup () =
+  let open Lwt.Syntax in
+  let+ () = Index.init () in
   let db = Lazy.force Current.Db.v in
-  Index.init ();
   Current.Db.exec_literal db "DELETE FROM cache";
   db
 
@@ -18,7 +19,8 @@ let timestamps =
   in
   Alcotest.testable (Fmt.Dump.list state) (List.equal Run_time.eq_timestamps)
 
-let test_running () =
+let test_running _switch () =
+  let open Lwt.Syntax in
   (Job.timestamp := fun () -> 0.1);
   (* Note that this is what is used for the starting-at timestamp *)
   let switch = Current.Switch.create ~label:"output" () in
@@ -26,7 +28,7 @@ let test_running () =
   let pool = Current.Pool.create ~label:"test" 1 in
   let job1 = Job.create ~switch ~label:"output" ~config () in
   let _ = Job.start ~pool ~level:Current.Level.Harmless job1 in
-  let db = setup () in
+  let+ db = setup () in
   Alcotest.check database "Disk store initially empty" [] @@ [];
   Current.Db.exec_literal db
     (Fmt.str
@@ -41,8 +43,9 @@ let test_running () =
   let result = Option.get (Run_time.timestamps_of_job @@ Job.id job1) in
   Alcotest.(check timestamps) "Running" [ expected ] [ result ]
 
-let test_simple_run_times () =
-  let db = setup () in
+let test_simple_run_times _switch () =
+  let open Lwt.Syntax in
+  let+ db = setup () in
   Alcotest.check database "Disk store initially empty" [] @@ [];
   Current.Db.exec_literal db
     "INSERT INTO cache (op, key, job_id, value, ok, outcome, ready, running, \
@@ -72,6 +75,6 @@ let test_simple_run_times () =
 
 let tests =
   [
-    Alcotest_lwt.test_case_sync "simple_run_times" `Quick test_simple_run_times;
-    Alcotest_lwt.test_case_sync "running" `Quick test_running;
+    Alcotest_lwt.test_case "simple_run_times" `Quick test_simple_run_times;
+    Alcotest_lwt.test_case "running" `Quick test_running;
   ]

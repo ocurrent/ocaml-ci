@@ -3,12 +3,6 @@ module Run_time = Ocaml_ci_client_lib.Run_time
 module Job = Current.Job
 module Client = Ocaml_ci_api.Client
 
-let setup () =
-  let db = Lazy.force Current.Db.v in
-  Index.init ();
-  Current.Db.exec_literal db "DELETE FROM cache";
-  db
-
 let database = Alcotest.(list string)
 let cmp_floats v1 v2 = abs_float (v1 -. v2) < 0.0000001
 
