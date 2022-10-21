@@ -68,8 +68,14 @@ let list_repos ~owner org =
   |> Lwt_result.map @@ function
      | [] -> Fmt.pr "@[<v>No repository given and no suggestions available.@."
      | repos ->
-         let full_name f { Client.Org.name; master_status } =
-           Fmt.pf f "%s/%s (%a)" owner name Client.Build_status.pp master_status
+         let full_name f
+             {
+               Client.Org.name;
+               main_status;
+               main_hash = _;
+               main_last_updated = _;
+             } =
+           Fmt.pf f "%s/%s (%a)" owner name Client.Build_status.pp main_status
          in
          Fmt.pr "@[<v>No repository given. Try one of these:@,@,%a@]@."
            Fmt.(list full_name)
@@ -78,13 +84,13 @@ let list_repos ~owner org =
 let list_refs repo =
   Client.Repo.refs repo
   |> Lwt_result.map @@ fun refs ->
-     if Client.Ref_map.is_empty refs then
+     if List.length refs = 0 then
        Fmt.pr
          "No branches or PRs are being tracked by the CI for this repository.@."
      else
-       Client.Ref_map.iter
-         (fun gref (hash, status) ->
-           Fmt.pr "%s %s (%a)@." hash gref Client.Build_status.pp status)
+       List.iter
+         (fun { Client.Repo.name; hash; status; _ } ->
+           Fmt.pr "%s %s (%a)@." hash name Client.Build_status.pp status)
          refs
 
 let pp_job f { Client.variant; outcome; queued_at; started_at; finished_at } =

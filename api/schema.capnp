@@ -9,18 +9,6 @@ enum BuildStatus {
   pending    @3;
 }
 
-struct RefInfo {
-  ref         @0 :Text;
-  hash        @1 :Text;
-  state       @2 :BuildStatus;
-  started     :union {
-    ts        @3 :Float64;
-    none      @4 :Void;
-  }
-  message     @5 :Text;
-  # The state of the ref's head commit
-}
-
 struct JobInfo {
   variant @0 :Text;
   state :union {
@@ -73,28 +61,48 @@ interface Commit {
   message      @4 (hash :Text) -> (title :Text);
 }
 
+struct RefInfo {
+  ref          @0 :Text;
+  hash    @1 :Text;
+  status  @2 :BuildStatus;
+  started :union {
+    ts    @3 :Float64;
+    none  @4 :Void;
+  }
+  message @5 :Text;
+  # The state of the ref's head commit
+}
+
 interface Repo {
   refs         @0 () -> (refs :List(RefInfo));
   # Get the set of branches and PRs being monitored.
+  mainRef      @1 () -> (ref :RefInfo);
+  # Get the main branch, for UI display purposes
 
-  obsoleteJobOfCommit  @1 (hash :Text) -> (job :OCurrent.Job);
-  obsoleteJobOfRef     @2 (ref :Text) -> (job :OCurrent.Job);
-  obsoleteRefsOfCommit @3 (hash :Text) -> (refs :List(Text));
+  obsoleteJobOfCommit  @2 (hash :Text) -> (job :OCurrent.Job);
+  obsoleteJobOfRef     @3 (ref :Text) -> (job :OCurrent.Job);
+  obsoleteRefsOfCommit @4 (hash :Text) -> (refs :List(Text));
 
-  commitOfHash @4 (hash :Text) -> (commit :Commit);
+  commitOfHash @5 (hash :Text) -> (commit :Commit);
   # The hash doesn't need to be the full hash, but must be at least 6 characters long.
 
-  commitOfRef @5 (ref :Text) -> (commit :Commit);
+  commitOfRef  @6 (ref :Text) -> (commit :Commit);
   # ref should be of the form "refs/heads/..." or "refs/pull/4/head"
 
-  historyOfRef @6 (ref :Text) -> (refs :List(RefInfo));
+  historyOfRef @7 (ref :Text) -> (refs :List(RefInfo));
   # ref should be of the form "refs/heads/..." or "refs/pull/4/head"
 }
 
 struct RepoInfo {
   name         @0 :Text;
-  masterState  @1 :BuildStatus;
-  # The status of the repository's master branch (notStarted if there isn't one)
+  mainState    @1 :BuildStatus;
+  mainHash     @2 :Text;
+  mainLastUpdated :union {
+    ts         @3 :Float64;
+    # timestamp as seconds since epoch
+    none       @4 :Void;
+  }
+  # The status of the repository's main branch (notStarted if there isn't one)
 }
 
 interface Org {

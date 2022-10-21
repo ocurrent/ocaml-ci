@@ -268,10 +268,11 @@ let get_job_ids ~owner ~name ~hash =
   get_job_ids_with_variant t ~owner ~name ~hash |> List.filter_map snd
 
 let get_message ~owner ~name ~hash =
+  (* FIXME [benmandrew]: implement this *)
   ignore owner;
   ignore name;
   ignore hash;
-  "Hello"
+  "Placeholder commit message"
 
 module Owner_set = Set.Make (String)
 
@@ -315,3 +316,17 @@ let set_active_refs ~repo refs =
 
 let get_active_refs repo =
   Repo_map.find_opt repo !active_refs |> Option.value ~default:Ref_map.empty
+
+let is_main_ref r =
+  match Astring.String.cuts ~sep:"/" r with
+  | "refs" :: "heads" :: branch :: _ ->
+      String.equal branch "main" || String.equal branch "master"
+  | _ -> false
+
+let get_main_ref repo =
+  get_active_refs repo
+  |> Ref_map.bindings
+  |> List.filter (fun (ref, _) -> is_main_ref ref)
+  |> function
+  | [] -> None
+  | r :: _ -> Some r

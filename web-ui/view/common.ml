@@ -307,3 +307,44 @@ let breadcrumbs steps page_title =
     div
       ~a:[ a_class [ "flex items-center mb-7 text-sm font-medium space-x-2" ] ]
       (List.rev steps))
+
+let table_head name =
+  Tyxml.Html.(
+    div
+      ~a:
+        [ a_class [ "bg-gray-50 px-6 py-3 text-gray-500 text-xs font-medium" ] ]
+      [ txt name ])
+
+let link_svg =
+  Tyxml.Svg.(
+    let line_svg ?stroke_width ~x1 ~y1 ~x2 ~y2 () =
+      let args =
+        [
+          a_x1 (x1, Some `Px);
+          a_y1 (y1, Some `Px);
+          a_x2 (x2, Some `Px);
+          a_y2 (y2, Some `Px);
+        ]
+      in
+      match stroke_width with
+      | None -> line ~a:args []
+      | Some w -> line ~a:(a_stroke_width w :: args) []
+    in
+    Tyxml.Html.svg
+      ~a:
+        [
+          a_class [ "h-4 w-4" ];
+          a_fill `None;
+          a_viewBox (0., 0., 20., 20.);
+          a_stroke (`Color ("currentColor", None));
+          a_stroke_width (1., Some `Px);
+        ]
+      [
+        line_svg ~x1:5. ~y1:5. ~x2:5. ~y2:14. ();
+        line_svg ~x1:14. ~y1:9. ~x2:14. ~y2:14. ();
+        line_svg ~x1:5. ~y1:14. ~x2:14. ~y2:14. ();
+        line_svg ~x1:5. ~y1:5. ~x2:9. ~y2:5. ();
+        line_svg ~x1:10. ~y1:2. ~x2:17. ~y2:2. ();
+        line_svg ~x1:17. ~y1:2. ~x2:17. ~y2:9. ();
+        line_svg ~x1:10. ~y1:9. ~x2:17. ~y2:2. ~stroke_width:(1.5, Some `Px) ();
+      ])

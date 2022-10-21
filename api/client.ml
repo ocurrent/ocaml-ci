@@ -4,8 +4,6 @@ type git_ref = string
 type git_hash = string
 type variant = string
 
-module Ref_map = Map.Make (String)
-
 module State = struct
   open Raw.Reader.JobInfo.State
 
@@ -69,7 +67,13 @@ end
 
 module Org = struct
   type t = Raw.Client.Org.t Capability.t
-  type repo_info = { name : string; master_status : Build_status.t }
+
+  type repo_info = {
+    name : string;
+    main_status : Build_status.t;
+    main_hash : string;
+    main_last_updated : float option;
+  }
 
   let repo t name =
     let open Raw.Client.Org.Repo in
@@ -85,12 +89,31 @@ module Org = struct
            Results.repos_get_list result
            |> List.map @@ fun repo ->
               let name = Raw.Reader.RepoInfo.name_get repo in
-              let master_status = Raw.Reader.RepoInfo.master_state_get repo in
-              { name; master_status })
+              let main_status = Raw.Reader.RepoInfo.main_state_get repo in
+              let main_hash = Raw.Reader.RepoInfo.main_hash_get repo in
+              let main_last_updated =
+                let time = Raw.Reader.RepoInfo.main_last_updated_get repo in
+                match Raw.Reader.RepoInfo.MainLastUpdated.get time with
+                | Raw.Reader.RepoInfo.MainLastUpdated.None
+                | Raw.Reader.RepoInfo.MainLastUpdated.Undefined _ ->
+                    None
+                | Raw.Reader.RepoInfo.MainLastUpdated.Ts v -> Some v
+              in
+              { name; main_status; main_hash; main_last_updated })
 end
+
+module Ref_map = Map.Make (String)
 
 module Repo = struct
   type t = Raw.Client.Repo.t Capability.t
+
+  type ref_info = {
+    name : string;
+    hash : string;
+    status : Build_status.t;
+    started : float option;
+    message : string;
+  }
 
   let refs t =
     let open Raw.Client.Repo.Refs in
@@ -98,13 +121,20 @@ module Repo = struct
     Capability.call_for_value t method_id request
     |> Lwt_result.map @@ fun jobs ->
        Results.refs_get_list jobs
-       |> List.fold_left
-            (fun acc slot ->
-              let gref = Raw.Reader.RefInfo.ref_get slot in
+       |> List.map (fun slot ->
+              let name = Raw.Reader.RefInfo.ref_get slot in
               let hash = Raw.Reader.RefInfo.hash_get slot in
-              let state = Raw.Reader.RefInfo.state_get slot in
-              Ref_map.add gref (hash, state) acc)
-            Ref_map.empty
+              let status = Raw.Reader.RefInfo.status_get slot in
+              let started =
+                let time = Raw.Reader.RefInfo.started_get slot in
+                match Raw.Reader.RefInfo.Started.get time with
+                | Raw.Reader.RefInfo.Started.None
+                | Raw.Reader.RefInfo.Started.Undefined _ ->
+                    None
+                | Raw.Reader.RefInfo.Started.Ts v -> Some v
+              in
+              let message = Raw.Reader.RefInfo.message_get slot in
+              { name; hash; status; started; message })
 
   let commit_of_hash t hash =
     let open Raw.Client.Repo.CommitOfHash in
@@ -127,20 +157,31 @@ module Repo = struct
        Results.refs_get_list history
        |> List.fold_left
             (fun acc slot ->
-              let open Build_status in
               let hash = Raw.Reader.RefInfo.hash_get slot in
               let message = Raw.Reader.RefInfo.message_get slot in
-              let state = Raw.Reader.RefInfo.state_get slot in
-              let started = Raw.Reader.RefInfo.started_get slot in
+              let status = Raw.Reader.RefInfo.status_get slot in
               let time =
+                let started = Raw.Reader.RefInfo.started_get slot in
                 match Raw.Reader.RefInfo.Started.get started with
                 | Raw.Reader.RefInfo.Started.None | Undefined _ -> None
                 | Raw.Reader.RefInfo.Started.Ts v -> Some v
               in
-              match (state, Ref_map.find_opt hash acc) with
-              | state, None -> Ref_map.add hash (message, state, time) acc
-              | Passed, Some (message', state', _) ->
-                  Ref_map.add hash (message', state', time) acc
+              match (status, Ref_map.find_opt hash acc) with
+              | status, None ->
+                  Ref_map.add hash
+                    { name = hash; hash; started = time; message; status }
+                    acc
+              | Passed, Some { message = message'; status = status'; _ } ->
+                  let new_ref =
+                    {
+                      name = hash;
+                      hash;
+                      started = time;
+                      message = message';
+                      status = status';
+                    }
+                  in
+                  Ref_map.add hash new_ref acc
               | Failed, _ | _ -> acc)
             Ref_map.empty
 end

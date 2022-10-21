@@ -40,9 +40,10 @@ let ref_breadcrumb r head_hash =
       ("#" ^ id, Fmt.str "pull/%s" head_hash)
   | _ -> (Fmt.str "Bad ref format %S" r, "")
 
-let format_repo ~org { Client.Org.name; master_status } =
+let format_repo ~org
+    { Client.Org.name; main_status; main_hash = _; main_last_updated = _ } =
   li
-    ~a:[ a_class [ Build_status.class_name master_status ] ]
+    ~a:[ a_class [ Build_status.class_name main_status ] ]
     [ a ~a:[ a_href (repo_url org name) ] [ txt name ] ]
 
 let orgs_v ~orgs = [ breadcrumbs [] prefix; ul (List.map format_org orgs) ]
@@ -54,13 +55,16 @@ let repos_v ~org ~repos =
   ]
 
 let refs_v ~org ~repo ~refs =
-  ul
+  let f { Client.Repo.name; hash; status; started = _started; message } =
+    let short_hash = short_hash hash in
+    let last_updated = "uhhhh" in
+    Build.ref_row ~ref_title:(ref_name name) ~short_hash ~last_updated ~status
+      ~ref_uri:(commit_url ~org ~repo short_hash)
+      ~message
+  in
+  div
     ~a:[ a_class [ "statuses" ] ]
-    (Client.Ref_map.bindings refs
-    |> List.map @@ fun (branch, (commit, status)) ->
-       li
-         ~a:[ a_class [ Build_status.class_name status ] ]
-         [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt branch ] ])
+    (Client.Ref_map.bindings refs |> List.map @@ fun (_, ref) -> f ref)
 
 let link_gitlab_refs ~org ~repo = function
   | [] -> txt "(not at the head of any monitored branch or merge request)"
@@ -306,8 +310,7 @@ let return_link ~org ~repo ~hash =
 (* TODO: Clean up so that success and fail messages appear in flash messages and we do a redirect
    instead of providing a return link *)
 let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
-    ~total_run_time ?(success_msg = div []) ?(fail_msg = div [])
-    ?(return_link = div []) ?(flash_messages = [])
+    ~total_run_time ?(flash_messages = [])
     ?(build_status : Client.State.t = Passed) ~csrf_token () =
   let () = ignore build_status in
   let can_cancel =
@@ -366,9 +369,6 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
         (short_hash hash);
       link_gitlab_refs ~org ~repo refs;
       link_jobs ~org ~repo ~hash jobs;
-      success_msg;
-      fail_msg;
-      return_link;
       Timestamps_durations.show_build ~first_step_queued_at ~total_run_time;
       div buttons;
     ]

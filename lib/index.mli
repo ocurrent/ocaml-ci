@@ -113,3 +113,7 @@ val set_active_refs : repo:Repo_id.t -> string Ref_map.t -> unit
 val get_active_refs : Repo_id.t -> string Ref_map.t
 (** [get_active_refs repo] is the entries last set for [repo] with
     [set_active_refs], or [empty] if this repository isn't known. *)
+
+val get_main_ref : Repo_id.t -> (string * string) option
+(** [get_active_ref repo] is the main ref (with hash) in the entries last set
+    for [repo] with [set_active_refs], or [None] if this repository isn't known. *)

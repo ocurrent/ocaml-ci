@@ -96,7 +96,13 @@ module Make (View : View) = struct
     Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
     Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
     Client.Repo.refs repo_cap >>!= fun refs ->
-    Dream.respond @@ View.list_refs ~org ~repo ~refs
+    let ref_map =
+      List.fold_left
+        (fun acc ({ Client.Repo.name; _ } as ref) ->
+          Client.Ref_map.add name ref acc)
+        Client.Ref_map.empty refs
+    in
+    Dream.respond @@ View.list_refs ~org ~repo ~refs:ref_map
 
   let list_steps ~org ~repo ~hash request ci =
     Backend.ci ci >>= fun ci ->
@@ -134,9 +140,11 @@ module Make (View : View) = struct
     Client.Repo.history_of_ref repo_cap ref >>!= fun history ->
     let history =
       Client.Ref_map.bindings history
-      |> List.filter (fun (_, (_, _, time)) -> Option.is_some time)
-      |> List.map (fun (hash, (title, state, time)) ->
-             (hash, (title, state, Option.get time)))
+      |> List.filter (fun (_, { Client.Repo.started = time; _ }) ->
+             Option.is_some time)
+      |> List.map
+           (fun (hash, { Client.Repo.name = title; status; started = time; _ })
+           -> (hash, (title, status, Option.get time)))
       |> List.sort (fun (_, (_, _, t1)) (_, (_, _, t2)) -> compare t2 t1)
       |> List.map (fun (hash, (title, state, t)) -> (hash, title, state, t))
     in

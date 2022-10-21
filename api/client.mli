@@ -55,11 +55,15 @@ module Repo : sig
   type t = Raw.Client.Repo.t Capability.t
   (** A GitHub repository that is tested by ocaml-ci. *)
 
-  val refs :
-    t ->
-    ( (git_hash * Build_status.t) Ref_map.t,
-      [> `Capnp of Capnp_rpc.Error.t ] )
-    Lwt_result.t
+  type ref_info = {
+    name : string;
+    hash : string;
+    status : Build_status.t;
+    started : float option;
+    message : string;
+  }
+
+  val refs : t -> (ref_info list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
   (** [refs t] returns the known Git references (branches and pull requests)
       that ocaml-ci is monitoring, along with the current head of each one. *)
 
@@ -72,9 +76,7 @@ module Repo : sig
   val history_of_ref :
     t ->
     git_ref ->
-    ( (string * Build_status.t * float option) Ref_map.t,
-      [> `Capnp of Capnp_rpc.Error.t ] )
-    Lwt_result.t
+    (ref_info Ref_map.t, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
   (** [history_of_ref t gref] is the list of builds for the Git reference [gref] *)
 end
 
@@ -82,7 +84,12 @@ module Org : sig
   type t = Raw.Client.Org.t Capability.t
   (** A GitHub organisation. *)
 
-  type repo_info = { name : string; master_status : Build_status.t }
+  type repo_info = {
+    name : string;
+    main_status : Build_status.t;
+    main_hash : string;
+    main_last_updated : float option;
+  }
 
   val repo : t -> string -> Repo.t
   (** [repo t name] is the GitHub organisation at
@@ -96,6 +103,7 @@ end
 module CI : sig
   type t = Raw.Client.CI.t Capability.t
   (** The top-level object for ocaml-ci. *)
+
   type org_info = { owner : string; bio : string; n_repos : int }
 
   val org : t -> string -> Org.t

@@ -148,9 +148,24 @@ let make_repo ~engine ~owner ~name =
                 let status =
                   to_build_status (Index.get_status ~owner ~name ~hash)
                 in
-                Raw.Builder.RefInfo.state_set slot status;
+                Raw.Builder.RefInfo.status_set slot status;
                 let started_t = Raw.Builder.RefInfo.started_init slot in
+                (* FIXME [benmandrew]: Always returning no time, change to actually get it from somewhere *)
                 Raw.Builder.RefInfo.Started.none_set started_t);
+         Service.return response
+
+       method main_ref_impl _params release_param_caps =
+         let open Repo.MainRef in
+         release_param_caps ();
+         let gref, hash =
+           match Index.get_main_ref { Ocaml_ci.Repo_id.owner; name } with
+           | None -> ("", "")
+           | Some (gref, hash) -> (gref, hash)
+         in
+         let response, results = Service.Response.create Results.init_pointer in
+         let ref = Results.ref_init results in
+         Raw.Builder.RefInfo.ref_set ref gref;
+         Raw.Builder.RefInfo.hash_set ref hash;
          Service.return response
 
        method obsolete_refs_of_commit_impl _ release_param_caps =
@@ -206,7 +221,7 @@ let make_repo ~engine ~owner ~name =
                 let status =
                   to_build_status (Index.get_status ~owner ~name ~hash)
                 in
-                Raw.Builder.RefInfo.state_set slot status;
+                Raw.Builder.RefInfo.status_set slot status;
                 Raw.Builder.RefInfo.message_set slot message;
                 let started_t = Raw.Builder.RefInfo.started_init slot in
                 match started_at with
@@ -268,13 +283,25 @@ let make_org ~engine owner =
                 let refs =
                   Index.get_active_refs { Ocaml_ci.Repo_id.owner; name }
                 in
-                let status =
-                  match Index.Ref_map.find_opt "refs/heads/master" refs with
-                  | Some hash ->
-                      to_build_status (Index.get_status ~owner ~name ~hash)
-                  | None -> NotStarted
+                let hash, status =
+                  match
+                    Index.Ref_map.find_first_opt
+                      (fun key ->
+                        String.equal key "refs/heads/main"
+                        || String.equal key "refs/heads/master")
+                      refs
+                  with
+                  | Some (_, hash) ->
+                      ( hash,
+                        to_build_status (Index.get_status ~owner ~name ~hash) )
+                  | None -> ("", NotStarted)
                 in
-                Raw.Builder.RepoInfo.master_state_set slot status);
+                Raw.Builder.RepoInfo.main_hash_set slot hash;
+                Raw.Builder.RepoInfo.main_state_set slot status
+                (* let started_t = Raw.Builder.RepoInfo.main_last_updated_init slot in
+                   match started_at with
+                   | None -> Raw.Builder.RepoInfo.MainLastUpdated.none_set Raw.Builder.RepoInfo.MainLastUpdated.None
+                   | Some time -> Raw.Builder.RepoInfo.MainLastUpdated.ts_set started_t time *));
          Service.return response
      end
 

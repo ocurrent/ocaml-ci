@@ -27,7 +27,8 @@ let github_pr_url ~org ~repo id =
 
 let github_org_url org = Printf.sprintf "https://github.com/%s" org
 
-(* let format_org org = li [ a ~a:[ a_href (org_url org) ] [ txt org ] ] *)
+let github_repo_url ~org repo =
+  Printf.sprintf "https://github.com/%s/%s" org repo
 
 let ref_name r =
   match Astring.String.cuts ~sep:"/" r with
@@ -43,28 +44,6 @@ let ref_breadcrumb r head_hash =
   | [ "refs"; "pull"; id; "head" ] ->
       ("#" ^ id, Printf.sprintf "pull/%s" head_hash)
   | _ -> (Fmt.str "Bad ref format %S" r, "")
-
-let format_repo ~org { Client.Org.name; master_status } =
-  li
-    ~a:[ a_class [ Build_status.class_name master_status ] ]
-    [ a ~a:[ a_href (repo_url org name) ] [ txt name ] ]
-
-(* let orgs_v ~orgs = [ breadcrumbs [] prefix; ul (List.map format_org orgs) ] *)
-
-let repos_v ~org ~repos =
-  [
-    breadcrumbs [ (prefix, prefix) ] org;
-    ul ~a:[ a_class [ "statuses" ] ] (List.map (format_repo ~org) repos);
-  ]
-
-let refs_v ~org ~repo ~refs =
-  ul
-    ~a:[ a_class [ "statuses" ] ]
-    (Client.Ref_map.bindings refs
-    |> List.map @@ fun (branch, (commit, status)) ->
-       li
-         ~a:[ a_class [ Build_status.class_name status ] ]
-         [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt branch ] ])
 
 let link_github_commit ~org ~repo ~hash =
   a ~a:[ a_href (github_commit_url ~org ~repo ~hash) ] [ txt hash ]
@@ -82,49 +61,42 @@ let link_github_refs ~org ~repo refs =
   List.map f refs
 
 let list_orgs ~orgs =
-  (* ignore orgs;
-     let orgs = ["maiste"; "benmandrew"; "novemberkilo"; "tmcgilchrist"] in *)
   let org_table =
-    orgs
-    |> List.map (fun Client.CI.{ owner; bio; n_repos } ->
-           a
-             ~a:
-               [
-                 a_href (org_url owner); a_class [ "item-card flex space-x-4" ];
-               ]
-             [
-               (* Github sometimes returns a blurry smaller profile picture,
-                  so request larger than we need and downsample *)
-               img
-                 ~a:[ a_style "border-radius: 50%; width: 88px" ]
-                 ~src:
-                   (Printf.sprintf "https://github.com/%s.png?size=200" owner)
-                 ~alt:(Printf.sprintf "%s profile picture" owner)
-                 ();
-               div
-                 ~a:[ a_class [ "flex flex-col" ] ]
-                 [
-                   div
-                     ~a:[ a_class [ "font-semibold text-lg mb-1" ] ]
-                     [ txt owner ];
-                   div ~a:[ a_class [ "text-sm" ] ] [ txt bio ];
-                   div
-                     ~a:
-                       [
-                         a_class
-                           [
-                             "flex mt-4 text-sm text-gray-700 font-normal \
-                              space-x-4";
-                           ];
-                       ]
-                     [
-                       div [ txt (github_org_url owner) ];
-                       div
-                         ~a:[ a_class [ "flex items-center space-x-2" ] ]
-                         [ txt (Printf.sprintf "%d repositories" n_repos) ];
-                     ];
-                 ];
-             ])
+    let f { Client.CI.owner; bio=_bio; n_repos } =
+      a
+        ~a:[ a_href (org_url owner); a_class [ "item-card flex space-x-4" ] ]
+        [
+          (* Github sometimes returns a blurry smaller profile picture,
+             so request larger than we need and downsample *)
+          img
+            ~a:[ a_style "border-radius: 50%; width: 88px" ]
+            ~src:(Printf.sprintf "https://github.com/%s.png?size=200" owner)
+            ~alt:(Printf.sprintf "%s profile picture" owner)
+            ();
+          div
+            ~a:[ a_class [ "flex flex-col" ] ]
+            [
+              div ~a:[ a_class [ "font-semibold text-lg mb-1" ] ] [ txt owner ];
+              (* FIXME [benmandrew]: [bio] here, currently only placeholder exists *)
+              div ~a:[ a_class [ "text-sm" ] ] [ txt "" ];
+              div
+                ~a:
+                  [
+                    a_class
+                      [
+                        "flex mt-4 text-sm text-gray-700 font-normal space-x-4";
+                      ];
+                  ]
+                [
+                  div [ txt (github_org_url owner) ];
+                  div
+                    ~a:[ a_class [ "flex items-center space-x-2" ] ]
+                    [ txt (Printf.sprintf "%d repositories" n_repos) ];
+                ];
+            ];
+        ]
+    in
+    List.map f orgs
   in
   let title =
     div
@@ -143,14 +115,141 @@ let list_orgs ~orgs =
   Template_v1.instance
     [ title; div ~a:[ a_class [ "mt-8 flex flex-col space-y-6" ] ] org_table ]
 
-let list_repos ~org ~repos = Template.instance @@ repos_v ~org ~repos
+let list_repos ~org ~repos =
+  let github_org_url = github_org_url org in
+  let repo_table =
+    let repo_table_head =
+      Common.table_head (Printf.sprintf "Repositories (%d)" (List.length repos))
+    in
+    let f { Client.Org.name; main_status; main_hash; main_last_updated } =
+      let last_updated = Timestamps_durations.pp_timestamp main_last_updated in
+      Dream.log "%s %s %s" name main_hash last_updated;
+      Build.repo_row ~repo_title:name ~short_hash:(short_hash main_hash)
+        ~last_updated ~status:main_status ~repo_uri:(repo_url org name)
+    in
+    repo_table_head :: List.map f repos
+  in
+  let title =
+    div
+      ~a:[ a_class [ "justify-between items-center flex" ] ]
+      [
+        div
+          ~a:[ a_class [ "flex space-x-4" ] ]
+          [
+            img
+              ~a:[ a_style "border-radius: 50%; width: 88px" ]
+              ~src:(Printf.sprintf "https://github.com/%s.png?size=200" org)
+              ~alt:(Printf.sprintf "%s profile picture" org)
+              ();
+            div
+              ~a:[ a_class [ "flex flex-col" ] ]
+              [
+                h1 ~a:[ a_class [ "text-xl" ] ] [ txt org ];
+                a
+                  ~a:
+                    [
+                      a_class [ "text-sm flex items-center space-x-2" ];
+                      a_href github_org_url;
+                    ]
+                  [ span [ txt github_org_url ]; Common.link_svg ];
+              ];
+          ];
+      ]
+  in
+  Template_v1.instance
+    [
+      Common.breadcrumbs [ (prefix, prefix) ] org;
+      title;
+      Build.tabulate repo_table;
+    ]
 
 let list_refs ~org ~repo ~refs =
-  Template.instance
-    [
-      breadcrumbs [ ("github", "github"); (org, org) ] repo;
-      refs_v ~org ~repo ~refs;
-    ]
+  let f { Client.Repo.name; hash; status; started = last_updated; message=_message } =
+    let short_hash = short_hash hash in
+    let last_updated = Timestamps_durations.pp_timestamp last_updated in
+    Build.ref_row ~ref_title:(ref_name name) ~short_hash ~last_updated ~status
+      ~ref_uri:(commit_url ~org ~repo short_hash)
+      ~message:short_hash
+  in
+  let default_table, main_ref =
+    let main_ref, main_ref_info =
+      Client.Ref_map.bindings refs
+      |> List.find (fun (_, { Client.Repo.name; _ }) ->
+             String.equal name "refs/heads/main"
+             || String.equal name "refs/heads/master")
+    in
+    let table_head = Common.table_head "Default Branch" in
+    let table = table_head :: [ f main_ref_info ] in
+    (table, main_ref)
+  in
+  let refs = Client.Ref_map.remove main_ref refs in
+  let branch_table, n_branches =
+    let branches =
+      Client.Ref_map.filter
+        (fun ref _ -> String.starts_with ~prefix:"refs/heads/" ref)
+        refs
+    in
+    let n_branches = Client.Ref_map.cardinal branches in
+    let table_head =
+      Common.table_head (Printf.sprintf "Branches (%d)" n_branches)
+    in
+    let bindings = Client.Ref_map.bindings branches in
+    let table = table_head :: List.map (fun (_, ref) -> f ref) bindings in
+    (table, n_branches)
+  in
+  let pr_table, n_prs =
+    let prs =
+      Client.Ref_map.filter
+        (fun ref _ -> String.starts_with ~prefix:"refs/pull/" ref)
+        refs
+    in
+    let n_prs = Client.Ref_map.cardinal prs in
+    let table_head =
+      Common.table_head (Printf.sprintf "Refs Branches (%d)" n_prs)
+    in
+    let bindings = Client.Ref_map.bindings prs in
+    let table = table_head :: List.map (fun (_, ref) -> f ref) bindings in
+    (table, n_prs)
+  in
+  Dream.log "n_branches: %d - n_prs: %d" n_branches n_prs;
+  let title =
+    let github_repo_url = github_repo_url ~org repo in
+    div
+      ~a:[ a_class [ "justify-between items-center flex" ] ]
+      [
+        div
+          ~a:[ a_class [ "flex items-center space-x-2" ] ]
+          [
+            div
+              ~a:[ a_class [ "flex flex-col space-y-1" ] ]
+              [
+                div
+                  ~a:[ a_class [ "flex text-sm space-x-2 items-baseline" ] ]
+                  [
+                    h1 ~a:[ a_class [ "text-xl" ] ] [ txt repo ];
+                    a
+                      ~a:
+                        [
+                          a_class [ "flex items-center space-x-2" ];
+                          a_href github_repo_url;
+                        ]
+                      [ span [ txt github_repo_url ]; Common.link_svg ];
+                  ];
+              ];
+          ];
+      ]
+  in
+  [
+    Common.breadcrumbs [ (prefix, prefix); (org, org) ] repo;
+    title;
+    Build.tabulate default_table;
+  ]
+  |> (fun content ->
+       if n_branches = 0 then content
+       else content @ [ Build.tabulate branch_table ])
+  |> (fun content ->
+       if n_prs = 0 then content else content @ [ Build.tabulate pr_table ])
+  |> Template_v1.instance
 
 let list_history ~org ~repo ~ref ~history =
   let head_hash =
@@ -158,12 +257,7 @@ let list_history ~org ~repo ~ref ~history =
   in
   let commit_table =
     let commit_table_head =
-      div
-        ~a:
-          [
-            a_class [ "bg-gray-50 px-6 py-3 text-gray-500 text-xs font-medium" ];
-          ]
-        [ txt (Printf.sprintf "Builds (%d)" (List.length history)) ]
+      Common.table_head (Printf.sprintf "Builds (%d)" (List.length history))
     in
     let f (u, message, status, t) =
       let created_at = Timestamps_durations.pp_timestamp (Some t) in
@@ -316,13 +410,8 @@ let return_link ~org ~repo ~hash =
 (* TODO: Clean up so that success and fail messages appear in flash messages and we do a redirect
    instead of providing a return link *)
 let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
-    ~total_run_time ?(success_msg = div []) ?(fail_msg = div [])
-    ?(return_link = div []) ?(flash_messages = [])
+    ~total_run_time ?(flash_messages = [])
     ?(build_status : Client.State.t = Passed) ~csrf_token () =
-  (*FIXME: Fix the interface for this function so that we drop the things we are now ignoring *)
-  ignore success_msg;
-  ignore fail_msg;
-  ignore return_link;
   let can_cancel =
     let check job_info =
       match job_info.Client.outcome with
@@ -345,6 +434,7 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
     else []
   in
   let title_card =
+    (* FIXME [benmandrew]: [card_title] should be the commit message, but that isn't sent through yet *)
     Build.title_card ~status:build_status ~card_title:(short_hash hash)
       ~hash_link:(link_github_commit ~org ~repo ~hash:(short_hash hash))
       ~ref_links:(link_github_refs ~org ~repo refs)
@@ -352,14 +442,7 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
       ~ran_for:(Timestamps_durations.pp_duration (Some total_run_time))
       ~buttons
   in
-  let steps_table_div =
-    div
-      ~a:
-        [ a_class [ "bg-gray-50 px-6 py-3 text-gray-500 text-xs font-medium" ] ]
-        (* TODO: We need to start with no stage separation - introduce Analysis/Checks and Build steps later *)
-      [ txt "Build" ]
-  in
-  let steps_table =
+  let steps_table title jobs =
     List.fold_left
       (fun l j ->
         let build_created_at = Option.value ~default:0. first_step_queued_at in
@@ -380,7 +463,20 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
             Build.step_row ~step_title:j.variant ~created_at ~queued_for
               ~ran_for ~status:j.outcome ~step_uri;
           ])
-      [ steps_table_div ] jobs
+      [ Common.table_head title ]
+      jobs
+  in
+  let is_analysis_step variant =
+    Astring.String.is_prefix ~affix:"(" variant
+    && Astring.String.is_suffix ~affix:")" variant
+  in
+  let analysis_jobs =
+    List.filter (fun (j : Client.job_info) -> is_analysis_step j.variant) jobs
+  in
+  let build_jobs =
+    List.filter
+      (fun (j : Client.job_info) -> not (is_analysis_step j.variant))
+      jobs
   in
   Template_v1.instance
     [
@@ -389,7 +485,8 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
         (Printf.sprintf "%s" (short_hash hash));
       title_card;
       Common.flash_messages flash_messages;
-      Build.tabulate steps_table;
+      Build.tabulate (steps_table "Analysis" analysis_jobs);
+      Build.tabulate (steps_table "Build" build_jobs);
     ]
 
 let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token

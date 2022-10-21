@@ -37,7 +37,7 @@ module type View = sig
   val list_refs :
     org:string ->
     repo:string ->
-    refs:(string * Build_status.t) Client.Ref_map.t ->
+    refs:Client.Repo.ref_info Client.Ref_map.t ->
     string
 
   val list_history :
@@ -55,11 +55,6 @@ module type View = sig
     jobs:Client.job_info list ->
     first_step_queued_at:float option ->
     total_run_time:float ->
-    ?success_msg:
-      ([< Html_types.div_content_fun > `Div `Ol `P `PCDATA `Ul ] as 'a)
-      Tyxml_html.elt ->
-    ?fail_msg:'a Tyxml_html.elt ->
-    ?return_link:'a Tyxml_html.elt ->
     ?flash_messages:(string * string) list ->
     ?build_status:Client.State.t ->
     csrf_token:string ->
