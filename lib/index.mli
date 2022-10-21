@@ -81,11 +81,12 @@ val get_active_owners : unit -> Owner_set.t
     [\[\]] if not known yet. *)
 
 val set_description : owner:string -> string -> unit
-(** [set_description ~owner description] records that [owner] has a [description] *)
+(** [set_description ~owner description] records that [owner] has a
+    [description] *)
 
 val get_description : owner:string -> string
-(** [get_description ~owner] is the last value passed to [set_description] for [owner], or
-    ["Placeholder description"] if not known yet. *)
+(** [get_description ~owner] is the last value passed to [set_description] for
+    [owner], or ["Placeholder description"] if not known yet. *)
 
 val set_n_repos : owner:string -> int -> unit
 (** [set_n_repos ~owner n_repos] records that [owner] has [n_repos] active

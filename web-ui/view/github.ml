@@ -62,7 +62,7 @@ let link_github_refs ~org ~repo refs =
 
 let list_orgs ~orgs =
   let org_table =
-    let f { Client.CI.owner; description=_description; n_repos } =
+    let f { Client.CI.owner; description = _description; n_repos } =
       a
         ~a:[ a_href (org_url owner); a_class [ "item-card flex space-x-4" ] ]
         [
@@ -164,7 +164,14 @@ let list_repos ~org ~repos =
     ]
 
 let list_refs ~org ~repo ~refs =
-  let f { Client.Repo.name; hash; status; started = last_updated; message=_message } =
+  let f
+      {
+        Client.Repo.name;
+        hash;
+        status;
+        started = last_updated;
+        message = _message;
+      } =
     let short_hash = short_hash hash in
     let last_updated = Timestamps_durations.pp_timestamp last_updated in
     Build.ref_row ~ref_title:(ref_name name) ~short_hash ~last_updated ~status

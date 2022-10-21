@@ -20,8 +20,12 @@ let login_route github_auth =
 let authn github_auth =
   Option.map Current_github.Auth.make_login_uri github_auth
 
-type t = { (* iid : int; *)
-           account : string; description : string; avatar_url : string }
+type t = {
+  (* iid : int; *)
+  account : string;
+  description : string;
+  avatar_url : string;
+}
 
 open Lwt.Infix
 
@@ -56,7 +60,9 @@ let get_repo_owner ~api ~account owner_type =
   Dream.log "%s" (Yojson.Safe.to_string json);
   let description_key = json_description_key owner_type in
   let open Yojson.Safe.Util in
-  let description = match member description_key json with `Null -> "" | s -> to_string s in
+  let description =
+    match member description_key json with `Null -> "" | s -> to_string s
+  in
   Lwt.return
     {
       (* iid = to_int (member "id" json); *)
