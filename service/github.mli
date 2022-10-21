@@ -14,7 +14,7 @@ val login_route :
 
 val authn : Current_github.Auth.t option -> (csrf:string -> Uri.t) option
 
-type t = { account : string; bio : string; avatar_url : string }
+type t = { account : string; description : string; avatar_url : string }
 type owner_t = User | Org
 
 val get_repo_owner :

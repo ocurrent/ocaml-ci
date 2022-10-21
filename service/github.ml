@@ -21,7 +21,7 @@ let authn github_auth =
   Option.map Current_github.Auth.make_login_uri github_auth
 
 type t = { (* iid : int; *)
-           account : string; bio : string; avatar_url : string }
+           account : string; description : string; avatar_url : string }
 
 open Lwt.Infix
 
@@ -46,7 +46,7 @@ let get_org_query account =
 type owner_t = User | Org
 
 let get_repo_owner ~api ~account owner_type =
-  let json_bio_key = function User -> "bio" | Org -> "description" in
+  let json_description_key = function User -> "bio" | Org -> "description" in
   let query =
     match owner_type with
     | User -> get_user_query account
@@ -54,40 +54,13 @@ let get_repo_owner ~api ~account owner_type =
   in
   Current_github.Api.exec_graphql api query >>= fun json ->
   Dream.log "%s" (Yojson.Safe.to_string json);
-  let bio_key = json_bio_key owner_type in
+  let description_key = json_description_key owner_type in
   let open Yojson.Safe.Util in
-  let bio = match member bio_key json with `Null -> "" | s -> to_string s in
+  let description = match member description_key json with `Null -> "" | s -> to_string s in
   Lwt.return
     {
       (* iid = to_int (member "id" json); *)
       account = to_string (member "login" json);
-      bio;
+      description;
       avatar_url = to_string (member "avatar_url" json);
     }
-
-(* (* https://docs.github.com/en/rest/users/users#get-a-user *)
-   let get_user account =
-     let user = Uri.of_string (Printf.sprintf "https://api.github.com/users/%s" account) in
-     let headers = Cohttp.Header.init_with "Accept" "application/vnd.github+json" in
-     (* let headers = Cohttp.Header.init_with "Authorization" ("bearer " ^ token) in *)
-     Cohttp_lwt_unix.Client.get ~headers user >>= fun (resp, body) ->
-     Cohttp_lwt.Body.to_string body >|= fun body ->
-     match Cohttp.Response.status resp with
-     | `OK ->
-       let json = Yojson.Safe.from_string body in
-       let open Yojson.Safe.Util in
-       let bio = match member "bio" json with
-       | `Null -> ""
-       | s -> to_string s
-       in
-       let github_user =
-         {
-           (* iid = to_int (member "id" json); *)
-           account = to_string (member "login" json);
-           bio;
-           avatar_url = to_string (member "avatar_url" json);
-         }
-       in
-       Ok github_user
-     | err ->
-       Error (err, body) *)

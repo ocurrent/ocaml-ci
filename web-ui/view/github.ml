@@ -62,7 +62,7 @@ let link_github_refs ~org ~repo refs =
 
 let list_orgs ~orgs =
   let org_table =
-    let f { Client.CI.owner; bio=_bio; n_repos } =
+    let f { Client.CI.owner; description=_description; n_repos } =
       a
         ~a:[ a_href (org_url owner); a_class [ "item-card flex space-x-4" ] ]
         [
@@ -77,7 +77,7 @@ let list_orgs ~orgs =
             ~a:[ a_class [ "flex flex-col" ] ]
             [
               div ~a:[ a_class [ "font-semibold text-lg mb-1" ] ] [ txt owner ];
-              (* FIXME [benmandrew]: [bio] here, currently only placeholder exists *)
+              (* FIXME [benmandrew]: [description] here, currently only placeholder exists *)
               div ~a:[ a_class [ "text-sm" ] ] [ txt "" ];
               div
                 ~a:

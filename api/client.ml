@@ -44,7 +44,7 @@ type job_info = {
 
 module CI = struct
   type t = Raw.Client.CI.t Capability.t
-  type org_info = { owner : string; bio : string; n_repos : int }
+  type org_info = { owner : string; description : string; n_repos : int }
 
   let org t owner =
     let open Raw.Client.CI.Org in
@@ -60,9 +60,9 @@ module CI = struct
     |> Lwt_result.map
          (List.map (fun org ->
               let owner = Raw.Reader.OrgInfo.owner_get org in
-              let bio = Raw.Reader.OrgInfo.bio_get org in
+              let description = Raw.Reader.OrgInfo.description_get org in
               let n_repos = Raw.Reader.OrgInfo.n_repos_get org in
-              { owner; bio; n_repos }))
+              { owner; description; n_repos }))
 end
 
 module Org = struct

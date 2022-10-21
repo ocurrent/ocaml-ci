@@ -114,7 +114,7 @@ interface Org {
 
 struct OrgInfo {
   owner        @0 :Text;
-  bio          @1 :Text;
+  description  @1 :Text;
   nRepos       @2 :UInt16;
   # Someone is unlikely to have more than 65536 repos
 }

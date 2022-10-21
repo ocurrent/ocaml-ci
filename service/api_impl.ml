@@ -348,8 +348,8 @@ let make_ci ~engine =
          |> List.iteri (fun i owner ->
                 let slot = Capnp.Array.get arr i in
                 Raw.Builder.OrgInfo.owner_set slot owner;
-                let bio = Index.get_bio ~owner in
-                Raw.Builder.OrgInfo.bio_set slot bio;
+                let description = Index.get_description ~owner in
+                Raw.Builder.OrgInfo.description_set slot description;
                 let n_repos = Index.get_n_repos ~owner in
                 Raw.Builder.OrgInfo.n_repos_set_exn slot n_repos);
          Service.return response

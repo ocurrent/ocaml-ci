@@ -104,7 +104,7 @@ module CI : sig
   type t = Raw.Client.CI.t Capability.t
   (** The top-level object for ocaml-ci. *)
 
-  type org_info = { owner : string; bio : string; n_repos : int }
+  type org_info = { owner : string; description : string; n_repos : int }
 
   val org : t -> string -> Org.t
   (** [org t owner] is the GitHub organisation at "https://github.com/$owner".
