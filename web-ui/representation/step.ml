@@ -11,10 +11,11 @@ type t = {
   finished_at : string;
   queued_for : string;
   ran_for : string;
+  can_rebuild : bool;
 }
 [@@deriving yojson]
 
-let from_status_info_run_time ~step_info ~run_time =
+let from_status_info_run_time ~step_info ~run_time ~can_rebuild =
   {
     version;
     status =
@@ -33,6 +34,7 @@ let from_status_info_run_time ~step_info ~run_time =
       Timestamps_durations.pp_duration (Option.map Run_time.queued_for run_time);
     ran_for =
       Timestamps_durations.pp_duration (Option.map Run_time.ran_for run_time);
+    can_rebuild;
   }
 
 let to_json t = Yojson.Safe.to_string @@ to_yojson t
