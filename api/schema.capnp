@@ -12,11 +12,12 @@ enum BuildStatus {
 struct RefInfo {
   ref         @0 :Text;
   hash        @1 :Text;
-  state       @2 :BuildStatus;
+  status      @2 :BuildStatus;
   started     :union {
     ts        @3 :Float64;
     none      @4 :Void;
   }
+  message     @5 :Text;
   # The state of the ref's head commit
 }
 

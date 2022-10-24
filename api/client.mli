@@ -55,6 +55,14 @@ module Repo : sig
   type t = Raw.Client.Repo.t Capability.t
   (** A GitHub repository that is tested by ocaml-ci. *)
 
+  type ref_info = {
+    name : string;
+    hash : string;
+    status : Build_status.t;
+    started : float option;
+    message : string;
+  }
+
   val refs :
     t ->
     ( (git_hash * Build_status.t) Ref_map.t,
@@ -72,9 +80,7 @@ module Repo : sig
   val history_of_ref :
     t ->
     git_ref ->
-    ( (Build_status.t * float option) Ref_map.t,
-      [> `Capnp of Capnp_rpc.Error.t ] )
-    Lwt_result.t
+    (ref_info Ref_map.t, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
   (** [history_of_ref t gref] is the list of builds for the Git reference [gref] *)
 end
 

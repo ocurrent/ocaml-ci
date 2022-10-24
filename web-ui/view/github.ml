@@ -49,46 +49,23 @@ let refs_v ~org ~repo ~refs =
          ~a:[ a_class [ Build_status.class_name status ] ]
          [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt branch ] ])
 
-let history_v ~org ~repo ~history =
-  ul
-    ~a:[ a_class [ "statuses" ] ]
-    (history
-    |> List.map @@ fun (commit, status) ->
-       li
-         ~a:[ a_class [ Build_status.class_name status ] ]
-         [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt commit ] ])
+let ref_name r =
+  match Astring.String.cuts ~sep:"/" r with
+  | "refs" :: "heads" :: branch -> Astring.String.concat ~sep:"/" branch
+  | [ "refs"; "pull"; id; "head" ] -> id
+  | _ -> Fmt.str "Bad ref format %S" r
+
+let ref_breadcrumb r head_hash =
+  match Astring.String.cuts ~sep:"/" r with
+  | "refs" :: "heads" :: branch ->
+      let branch = Astring.String.concat ~sep:"/" branch in
+      (branch, Printf.sprintf "commit/%s" head_hash)
+  | [ "refs"; "pull"; id; "head" ] ->
+      ("#" ^ id, Printf.sprintf "pull/%s" head_hash)
+  | _ -> (Fmt.str "Bad ref format %S" r, "")
 
 let link_github_commit ~org ~repo ~hash =
   a ~a:[ a_href (github_commit_url ~org ~repo ~hash) ] [ txt hash ]
-
-let link_github_refs ~org ~repo = function
-  | [] -> txt "(not at the head of any monitored branch or PR)"
-  | refs ->
-      p
-        (txt "(for "
-         :: intersperse ~sep:(txt ", ")
-              (refs
-              |> List.map @@ fun r ->
-                 match Astring.String.cuts ~sep:"/" r with
-                 | "refs" :: "heads" :: branch ->
-                     let branch = Astring.String.concat ~sep:"/" branch in
-                     span
-                       [
-                         txt "branch ";
-                         a
-                           ~a:[ a_href (github_branch_url ~org ~repo branch) ]
-                           [ txt branch ];
-                       ]
-                 | [ "refs"; "pull"; id; "head" ] ->
-                     span
-                       [
-                         txt "PR ";
-                         a
-                           ~a:[ a_href (github_pr_url ~org ~repo id) ]
-                           [ txt ("#" ^ id) ];
-                       ]
-                 | _ -> txt (Fmt.str "Bad ref format %S" r))
-        @ [ txt ")" ])
 
 let link_github_refs' ~org ~repo refs =
   let f r =
@@ -113,11 +90,64 @@ let list_refs ~org ~repo ~refs =
     ]
 
 let list_history ~org ~repo ~ref ~history =
-  Template.instance
+  let head_hash =
+    match history with [] -> "" | (hash, _, _, _) :: _ -> hash
+  in
+  let commit_table =
+    let commit_table_head =
+      Common.table_head (Printf.sprintf "Builds (%d)" (List.length history))
+    in
+    let f (u, message, status, t) =
+      let created_at = Timestamps_durations.pp_timestamp (Some t) in
+      Build.commit_row ~commit_title:message ~short_hash:(short_hash u)
+        ~created_at ~status ~commit_uri:(commit_url ~org ~repo u)
+    in
+    commit_table_head :: List.map f history
+  in
+  let title =
+    div
+      ~a:[ a_class [ "justify-between items-center flex" ] ]
+      [
+        div
+          ~a:[ a_class [ "flex flex-items-center space-x-4" ] ]
+          [
+            div
+              ~a:[ a_class [ "flex flex-col space-y-1" ] ]
+              [
+                h1
+                  ~a:[ a_class [ "text-xl" ] ]
+                  [
+                    txt
+                      (Printf.sprintf "Build History for \"%s\"" (ref_name ref));
+                  ];
+                div
+                  ~a:[ a_class [ "text-gray-500" ] ]
+                  [
+                    div
+                      ~a:[ a_class [ "flex text-sm space-x-2 " ] ]
+                      [
+                        txt
+                          (Printf.sprintf
+                             "Here is your build history for %s on %s"
+                             (ref_name ref) repo);
+                      ];
+                  ];
+              ];
+          ];
+      ]
+  in
+  Template_v1.instance
     [
-      breadcrumbs [ ("github", "github"); (org, org) ] repo;
-      link_github_refs ~org ~repo [ ref ];
-      history_v ~org ~repo ~history;
+      Common.breadcrumbs
+        [
+          (prefix, prefix);
+          (org, org);
+          (repo, repo);
+          ref_breadcrumb ref head_hash;
+        ]
+        "Build History";
+      title;
+      Build.tabulate commit_table;
     ]
 
 let cancel_success_message success =

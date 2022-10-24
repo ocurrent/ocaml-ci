@@ -51,7 +51,7 @@ let history_v ~org ~repo ~history =
   ul
     ~a:[ a_class [ "statuses" ] ]
     (history
-    |> List.map @@ fun (commit, status) ->
+    |> List.map @@ fun (commit, _message, status, _t) ->
        li
          ~a:[ a_class [ Build_status.class_name status ] ]
          [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt commit ] ])

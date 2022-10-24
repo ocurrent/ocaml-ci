@@ -44,7 +44,7 @@ module type View = sig
     org:string ->
     repo:string ->
     ref:string ->
-    history:(string * Client.Build_status.t) list ->
+    history:(string * string * Build_status.t * float) list ->
     string
 
   val list_steps :

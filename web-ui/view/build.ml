@@ -108,6 +108,36 @@ let tabulate_steps step_rows =
       ~a:[ a_class [ "container-fluid mt-8 flex flex-col space-y-6" ] ]
       [ div ~a:[ a_class [ "table-container" ] ] step_rows ])
 
+let commit_row ~commit_title ~short_hash ~created_at ~status ~commit_uri =
+  Tyxml.Html.(
+    a
+      ~a:[ a_class [ "table-row" ]; a_href commit_uri ]
+      [
+        div
+          ~a:[ a_class [ "flex items-center space-x-3" ] ]
+          [
+            Common.status_icon_build status;
+            div
+              ~a:[ a_class [ "flex items-center space-x-3" ] ]
+              [
+                div
+                  ~a:[ a_class [ "flex flex-col" ] ]
+                  [
+                    div
+                      ~a:[ a_class [ "text-gray-900 text-sm font-medium" ] ]
+                      [ txt commit_title ];
+                    div
+                      ~a:[ a_class [ "flex text-sm space-x-2" ] ]
+                      [
+                        div [ txt short_hash ];
+                        div [ txt "-" ];
+                        div [ txt created_at ];
+                      ];
+                  ];
+              ];
+          ];
+      ])
+
 let repo_row ~repo_title ~short_hash ~last_updated ~status ~repo_uri =
   Tyxml.Html.(
     a
