@@ -85,6 +85,14 @@ end
 module Repo = struct
   type t = Raw.Client.Repo.t Capability.t
 
+  type ref_info = {
+    name : string;
+    hash : string;
+    status : Build_status.t;
+    started : float option;
+    message : string;
+  }
+
   let refs t =
     let open Raw.Client.Repo.Refs in
     let request = Capability.Request.create_no_args () in
@@ -93,10 +101,20 @@ module Repo = struct
        Results.refs_get_list jobs
        |> List.fold_left
             (fun acc slot ->
-              let gref = Raw.Reader.RefInfo.ref_get slot in
+              let name = Raw.Reader.RefInfo.ref_get slot in
               let hash = Raw.Reader.RefInfo.hash_get slot in
-              let state = Raw.Reader.RefInfo.state_get slot in
-              Ref_map.add gref (hash, state) acc)
+              let status = Raw.Reader.RefInfo.status_get slot in
+              let started =
+                let time = Raw.Reader.RefInfo.started_get slot in
+                match Raw.Reader.RefInfo.Started.get time with
+                | Raw.Reader.RefInfo.Started.None
+                | Raw.Reader.RefInfo.Started.Undefined _ ->
+                    None
+                | Raw.Reader.RefInfo.Started.Ts v -> Some v
+              in
+              let message = Raw.Reader.RefInfo.message_get slot in
+              let r = { name; hash; status; started; message } in
+              Ref_map.add name r acc)
             Ref_map.empty
 
   let commit_of_hash t hash =
@@ -122,7 +140,7 @@ module Repo = struct
             (fun acc slot ->
               let open Build_status in
               let hash = Raw.Reader.RefInfo.hash_get slot in
-              let state = Raw.Reader.RefInfo.state_get slot in
+              let state = Raw.Reader.RefInfo.status_get slot in
               let started = Raw.Reader.RefInfo.started_get slot in
               let time =
                 match Raw.Reader.RefInfo.Started.get started with

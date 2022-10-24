@@ -42,10 +42,10 @@ let refs_v ~org ~repo ~refs =
   ul
     ~a:[ a_class [ "statuses" ] ]
     (Client.Ref_map.bindings refs
-    |> List.map @@ fun (branch, (commit, status)) ->
+    |> List.map @@ fun (branch, { Client.Repo.hash; status; _ }) ->
        li
          ~a:[ a_class [ Build_status.class_name status ] ]
-         [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt branch ] ])
+         [ a ~a:[ a_href (commit_url ~org ~repo hash) ] [ txt branch ] ])
 
 let history_v ~org ~repo ~history =
   ul

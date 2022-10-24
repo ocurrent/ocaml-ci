@@ -82,7 +82,7 @@ let list_refs repo =
          "No branches or PRs are being tracked by the CI for this repository.@."
      else
        Client.Ref_map.iter
-         (fun gref (hash, status) ->
+         (fun gref { Client.Repo.hash; status; _ } ->
            Fmt.pr "%s %s (%a)@." hash gref Client.Build_status.pp status)
          refs
 

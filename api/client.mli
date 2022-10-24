@@ -55,11 +55,16 @@ module Repo : sig
   type t = Raw.Client.Repo.t Capability.t
   (** A GitHub repository that is tested by ocaml-ci. *)
 
+  type ref_info = {
+    name : string;
+    hash : string;
+    status : Build_status.t;
+    started : float option;
+    message : string;
+  }
+
   val refs :
-    t ->
-    ( (git_hash * Build_status.t) Ref_map.t,
-      [> `Capnp of Capnp_rpc.Error.t ] )
-    Lwt_result.t
+    t -> (ref_info Ref_map.t, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
   (** [refs t] returns the known Git references (branches and pull requests)
       that ocaml-ci is monitoring, along with the current head of each one. *)
 

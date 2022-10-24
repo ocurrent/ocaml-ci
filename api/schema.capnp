@@ -9,17 +9,6 @@ enum BuildStatus {
   pending    @3;
 }
 
-struct RefInfo {
-  ref         @0 :Text;
-  hash        @1 :Text;
-  state       @2 :BuildStatus;
-  started     :union {
-    ts        @3 :Float64;
-    none      @4 :Void;
-  }
-  # The state of the ref's head commit
-}
-
 struct JobInfo {
   variant @0 :Text;
   state :union {
@@ -68,6 +57,19 @@ interface Commit {
   # Get the set of branches and PRs with this commit at their head.
 
   status @3 () -> (status :BuildStatus);
+}
+
+
+struct RefInfo {
+  ref     @0 :Text;
+  hash    @1 :Text;
+  status  @2 :BuildStatus;
+  started :union {
+    ts    @3 :Float64;
+    none  @4 :Void;
+  }
+  message @5 :Text;
+  # The state of the ref's head commit
 }
 
 interface Repo {

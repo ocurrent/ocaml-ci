@@ -137,7 +137,7 @@ let make_repo ~engine ~owner ~name =
                 let status =
                   to_build_status (Index.get_status ~owner ~name ~hash)
                 in
-                Raw.Builder.RefInfo.state_set slot status;
+                Raw.Builder.RefInfo.status_set slot status;
                 let started_t = Raw.Builder.RefInfo.started_init slot in
                 Raw.Builder.RefInfo.Started.none_set started_t);
          Service.return response
@@ -195,7 +195,7 @@ let make_repo ~engine ~owner ~name =
                 let status =
                   to_build_status (Index.get_status ~owner ~name ~hash)
                 in
-                Raw.Builder.RefInfo.state_set slot status;
+                Raw.Builder.RefInfo.status_set slot status;
                 let started_t = Raw.Builder.RefInfo.started_init slot in
                 match started with
                 | None -> Raw.Builder.RefInfo.Started.none_set started_t
