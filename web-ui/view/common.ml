@@ -86,14 +86,17 @@ let form_for ~x_ref ~action ~csrf_token ~submit_button ~input_value =
           ();
       ])
 
-let form_rebuild_step ~variant ~csrf_token =
+let form_rebuild_step ~variant ~csrf_token ?(show = true) () =
+  let display_none = if show then "" else "display:none" in
   let submit_button =
     Tyxml.Html.(
       button
         [ txt "Rebuild" ]
         ~a:
           [
+            a_id "rebuild-step";
             a_class [ "btn btn-primary" ];
+            a_style display_none;
             Tyxml_helpers.at_click "$refs.rebuildStepForm.submit()";
           ])
   in

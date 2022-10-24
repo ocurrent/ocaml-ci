@@ -1,0 +1,12 @@
+(library
+ (public_name ocaml-ci-web.representation)
+ (name representation)
+ (libraries
+  ocaml-ci-api
+  ocaml-ci-web.view
+  ocaml-ci-client-lib
+  yojson
+  ppx_deriving_yojson.runtime
+  timedesc)
+ (preprocess
+  (pps ppx_deriving_yojson)))

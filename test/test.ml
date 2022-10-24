@@ -12,4 +12,5 @@ let () =
          ("variant", Test_variant.tests);
          ("run_time", Test_run_time.tests);
          ("run_time_client", Test_run_time_client.tests);
+         ("representation", Test_web_representation.tests);
        ]

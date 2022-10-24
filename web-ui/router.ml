@@ -203,4 +203,12 @@ let create ~github ~gitlab =
           | _ ->
               Dream.log "Form validation failed";
               Dream.empty `Bad_Request);
+      Dream.get "/api/github/:org/:repo/commit/:hash/variant/:variant"
+        (fun request ->
+          Controller.Api_github.show_step
+            ~org:(Dream.param request "org")
+            ~repo:(Dream.param request "repo")
+            ~hash:(Dream.param request "hash")
+            ~variant:(Dream.param request "variant")
+            github);
     ]

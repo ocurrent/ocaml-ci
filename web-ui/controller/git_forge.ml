@@ -1,3 +1,4 @@
+module type Api = View.Git_forge.Api
 module type View = View.Git_forge.View
 
 module Client = Ocaml_ci_api.Client
@@ -60,23 +61,34 @@ module type Controller = sig
     Backend.t ->
     Dream.server Dream.message Lwt.t
 end
-
 (* Abstract controller for any Git_forge that implements `Ocaml_ci_api.Client` API *)
+
+module type Api_controller = sig
+  val show_step :
+    org:string ->
+    repo:string ->
+    hash:string ->
+    variant:string ->
+    Backend.t ->
+    Dream.response Lwt.t
+end
+
+let ( >>!= ) x f =
+  let open Lwt.Infix in
+  x >>= function
+  | Error (`Capnp ex) ->
+      Dream.log "Internal server error: %s"
+        (Fmt.to_to_string Capnp_rpc.Error.pp ex);
+      Dream.empty `Internal_Server_Error
+  | Error (`Msg v) ->
+      Dream.log "Internal server error: %s" v;
+      Dream.empty `Internal_Server_Error
+  | Ok y -> f y
+
 module Make (View : View) = struct
   open Lwt.Infix
   module Client = Ocaml_ci_api.Client
   module Capability = Capnp_rpc_lwt.Capability
-
-  let ( >>!= ) x f =
-    x >>= function
-    | Error (`Capnp ex) ->
-        Dream.log "Internal server error: %s"
-          (Fmt.to_to_string Capnp_rpc.Error.pp ex);
-        Dream.empty `Internal_Server_Error
-    | Error (`Msg v) ->
-        Dream.log "Internal server error: %s" v;
-        Dream.empty `Internal_Server_Error
-    | Ok y -> f y
 
   let job_url ~org ~repo ~hash variant =
     Fmt.str "/%s/%s/%s/commit/%s/variant/%s" View.prefix org repo hash variant
@@ -281,4 +293,52 @@ module Make (View : View) = struct
     in
     List.iter (fun (s, m) -> Dream.add_flash_message request s m) flash_messages;
     Dream.redirect request (Fmt.str "/github/%s/%s/commit/%s" org repo hash)
+end
+
+(* This module pertains to the API subsystem of the web-ui. It sets up
+   controllers that support routes used for returning JSON objects - e.g. build and step.
+   These will initially be used to support live-updates of build statuses and timestamps *)
+module Make_API (Api : Api) = struct
+  open Lwt.Infix
+  module Client = Ocaml_ci_api.Client
+  module Capability = Capnp_rpc_lwt.Capability
+
+  let show_step ~org ~repo ~hash ~variant ci =
+    Backend.ci ci >>= fun ci ->
+    Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
+    Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
+    Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash)
+    @@ fun commit_cap ->
+    let jobs = Client.Commit.jobs commit_cap in
+    Capability.with_ref (Client.Commit.job_of_variant commit_cap variant)
+    @@ fun job_cap ->
+    jobs >>!= fun jobs ->
+    Capability.inc_ref job_cap;
+    let build_created_at =
+      Run_time.build_created_at ~build:jobs
+      |> Result.to_option
+      |> Option.join
+      |> Option.value ~default:0.
+    in
+    let step_info =
+      let filter (j : Client.job_info) = j.variant = variant in
+      List.find_opt filter jobs
+    in
+    let timestamps = Option.map Run_time.timestamps_from_job_info step_info in
+    let timestamps =
+      match timestamps with
+      | None ->
+          Dream.log "Error - No step-info.";
+          None
+      | Some (Error e) ->
+          Dream.log "Error - %s" e;
+          None
+      | Some (Ok t) -> Some t
+    in
+    let run_time =
+      Option.map
+        (Run_time.run_times_from_timestamps ~build_created_at)
+        timestamps
+    in
+    Api.show_step ~step_info ~run_time
 end

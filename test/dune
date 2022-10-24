@@ -6,6 +6,8 @@
   alcotest-lwt
   ppx_deriving_yojson.runtime
   ocaml-ci-client-lib
+  ocaml-ci-web.representation
+  timedesc-tzlocal.utc
   logs.fmt)
  (preprocess
   (pps ppx_deriving.eq ppx_deriving_yojson)))

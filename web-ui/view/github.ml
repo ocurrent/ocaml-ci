@@ -315,8 +315,7 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
   let header, footer =
     let can_rebuild = status.Current_rpc.Job.can_rebuild in
     let button =
-      if can_rebuild then Some (Common.form_rebuild_step ~variant ~csrf_token)
-      else None
+      Some (Common.form_rebuild_step ~variant ~csrf_token ~show:can_rebuild ())
     in
     let branch =
       if refs = [] then ""
@@ -350,6 +349,7 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
     let body =
       Template_v1.instance ~scripts:Step.log_highlight_js
         [
+          Step.poll;
           Common.breadcrumbs
             [
               ("github", "github");
@@ -467,6 +467,7 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
                             Tyxml_helpers.at_click "copyCode";
                             Tyxml_helpers.x_show "manualSelection";
                             Tyxml_helpers.x_ref "copyLinkBtn";
+                            Tyxml_helpers.x_cloak;
                           ]
                         [
                           Tyxml.Svg.(
