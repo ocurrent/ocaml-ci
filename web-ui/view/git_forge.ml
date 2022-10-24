@@ -31,7 +31,7 @@ module type View = sig
     hash:string ->
     [> [> Html_types.txt ] Html_types.a ] Tyxml_html.elt
 
-  val list_orgs : orgs:string list -> string
+  val list_orgs : orgs:Client.CI.org_info list -> string
   val list_repos : org:string -> repos:Client.Org.repo_info list -> string
 
   val list_refs :

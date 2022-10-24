@@ -103,10 +103,17 @@ interface Org {
   # Get the list of tracked repositories for this organisation.
 }
 
+struct OrgInfo {
+  owner        @0 :Text;
+  description  @1 :Text;
+  nRepos       @2 :UInt16;
+  # Someone is unlikely to have more than 65536 repos
+}
+
 interface CI {
   org          @0 (owner :Text) -> (org :Org);
 
-  orgs         @1 () -> (orgs :List(Text));
+  orgs         @1 () -> (orgs :List(OrgInfo));
   # Get the list of organisations for this CI capability.
 }
 

@@ -57,10 +57,10 @@ let list_orgs ci =
          Fmt.pr
            "@[<v>No owner (organisation) given and no suggestions available."
      | orgs ->
-         Fmt.pr
-           "@[<v>No owner (organisation) given. Try one of these:@,@,%a@]@."
-           Fmt.(list string)
-           orgs
+         List.map (fun { Client.CI.owner; _ } -> owner) orgs
+         |> Fmt.pr
+              "@[<v>No owner (organisation) given. Try one of these:@,@,%a@]@."
+              Fmt.(list string)
 
 let list_repos ~owner org =
   Client.Org.repos org

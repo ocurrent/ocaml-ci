@@ -23,7 +23,8 @@ let gitlab_branch_url ~org ~repo ref =
 let gitlab_mr_url ~org ~repo id =
   Fmt.str "https://gitlab.com/%s/%s/-/merge_requests/%s" org repo id
 
-let format_org org = li [ a ~a:[ a_href (org_url org) ] [ txt org ] ]
+let format_org { Client.CI.owner; _ } =
+  li [ a ~a:[ a_href (org_url owner) ] [ txt owner ] ]
 
 let format_repo ~org { Client.Org.name; master_status } =
   li

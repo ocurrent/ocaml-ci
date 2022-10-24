@@ -16,6 +16,8 @@ let commit_url ~org ~repo hash =
 let job_url ~org ~repo ~hash variant =
   Fmt.str "/%s/%s/%s/commit/%s/variant/%s" prefix org repo hash variant
 
+let github_org_url org = Printf.sprintf "https://github.com/%s" org
+
 let github_branch_url ~org ~repo ref =
   Fmt.str "https://github.com/%s/%s/tree/%s" org repo ref
 
@@ -25,23 +27,10 @@ let github_commit_url ~org ~repo ~hash =
 let github_pr_url ~org ~repo id =
   Fmt.str "https://github.com/%s/%s/pull/%s" org repo id
 
-let github_repo_url ~org repo =
-  Printf.sprintf "https://github.com/%s/%s" org repo
-
-let format_org org = li [ a ~a:[ a_href (org_url org) ] [ txt org ] ]
-
 let format_repo ~org { Client.Org.name; master_status } =
   li
     ~a:[ a_class [ Build_status.class_name master_status ] ]
     [ a ~a:[ a_href (repo_url org name) ] [ txt name ] ]
-
-let ref_name r =
-  match Astring.String.cuts ~sep:"/" r with
-  | "refs" :: "heads" :: branch -> Astring.String.concat ~sep:"/" branch
-  | [ "refs"; "pull"; id; "head" ] -> id
-  | _ -> Fmt.str "Bad ref format %S" r
-
-let orgs_v ~orgs = [ breadcrumbs [] prefix; ul (List.map format_org orgs) ]
 
 let repos_v ~org ~repos =
   [
@@ -102,7 +91,61 @@ let link_github_refs' ~org ~repo refs =
   in
   List.map f refs
 
-let list_orgs ~orgs = Template.instance @@ orgs_v ~orgs
+let list_orgs ~orgs =
+  let org_table =
+    let f { Client.CI.owner; description; n_repos } =
+      a
+        ~a:[ a_href (org_url owner); a_class [ "item-card flex space-x-4" ] ]
+        [
+          (* Github sometimes returns a blurry smaller profile picture,
+             so request larger than we need and downsample *)
+          img
+            ~a:[ a_style "border-radius: 50%; width: 88px" ]
+            ~src:(Printf.sprintf "https://github.com/%s.png?size=200" owner)
+            ~alt:(Printf.sprintf "%s profile picture" owner)
+            ();
+          div
+            ~a:[ a_class [ "flex flex-col" ] ]
+            [
+              div ~a:[ a_class [ "font-semibold text-lg mb-1" ] ] [ txt owner ];
+              (* FIXME [benmandrew]: [description] here, currently only placeholder exists *)
+              div ~a:[ a_class [ "text-sm" ] ] [ txt description ];
+              div
+                ~a:
+                  [
+                    a_class
+                      [
+                        "flex mt-4 text-sm text-gray-700 font-normal space-x-4";
+                      ];
+                  ]
+                [
+                  div [ txt (github_org_url owner) ];
+                  div
+                    ~a:[ a_class [ "flex items-center space-x-2" ] ]
+                    [ txt (Printf.sprintf "%d repositories" n_repos) ];
+                ];
+            ];
+        ]
+    in
+    List.map f orgs
+  in
+  let title =
+    div
+      ~a:[ a_class [ "justify-between items-center flex" ] ]
+      [
+        div
+          ~a:[ a_class [ "flex flex-col space-y-1" ] ]
+          [
+            h1 ~a:[ a_class [ "text-xl" ] ] [ txt "Welcome to Ocaml-ci" ];
+            div
+              ~a:[ a_class [ "text-gray-500" ] ]
+              [ txt "Here are some of our registered Github organisations" ];
+          ];
+      ]
+  in
+  Template_v1.instance
+    [ title; div ~a:[ a_class [ "mt-8 flex flex-col space-y-6" ] ] org_table ]
+
 let list_repos ~org ~repos = Template.instance @@ repos_v ~org ~repos
 
 let list_refs ~org ~repo ~refs =

@@ -294,3 +294,23 @@ let set_active_refs ~repo refs =
 
 let get_active_refs repo =
   Repo_map.find_opt repo !active_refs |> Option.value ~default:Ref_map.empty
+
+(* FIXME [benmandrew]: Temporary maps to use before DB migration is done *)
+module Description_map = Map.Make (String)
+module N_repos_map = Map.Make (String)
+
+let description = ref Description_map.empty
+let n_repos = ref N_repos_map.empty
+
+let set_description ~owner x =
+  description := Description_map.add owner x !description
+
+let get_description ~owner =
+  (* FIXME [benmandrew]: there is probably a better default to have here *)
+  Description_map.find_opt owner !description
+  |> Option.value ~default:"Placeholder organisation description"
+
+let set_n_repos ~owner x = n_repos := N_repos_map.add owner x !n_repos
+
+let get_n_repos ~owner =
+  N_repos_map.find_opt owner !n_repos |> Option.value ~default:0

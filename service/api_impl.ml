@@ -302,6 +302,14 @@ let make_ci ~engine =
          release_param_caps ();
          let response, results = Service.Response.create Results.init_pointer in
          let owners = Index.get_active_owners () |> Index.Owner_set.elements in
-         Results.orgs_set_list results owners |> ignore;
+         let arr = Results.orgs_init results (List.length owners) in
+         owners
+         |> List.iteri (fun i owner ->
+                let slot = Capnp.Array.get arr i in
+                Raw.Builder.OrgInfo.owner_set slot owner;
+                let description = Index.get_description ~owner in
+                Raw.Builder.OrgInfo.description_set slot description;
+                let n_repos = Index.get_n_repos ~owner in
+                Raw.Builder.OrgInfo.n_repos_set_exn slot n_repos);
          Service.return response
      end

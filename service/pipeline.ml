@@ -83,15 +83,21 @@ let set_active_installations installations =
   |> Index.set_active_owners;
   installations
 
-let set_active_repos ~installation repos =
-  let+ installation = installation and+ repos = repos in
-  let owner = Github.Installation.account installation in
+let set_active_repos ~owner repos =
+  (* let+ installation = installation and+ repos = repos in
+  let owner = Github.Installation.account installation in *)
   repos
   |> List.fold_left
        (fun acc r -> Index.Repo_set.add (Github.Api.Repo.id r).name acc)
        Index.Repo_set.empty
   |> Index.set_active_repos ~owner;
   repos
+
+let set_org_data ~installation repos =
+  let+ installation = installation and+ repos = repos in
+  let owner = Github.Installation.account installation in
+  Index.set_n_repos ~owner (List.length repos);
+  set_active_repos ~owner repos
 
 let ref_from_commit (x : Github.Api.Commit.t) : string =
   Git.Commit_id.gref @@ Github.Api.Commit.id x
@@ -262,7 +268,7 @@ let v ?ocluster ~app ~solver () =
      @@ fun installation ->
      let repos =
        Github.Installation.repositories installation
-       |> set_active_repos ~installation
+       |> set_org_data ~installation
      in
      repos
      |> Current.list_iter ~collapse_key:"repo" (module Github.Api.Repo)
