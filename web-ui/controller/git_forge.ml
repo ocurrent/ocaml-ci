@@ -312,7 +312,10 @@ module Make_API (Api : Api) = struct
     let jobs = Client.Commit.jobs commit_cap in
     Capability.with_ref (Client.Commit.job_of_variant commit_cap variant)
     @@ fun job_cap ->
+    let status = Current_rpc.Job.status job_cap in
+    Current_rpc.Job.log job_cap ~start:0L >>!= fun _ ->
     jobs >>!= fun jobs ->
+    status >>!= fun status ->
     Capability.inc_ref job_cap;
     let build_created_at =
       Run_time.build_created_at ~build:jobs
@@ -340,5 +343,5 @@ module Make_API (Api : Api) = struct
         (Run_time.run_times_from_timestamps ~build_created_at)
         timestamps
     in
-    Api.show_step ~step_info ~run_time
+    Api.show_step ~step_info ~run_time ~can_rebuild:status.can_rebuild
 end

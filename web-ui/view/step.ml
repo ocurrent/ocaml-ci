@@ -192,10 +192,12 @@ let poll =
                   element_step_status.innerHTML = iconSuccess;
                 } else {
                   element_step_status.innerHTML = iconFailed;
+                };
+                if (data["can_rebuild"]) {
                   document
                     .getElementById("rebuild-step")
                     .style.removeProperty("display");
-                }
+                };
                 console.log("Build has finished. Stop polling.");
               }
 

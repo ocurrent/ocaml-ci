@@ -90,6 +90,7 @@ module type Api = sig
   val show_step :
     step_info:Client.job_info option ->
     run_time:Run_time.run_time_info option ->
+    can_rebuild:bool ->
     Dream.response Lwt.t
 end
 
