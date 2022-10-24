@@ -85,7 +85,7 @@ let set_active_installations installations =
 
 let set_active_repos ~owner repos =
   (* let+ installation = installation and+ repos = repos in
-  let owner = Github.Installation.account installation in *)
+     let owner = Github.Installation.account installation in *)
   repos
   |> List.fold_left
        (fun acc r -> Index.Repo_set.add (Github.Api.Repo.id r).name acc)
