@@ -67,8 +67,8 @@ let list_repos ~owner org =
   |> Lwt_result.map @@ function
      | [] -> Fmt.pr "@[<v>No repository given and no suggestions available.@."
      | repos ->
-         let full_name f { Client.Org.name; master_status } =
-           Fmt.pf f "%s/%s (%a)" owner name Client.Build_status.pp master_status
+         let full_name f { Client.Org.name; main_status; _ } =
+           Fmt.pf f "%s/%s (%a)" owner name Client.Build_status.pp main_status
          in
          Fmt.pr "@[<v>No repository given. Try one of these:@,@,%a@]@."
            Fmt.(list full_name)

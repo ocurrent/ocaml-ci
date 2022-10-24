@@ -99,9 +99,15 @@ interface Repo {
 }
 
 struct RepoInfo {
-  name @0 :Text;
-  masterState @1 :BuildStatus;
-  # The status of the repository's master branch (notStarted if there isn't one)
+  name         @0 :Text;
+  mainState    @1 :BuildStatus;
+  mainHash     @2 :Text;
+  mainLastUpdated :union {
+    ts         @3 :Float64;
+    # timestamp as seconds since epoch
+    none       @4 :Void;
+  }
+  # The status of the repository's main branch (notStarted if there isn't one)
 }
 
 interface Org {
