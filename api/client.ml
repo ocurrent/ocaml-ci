@@ -86,7 +86,7 @@ module Repo = struct
   type t = Raw.Client.Repo.t Capability.t
 
   type ref_info = {
-    name : string;
+    gref : string;
     hash : string;
     status : Build_status.t;
     started : float option;
@@ -101,7 +101,7 @@ module Repo = struct
        Results.refs_get_list jobs
        |> List.fold_left
             (fun acc slot ->
-              let name = Raw.Reader.RefInfo.ref_get slot in
+              let gref = Raw.Reader.RefInfo.ref_get slot in
               let hash = Raw.Reader.RefInfo.hash_get slot in
               let status = Raw.Reader.RefInfo.status_get slot in
               let started =
@@ -113,8 +113,8 @@ module Repo = struct
                 | Raw.Reader.RefInfo.Started.Ts v -> Some v
               in
               let message = Raw.Reader.RefInfo.message_get slot in
-              let r = { name; hash; status; started; message } in
-              Ref_map.add name r acc)
+              let r = { gref; hash; status; started; message } in
+              Ref_map.add gref r acc)
             Ref_map.empty
 
   let commit_of_hash t hash =

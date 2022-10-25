@@ -108,7 +108,7 @@ let list_repos ~org ~repos = Template.instance @@ repos_v ~org ~repos
 let list_refs ~org ~repo ~refs =
   let f
       {
-        Client.Repo.name;
+        Client.Repo.gref;
         hash;
         status;
         started = last_updated;
@@ -116,16 +116,16 @@ let list_refs ~org ~repo ~refs =
       } =
     let short_hash = short_hash hash in
     let last_updated = Timestamps_durations.pp_timestamp last_updated in
-    Build.ref_row ~ref_title:(ref_name name) ~short_hash ~last_updated ~status
+    Build.ref_row ~ref_title:(ref_name gref) ~short_hash ~last_updated ~status
       ~ref_uri:(commit_url ~org ~repo short_hash)
       ~message:short_hash
   in
   let default_table, main_ref =
     let main_ref, main_ref_info =
       Client.Ref_map.bindings refs
-      |> List.find (fun (_, { Client.Repo.name; _ }) ->
-             String.equal name "refs/heads/main"
-             || String.equal name "refs/heads/master")
+      |> List.find (fun (_, { Client.Repo.gref; _ }) ->
+             String.equal gref "refs/heads/main"
+             || String.equal gref "refs/heads/master")
     in
     let table_head = Common.table_head "Default Branch" in
     let table = table_head :: [ f main_ref_info ] in

@@ -56,7 +56,7 @@ module Repo : sig
   (** A GitHub repository that is tested by ocaml-ci. *)
 
   type ref_info = {
-    name : string;
+    gref : string;
     hash : string;
     status : Build_status.t;
     started : float option;
