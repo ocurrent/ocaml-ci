@@ -64,6 +64,13 @@ end
 (* Abstract controller for any Git_forge that implements `Ocaml_ci_api.Client` API *)
 
 module type Api_controller = sig
+  val list_steps :
+    org:string ->
+    repo:string ->
+    hash:string ->
+    Backend.t ->
+    Dream.response Lwt.t
+
   val show_step :
     org:string ->
     repo:string ->
@@ -344,4 +351,15 @@ module Make_API (Api : Api) = struct
         timestamps
     in
     Api.show_step ~step_info ~run_time ~can_rebuild:status.can_rebuild
+
+  let list_steps ~org ~repo ~hash ci =
+    Backend.ci ci >>= fun ci ->
+    Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
+    Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
+    Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash)
+    @@ fun commit_cap ->
+    Client.Commit.status commit_cap >>!= fun status ->
+    Client.Commit.jobs commit_cap >>!= fun jobs ->
+    let build_status = Client.State.from_build_status status in
+    Api.list_steps ~build_status ~jobs
 end

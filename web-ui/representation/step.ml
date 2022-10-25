@@ -37,4 +37,21 @@ let from_status_info_run_time ~step_info ~run_time ~can_rebuild =
     can_rebuild;
   }
 
+let from_status_info ~step_info ~build_created_at =
+  let timestamps = Option.map Run_time.timestamps_from_job_info step_info in
+  let timestamps =
+    match timestamps with
+    | None ->
+        Dream.log "Error - No step-info.";
+        None
+    | Some (Error e) ->
+        Dream.log "Error - %s" e;
+        None
+    | Some (Ok t) -> Some t
+  in
+  let run_time =
+    Option.map (Run_time.run_times_from_timestamps ~build_created_at) timestamps
+  in
+  from_status_info_run_time ~step_info ~run_time ~can_rebuild:false
+
 let to_json t = Yojson.Safe.to_string @@ to_yojson t

@@ -92,6 +92,11 @@ module type Api = sig
     run_time:Run_time.run_time_info option ->
     can_rebuild:bool ->
     Dream.response Lwt.t
+
+  val list_steps :
+    jobs:Client.job_info list ->
+    build_status:Client.State.t ->
+    Dream.response Lwt.t
 end
 
 (* Common utility functions for Git_forge views. *)
