@@ -45,7 +45,6 @@ let platforms =
   let v2_1 = Ocaml_ci_service.Conf.platforms `V2_1 in
   Current.list_seq (List.map v v2_1)
 
-let migrations = Index.migrate ()
 let program_name = "ocaml-ci"
 
 (* Link for GitLab statuses. *)
@@ -310,10 +309,11 @@ let gitlab_status_of_state head result =
   | Error (`Msg m) ->
       Gitlab.Api.Status.v ~url `Failure ~description:m ~name:program_name
 
-let v ?ocluster ~app ~solver () =
+let v ?ocluster ~app ~solver ~migration () =
   let ocluster =
     Option.map (Cluster_build.config ~timeout:(Duration.of_hour 1)) ocluster
   in
+  let migrations = if migration then Index.migrate () else Current.return () in
   Current.with_context migrations @@ fun () ->
   Current.with_context opam_repository_commit @@ fun () ->
   Current.with_context platforms @@ fun () ->

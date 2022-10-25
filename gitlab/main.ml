@@ -125,7 +125,7 @@ module Gitlab = struct
 end
 
 let main () config mode app capnp_public_address capnp_listen_address
-    gitlab_auth submission_uri : ('a, [ `Msg of string ]) result =
+    gitlab_auth submission_uri no_migration : ('a, [ `Msg of string ]) result =
   Lwt_main.run
     (let solver = Ocaml_ci.Solver_pool.spawn_local () in
      run_capnp capnp_public_address capnp_listen_address
@@ -133,9 +133,10 @@ let main () config mode app capnp_public_address capnp_listen_address
      let ocluster =
        Option.map (Capnp_rpc_unix.Vat.import_exn vat) submission_uri
      in
+     let migration = no_migration in
      let engine =
        Current.Engine.create ~config
-         (Ocaml_ci_gitlab.Pipeline.v ?ocluster ~app ~solver)
+         (Ocaml_ci_gitlab.Pipeline.v ?ocluster ~app ~solver ~migration)
      in
      rpc_engine_resolver
      |> Option.iter (fun r ->
@@ -194,6 +195,13 @@ let submission_service =
   @@ Arg.info ~doc:"The submission.cap file for the build scheduler service"
        ~docv:"FILE" [ "submission-service" ]
 
+let disable_migrations =
+  Arg.(
+    value
+    @@ flag
+    @@ info ~doc:"Disable the system to execute the migrations."
+         [ "disable-migrations" ])
+
 let cmd =
   let doc = "Build OCaml projects on GitLab" in
   let info = Cmd.info "ocaml-ci-gitlab" ~doc in
@@ -208,6 +216,7 @@ let cmd =
         $ capnp_public_address
         $ capnp_listen_address
         $ Current_gitlab.Auth.cmdliner
-        $ submission_service))
+        $ submission_service
+        $ disable_migrations))
 
 let () = exit @@ Cmd.eval cmd

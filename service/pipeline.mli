@@ -7,7 +7,9 @@ val v :
   ?ocluster:Cluster_api.Raw.Client.Submission.t Capnp_rpc_lwt.Sturdy_ref.t ->
   app:Current_github.App.t ->
   solver:Ocaml_ci_api.Solver.t ->
+  migration:bool ->
   unit ->
   unit Current.t
 (** The main ocaml-ci pipeline. Tests everything configured for GitHub
-    application [app]. *)
+    application [app]. If [migration] is true, it will automatically executes
+    the migrations. *)
