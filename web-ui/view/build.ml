@@ -54,6 +54,12 @@ let title_card ~status ~card_title ~hash_link ~ref_links ~first_created_at
           ];
       ])
 
+let tabulate rows =
+  Tyxml.Html.(
+    div
+      ~a:[ a_class [ "container-fluid mt-8 flex flex-col space-y-6" ] ]
+      [ div ~a:[ a_class [ "table-container" ] ] rows ])
+
 let step_row ~step_title ~created_at ~queued_for ~ran_for ~status ~step_uri =
   Tyxml.Html.(
     a
@@ -101,3 +107,73 @@ let tabulate_steps step_rows =
     div
       ~a:[ a_class [ "container-fluid mt-8 flex flex-col space-y-6" ] ]
       [ div ~a:[ a_class [ "table-container" ] ] step_rows ])
+
+let repo_row ~repo_title ~short_hash ~last_updated ~status ~repo_uri =
+  Tyxml.Html.(
+    a
+      ~a:[ a_class [ "table-row" ]; a_href repo_uri ]
+      [
+        div
+          ~a:[ a_class [ "flex items-center space-x-3" ] ]
+          [
+            Common.status_icon_build status;
+            div
+              ~a:[ a_class [ "flex items-center space-x-3" ] ]
+              [
+                div
+                  ~a:[ a_class [ "flex flex-col" ] ]
+                  [
+                    div
+                      ~a:[ a_class [ "text-gray-900 text-sm font-medium" ] ]
+                      [ txt repo_title ];
+                    div
+                      ~a:[ a_class [ "flex text-sm space-x-2" ] ]
+                      [
+                        div [ txt short_hash ];
+                        div [ txt "-" ];
+                        div [ txt last_updated ];
+                      ];
+                  ];
+              ];
+          ];
+      ])
+
+let ref_row ~ref_title ~short_hash ~last_updated ~status ~ref_uri ~message =
+  Tyxml.Html.(
+    a
+      ~a:[ a_class [ "table-row" ]; a_href ref_uri ]
+      [
+        div
+          ~a:[ a_class [ "flex items-center space-x-3" ] ]
+          [
+            Common.status_icon_build status;
+            div
+              ~a:[ a_class [ "flex items-center space-x-3" ] ]
+              [
+                div
+                  ~a:
+                    [
+                      a_class
+                        [
+                          "font-medium text-gray-700 text-sm px-2 py-1 border \
+                           border-gray-300 rounded-lg";
+                        ];
+                    ]
+                  [ txt ref_title ];
+                div
+                  ~a:[ a_class [ "flex flex-col" ] ]
+                  [
+                    div
+                      ~a:[ a_class [ "text-gray-900 text-sm font-medium" ] ]
+                      [ txt message ];
+                    div
+                      ~a:[ a_class [ "flex text-sm space-x-2" ] ]
+                      [
+                        div [ txt short_hash ];
+                        div [ txt "-" ];
+                        div [ txt last_updated ];
+                      ];
+                  ];
+              ];
+          ];
+      ])

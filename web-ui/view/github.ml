@@ -25,12 +25,21 @@ let github_commit_url ~org ~repo ~hash =
 let github_pr_url ~org ~repo id =
   Fmt.str "https://github.com/%s/%s/pull/%s" org repo id
 
+let github_repo_url ~org repo =
+  Printf.sprintf "https://github.com/%s/%s" org repo
+
 let format_org org = li [ a ~a:[ a_href (org_url org) ] [ txt org ] ]
 
 let format_repo ~org { Client.Org.name; master_status } =
   li
     ~a:[ a_class [ Build_status.class_name master_status ] ]
     [ a ~a:[ a_href (repo_url org name) ] [ txt name ] ]
+
+let ref_name r =
+  match Astring.String.cuts ~sep:"/" r with
+  | "refs" :: "heads" :: branch -> Astring.String.concat ~sep:"/" branch
+  | [ "refs"; "pull"; id; "head" ] -> id
+  | _ -> Fmt.str "Bad ref format %S" r
 
 let orgs_v ~orgs = [ breadcrumbs [] prefix; ul (List.map format_org orgs) ]
 
@@ -39,15 +48,6 @@ let repos_v ~org ~repos =
     breadcrumbs [ (prefix, prefix) ] org;
     ul ~a:[ a_class [ "statuses" ] ] (List.map (format_repo ~org) repos);
   ]
-
-let refs_v ~org ~repo ~refs =
-  ul
-    ~a:[ a_class [ "statuses" ] ]
-    (Client.Ref_map.bindings refs
-    |> List.map @@ fun (branch, (commit, status)) ->
-       li
-         ~a:[ a_class [ Build_status.class_name status ] ]
-         [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt branch ] ])
 
 let history_v ~org ~repo ~history =
   ul
@@ -106,11 +106,99 @@ let list_orgs ~orgs = Template.instance @@ orgs_v ~orgs
 let list_repos ~org ~repos = Template.instance @@ repos_v ~org ~repos
 
 let list_refs ~org ~repo ~refs =
-  Template.instance
-    [
-      breadcrumbs [ ("github", "github"); (org, org) ] repo;
-      refs_v ~org ~repo ~refs;
-    ]
+  let f
+      {
+        Client.Repo.name;
+        hash;
+        status;
+        started = last_updated;
+        message = _message;
+      } =
+    let short_hash = short_hash hash in
+    let last_updated = Timestamps_durations.pp_timestamp last_updated in
+    Build.ref_row ~ref_title:(ref_name name) ~short_hash ~last_updated ~status
+      ~ref_uri:(commit_url ~org ~repo short_hash)
+      ~message:short_hash
+  in
+  let default_table, main_ref =
+    let main_ref, main_ref_info =
+      Client.Ref_map.bindings refs
+      |> List.find (fun (_, { Client.Repo.name; _ }) ->
+             String.equal name "refs/heads/main"
+             || String.equal name "refs/heads/master")
+    in
+    let table_head = Common.table_head "Default Branch" in
+    let table = table_head :: [ f main_ref_info ] in
+    (table, main_ref)
+  in
+  let refs = Client.Ref_map.remove main_ref refs in
+  let branch_table, n_branches =
+    let branches =
+      Client.Ref_map.filter
+        (fun ref _ -> String.starts_with ~prefix:"refs/heads/" ref)
+        refs
+    in
+    let n_branches = Client.Ref_map.cardinal branches in
+    let table_head =
+      Common.table_head (Printf.sprintf "Branches (%d)" n_branches)
+    in
+    let bindings = Client.Ref_map.bindings branches in
+    let table = table_head :: List.map (fun (_, ref) -> f ref) bindings in
+    (table, n_branches)
+  in
+  let pr_table, n_prs =
+    let prs =
+      Client.Ref_map.filter
+        (fun ref _ -> String.starts_with ~prefix:"refs/pull/" ref)
+        refs
+    in
+    let n_prs = Client.Ref_map.cardinal prs in
+    let table_head =
+      Common.table_head (Printf.sprintf "Refs Branches (%d)" n_prs)
+    in
+    let bindings = Client.Ref_map.bindings prs in
+    let table = table_head :: List.map (fun (_, ref) -> f ref) bindings in
+    (table, n_prs)
+  in
+  Dream.log "n_branches: %d - n_prs: %d" n_branches n_prs;
+  let title =
+    let github_repo_url = github_repo_url ~org repo in
+    div
+      ~a:[ a_class [ "justify-between items-center flex" ] ]
+      [
+        div
+          ~a:[ a_class [ "flex items-center space-x-2" ] ]
+          [
+            div
+              ~a:[ a_class [ "flex flex-col space-y-1" ] ]
+              [
+                div
+                  ~a:[ a_class [ "flex text-sm space-x-2 items-baseline" ] ]
+                  [
+                    h1 ~a:[ a_class [ "text-xl" ] ] [ txt repo ];
+                    a
+                      ~a:
+                        [
+                          a_class [ "flex items-center space-x-2" ];
+                          a_href github_repo_url;
+                        ]
+                      [ span [ txt github_repo_url ]; Common.link_svg ];
+                  ];
+              ];
+          ];
+      ]
+  in
+  [
+    Common.breadcrumbs [ (prefix, prefix); (org, org) ] repo;
+    title;
+    Build.tabulate default_table;
+  ]
+  |> (fun content ->
+       if n_branches = 0 then content
+       else content @ [ Build.tabulate branch_table ])
+  |> (fun content ->
+       if n_prs = 0 then content else content @ [ Build.tabulate pr_table ])
+  |> Template_v1.instance
 
 let list_history ~org ~repo ~ref ~history =
   Template.instance
