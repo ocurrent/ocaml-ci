@@ -117,6 +117,7 @@
   (fmt (>= 0.8.9))
   (logs (>= 0.7.0))
   (lwt (>= 5.6.1))
+  (ocaml (>= 4.13))
   ocaml-ci-api
   ocaml-ci-client-lib
   (prometheus-app (>= 1.2))
