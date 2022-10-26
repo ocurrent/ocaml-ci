@@ -27,6 +27,8 @@ depends: [
   "ocaml-ci-solver"
   "ocluster-api"
   "obuilder-spec"
+  "timedesc" {>= "0.9.0"}
+  "ocaml" {>= "4.13"}
   "conf-libev" {os != "win32"}
   "dockerfile-opam" {>= "7.0.0"}
   "ocaml-version" {>= "3.0.0"}

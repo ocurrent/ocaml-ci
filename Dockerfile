@@ -33,7 +33,7 @@ RUN opam pin add -yn current_docker.dev "./ocurrent" && \
     opam pin add -yn dockerfile.dev "./ocaml-dockerfile" && \
     opam pin add -yn dockerfile-opam.dev "./ocaml-dockerfile" && \
     opam pin add -yn ocluster-api.dev "./ocluster"
-COPY --chown=opam ocaml-ci.opam ocaml-ci-service.opam ocaml-ci-api.opam ocaml-ci-solver.opam /src/
+COPY --chown=opam ocaml-ci.opam ocaml-ci-web.opam ocaml-ci-service.opam ocaml-ci-api.opam ocaml-ci-solver.opam /src/
 RUN opam-2.1 install -y --deps-only .
 ADD --chown=opam . .
 RUN opam-2.1 exec -- dune build ./_build/install/default/bin/ocaml-ci-service
