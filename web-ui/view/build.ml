@@ -169,9 +169,7 @@ let ref_row ~ref_title ~short_hash ~last_updated ~status ~ref_uri ~message =
                       [ txt message ];
                     div
                       ~a:[ a_class [ "flex text-sm space-x-2" ] ]
-                      [
-                        div [ txt short_hash ];
-                      ];
+                      [ div [ txt short_hash ] ];
                   ];
               ];
           ];
