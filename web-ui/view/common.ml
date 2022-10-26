@@ -351,3 +351,27 @@ let link_svg =
         line_svg ~x1:17. ~y1:2. ~x2:17. ~y2:9. ();
         line_svg ~x1:10. ~y1:9. ~x2:17. ~y2:2. ~stroke_width:(1.5, Some `Px) ();
       ])
+
+let repositories =
+  Tyxml.Svg.(
+    Tyxml.Html.svg
+      ~a:
+        [
+          a_class [ "h-5 w-5 rotate-180" ];
+          a_fill (`Color ("white", None));
+          a_viewBox (0., 0., 20., 20.);
+          a_stroke (`Color ("#344054", None));
+          a_stroke_width (1.0, Some `Px);
+        ]
+      [
+        path
+          ~a:
+            [
+              a_d
+                "M2 5a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 \
+                 01-2-2V5zm14 1a1 1 0 11-2 0 1 1 0 012 0zM2 13a2 2 0 \
+                 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2zm14 1a1 \
+                 1 0 11-2 0 1 1 0 012 0z";
+            ]
+          [];
+      ])
