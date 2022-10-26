@@ -118,7 +118,7 @@ let list_refs ~org ~repo ~refs =
     let last_updated = Timestamps_durations.pp_timestamp last_updated in
     Build.ref_row ~ref_title:(ref_name gref) ~short_hash ~last_updated ~status
       ~ref_uri:(commit_url ~org ~repo short_hash)
-      ~message:short_hash
+      ~message:""
   in
   let default_table, main_ref =
     let main_ref, main_ref_info =
