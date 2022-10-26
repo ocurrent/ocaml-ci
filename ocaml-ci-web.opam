@@ -22,6 +22,9 @@ depends: [
   "timedesc" {>= "0.9.0"}
   "odoc" {with-doc}
 ]
+conflicts: [
+  "ocaml" {>= "5.0"}
+]
 build: [
   ["dune" "subst"] {dev}
   [

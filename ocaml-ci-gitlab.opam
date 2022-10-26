@@ -21,6 +21,7 @@ depends: [
   "cmdliner" {>= "1.1.0"}
   "ocaml-ci"
   "ocaml-ci-service"
+  "ocaml" {>= "4.13"}
   "logs" {>= "0.7.0"}
 ]
 build: [

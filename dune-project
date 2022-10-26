@@ -8,6 +8,7 @@
  (name ocaml-ci-api)
  (synopsis "Cap'n Proto API for ocaml-ci")
  (depends
+  (ocaml (>= 4.13))
   current_rpc
   (capnp (>= 3.4.0))
   capnp-rpc-lwt
@@ -17,6 +18,7 @@
  (name ocaml-ci)
  (synopsis "Core ocaml-ci")
  (depends
+  (ocaml (>= 4.13))
    logs
    current
    current_docker
@@ -53,6 +55,8 @@
   ocaml-ci-solver
   ocluster-api
   obuilder-spec
+  (timedesc (>= 0.9.0))
+  (ocaml (>= 4.13))
   (conf-libev (<> :os "win32"))
   (dockerfile-opam (>= 7.0.0))
   (ocaml-version (>= 3.0.0))
@@ -76,6 +80,7 @@
   (cmdliner (>= 1.1.0))
   ocaml-ci
   ocaml-ci-service
+  (ocaml (>= 4.13))
   (logs (>= 0.7.0))))
 (package
  (name ocaml-ci-solver)
@@ -92,6 +97,8 @@
   (conf-libev (<> :os "win32"))
   (opam-0install (>= "0.2"))
   (git-unix (>= 3.9.0))
+  (timedesc (>= 0.9.0))
+  (ocaml (>= 4.13))
   (capnp-rpc-unix (>= 1.2)))
  (conflicts
   (carton (< 0.4.2))) ; workaround for mirage/ocaml-git#514
@@ -100,6 +107,7 @@
  (name ocaml-ci-client)
  (synopsis "Command-line client for ocaml-ci")
  (depends
+  (ocaml (>= 4.13))
   (logs (>= 0.7.0))
   (fmt (>= 0.8.9))
   current_rpc
@@ -122,11 +130,14 @@
   ocaml-ci-client-lib
   (prometheus-app (>= 1.2))
   tyxml
-  (timedesc (>= 0.9.0))))
+  (timedesc (>= 0.9.0)))
+  (conflicts (ocaml (>= 5.0)))
+)
 (package
 (name ocaml-ci-client-lib)
 (synopsis "Lib for clients")
 (depends
+  (ocaml (>= 4.13))
   (logs (>= 0.7.0))
   current_rpc
   current
