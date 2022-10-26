@@ -139,6 +139,8 @@ let make_repo ~engine ~owner ~name =
                 in
                 Raw.Builder.RefInfo.status_set slot status;
                 let started_t = Raw.Builder.RefInfo.started_init slot in
+                (* FIXME [benmandrew]: We need the actual timestamp;
+                   this needs to be stored in the DB *)
                 Raw.Builder.RefInfo.Started.none_set started_t);
          Service.return response
 

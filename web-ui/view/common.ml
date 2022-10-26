@@ -224,6 +224,34 @@ let right_arrow_head =
           [];
       ])
 
+let external_link =
+  Tyxml.Svg.(
+    Tyxml.Html.svg
+      ~a:
+        [
+          a_class [ "w-4 h-4" ];
+          a_fill `None;
+          a_viewBox (0., 0., 13., 14.);
+          a_stroke (`Color ("currentColor", None));
+          a_stroke_width (1.25, Some `Px);
+        ]
+      [
+        path
+          ~a:
+            [
+              a_stroke_linecap `Round;
+              a_stroke_linejoin `Round;
+              a_d
+                "M10.25 7.625V11.375C10.25 11.7065 10.1183 12.0245 9.88388 \
+                 12.2589C9.64946 12.4933 9.33152 12.625 9 12.625H2.125C1.79348 \
+                 12.625 1.47554 12.4933 1.24112 12.2589C1.0067 12.0245 0.875 \
+                 11.7065 0.875 11.375V4.5C0.875 4.16848 1.0067 3.85054 1.24112 \
+                 3.61612C1.47554 3.3817 1.79348 3.25 2.125 3.25H5.875M8.375 \
+                 1.375H12.125M12.125 1.375V5.125M12.125 1.375L5.25 8.25";
+            ]
+          [];
+      ])
+
 let flash ?(status = "Info") flash_message =
   let flash_message_css_status =
     match status with
@@ -325,36 +353,19 @@ let table_head name =
         [ a_class [ "bg-gray-50 px-6 py-3 text-gray-500 text-xs font-medium" ] ]
       [ txt name ])
 
-let link_svg =
-  Tyxml.Svg.(
-    let line_svg ?stroke_width ~x1 ~y1 ~x2 ~y2 () =
-      let args =
-        [
-          a_x1 (x1, Some `Px);
-          a_y1 (y1, Some `Px);
-          a_x2 (x2, Some `Px);
-          a_y2 (y2, Some `Px);
-        ]
-      in
-      match stroke_width with
-      | None -> line ~a:args []
-      | Some w -> line ~a:(a_stroke_width w :: args) []
-    in
-    Tyxml.Html.svg
-      ~a:
-        [
-          a_class [ "h-4 w-4" ];
-          a_fill `None;
-          a_viewBox (0., 0., 20., 20.);
-          a_stroke (`Color ("currentColor", None));
-          a_stroke_width (1., Some `Px);
-        ]
+let tabulate rows =
+  Tyxml.Html.(
+    div
+      ~a:[ a_class [ "container-fluid mt-8 flex flex-col space-y-6" ] ]
       [
-        line_svg ~x1:5. ~y1:5. ~x2:5. ~y2:14. ();
-        line_svg ~x1:14. ~y1:9. ~x2:14. ~y2:14. ();
-        line_svg ~x1:5. ~y1:14. ~x2:14. ~y2:14. ();
-        line_svg ~x1:5. ~y1:5. ~x2:9. ~y2:5. ();
-        line_svg ~x1:10. ~y1:2. ~x2:17. ~y2:2. ();
-        line_svg ~x1:17. ~y1:2. ~x2:17. ~y2:9. ();
-        line_svg ~x1:10. ~y1:9. ~x2:17. ~y2:2. ~stroke_width:(1.5, Some `Px) ();
+        div
+          ~a:
+            [
+              a_class
+                [
+                  "border border-gray-200 rounded-lg w-full overflow-hidden \
+                   shadow-sm  divide-y divide-gray-200";
+                ];
+            ]
+          rows;
       ])

@@ -128,7 +128,7 @@ let list_refs ~org ~repo ~refs =
       } =
     let short_hash = short_hash hash in
     let last_updated = Timestamps_durations.pp_timestamp last_updated in
-    Build.ref_row ~ref_title:(ref_name gref) ~short_hash ~last_updated ~status
+    Ref.row ~ref_title:(ref_name gref) ~short_hash ~last_updated ~status
       ~ref_uri:(commit_url ~org ~repo short_hash)
       ~message:""
   in
@@ -193,7 +193,7 @@ let list_refs ~org ~repo ~refs =
                           a_class [ "flex items-center space-x-2" ];
                           a_href github_repo_url;
                         ]
-                      [ span [ txt github_repo_url ]; Common.link_svg ];
+                      [ span [ txt github_repo_url ]; Common.external_link ];
                   ];
               ];
           ];
@@ -202,13 +202,13 @@ let list_refs ~org ~repo ~refs =
   [
     Common.breadcrumbs [ (prefix, prefix); (org, org) ] repo;
     title;
-    Build.tabulate default_table;
+    Common.tabulate default_table;
   ]
   |> (fun content ->
        if n_branches = 0 then content
-       else content @ [ Build.tabulate branch_table ])
+       else content @ [ Common.tabulate branch_table ])
   |> (fun content ->
-       if n_prs = 0 then content else content @ [ Build.tabulate pr_table ])
+       if n_prs = 0 then content else content @ [ Common.tabulate pr_table ])
   |> Template_v1.instance
 
 let list_history ~org ~repo ~ref ~history =
@@ -407,7 +407,7 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
         (Fmt.str "%s" (short_hash hash));
       title_card;
       Common.flash_messages flash_messages;
-      Build.tabulate_steps steps_table;
+      Common.tabulate steps_table;
     ]
 
 let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
