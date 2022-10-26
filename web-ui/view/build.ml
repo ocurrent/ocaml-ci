@@ -139,6 +139,7 @@ let repo_row ~repo_title ~short_hash ~last_updated ~status ~repo_uri =
       ])
 
 let ref_row ~ref_title ~short_hash ~last_updated ~status ~ref_uri ~message =
+  let () = ignore last_updated in
   Tyxml.Html.(
     a
       ~a:[ a_class [ "table-row" ]; a_href ref_uri ]
@@ -170,8 +171,6 @@ let ref_row ~ref_title ~short_hash ~last_updated ~status ~ref_uri ~message =
                       ~a:[ a_class [ "flex text-sm space-x-2" ] ]
                       [
                         div [ txt short_hash ];
-                        div [ txt "-" ];
-                        div [ txt last_updated ];
                       ];
                   ];
               ];
