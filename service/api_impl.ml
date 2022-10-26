@@ -295,6 +295,14 @@ let make_org ~engine owner =
          let response, results = Service.Response.create Results.init_pointer in
          let repos = Index.get_active_repos ~owner |> Index.Repo_set.elements in
          let arr = Results.repos_init results (List.length repos) in
+         let get_main_ref m =
+           match Index.Ref_map.find_opt "refs/heads/main" m with
+           | Some hash -> Some ("refs/heads/main", hash)
+           | None -> (
+               match Index.Ref_map.find_opt "refs/heads/master" m with
+               | Some hash -> Some ("refs/heads/master", hash)
+               | None -> None)
+         in
          repos
          |> List.iteri (fun i name ->
                 let slot = Capnp.Array.get arr i in
@@ -303,12 +311,7 @@ let make_org ~engine owner =
                   Index.get_active_refs { Ocaml_ci.Repo_id.owner; name }
                 in
                 let hash, status =
-                  match
-                    Index.Ref_map.find_first_opt
-                      (fun key ->
-                        String.equal key "refs/heads/main"
-                        || String.equal key "refs/heads/master")
-                      refs
+                  match get_main_ref refs
                   with
                   | Some (_, { Index.hash; _ }) ->
                         hash, to_build_status (Index.get_status ~owner ~name ~hash) 

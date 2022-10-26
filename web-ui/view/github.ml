@@ -26,10 +26,10 @@ let github_pr_url ~org ~repo id =
 let format_org org =
   li [ a ~a:[ a_href (Url.org_url prefix ~org) ] [ txt org ] ]
 
-let format_repo ~org { Client.Org.name; main_status; _ } =
+(* let format_repo ~org { Client.Org.name; main_status; _ } =
   li
     ~a:[ a_class [ Build_status.class_name main_status ] ]
-    [ a ~a:[ a_href (Url.repo_url prefix ~org ~repo:name) ] [ txt name ] ]
+    [ a ~a:[ a_href (Url.repo_url prefix ~org ~repo:name) ] [ txt name ] ] *)
 
 let orgs_v ~orgs = [ breadcrumbs [] prefix; ul (List.map format_org orgs) ]
 
@@ -105,7 +105,6 @@ let link_github_refs' ~org ~repo refs =
 let list_orgs ~orgs = Template.instance @@ orgs_v ~orgs
 
 let list_repos ~org ~repos =
-  let github_org_url = Url.org_url "github" ~org in
   let repo_table =
     let repo_table_head =
       Common.table_head (Printf.sprintf "Repositories (%d)" (List.length repos))
@@ -113,41 +112,14 @@ let list_repos ~org ~repos =
     let f { Client.Org.name; main_status; main_hash; main_last_updated } =
       let last_updated = Timestamps_durations.pp_timestamp main_last_updated in
       Repo.row ~repo_title:name ~short_hash:(short_hash main_hash) ~last_updated
-        ~status:main_status ~repo_uri:(Url.repo_url "github" ~org ~repo:name)
+        ~status:main_status ~description:"" ~repo_uri:(Url.repo_url "github" ~org ~repo:name)
     in
     repo_table_head :: List.map f repos
-  in
-  let title =
-    div
-      ~a:[ a_class [ "justify-between items-center flex" ] ]
-      [
-        div
-          ~a:[ a_class [ "flex space-x-4" ] ]
-          [
-            img
-              ~a:[ a_style "border-radius: 50%; width: 88px" ]
-              ~src:(Printf.sprintf "https://github.com/%s.png?size=200" org)
-              ~alt:(Printf.sprintf "%s profile picture" org)
-              ();
-            div
-              ~a:[ a_class [ "flex flex-col" ] ]
-              [
-                h1 ~a:[ a_class [ "text-xl" ] ] [ txt org ];
-                a
-                  ~a:
-                    [
-                      a_class [ "text-sm flex items-center space-x-2" ];
-                      a_href github_org_url;
-                    ]
-                  [ span [ txt github_org_url ]; Common.external_link ];
-              ];
-          ];
-      ]
   in
   Template_v1.instance
     [
       Common.breadcrumbs [ (prefix, prefix) ] org;
-      title;
+      Repo.title ~org;
       Common.tabulate repo_table;
     ]
 
