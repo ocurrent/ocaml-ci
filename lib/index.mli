@@ -93,11 +93,11 @@ val get_active_repos : owner:string -> Repo_set.t
 
 module Ref_map : Map.S with type key = string
 
-val set_active_refs : repo:Repo_id.t -> string Ref_map.t -> unit
+val set_active_refs : repo:Repo_id.t -> (string * string) Ref_map.t -> unit
 (** [set_active_refs ~repo refs] records that [refs] is the current set of Git
     references that the CI is watching. There is one entry for each branch and
     PR. Each entry maps the Git reference name to the head commit's hash. *)
 
-val get_active_refs : Repo_id.t -> string Ref_map.t
+val get_active_refs : Repo_id.t -> (string * string) Ref_map.t
 (** [get_active_refs repo] is the entries last set for [repo] with
     [set_active_refs], or [empty] if this repository isn't known. *)

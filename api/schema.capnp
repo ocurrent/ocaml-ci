@@ -57,6 +57,8 @@ interface Commit {
   # Get the set of branches and PRs with this commit at their head.
 
   status @3 () -> (status :BuildStatus);
+
+  message @4 () -> (message :Text);
 }
 
 

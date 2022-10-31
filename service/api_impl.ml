@@ -77,7 +77,7 @@ let make_commit ~engine ~owner ~name hash =
          let refs =
            Index.get_active_refs { Ocaml_ci.Repo_id.owner; name }
            |> Index.Ref_map.bindings
-           |> List.filter_map (fun (name, h) ->
+           |> List.filter_map (fun (name, (h, _)) ->
                   if h = hash then Some name else None)
          in
          let response, results = Service.Response.create Results.init_pointer in
@@ -93,6 +93,24 @@ let make_commit ~engine ~owner ~name hash =
           | `Pending -> Results.status_set results Pending
           | `Failed -> Results.status_set results Failed
           | `Passed -> Results.status_set results Passed);
+         Service.return response
+
+       method message_impl _params release_param_caps =
+         let open Commit.Message in
+         release_param_caps ();
+         let response, results = Service.Response.create Results.init_pointer in
+
+         let active =
+           Index.get_active_refs { Ocaml_ci.Repo_id.owner; name }
+           |> Index.Ref_map.bindings
+           |> List.filter_map (fun (_, (h, message)) ->
+                  if h = hash then Some message else None)
+         in
+         (match active with
+         | [] ->
+             ()
+             (* [benmandrew]: Theoretically this case should never happen O_O *)
+         | message :: _ -> Results.message_set results message);
          Service.return response
      end
 
@@ -130,7 +148,7 @@ let make_repo ~engine ~owner ~name =
          let response, results = Service.Response.create Results.init_pointer in
          let arr = Results.refs_init results (List.length refs) in
          refs
-         |> List.iteri (fun i (gref, hash) ->
+         |> List.iteri (fun i (gref, (hash, message)) ->
                 let slot = Capnp.Array.get arr i in
                 Raw.Builder.RefInfo.ref_set slot gref;
                 Raw.Builder.RefInfo.hash_set slot hash;
@@ -138,6 +156,7 @@ let make_repo ~engine ~owner ~name =
                   to_build_status (Index.get_status ~owner ~name ~hash)
                 in
                 Raw.Builder.RefInfo.status_set slot status;
+                Raw.Builder.RefInfo.message_set slot message;
                 let started_t = Raw.Builder.RefInfo.started_init slot in
                 (* FIXME [benmandrew]: We need the actual timestamp;
                    this needs to be stored in the DB *)
@@ -158,7 +177,7 @@ let make_repo ~engine ~owner ~name =
              Service.fail "@[<v2>Unknown ref %S. Options are:@,%a@]" gref
                Fmt.(Dump.list string)
                (List.map fst (Index.Ref_map.bindings refs))
-         | Some hash ->
+         | Some (hash, _) ->
              let commit = get_commit hash in
              let response, results =
                Service.Response.create Results.init_pointer
@@ -260,7 +279,7 @@ let make_org ~engine owner =
                 in
                 let status =
                   match Index.Ref_map.find_opt "refs/heads/master" refs with
-                  | Some hash ->
+                  | Some (hash, _) ->
                       to_build_status (Index.get_status ~owner ~name ~hash)
                   | None -> NotStarted
                 in

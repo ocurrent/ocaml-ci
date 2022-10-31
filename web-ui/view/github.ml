@@ -118,19 +118,12 @@ let list_orgs ~orgs = Template.instance @@ orgs_v ~orgs
 let list_repos ~org ~repos = Template.instance @@ repos_v ~org ~repos
 
 let list_refs ~org ~repo ~refs =
-  let f
-      {
-        Client.Repo.gref;
-        hash;
-        status;
-        started = last_updated;
-        message = _message;
-      } =
+  let f { Client.Repo.gref; hash; status; started = last_updated; message } =
     let short_hash = short_hash hash in
     let last_updated = Timestamps_durations.pp_timestamp last_updated in
     Ref.row ~ref_title:(ref_name gref) ~short_hash ~last_updated ~status
       ~ref_uri:(commit_url ~org ~repo short_hash)
-      ~message:""
+      ~message
   in
   let default_table, main_ref =
     let main_ref, main_ref_info =
@@ -332,14 +325,9 @@ let return_link ~org ~repo ~hash =
 
 (* TODO: Clean up so that success and fail messages appear in flash messages and we do a redirect
    instead of providing a return link *)
-let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
-    ~total_run_time ?(success_msg = div []) ?(fail_msg = div [])
-    ?(return_link = div []) ?(flash_messages = [])
+let list_steps ~org ~repo ~message ~refs ~hash ~jobs ~first_step_queued_at
+    ~total_run_time ?(flash_messages = [])
     ?(build_status : Client.State.t = Passed) ~csrf_token () =
-  (*FIXME: Fix the interface for this function so that we drop the things we are now ignoring *)
-  ignore success_msg;
-  ignore fail_msg;
-  ignore return_link;
   let can_cancel =
     let check job_info =
       match job_info.Client.outcome with
@@ -362,7 +350,7 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
     :: Common.rebuild_button ~hash ~csrf_token ~show:show_rebuild ()
   in
   let title_card =
-    Build.title_card ~status:build_status ~card_title:(short_hash hash)
+    Build.title_card ~status:build_status ~card_title:message
       ~hash_link:(link_github_commit ~org ~repo ~hash:(short_hash hash))
       ~ref_links:(link_github_refs' ~org ~repo refs)
       ~first_created_at:(Timestamps_durations.pp_timestamp first_step_queued_at)

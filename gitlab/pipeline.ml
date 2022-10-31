@@ -163,7 +163,9 @@ let set_active_refs ~(repo : Gitlab.Repo_id.t Current.t) xs =
            let commit = Gitlab.Api.Commit.id x in
            let gref = Git.Commit_id.gref commit in
            let hash = Git.Commit_id.hash commit in
-           Index.Ref_map.add gref hash acc)
+           (* FIXME [benmandrew]: Gitlab.Api.Commit does not currently expose message field *)
+           (* let message = Gitlab.Api.Commit.message x in *)
+           Index.Ref_map.add gref (hash, "") acc)
          Index.Ref_map.empty);
   xs
 
