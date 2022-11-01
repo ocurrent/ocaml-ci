@@ -95,9 +95,21 @@ let link_github_refs' ~org ~repo refs =
     match Astring.String.cuts ~sep:"/" r with
     | "refs" :: "heads" :: branch ->
         let branch = Astring.String.concat ~sep:"/" branch in
-        a ~a:[ a_href (github_branch_url ~org ~repo branch) ] [ txt branch ]
+        a
+          ~a:
+            [
+              a_class [ "flex items-center space-x-2" ];
+              a_href (github_branch_url ~org ~repo branch);
+            ]
+          [ span [ txt branch ]; Common.link_svg ]
     | [ "refs"; "pull"; id; "head" ] ->
-        a ~a:[ a_href (github_pr_url ~org ~repo id) ] [ txt ("PR#" ^ id) ]
+        a
+          ~a:
+            [
+              a_class [ "flex items-center space-x-2" ];
+              a_href (github_pr_url ~org ~repo id);
+            ]
+          [ span [ txt ("PR#" ^ id) ]; Common.link_svg ]
     | _ -> txt ""
   in
   List.map f refs

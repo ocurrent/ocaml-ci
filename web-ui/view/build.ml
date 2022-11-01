@@ -39,7 +39,11 @@ let title_card ~status ~card_title ~hash_link ~ref_links ~first_created_at
                   ];
                 div
                   ~a:[ a_class [ "text-gray-500" ] ]
-                  [ div ~a:[ a_class [ "flex space-x-2 text-sm" ] ] ref_links ];
+                  [
+                    div
+                      ~a:[ a_class [ "flex space-x-2 text-sm items-baseline" ] ]
+                      ref_links;
+                  ];
               ];
           ];
         div
@@ -47,7 +51,7 @@ let title_card ~status ~card_title ~hash_link ~ref_links ~first_created_at
           [
             div
               ~a:[ a_id "build-ran-for"; a_class [ "text-sm" ] ]
-              [ txt @@ Fmt.str "Ran for %s" ran_for ];
+              [ txt @@ Fmt.str "%s" ran_for ];
             div
               ~a:
                 [
@@ -201,6 +205,17 @@ let poll =
               </svg>
           </div>`;
 
+        const iconActive = `
+          <div class="icon-status icon-status--active">
+            <div></div>
+          </div>
+        `
+
+        const iconQueued = `
+          <div class="icon-status icon-status--default">
+            <div></div>
+          </div>
+        `
         var checkCondition = function (resolve, reject) {
           // If the condition is met, we're done!
           fetch(api_path)
@@ -211,12 +226,14 @@ let poll =
               const build_created_at = document.getElementById("build-created-at");
               build_created_at.innerHTML = data["first_created_at"];
               const build_ran_for = document.getElementById("build-ran-for");
-              build_ran_for.innerHTML = "Ran for " + data["ran_for"];
+              build_ran_for.innerHTML = data["ran_for"];
+              const build_status = document.getElementById("build-status");
 
               if (
                 data["status"].startsWith("passed") ||
                 data["status"].startsWith("failed")
               ) {
+                build_ran_for.innerHTML = "Ran for " + data["ran_for"];
                 const element_step_status = document.getElementById("build-status");
                 if (data["status"].startsWith("passed")) {
                   element_step_status.innerHTML = iconSuccess;
@@ -244,6 +261,15 @@ let poll =
 
               // If the condition isn't met but the timeout hasn't elapsed, go again
               else if (Number(new Date()) < endTime) {
+                if (
+                  data["status"].startsWith("not started")
+                ) {
+                  build_status.innerHTML = iconQueued
+                } else if (
+                  data["status"].startsWith("active")
+                ) {
+                  build_status.innerHTML = iconActive
+                };
                 setTimeout(checkCondition, interval, resolve, reject);
               }
               // Didn't match and too much time, reject!

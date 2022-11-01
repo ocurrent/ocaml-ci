@@ -63,7 +63,8 @@ let icon_active =
     div ~a:[ a_class [ "icon-status icon-status--active" ] ] [ div [] ])
 
 let icon_queued =
-  Tyxml.Html.(div ~a:[ a_class [ "icon-status icon-status--default" ] ] [])
+  Tyxml.Html.(
+    div ~a:[ a_class [ "icon-status icon-status--default" ] ] [ div [] ])
 
 let status_icon (status : Ocaml_ci_api.Client.State.t) =
   match status with
