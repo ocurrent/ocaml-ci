@@ -179,7 +179,7 @@ let poll =
               const element_finished_at = document.getElementById("step-finished-at");
               element_finished_at.innerHTML = "Finished at: " + data["finished_at"];
               const element_ran_for = document.getElementById("step-ran-for");
-              element_ran_for.innerHTML = "Ran for: " + data["ran_for"];
+              element_ran_for.innerHTML = "Ran for " + data["ran_for"];
               const element_queued_for = document.getElementById("step-queued-for");
               element_queued_for.innerHTML = data["queued_for"] + " in queue";
 

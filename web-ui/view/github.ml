@@ -346,9 +346,8 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
     List.exists check jobs
   in
   let buttons =
-    if can_cancel then [ Common.form_cancel ~hash ~csrf_token ]
-    else if can_rebuild then Common.rebuild_button ~hash ~csrf_token
-    else []
+    Common.form_cancel ~hash ~csrf_token ~show:can_cancel ()
+    :: Common.rebuild_button ~hash ~csrf_token ~show:can_rebuild ()
   in
   let title_card =
     Build.title_card ~status:build_status ~card_title:(short_hash hash)
@@ -390,6 +389,7 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
   in
   Template_v1.instance
     [
+      Build.poll;
       Common.breadcrumbs
         [ ("github", "github"); (org, org); (repo, repo) ]
         (Fmt.str "%s" (short_hash hash));

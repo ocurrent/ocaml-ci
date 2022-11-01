@@ -203,6 +203,12 @@ let github_routes github =
           ~hash:(Dream.param request "hash")
           ~variant:(Dream.param request "variant")
           github);
+    Dream.get "/api/github/:org/:repo/commit/:hash" (fun request ->
+        Controller.Api_github.list_steps
+          ~org:(Dream.param request "org")
+          ~repo:(Dream.param request "repo")
+          ~hash:(Dream.param request "hash")
+          github);
   ]
 
 let create ~github ~gitlab =
