@@ -204,10 +204,14 @@ let github_routes github =
           ~variant:(Dream.param request "variant")
           github);
     Dream.get "/api/github/:org/:repo/commit/:hash" (fun request ->
+        let org = Dream.param request "org" in
+        let repo = Dream.param request "repo" in
+        let hash = Dream.param request "hash" in
         Controller.Api_github.list_steps
-          ~org:(Dream.param request "org")
-          ~repo:(Dream.param request "repo")
-          ~hash:(Dream.param request "hash")
+          ~org
+          ~repo
+          ~hash
+          ~step_route_prefix:(Fmt.str "/github/%s/%s/commit/%s/variant" org repo hash)
           github);
   ]
 

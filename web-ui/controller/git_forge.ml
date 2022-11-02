@@ -68,6 +68,7 @@ module type Api_controller = sig
     org:string ->
     repo:string ->
     hash:string ->
+    step_route_prefix:string ->
     Backend.t ->
     Dream.response Lwt.t
 
@@ -352,7 +353,7 @@ module Make_API (Api : Api) = struct
     in
     Api.show_step ~step_info ~run_time ~can_rebuild:status.can_rebuild
 
-  let list_steps ~org ~repo ~hash ci =
+  let list_steps ~org ~repo ~hash ~step_route_prefix ci =
     Backend.ci ci >>= fun ci ->
     Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
     Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
@@ -361,5 +362,5 @@ module Make_API (Api : Api) = struct
     Client.Commit.status commit_cap >>!= fun status ->
     Client.Commit.jobs commit_cap >>!= fun jobs ->
     let build_status = Client.State.from_build_status status in
-    Api.list_steps ~build_status ~jobs
+    Api.list_steps ~build_status ~jobs ~step_route_prefix
 end

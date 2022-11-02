@@ -96,6 +96,7 @@ module type Api = sig
   val list_steps :
     jobs:Client.job_info list ->
     build_status:Client.State.t ->
+    step_route_prefix:string ->
     Dream.response Lwt.t
 end
 

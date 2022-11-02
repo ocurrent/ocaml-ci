@@ -6,7 +6,7 @@ module Run_time = Ocaml_ci_client_lib.Run_time
 let test_to_json (jobs, build_status, build_created_at, expected) =
   let result =
     Build.to_json
-    @@ Build.from_jobs_status ~jobs ~build_status ~build_created_at
+    @@ Build.from_jobs_status ~jobs ~build_status ~build_created_at ~step_route_prefix:""
   in
   Alcotest.(check string) "to_json" expected result
 

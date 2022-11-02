@@ -8,7 +8,7 @@ let show_step ~step_info ~run_time ~can_rebuild =
   @@ Step.to_json
   @@ Step.from_status_info_run_time ~step_info ~run_time ~can_rebuild
 
-let list_steps ~jobs ~build_status =
+let list_steps ~jobs ~build_status ~step_route_prefix =
   let build_created_at =
     Run_time.build_created_at ~build:jobs
     |> Result.to_option
@@ -17,4 +17,4 @@ let list_steps ~jobs ~build_status =
   in
   Dream.json
   @@ Build.to_json
-  @@ Build.from_jobs_status ~jobs ~build_status ~build_created_at
+  @@ Build.from_jobs_status ~jobs ~build_status ~build_created_at ~step_route_prefix
