@@ -39,11 +39,13 @@ let test_active_refs () =
   let repo = { Ocaml_ci.Repo_id.owner; name } in
   let hash = "abc" in
   let message = "message" in
-  Index.set_active_refs ~repo @@ Ref_map.singleton "master" (hash, message);
+  let title = "title" in
+  Index.set_active_refs ~repo
+  @@ Ref_map.singleton "master" (hash, message, title);
 
-  let expected = [ ("master", (hash, message)) ] in
+  let expected = [ ("master", (hash, message, title)) ] in
   let result = Index.get_active_refs repo |> Ref_map.bindings in
-  Alcotest.(check (list (pair string (pair string string))))
+  Alcotest.(check (list (pair string (triple string string string))))
     "Refs" expected result
 
 let test_get_jobs () =

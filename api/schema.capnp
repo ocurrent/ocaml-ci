@@ -59,6 +59,8 @@ interface Commit {
   status @3 () -> (status :BuildStatus);
 
   message @4 () -> (message :Text);
+
+  title  @5 () -> (title :Text);
 }
 
 
@@ -71,6 +73,7 @@ struct RefInfo {
     none  @4 :Void;
   }
   message @5 :Text;
+  title   @6 :Text;
   # The state of the ref's head commit
 }
 

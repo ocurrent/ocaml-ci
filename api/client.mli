@@ -65,6 +65,7 @@ module Repo : sig
     status : Build_status.t;
     started : float option;
     message : string;
+    title : string;
   }
 
   val refs :

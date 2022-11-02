@@ -92,6 +92,7 @@ module Repo = struct
     status : Build_status.t;
     started : float option;
     message : string;
+    title : string;
   }
 
   let refs t =
@@ -114,7 +115,8 @@ module Repo = struct
                 | Raw.Reader.RefInfo.Started.Ts v -> Some v
               in
               let message = Raw.Reader.RefInfo.message_get slot in
-              let r = { gref; hash; status; started; message } in
+              let title = Raw.Reader.RefInfo.title_get slot in
+              let r = { gref; hash; status; started; message; title } in
               Ref_map.add gref r acc)
             Ref_map.empty
 
