@@ -77,7 +77,7 @@ let make_commit ~engine ~owner ~name hash =
          let refs =
            Index.get_active_refs { Ocaml_ci.Repo_id.owner; name }
            |> Index.Ref_map.bindings
-           |> List.filter_map (fun (name, (h, _, _)) ->
+           |> List.filter_map (fun (name, { Index.hash = h; _ }) ->
                   if h = hash then Some name else None)
          in
          let response, results = Service.Response.create Results.init_pointer in
@@ -102,13 +102,13 @@ let make_commit ~engine ~owner ~name hash =
          let active =
            Index.get_active_refs { Ocaml_ci.Repo_id.owner; name }
            |> Index.Ref_map.bindings
-           |> List.filter_map (fun (_, (h, message, _)) ->
+           |> List.filter_map (fun (_, { Index.hash = h; message; _ }) ->
                   if h = hash then Some message else None)
          in
          (match active with
          | [] ->
-             ()
-             (* [benmandrew]: Theoretically this case should never happen O_O *)
+            Logs.err (fun m -> m "Commit has no associated message: %s" hash);
+            raise Not_found
          | message :: _ -> Results.message_set results message);
          Service.return response
 
@@ -119,13 +119,13 @@ let make_commit ~engine ~owner ~name hash =
          let active =
            Index.get_active_refs { Ocaml_ci.Repo_id.owner; name }
            |> Index.Ref_map.bindings
-           |> List.filter_map (fun (_, (h, _, title)) ->
+           |> List.filter_map (fun (_, { Index.hash = h; title; _ }) ->
                   if h = hash then Some title else None)
          in
          (match active with
          | [] ->
-             ()
-             (* [benmandrew]: Theoretically this case should never happen O_O *)
+            Logs.err (fun m -> m "Commit has no associated title: %s" hash);
+            raise Not_found
          | title :: _ -> Results.title_set results title);
          Service.return response
      end
@@ -164,7 +164,7 @@ let make_repo ~engine ~owner ~name =
          let response, results = Service.Response.create Results.init_pointer in
          let arr = Results.refs_init results (List.length refs) in
          refs
-         |> List.iteri (fun i (gref, (hash, message, title)) ->
+         |> List.iteri (fun i (gref, { Index.hash; message; title }) ->
                 let slot = Capnp.Array.get arr i in
                 Raw.Builder.RefInfo.ref_set slot gref;
                 Raw.Builder.RefInfo.hash_set slot hash;
@@ -194,7 +194,7 @@ let make_repo ~engine ~owner ~name =
              Service.fail "@[<v2>Unknown ref %S. Options are:@,%a@]" gref
                Fmt.(Dump.list string)
                (List.map fst (Index.Ref_map.bindings refs))
-         | Some (hash, _, _) ->
+         | Some { Index.hash; _ } ->
              let commit = get_commit hash in
              let response, results =
                Service.Response.create Results.init_pointer
@@ -296,7 +296,7 @@ let make_org ~engine owner =
                 in
                 let status =
                   match Index.Ref_map.find_opt "refs/heads/master" refs with
-                  | Some (hash, _, _) ->
+                  | Some { Index.hash; _ } ->
                       to_build_status (Index.get_status ~owner ~name ~hash)
                   | None -> NotStarted
                 in

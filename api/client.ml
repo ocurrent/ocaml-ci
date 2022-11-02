@@ -221,5 +221,5 @@ module Commit = struct
     let open Raw.Client.Commit.Message in
     let request = Capability.Request.create_no_args () in
     Capability.call_for_value t method_id request
-    >>= (Results.message_get >> fun x -> Ok x)
+    >>= (Results.message_get >> Result.ok)
 end

@@ -33,6 +33,9 @@ let setup () =
   Current.Db.exec_literal db "DELETE FROM cache";
   db
 
+let ref_info =
+  Alcotest.testable (fun f state -> Fmt.pf f "%a" Index.pp_ref_info state) ( = )
+
 let test_active_refs () =
   let owner = "owner" in
   let name = "name" in
@@ -41,12 +44,11 @@ let test_active_refs () =
   let message = "message" in
   let title = "title" in
   Index.set_active_refs ~repo
-  @@ Ref_map.singleton "master" (hash, message, title);
+  @@ Ref_map.singleton "master" { Index.hash; message; title };
 
-  let expected = [ ("master", (hash, message, title)) ] in
+  let expected = [ ("master", { Index.hash; message; title }) ] in
   let result = Index.get_active_refs repo |> Ref_map.bindings in
-  Alcotest.(check (list (pair string (triple string string string))))
-    "Refs" expected result
+  Alcotest.(check (list (pair string ref_info))) "Refs" expected result
 
 let test_get_jobs () =
   let db = setup () in

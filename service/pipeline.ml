@@ -109,7 +109,7 @@ let set_active_refs ~repo xs =
            let hash = Git.Commit_id.hash commit in
            let title = Github.Api.Commit.ref_title x in
            let message = Github.Api.Commit.message x in
-           Index.Ref_map.add gref (hash, message, title) acc)
+           Index.Ref_map.add gref { Index.hash; message; title } acc)
          Index.Ref_map.empty
   in
   Index.set_active_refs ~repo refs;
