@@ -12,7 +12,7 @@ type t = {
   queued_for : string;
   ran_for : string;
   can_rebuild : bool;
-  variant: string;
+  variant : string;
 }
 [@@deriving yojson]
 

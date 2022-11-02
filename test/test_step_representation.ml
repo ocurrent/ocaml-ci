@@ -27,7 +27,7 @@ let test_simple () =
     Some (Running { queued_for = 42.2; ran_for = 0. })
   in
   let expected_1 =
-    {|{"version":"1.0","status":"active","created_at":"Oct 19 20:13 +00:00","finished_at":"-","queued_for":"42s","ran_for":"0s","can_rebuild":true}|}
+    {|{"version":"1.0","status":"active","created_at":"Oct 19 20:13 +00:00","finished_at":"-","queued_for":"42s","ran_for":"0s","can_rebuild":true,"variant":"variant"}|}
   in
   let step_info_2 : Client.job_info option =
     Some
@@ -43,7 +43,7 @@ let test_simple () =
     Some (Finished { queued_for = 42.2; ran_for = Some 5.4 })
   in
   let expected_2 =
-    {|{"version":"1.0","status":"passed","created_at":"Oct 19 20:13 +00:00","finished_at":"Oct 19 20:15 +00:00","queued_for":"42s","ran_for":"5s","can_rebuild":true}|}
+    {|{"version":"1.0","status":"passed","created_at":"Oct 19 20:13 +00:00","finished_at":"Oct 19 20:15 +00:00","queued_for":"42s","ran_for":"5s","can_rebuild":true,"variant":"variant"}|}
   in
   let step_info_3 : Client.job_info option =
     Some
@@ -59,7 +59,7 @@ let test_simple () =
     Some (Finished { queued_for = 42.2; ran_for = Some 5.4 })
   in
   let expected_3 =
-    {|{"version":"1.0","status":"failed: For reasons","created_at":"Oct 19 20:13 +00:00","finished_at":"-","queued_for":"42s","ran_for":"5s","can_rebuild":true}|}
+    {|{"version":"1.0","status":"failed: For reasons","created_at":"Oct 19 20:13 +00:00","finished_at":"-","queued_for":"42s","ran_for":"5s","can_rebuild":true,"variant":"variant"}|}
   in
 
   List.iter test_to_json

@@ -207,11 +207,9 @@ let github_routes github =
         let org = Dream.param request "org" in
         let repo = Dream.param request "repo" in
         let hash = Dream.param request "hash" in
-        Controller.Api_github.list_steps
-          ~org
-          ~repo
-          ~hash
-          ~step_route_prefix:(Fmt.str "/github/%s/%s/commit/%s/variant" org repo hash)
+        Controller.Api_github.list_steps ~org ~repo ~hash
+          ~step_route_prefix:
+            (Fmt.str "/github/%s/%s/commit/%s/variant" org repo hash)
           github);
   ]
 

@@ -12,7 +12,7 @@ type t = {
   can_cancel : bool;
   can_rebuild : bool;
   steps : Step.t list;
-  step_route_prefix: string;
+  step_route_prefix : string;
 }
 [@@deriving yojson]
 
@@ -58,5 +58,5 @@ let from_jobs_status ~jobs ~build_status ~build_created_at ~step_route_prefix =
     can_cancel;
     can_rebuild;
     steps;
-    step_route_prefix
+    step_route_prefix;
   }

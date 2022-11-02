@@ -6,7 +6,8 @@ module Run_time = Ocaml_ci_client_lib.Run_time
 let test_to_json (jobs, build_status, build_created_at, expected) =
   let result =
     Build.to_json
-    @@ Build.from_jobs_status ~jobs ~build_status ~build_created_at ~step_route_prefix:""
+    @@ Build.from_jobs_status ~jobs ~build_status ~build_created_at
+         ~step_route_prefix:"/github/foo/bar"
   in
   Alcotest.(check string) "to_json" expected result
 
@@ -23,7 +24,7 @@ let test_simple () =
     }
   in
   let expected_1 =
-    {|{"version":"1.0","status":"passed","created_at":"Oct 19 20:13 +00:00","finished_at":"Oct 19 20:14 +00:00","queued_for":"42s","ran_for":"56s","can_rebuild":false}|}
+    {|{"version":"1.0","status":"passed","created_at":"Oct 19 20:13 +00:00","finished_at":"Oct 19 20:14 +00:00","queued_for":"42s","ran_for":"56s","can_rebuild":false,"variant":"variant"}|}
   in
   let step_info_2 : Client.job_info =
     {
@@ -35,7 +36,7 @@ let test_simple () =
     }
   in
   let expected_2 =
-    {|{"version":"1.0","status":"passed","created_at":"Oct 19 20:13 +00:00","finished_at":"Oct 19 20:15 +00:00","queued_for":"42s","ran_for":"1m06s","can_rebuild":false}|}
+    {|{"version":"1.0","status":"passed","created_at":"Oct 19 20:13 +00:00","finished_at":"Oct 19 20:15 +00:00","queued_for":"42s","ran_for":"1m06s","can_rebuild":false,"variant":"variant"}|}
   in
   let step_info_3 : Client.job_info =
     {
@@ -47,13 +48,13 @@ let test_simple () =
     }
   in
   let expected_3 =
-    {|{"version":"1.0","status":"failed: For reasons","created_at":"Oct 19 20:13 +00:00","finished_at":"Oct 19 20:15 +00:00","queued_for":"42s","ran_for":"1m56s","can_rebuild":false}|}
+    {|{"version":"1.0","status":"failed: For reasons","created_at":"Oct 19 20:13 +00:00","finished_at":"Oct 19 20:15 +00:00","queued_for":"42s","ran_for":"1m56s","can_rebuild":false,"variant":"variant"}|}
   in
   let jobs = [ step_info_1; step_info_2; step_info_3 ] in
   let build_status : Client.State.t = Failed "for reasons" in
   let build_created_at = 1666210300. in
   let expected =
-    Fmt.str "%s[%s,%s,%s]}"
+    Fmt.str "%s[%s,%s,%s],\"step_route_prefix\":\"/github/foo/bar\"}"
       {|{"version":"1.0","status":"failed: for reasons","first_created_at":"Oct 19 20:13 +00:00","ran_for":"6m04s","can_cancel":false,"can_rebuild":true,"steps":|}
       expected_1 expected_2 expected_3
   in

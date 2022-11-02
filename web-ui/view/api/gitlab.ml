@@ -17,4 +17,5 @@ let list_steps ~jobs ~build_status ~step_route_prefix =
   in
   Dream.json
   @@ Build.to_json
-  @@ Build.from_jobs_status ~jobs ~build_status ~build_created_at ~step_route_prefix
+  @@ Build.from_jobs_status ~jobs ~build_status ~build_created_at
+       ~step_route_prefix
