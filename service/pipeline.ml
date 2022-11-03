@@ -96,6 +96,12 @@ let set_active_repos ~installation repos =
 let ref_from_commit (x : Github.Api.Commit.t) : string =
   Git.Commit_id.gref @@ Github.Api.Commit.id x
 
+let ref_name c =
+  match (Github.Api.Commit.pr_name c, Github.Api.Commit.branch_name c) with
+  | Some x, None -> x
+  | None, Some x -> x
+  | _ -> failwith "Commit is neither a branch nor a PR"
+
 let set_active_refs ~repo xs =
   let+ repo = repo and+ xs = xs in
   let github_repo = Github.Api.Repo.id repo in
@@ -107,9 +113,9 @@ let set_active_refs ~repo xs =
            let commit = Github.Api.Commit.id x in
            let gref = ref_from_commit x in
            let hash = Git.Commit_id.hash commit in
-           let title = Github.Api.Commit.ref_title x in
+           let name = ref_name x in
            let message = Github.Api.Commit.message x in
-           Index.Ref_map.add gref { Index.hash; message; title } acc)
+           Index.Ref_map.add gref { Index.hash; message; name } acc)
          Index.Ref_map.empty
   in
   Index.set_active_refs ~repo refs;

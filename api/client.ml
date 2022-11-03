@@ -90,9 +90,10 @@ module Repo = struct
     gref : string;
     hash : string;
     status : Build_status.t;
-    started : float option;
+    started_at : float option;
     message : string;
-    title : string;
+    name : string;
+    ran_for : float option;
   }
 
   let refs t =
@@ -106,17 +107,27 @@ module Repo = struct
               let gref = Raw.Reader.RefInfo.ref_get slot in
               let hash = Raw.Reader.RefInfo.hash_get slot in
               let status = Raw.Reader.RefInfo.status_get slot in
-              let started =
-                let time = Raw.Reader.RefInfo.started_get slot in
-                match Raw.Reader.RefInfo.Started.get time with
-                | Raw.Reader.RefInfo.Started.None
-                | Raw.Reader.RefInfo.Started.Undefined _ ->
+              let started_at =
+                let time = Raw.Reader.RefInfo.started_at_get slot in
+                match Raw.Reader.RefInfo.StartedAt.get time with
+                | Raw.Reader.RefInfo.StartedAt.None
+                | Raw.Reader.RefInfo.StartedAt.Undefined _ ->
                     None
-                | Raw.Reader.RefInfo.Started.Ts v -> Some v
+                | Raw.Reader.RefInfo.StartedAt.Ts v -> Some v
               in
               let message = Raw.Reader.RefInfo.message_get slot in
-              let title = Raw.Reader.RefInfo.title_get slot in
-              let r = { gref; hash; status; started; message; title } in
+              let name = Raw.Reader.RefInfo.name_get slot in
+              let ran_for =
+                let time = Raw.Reader.RefInfo.ran_for_get slot in
+                match Raw.Reader.RefInfo.RanFor.get time with
+                | Raw.Reader.RefInfo.RanFor.None
+                | Raw.Reader.RefInfo.RanFor.Undefined _ ->
+                    None
+                | Raw.Reader.RefInfo.RanFor.Ts v -> Some v
+              in
+              let r =
+                { gref; hash; status; started_at; message; name; ran_for }
+              in
               Ref_map.add gref r acc)
             Ref_map.empty
 
@@ -144,11 +155,11 @@ module Repo = struct
               let open Build_status in
               let hash = Raw.Reader.RefInfo.hash_get slot in
               let state = Raw.Reader.RefInfo.status_get slot in
-              let started = Raw.Reader.RefInfo.started_get slot in
+              let started = Raw.Reader.RefInfo.started_at_get slot in
               let time =
-                match Raw.Reader.RefInfo.Started.get started with
-                | Raw.Reader.RefInfo.Started.None | Undefined _ -> None
-                | Raw.Reader.RefInfo.Started.Ts v -> Some v
+                match Raw.Reader.RefInfo.StartedAt.get started with
+                | Raw.Reader.RefInfo.StartedAt.None | Undefined _ -> None
+                | Raw.Reader.RefInfo.StartedAt.Ts v -> Some v
               in
               match (state, Ref_map.find_opt hash acc) with
               | state, None -> Ref_map.add hash (state, time) acc

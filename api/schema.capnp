@@ -63,17 +63,20 @@ interface Commit {
   title  @5 () -> (title :Text);
 }
 
-
 struct RefInfo {
   ref     @0 :Text;
   hash    @1 :Text;
   status  @2 :BuildStatus;
-  started :union {
+  startedAt :union {
     ts    @3 :Float64;
     none  @4 :Void;
   }
   message @5 :Text;
-  title   @6 :Text;
+  name    @6 :Text;
+  ranFor :union {
+    ts    @7 :Float64;
+    none  @8 :Void;
+  }
   # The state of the ref's head commit
 }
 

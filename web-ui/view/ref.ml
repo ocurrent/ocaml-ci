@@ -4,24 +4,24 @@ open Git_forge
 
 type t = Branch of string | PR of { title : string; id : string }
 
-let row ~ref ~short_hash ~last_updated ~status ~ref_uri ~message =
-  ignore last_updated;
+let row ~ref ~short_hash ~started_at ~ran_for ~status ~ref_uri ~message =
+  ignore ran_for;
   let ref_title =
     match ref with Branch title -> title | PR { title; _ } -> title
   in
   Tyxml.Html.(
     let description =
       [ div [ txt short_hash ] ]
-      @
-      match ref with
-      | Branch _ -> []
-      | PR { id; _ } ->
-          [
-            div [ txt "-" ];
-            div
-              ~a:[ a_class [ "flex space-x-1 items-center" ] ]
-              [ Common.github_logo; div [ txt (Printf.sprintf "#%s" id) ] ];
-          ]
+      @ (match ref with
+        | Branch _ -> []
+        | PR { id; _ } ->
+            [
+              div [ txt "-" ];
+              div
+                ~a:[ a_class [ "flex space-x-1 items-center" ] ]
+                [ Common.github_logo; div [ txt (Printf.sprintf "#%s" id) ] ];
+            ])
+      @ [ div [ txt "-" ]; div [ txt started_at ] ]
     in
     a
       ~a:[ a_class [ "table-row" ]; a_href ref_uri ]
@@ -62,7 +62,7 @@ let row ~ref ~short_hash ~last_updated ~status ~ref_uri ~message =
                    items-center";
                 ];
             ]
-          [ Common.right_arrow_head ];
+          [ div [ txt ran_for ]; Common.right_arrow_head ];
       ])
 
 let prefix = "github"
@@ -81,12 +81,11 @@ let ref gref title =
   | _ -> Branch (Printf.sprintf "Bad ref format %S" gref)
 
 let list ~org ~repo ~refs =
-  let f
-      { Client.Repo.gref; hash; status; started = last_updated; message; title }
-      =
+  let f { Client.Repo.gref; hash; status; started_at; message; name; ran_for } =
     let short_hash = short_hash hash in
-    let last_updated = Timestamps_durations.pp_timestamp last_updated in
-    row ~ref:(ref gref title) ~short_hash ~last_updated ~status
+    let started_at = Timestamps_durations.pp_timestamp started_at in
+    let ran_for = Timestamps_durations.pp_timestamp ran_for in
+    row ~ref:(ref gref name) ~short_hash ~started_at ~ran_for ~status
       ~ref_uri:(commit_url ~org ~repo short_hash)
       ~message
   in

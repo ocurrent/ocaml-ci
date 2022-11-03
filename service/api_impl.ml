@@ -107,8 +107,8 @@ let make_commit ~engine ~owner ~name hash =
          in
          (match active with
          | [] ->
-            Logs.err (fun m -> m "Commit has no associated message: %s" hash);
-            raise Not_found
+             Logs.err (fun m -> m "Commit has no associated message: %s" hash);
+             raise Not_found
          | message :: _ -> Results.message_set results message);
          Service.return response
 
@@ -119,13 +119,13 @@ let make_commit ~engine ~owner ~name hash =
          let active =
            Index.get_active_refs { Ocaml_ci.Repo_id.owner; name }
            |> Index.Ref_map.bindings
-           |> List.filter_map (fun (_, { Index.hash = h; title; _ }) ->
-                  if h = hash then Some title else None)
+           |> List.filter_map (fun (_, { Index.hash = h; name; _ }) ->
+                  if h = hash then Some name else None)
          in
          (match active with
          | [] ->
-            Logs.err (fun m -> m "Commit has no associated title: %s" hash);
-            raise Not_found
+             Logs.err (fun m -> m "Commit has no associated title: %s" hash);
+             raise Not_found
          | title :: _ -> Results.title_set results title);
          Service.return response
      end
@@ -164,7 +164,8 @@ let make_repo ~engine ~owner ~name =
          let response, results = Service.Response.create Results.init_pointer in
          let arr = Results.refs_init results (List.length refs) in
          refs
-         |> List.iteri (fun i (gref, { Index.hash; message; title }) ->
+         |> List.iteri
+              (fun i (gref, { Index.hash; message; name = ref_name }) ->
                 let slot = Capnp.Array.get arr i in
                 Raw.Builder.RefInfo.ref_set slot gref;
                 Raw.Builder.RefInfo.hash_set slot hash;
@@ -173,11 +174,13 @@ let make_repo ~engine ~owner ~name =
                 in
                 Raw.Builder.RefInfo.status_set slot status;
                 Raw.Builder.RefInfo.message_set slot message;
-                Raw.Builder.RefInfo.title_set slot title;
-                let started_t = Raw.Builder.RefInfo.started_init slot in
-                (* FIXME [benmandrew]: We need the actual timestamp;
+                Raw.Builder.RefInfo.name_set slot ref_name;
+                (* FIXME [benmandrew]: We need the actual timestamps;
                    this needs to be stored in the DB *)
-                Raw.Builder.RefInfo.Started.none_set started_t);
+                let started_at_t = Raw.Builder.RefInfo.started_at_init slot in
+                Raw.Builder.RefInfo.StartedAt.none_set started_at_t;
+                let ran_for_t = Raw.Builder.RefInfo.ran_for_init slot in
+                Raw.Builder.RefInfo.RanFor.none_set ran_for_t);
          Service.return response
 
        method obsolete_refs_of_commit_impl _ release_param_caps =
@@ -234,10 +237,15 @@ let make_repo ~engine ~owner ~name =
                   to_build_status (Index.get_status ~owner ~name ~hash)
                 in
                 Raw.Builder.RefInfo.status_set slot status;
-                let started_t = Raw.Builder.RefInfo.started_init slot in
+                let started_at_t = Raw.Builder.RefInfo.started_at_init slot in
+                (match started with
+                | None -> Raw.Builder.RefInfo.StartedAt.none_set started_at_t
+                | Some time ->
+                    Raw.Builder.RefInfo.StartedAt.ts_set started_at_t time);
+                let ran_for_t = Raw.Builder.RefInfo.ran_for_init slot in
                 match started with
-                | None -> Raw.Builder.RefInfo.Started.none_set started_t
-                | Some time -> Raw.Builder.RefInfo.Started.ts_set started_t time);
+                | None -> Raw.Builder.RefInfo.RanFor.none_set ran_for_t
+                | Some time -> Raw.Builder.RefInfo.RanFor.ts_set ran_for_t time);
          Service.return response
 
        method obsolete_job_of_commit_impl _ release_param_caps =

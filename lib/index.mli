@@ -93,7 +93,13 @@ val get_active_repos : owner:string -> Repo_set.t
 
 module Ref_map : Map.S with type key = string
 
-type ref_info = { hash : string; message : string; title : string }
+type ref_info = {
+  hash : string;
+  message : string;
+  name : string;
+  (* started_at : float option;
+  ran_for : float option; *)
+}
 [@@deriving show]
 
 val set_active_refs : repo:Repo_id.t -> ref_info Ref_map.t -> unit

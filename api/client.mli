@@ -63,9 +63,10 @@ module Repo : sig
     gref : string;
     hash : string;
     status : Build_status.t;
-    started : float option;
+    started_at : float option;
     message : string;
-    title : string;
+    name : string;
+    ran_for : float option;
   }
 
   val refs :
