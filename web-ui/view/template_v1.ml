@@ -55,16 +55,9 @@ let header =
         ];
     ]
 
-let instance ?scripts contents =
-  let script_contents =
-    match scripts with None -> div [] | Some scripts -> scripts
-  in
+let instance contents =
   html_to_string
     (html head
        (body
           ~a:[ a_class [ "" ] ]
-          [
-            header;
-            script_contents;
-            div ~a:[ a_class [ "container-fluid"; "py-12" ] ] contents;
-          ]))
+          [ header; div ~a:[ a_class [ "container-fluid"; "py-12" ] ] contents ]))

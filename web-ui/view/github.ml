@@ -401,7 +401,7 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
   in
   Template_v1.instance
     [
-      Build.poll;
+      Tyxml.Html.script ~a:[ a_src "/js/build-page-poll.js" ] (txt "");
       Common.breadcrumbs
         [ ("github", "github"); (org, org); (repo, repo) ]
         (Fmt.str "%s" (short_hash hash));
@@ -447,9 +447,10 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
         ~button
     in
     let body =
-      Template_v1.instance ~scripts:Step.log_highlight_js
+      Template_v1.instance
         [
-          Step.poll;
+          Tyxml.Html.script ~a:[ a_src "/js/log-highlight.js" ] (txt "");
+          Tyxml.Html.script ~a:[ a_src "/js/step-page-poll.js" ] (txt "");
           Common.breadcrumbs
             [
               ("github", "github");
