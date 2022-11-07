@@ -12,12 +12,13 @@ type t = {
   can_cancel : bool;
   can_rebuild : bool;
   steps : Step.t list;
+  step_route_prefix : string;
 }
 [@@deriving yojson]
 
 let to_json t = Yojson.Safe.to_string @@ to_yojson t
 
-let from_jobs_status ~jobs ~build_status ~build_created_at =
+let from_jobs_status ~jobs ~build_status ~build_created_at ~step_route_prefix =
   let first_step_queued_at =
     match Run_time.first_step_queued_at jobs with
     | Error e ->
@@ -57,4 +58,5 @@ let from_jobs_status ~jobs ~build_status ~build_created_at =
     can_cancel;
     can_rebuild;
     steps;
+    step_route_prefix;
   }

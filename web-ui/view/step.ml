@@ -33,7 +33,7 @@ let title_card ~status ~card_title ~hash_link ~created_at ~finished_at
                           [
                             div
                               ~a:[ a_id "step-created-at" ]
-                              [ txt @@ Fmt.str "Created at: %s" created_at ];
+                              [ txt @@ Fmt.str "Created at %s" created_at ];
                             div [ txt "-" ];
                             div
                               ~a:[ a_id "step-queued-for" ]
@@ -41,7 +41,7 @@ let title_card ~status ~card_title ~hash_link ~created_at ~finished_at
                             div [ txt "-" ];
                             div
                               ~a:[ a_id "step-finished-at" ]
-                              [ txt @@ Fmt.str "Finished at: %s" finished_at ];
+                              [ txt @@ Fmt.str "Finished at %s" finished_at ];
                             div [ txt "-" ];
                             div [ hash_link ];
                           ];
@@ -58,92 +58,6 @@ let title_card ~status ~card_title ~hash_link ~created_at ~finished_at
             rebuild_button;
           ];
       ])
-
-let log_highlight_js =
-  Tyxml.Html.script ~a:[]
-    (Tyxml.Html.Unsafe.data
-       {|
-document.addEventListener('alpine:init', () => {
-    console.log("alpine init");
-    Alpine.data('codeLink', () => ({
-        permalinkButton: false,
-
-        copyCode(e) {
-          this.linkCopied = true;
-          const index = this.url.indexOf("#");
-
-          if (index >= 0) {
-            this.url = this.url.substring(0, index);
-          }
-
-          if (this.endingLine) {
-            this.url += `#L${this.startingLine}-${this.endingLine}`;
-          } else {
-            this.url += `#L${this.startingLine}`;
-          }
-
-          location.href = this.url;
-          navigator.clipboard.writeText(this.url);
-          // this.$clipboard(this.url);
-          this.manualSelection = false;
-        },
-
-        positionCopyButton(e) {
-            this.$refs.copyLinkBtn.style.top = `${e.layerY-15}px`;
-        },
-
-        highlightLine(e) {
-            if (e) {
-              const currentLine = e.target.parentNode.id;
-              const currentID = parseInt(currentLine.substring(1, currentLine.length));
-              this.manualSelection = true;
-              this.positionCopyButton(e);
-
-              if (!this.startingLine) {
-                  this.startingLine = currentID;
-                  this.endingLine = currentID;
-                  console.log(this.startingLine);
-              }
-
-              if (this.startingLine) {
-                  if (e.shiftKey) {
-                      if (currentID > this.startingLine) {
-                          this.endingLine = currentID;
-                      } else if (currentID < this.startingLine) {
-                          this.endingLine = this.startingLine;
-                          this.startingLine = currentID;
-                      } else {
-                          this.startingLine = currentID;
-                          this.endingLine = currentID;
-                      }
-                  } else {
-                      this.startingLine = currentID;
-                      this.endingLine = currentID;
-                      this.linkCopied = false;
-                  }
-              }
-            } else {
-              const index = this.url.indexOf("#")+2;
-
-              if (index >= 0) {
-                const lines = this.url.substring(index, this.url.length);
-                const lineNumbers = lines.split("-");
-                this.startingLine = parseInt(lineNumbers[0]);
-                this.endingLine = parseInt(lineNumbers[1]);
-              }
-
-              if (this.startingLine) {
-                setTimeout(() => {
-                  console.log(this.startingLine);
-                  document.getElementById(`L${this.startingLine}`).scrollIntoView();
-                }, 500)
-              }
-            }
-        }
-    }))
-})
-
-|})
 
 let poll =
   Tyxml.Html.script ~a:[]
@@ -175,11 +89,11 @@ let poll =
               console.log(data);
 
               const element_created_at = document.getElementById("step-created-at");
-              element_created_at.innerHTML = "Created at: " + data["created_at"];
+              element_created_at.innerHTML = "Created at " + data["created_at"];
               const element_finished_at = document.getElementById("step-finished-at");
               element_finished_at.innerHTML = "Finished at: " + data["finished_at"];
               const element_ran_for = document.getElementById("step-ran-for");
-              element_ran_for.innerHTML = "Ran for: " + data["ran_for"];
+              element_ran_for.innerHTML = "Ran for " + data["ran_for"];
               const element_queued_for = document.getElementById("step-queued-for");
               element_queued_for.innerHTML = data["queued_for"] + " in queue";
 

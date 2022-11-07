@@ -21,7 +21,8 @@ module State = struct
 
   let from_build_status = function
     | `Failed -> Failed ""
-    | `Pending | `Not_started -> NotStarted
+    | `Not_started -> NotStarted
+    | `Pending -> Active
     | `Passed -> Passed
 end
 

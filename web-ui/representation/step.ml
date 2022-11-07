@@ -12,6 +12,7 @@ type t = {
   queued_for : string;
   ran_for : string;
   can_rebuild : bool;
+  variant : string;
 }
 [@@deriving yojson]
 
@@ -35,6 +36,10 @@ let from_status_info_run_time ~step_info ~run_time ~can_rebuild =
     ran_for =
       Timestamps_durations.pp_duration (Option.map Run_time.ran_for run_time);
     can_rebuild;
+    variant =
+      Option.fold ~none:""
+        ~some:(fun i -> Fmt.str "%s" i.Client.variant)
+        step_info;
   }
 
 let from_status_info ~step_info ~build_created_at =

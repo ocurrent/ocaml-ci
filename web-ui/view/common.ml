@@ -63,7 +63,8 @@ let icon_active =
     div ~a:[ a_class [ "icon-status icon-status--active" ] ] [ div [] ])
 
 let icon_queued =
-  Tyxml.Html.(div ~a:[ a_class [ "icon-status icon-status--default" ] ] [])
+  Tyxml.Html.(
+    div ~a:[ a_class [ "icon-status icon-status--default" ] ] [ div [] ])
 
 let status_icon (status : Ocaml_ci_api.Client.State.t) =
   match status with
@@ -133,27 +134,33 @@ let form_rebuild_failed ~hash ~csrf_token =
   form_for ~csrf_token ~x_ref:"rebuildFailedForm"
     ~action:(hash ^ "/rebuild-failed") ~submit_button ~input_value:"failed"
 
-let form_cancel ~hash ~csrf_token =
+let form_cancel ~hash ~csrf_token ?(show = true) () =
+  let display_none = if show then "" else "display:none" in
   let submit_button =
     Tyxml.Html.(
       button
         [ txt "Cancel" ]
         ~a:
           [
+            a_id "cancel-build";
             a_class [ "btn btn-primary" ];
+            a_style display_none;
             Tyxml_helpers.at_click "$refs.cancelForm.submit()";
           ])
   in
   form_for ~csrf_token ~x_ref:"cancelForm" ~action:(hash ^ "/cancel")
     ~submit_button ~input_value:"Cancel"
 
-let rebuild_button ~hash ~csrf_token =
+let rebuild_button ~hash ~csrf_token ?(show = true) () =
+  let display_none = if show then "" else "display:none" in
   [
     Tyxml.Html.(
       button
         ~a:
           [
+            a_id "rebuild-build";
             a_class [ "btn btn-primary" ];
+            a_style display_none;
             Tyxml_helpers.at_click "rebuildMenu = !rebuildMenu";
             Tyxml_helpers.at_click_outside "rebuildMenu = false";
             a_aria "label" [ "Rebuild" ];

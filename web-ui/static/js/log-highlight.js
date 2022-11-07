@@ -1,4 +1,5 @@
 document.addEventListener('alpine:init', () => {
+    console.log("alpine init");
     Alpine.data('codeLink', () => ({
         permalinkButton: false,
 
@@ -17,8 +18,8 @@ document.addEventListener('alpine:init', () => {
           }
 
           location.href = this.url;
-          // navigator.clipboard.writeText(this.url);
-          this.$clipboard(this.url);
+          navigator.clipboard.writeText(this.url);
+          // this.$clipboard(this.url);
           this.manualSelection = false;
         },
 
@@ -68,6 +69,7 @@ document.addEventListener('alpine:init', () => {
 
               if (this.startingLine) {
                 setTimeout(() => {
+                  console.log(this.startingLine);
                   document.getElementById(`L${this.startingLine}`).scrollIntoView();
                 }, 500)
               }

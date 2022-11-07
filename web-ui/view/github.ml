@@ -95,9 +95,21 @@ let link_github_refs' ~org ~repo refs =
     match Astring.String.cuts ~sep:"/" r with
     | "refs" :: "heads" :: branch ->
         let branch = Astring.String.concat ~sep:"/" branch in
-        a ~a:[ a_href (github_branch_url ~org ~repo branch) ] [ txt branch ]
+        a
+          ~a:
+            [
+              a_class [ "flex items-center space-x-2" ];
+              a_href (github_branch_url ~org ~repo branch);
+            ]
+          [ span [ txt branch ]; Common.link_svg ]
     | [ "refs"; "pull"; id; "head" ] ->
-        a ~a:[ a_href (github_pr_url ~org ~repo id) ] [ txt ("PR#" ^ id) ]
+        a
+          ~a:
+            [
+              a_class [ "flex items-center space-x-2" ];
+              a_href (github_pr_url ~org ~repo id);
+            ]
+          [ span [ txt ("PR#" ^ id) ]; Common.link_svg ]
     | _ -> txt ""
   in
   List.map f refs
@@ -346,9 +358,8 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
     List.exists check jobs
   in
   let buttons =
-    if can_cancel then [ Common.form_cancel ~hash ~csrf_token ]
-    else if can_rebuild then Common.rebuild_button ~hash ~csrf_token
-    else []
+    Common.form_cancel ~hash ~csrf_token ~show:can_cancel ()
+    :: Common.rebuild_button ~hash ~csrf_token ~show:can_rebuild ()
   in
   let title_card =
     Build.title_card ~status:build_status ~card_title:(short_hash hash)
@@ -390,6 +401,7 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
   in
   Template_v1.instance
     [
+      Tyxml.Html.script ~a:[ a_src "/js/build-page-poll.js" ] (txt "");
       Common.breadcrumbs
         [ ("github", "github"); (org, org); (repo, repo) ]
         (Fmt.str "%s" (short_hash hash));
@@ -435,9 +447,10 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
         ~button
     in
     let body =
-      Template_v1.instance ~scripts:Step.log_highlight_js
+      Template_v1.instance
         [
-          Step.poll;
+          Tyxml.Html.script ~a:[ a_src "/js/log-highlight.js" ] (txt "");
+          Tyxml.Html.script ~a:[ a_src "/js/step-page-poll.js" ] (txt "");
           Common.breadcrumbs
             [
               ("github", "github");
