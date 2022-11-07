@@ -226,9 +226,5 @@ let create ~github ~gitlab =
        Dream.get "/" (fun _ ->
            Dream.html @@ Controller.Index.render github gitlab);
      ]
-    @
-    match github with
-    | Some github -> github_routes github
-    | None -> (
-        []
-        @ match gitlab with Some gitlab -> gitlab_routes gitlab | None -> []))
+    @ (match github with Some github -> github_routes github | None -> [])
+    @ match gitlab with Some gitlab -> gitlab_routes gitlab | None -> [])
