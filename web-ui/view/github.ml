@@ -357,9 +357,10 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
     in
     List.exists check jobs
   in
+  let show_rebuild = (not can_cancel) && can_rebuild in
   let buttons =
     Common.form_cancel ~hash ~csrf_token ~show:can_cancel ()
-    :: Common.rebuild_button ~hash ~csrf_token ~show:can_rebuild ()
+    :: Common.rebuild_button ~hash ~csrf_token ~show:show_rebuild ()
   in
   let title_card =
     Build.title_card ~status:build_status ~card_title:(short_hash hash)
