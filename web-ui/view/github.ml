@@ -172,7 +172,6 @@ let list_refs ~org ~repo ~refs =
     let table = table_head :: List.map (fun (_, ref) -> f ref) bindings in
     (table, n_prs)
   in
-  Dream.log "n_branches: %d - n_prs: %d" n_branches n_prs;
   let title =
     let github_repo_url = github_repo_url ~org repo in
     div

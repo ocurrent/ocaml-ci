@@ -191,7 +191,11 @@ let total_of_run_times (build : Client.job_info list) =
   |> List.fold_left (fun subtotal rt -> subtotal +. total_time rt) 0.
 
 let first_step_queued_at (jil : Client.job_info list) =
-  if jil = [] then Error "Empty build"
+  (* for_all holds for the empty list as well as preventing transient
+     error when only the analysis step exists with a None timestamp.
+     Error would be caused by trying to format [max_float] as a string. *)
+  let no_queued_at_ts (ji : Client.job_info) = ji.queued_at = None in
+  if List.for_all no_queued_at_ts jil then Error "Empty build"
   else
     let minn accum (ji : Client.job_info) =
       Option.fold ~none:accum ~some:(fun v -> min accum v) ji.queued_at
