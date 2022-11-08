@@ -1,1 +1,1 @@
-include Controller.Git_forge.Make_API (Api.Github)
+include Git_forge.Make (Api.Github)
