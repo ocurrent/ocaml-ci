@@ -15,4 +15,5 @@
   logs.cli
   prometheus-app.unix
   ocaml-ci-web.controller
+  ocaml-ci-web.controller.api
   ocaml-ci-client-lib))
