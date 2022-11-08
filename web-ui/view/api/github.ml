@@ -3,6 +3,8 @@ module Step = Representation.Step
 module Run_time = Ocaml_ci_client_lib.Run_time
 module Client = Ocaml_ci_api.Client
 
+let prefix = "github"
+
 let show_step ~step_info ~run_time ~can_rebuild =
   Dream.json
   @@ Step.to_json

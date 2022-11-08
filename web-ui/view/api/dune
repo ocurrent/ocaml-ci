@@ -1,6 +1,6 @@
 (library
  (public_name ocaml-ci-web.view.api)
- (name api)
+ (name api_view)
  (libraries
   dream
   lwt

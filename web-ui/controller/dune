@@ -10,7 +10,6 @@
   prometheus-app
   capnp-rpc-unix
   ocaml-ci-web.view
-  ocaml-ci-web.view.api
   ocaml-ci-client-lib)
  (preprocess
   (pps ppx_deriving_yojson)))

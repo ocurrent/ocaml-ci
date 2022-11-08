@@ -1,1 +1,1 @@
-include Git_forge.Make (Api.Gitlab)
+include Git_forge.Make (Api_view.Gitlab)

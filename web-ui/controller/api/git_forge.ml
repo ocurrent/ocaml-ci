@@ -1,9 +1,10 @@
+module type Api = Api_view.Git_forge.Api
+
 module Client = Ocaml_ci_api.Client
 module Run_time = Ocaml_ci_client_lib.Run_time
 
-module type Api = View.Git_forge.Api
-
 module type Api_controller = sig
+
   val list_steps :
     org:string ->
     repo:string ->
@@ -27,6 +28,7 @@ module Make (Api : Api) = struct
   open Lwt.Infix
   module Client = Ocaml_ci_api.Client
   module Capability = Capnp_rpc_lwt.Capability
+
 
   let show_step ~org ~repo ~hash ~variant ci =
     Controller.Backend.ci ci >>= fun ci ->
