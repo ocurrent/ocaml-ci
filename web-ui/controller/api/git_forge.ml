@@ -20,13 +20,12 @@ module type Api_controller = sig
     Dream.response Lwt.t
 end
 
-let (>>!=) = Controller.Git_forge.(>>!=)
+let ( >>!= ) = Controller.Git_forge.( >>!= )
 
 module Make (Api : Api) = struct
   open Lwt.Infix
   module Client = Ocaml_ci_api.Client
   module Capability = Capnp_rpc_lwt.Capability
-
 
   let show_step ~org ~repo ~hash ~variant ci =
     Controller.Backend.ci ci >>= fun ci ->

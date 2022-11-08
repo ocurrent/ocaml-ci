@@ -62,7 +62,6 @@ module type Controller = sig
 end
 (* Abstract controller for any Git_forge that implements `Ocaml_ci_api.Client` API *)
 
-
 let ( >>!= ) x f =
   let open Lwt.Infix in
   x >>= function
@@ -285,4 +284,3 @@ module Make (View : View) = struct
     List.iter (fun (s, m) -> Dream.add_flash_message request s m) flash_messages;
     Dream.redirect request (Fmt.str "/github/%s/%s/commit/%s" org repo hash)
 end
-
