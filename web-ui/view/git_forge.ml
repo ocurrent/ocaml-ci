@@ -1,3 +1,7 @@
+module type M_Git_forge = sig
+  val prefix : string
+end
+
 module type View = sig
   module Client = Ocaml_ci_api.Client
   module Run_time = Ocaml_ci_client_lib.Run_time

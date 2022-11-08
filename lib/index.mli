@@ -97,8 +97,8 @@ type ref_info = {
   hash : string;
   message : string;
   name : string;
-  (* started_at : float option;
-  ran_for : float option; *)
+      (* started_at : float option;
+         ran_for : float option; *)
 }
 [@@deriving show]
 

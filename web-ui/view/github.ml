@@ -6,24 +6,30 @@ open Tyxml.Html
 open Git_forge
 
 (* Paths for HTML links *)
-let prefix = "github"
-let org_url org = Fmt.str "/%s/%s" prefix org
-let repo_url org repo = Fmt.str "/%s/%s/%s" prefix org repo
+module M_Github = struct
+  let prefix = "github"
+end
+
+module Ref = Ref.Make (M_Github)
+
+let prefix = M_Github.prefix
+let org_url org = Printf.sprintf "/%s/%s" prefix org
+let repo_url org repo = Printf.sprintf "/%s/%s/%s" prefix org repo
 
 let commit_url ~org ~repo hash =
-  Fmt.str "/%s/%s/%s/commit/%s" prefix org repo hash
+  Printf.sprintf "/%s/%s/%s/commit/%s" prefix org repo hash
 
 let job_url ~org ~repo ~hash variant =
-  Fmt.str "/%s/%s/%s/commit/%s/variant/%s" prefix org repo hash variant
+  Printf.sprintf "/%s/%s/%s/commit/%s/variant/%s" prefix org repo hash variant
 
 let github_branch_url ~org ~repo ref =
-  Fmt.str "https://github.com/%s/%s/tree/%s" org repo ref
+  Printf.sprintf "https://github.com/%s/%s/tree/%s" org repo ref
 
 let github_commit_url ~org ~repo ~hash =
-  Fmt.str "https://github.com/%s/%s/commit/%s" org repo hash
+  Printf.sprintf "https://github.com/%s/%s/commit/%s" org repo hash
 
 let github_pr_url ~org ~repo id =
-  Fmt.str "https://github.com/%s/%s/pull/%s" org repo id
+  Printf.sprintf "https://github.com/%s/%s/pull/%s" org repo id
 
 (* let github_repo_url ~org repo =
    Printf.sprintf "https://github.com/%s/%s" org repo *)
@@ -122,18 +128,18 @@ let list_history ~org ~repo ~ref ~history =
 
 let cancel_success_message success =
   let format_job_info ji =
-    li [ span [ txt @@ Fmt.str "Cancelling job: %s" ji.Client.variant ] ]
+    li [ span [ txt @@ Printf.sprintf "Cancelling job: %s" ji.Client.variant ] ]
   in
   match success with
-  | [] -> div [ span [ txt @@ Fmt.str "No jobs were cancelled." ] ]
+  | [] -> div [ span [ txt "No jobs were cancelled." ] ]
   | success -> ul (List.map format_job_info success)
 
 let cancel_success_message_v1 success =
   let format_job_info ji =
-    (`Success, Fmt.str "Cancelling job: %s" ji.Client.variant)
+    (`Success, Printf.sprintf "Cancelling job: %s" ji.Client.variant)
   in
   match success with
-  | [] -> [ (`Success, Fmt.str "No jobs were cancelled.") ]
+  | [] -> [ (`Success, "No jobs were cancelled.") ]
   | success -> List.map format_job_info success
 
 let cancel_fail_message = function
@@ -142,11 +148,7 @@ let cancel_fail_message = function
       div
         [
           span
-            [
-              txt
-              @@ Fmt.str
-                   "1 job could not be cancelled. Check logs for more detail.";
-            ];
+            [ txt "1 job could not be cancelled. Check logs for more detail." ];
         ]
   | n ->
       div
@@ -154,7 +156,7 @@ let cancel_fail_message = function
           span
             [
               txt
-              @@ Fmt.str
+              @@ Printf.sprintf
                    "%d jobs could not be cancelled. Check logs for more detail."
                    n;
             ];
@@ -163,31 +165,28 @@ let cancel_fail_message = function
 let cancel_fail_message_v1 : int -> ([> `Fail ] * uri) list_wrap = function
   | n when n <= 0 -> []
   | 1 ->
-      [
-        ( `Fail,
-          Fmt.str "1 job could not be cancelled. Check logs for more detail." );
-      ]
+      [ (`Fail, "1 job could not be cancelled. Check logs for more detail.") ]
   | n ->
       [
         ( `Fail,
-          Fmt.str "%d jobs could not be cancelled. Check logs for more detail."
-            n );
+          Printf.sprintf
+            "%d jobs could not be cancelled. Check logs for more detail." n );
       ]
 
 let rebuild_success_message success =
   let format_job_info ji =
-    li [ span [ txt @@ Fmt.str "Rebuilding job: %s" ji.Client.variant ] ]
+    li [ span [ txt @@ Printf.sprintf "Rebuilding job: %s" ji.Client.variant ] ]
   in
   match success with
-  | [] -> div [ span [ txt @@ Fmt.str "No jobs were rebuilt." ] ]
+  | [] -> div [ span [ txt "No jobs were rebuilt." ] ]
   | success -> ul (List.map format_job_info success)
 
 let rebuild_success_message_v1 success =
   let format_job_info ji =
-    (`Success, Fmt.str "Rebuilding job: %s" ji.Client.variant)
+    (`Success, Printf.sprintf "Rebuilding job: %s" ji.Client.variant)
   in
   match success with
-  | [] -> [ (`Success, Fmt.str "No jobs were rebuilt.") ]
+  | [] -> [ (`Success, "No jobs were rebuilt.") ]
   | success -> List.map format_job_info success
 
 let rebuild_fail_message = function
@@ -195,12 +194,7 @@ let rebuild_fail_message = function
   | 1 ->
       div
         [
-          span
-            [
-              txt
-              @@ Fmt.str
-                   "1 job could not be rebuilt. Check logs for more detail.";
-            ];
+          span [ txt "1 job could not be rebuilt. Check logs for more detail." ];
         ]
   | n ->
       div
@@ -208,28 +202,24 @@ let rebuild_fail_message = function
           span
             [
               txt
-              @@ Fmt.str
+              @@ Printf.sprintf
                    "%d jobs could not be rebuilt. Check logs for more detail." n;
             ];
         ]
 
 let rebuild_fail_message_v1 = function
   | n when n <= 0 -> []
-  | 1 ->
-      [
-        ( `Fail,
-          Fmt.str "1 job could not be rebuilt. Check logs for more detail." );
-      ]
+  | 1 -> [ (`Fail, "1 job could not be rebuilt. Check logs for more detail.") ]
   | n ->
       [
         ( `Fail,
-          Fmt.str "%d jobs could not be rebuilt. Check logs for more detail." n
-        );
+          Printf.sprintf
+            "%d jobs could not be rebuilt. Check logs for more detail." n );
       ]
 
 let return_link ~org ~repo ~hash =
   let uri = commit_url ~org ~repo hash in
-  a ~a:[ a_href uri ] [ txt @@ Fmt.str "Return to %s" (short_hash hash) ]
+  a ~a:[ a_href uri ] [ txt @@ Printf.sprintf "Return to %s" (short_hash hash) ]
 
 (* TODO: Clean up so that success and fail messages appear in flash messages and we do a redirect
    instead of providing a return link *)
@@ -300,7 +290,7 @@ let list_steps ~org ~repo ~message ~refs ~hash ~jobs ~first_step_queued_at
       Tyxml.Html.script ~a:[ a_src "/js/build-page-poll.js" ] (txt "");
       Common.breadcrumbs
         [ ("github", "github"); (org, org); (repo, repo) ]
-        (Fmt.str "%s" (short_hash hash));
+        (Printf.sprintf "%s" (short_hash hash));
       title_card;
       Common.flash_messages flash_messages;
       Common.tabulate steps_table;
@@ -352,8 +342,8 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
               ("github", "github");
               (org, org);
               (repo, repo);
-              ( Fmt.str "%s (%s)" (short_hash hash) branch,
-                Fmt.str "commit/%s" hash );
+              ( Printf.sprintf "%s (%s)" (short_hash hash) branch,
+                Printf.sprintf "commit/%s" hash );
             ]
             variant;
           title_card;
@@ -519,7 +509,7 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
       else (
         last_line_blank := log_line = "";
         line_number := !line_number + 1;
-        Fmt.str "%s\n%s" l
+        Printf.sprintf "%s\n%s" l
           (Fmt.str "%a" (pp_elt ())
              (tr
                 ~a:
@@ -530,18 +520,20 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
                        startingLine && parseInt($el.id.substring(1, \
                        $el.id.length)) <= endingLine ? 'highlight' : ''";
                     Tyxml_helpers.at_click "highlightLine";
-                    a_id (Fmt.str "L%d" !line_number);
+                    a_id (Printf.sprintf "L%d" !line_number);
                   ]
                 [
                   td
                     ~a:[ a_class [ "code-line__number" ] ]
-                    [ txt (Fmt.str "%d" !line_number) ];
+                    [ txt (Printf.sprintf "%d" !line_number) ];
                   td
                     ~a:[ a_class [ "code-line__code" ] ]
                     [ pre [ Unsafe.data log_line ] ];
                 ])))
     in
-    Fmt.str "%s%s" (List.fold_left aux "<table><tbody>" data) "</tbody></table>"
+    Printf.sprintf "%s%s"
+      (List.fold_left aux "<table><tbody>" data)
+      "</tbody></table>"
   in
   let open Lwt.Infix in
   Dream.stream

@@ -7,7 +7,13 @@ open Tyxml.Html
 open Git_forge
 
 (* Paths for HTML links *)
-let prefix = "gitlab"
+module M_Gitlab = struct
+  let prefix = "gitlab"
+end
+
+module Ref = Ref.Make (M_Gitlab)
+
+let prefix = M_Gitlab.prefix
 let org_url org = Fmt.str "/%s/%s" prefix org
 let repo_url org repo = Fmt.str "/%s/%s/%s" prefix org repo
 
