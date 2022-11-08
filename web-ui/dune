@@ -14,7 +14,5 @@
   dream
   logs.cli
   prometheus-app.unix
-  ocaml-ci-api
   ocaml-ci-web.controller
-  ocaml-ci-web.view
   ocaml-ci-client-lib))

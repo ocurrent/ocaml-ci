@@ -1,10 +1,8 @@
 (library
- (public_name ocaml-ci-web.api)
+ (public_name ocaml-ci-web.view.api)
  (name api)
  (libraries
   dream
   lwt
-  ocaml-ci-api
   ocaml-ci-client-lib
-  ocaml-ci-web.view
   ocaml-ci-web.representation))

@@ -3,15 +3,14 @@
  (name controller)
  (libraries
   lwt
-  ocaml-ci-api
   dream
   unix
   yojson
   ppx_deriving_yojson.runtime
   prometheus-app
   capnp-rpc-unix
-  ocaml-ci-web.api
   ocaml-ci-web.view
+  ocaml-ci-web.view.api
   ocaml-ci-client-lib)
  (preprocess
   (pps ppx_deriving_yojson)))
