@@ -101,7 +101,7 @@ let link_github_refs' ~org ~repo refs =
               a_class [ "flex items-center space-x-2" ];
               a_href (github_branch_url ~org ~repo branch);
             ]
-          [ span [ txt branch ]; Common.link_svg ]
+          [ span [ txt branch ]; Common.external_link ]
     | [ "refs"; "pull"; id; "head" ] ->
         a
           ~a:
@@ -109,7 +109,7 @@ let link_github_refs' ~org ~repo refs =
               a_class [ "flex items-center space-x-2" ];
               a_href (github_pr_url ~org ~repo id);
             ]
-          [ span [ txt ("PR#" ^ id) ]; Common.link_svg ]
+          [ span [ txt ("PR#" ^ id) ]; Common.external_link ]
     | _ -> txt ""
   in
   List.map f refs
