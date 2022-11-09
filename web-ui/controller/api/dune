@@ -7,7 +7,6 @@
   unix
   yojson
   ppx_deriving_yojson.runtime
-  prometheus-app
   capnp-rpc-unix
   ocaml-ci-web.controller
   ocaml-ci-web.view.api

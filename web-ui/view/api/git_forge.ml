@@ -17,6 +17,12 @@ module type Api = sig
     Dream.response Lwt.t
 end
 
+(* This module is starting out as very thin wrapper on a string. It's
+   meant to help stay consistent with the design intent of implementing
+   different git-forges via a functorial approach. As we round out the
+   Gitlab work this module may grow. If the implementation between the different
+   git-forges turns out to be the same, this module will not grow and we may
+   choose to back away from this approach. *)
 module type M_Git_forge = sig
   val prefix : string
 end

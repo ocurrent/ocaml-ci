@@ -1,5 +1,3 @@
-module M_Github = struct
+include Git_forge.Make (struct
   let prefix = "github"
-end
-
-include Git_forge.Make (M_Github)
+end)
