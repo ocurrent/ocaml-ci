@@ -46,7 +46,11 @@ let header =
             ~a:[ a_class [ "space-x-4" ] ]
             [
               a
-                ~a:[ a_class [ "header-link link-hover" ]; a_href "#" ]
+                ~a:
+                  [
+                    a_class [ "header-link link-hover" ];
+                    a_href "/getting-started";
+                  ]
                 [ txt "Getting Started" ];
               a
                 ~a:[ a_class [ "header-link link-hover" ]; a_href "#" ]

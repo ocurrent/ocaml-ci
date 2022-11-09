@@ -222,6 +222,8 @@ let create ~github ~gitlab =
        Dream.get "/fonts/**" @@ Dream.static ~loader "/fonts";
        Dream.get "/" (fun _ ->
            Dream.html @@ Controller.Index.render github gitlab);
+       Dream.get "/getting-started" (fun _ ->
+           Dream.html @@ Controller.Documentation.getting_started);
      ]
     @ (match github with Some github -> github_routes github | None -> [])
     @ match gitlab with Some gitlab -> gitlab_routes gitlab | None -> [])
