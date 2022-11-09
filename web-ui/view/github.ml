@@ -5,14 +5,12 @@ module Run_time = Ocaml_ci_client_lib.Run_time
 open Tyxml.Html
 open Git_forge
 
-(* Paths for HTML links *)
-module M_Github = struct
-  let prefix = "github"
-end
+let prefix = "github"
 
-module Ref = Ref.Make (M_Github)
+module Ref = Ref.Make (struct
+  let prefix = prefix
+end)
 
-let prefix = M_Github.prefix
 let org_url org = Printf.sprintf "/%s/%s" prefix org
 let repo_url org repo = Printf.sprintf "/%s/%s/%s" prefix org repo
 

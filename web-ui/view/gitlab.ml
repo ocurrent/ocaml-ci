@@ -6,14 +6,12 @@ module Run_time = Ocaml_ci_client_lib.Run_time
 open Tyxml.Html
 open Git_forge
 
-(* Paths for HTML links *)
-module M_Gitlab = struct
-  let prefix = "gitlab"
-end
+let prefix = "gitlab"
 
-module Ref = Ref.Make (M_Gitlab)
+module Ref = Ref.Make (struct
+  let prefix = prefix
+end)
 
-let prefix = M_Gitlab.prefix
 let org_url org = Fmt.str "/%s/%s" prefix org
 let repo_url org repo = Fmt.str "/%s/%s/%s" prefix org repo
 
