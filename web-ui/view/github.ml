@@ -11,6 +11,10 @@ module Ref = Ref.Make (struct
   let prefix = prefix
 end)
 
+module Repo = Repo.Make (struct
+  let prefix = prefix
+end)
+
 let github_branch_url ~org ~repo ref =
   Printf.sprintf "https://github.com/%s/%s/tree/%s" org repo ref
 
@@ -25,11 +29,6 @@ let github_pr_url ~org ~repo id =
 
 let format_org org =
   li [ a ~a:[ a_href (Url.org_url prefix ~org) ] [ txt org ] ]
-
-(* let format_repo ~org { Client.Org.name; main_status; _ } =
-  li
-    ~a:[ a_class [ Build_status.class_name main_status ] ]
-    [ a ~a:[ a_href (Url.repo_url prefix ~org ~repo:name) ] [ txt name ] ] *)
 
 let orgs_v ~orgs = [ breadcrumbs [] prefix; ul (List.map format_org orgs) ]
 
@@ -103,26 +102,7 @@ let link_github_refs' ~org ~repo refs =
   List.map f refs
 
 let list_orgs ~orgs = Template.instance @@ orgs_v ~orgs
-
-let list_repos ~org ~repos =
-  let repo_table =
-    let repo_table_head =
-      Common.table_head (Printf.sprintf "Repositories (%d)" (List.length repos))
-    in
-    let f { Client.Org.name; main_status; main_hash; main_last_updated } =
-      let last_updated = Timestamps_durations.pp_timestamp main_last_updated in
-      Repo.row ~repo_title:name ~short_hash:(short_hash main_hash) ~last_updated
-        ~status:main_status ~description:"" ~repo_uri:(Url.repo_url "github" ~org ~repo:name)
-    in
-    repo_table_head :: List.map f repos
-  in
-  Template_v1.instance
-    [
-      Common.breadcrumbs [ (prefix, prefix) ] org;
-      Repo.title ~org;
-      Common.tabulate repo_table;
-    ]
-
+let list_repos ~org ~repos = Repo.list ~org ~repos
 let list_refs = Ref.list
 
 let list_history ~org ~repo ~ref ~history =

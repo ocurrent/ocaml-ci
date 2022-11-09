@@ -311,11 +311,11 @@ let make_org ~engine owner =
                   Index.get_active_refs { Ocaml_ci.Repo_id.owner; name }
                 in
                 let hash, status =
-                  match get_main_ref refs
-                  with
+                  match get_main_ref refs with
                   | Some (_, { Index.hash; _ }) ->
-                        hash, to_build_status (Index.get_status ~owner ~name ~hash) 
-                  | None -> "", NotStarted
+                      ( hash,
+                        to_build_status (Index.get_status ~owner ~name ~hash) )
+                  | None -> ("", NotStarted)
                 in
                 Raw.Builder.RepoInfo.main_hash_set slot hash;
                 Raw.Builder.RepoInfo.main_state_set slot status;

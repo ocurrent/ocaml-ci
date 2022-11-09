@@ -103,7 +103,7 @@ module Make (M : M_Git_forge) = struct
                String.equal gref "refs/heads/main"
                || String.equal gref "refs/heads/master")
       in
-      let table_head = Common.table_head "Default Branch" in
+      let table_head = Common.table_head_div "Default Branch" in
       let table = table_head :: [ f main_ref_info ] in
       (table, main_ref)
     in
@@ -116,7 +116,7 @@ module Make (M : M_Git_forge) = struct
       in
       let n_branches = Client.Ref_map.cardinal branches in
       let table_head =
-        Common.table_head (Printf.sprintf "Branches (%d)" n_branches)
+        Common.table_head_div (Printf.sprintf "Branches (%d)" n_branches)
       in
       let bindings = Client.Ref_map.bindings branches in
       let table = table_head :: List.map (fun (_, ref) -> f ref) bindings in
@@ -130,7 +130,7 @@ module Make (M : M_Git_forge) = struct
       in
       let n_prs = Client.Ref_map.cardinal prs in
       let table_head =
-        Common.table_head (Printf.sprintf "Refs Branches (%d)" n_prs)
+        Common.table_head_div (Printf.sprintf "Refs Branches (%d)" n_prs)
       in
       let bindings = Client.Ref_map.bindings prs in
       let table = table_head :: List.map (fun (_, ref) -> f ref) bindings in
@@ -167,12 +167,13 @@ module Make (M : M_Git_forge) = struct
     [
       Common.breadcrumbs [ (M.prefix, M.prefix); (org, org) ] repo;
       title;
-      Common.tabulate default_table;
+      Common.tabulate_div default_table;
     ]
     |> (fun content ->
          if n_branches = 0 then content
-         else content @ [ Common.tabulate branch_table ])
+         else content @ [ Common.tabulate_div branch_table ])
     |> (fun content ->
-         if n_prs = 0 then content else content @ [ Common.tabulate pr_table ])
+         if n_prs = 0 then content
+         else content @ [ Common.tabulate_div pr_table ])
     |> Template_v1.instance
 end

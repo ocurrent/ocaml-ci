@@ -252,6 +252,28 @@ let external_link =
           [];
       ])
 
+let search =
+  Tyxml.Svg.(
+    Tyxml.Html.svg
+      ~a:
+        [
+          (* a_class [ "w-4 h-4" ]; *)
+          a_fill `None;
+          a_viewBox (0., 0., 24., 24.);
+          a_stroke (`Color ("#667085", None));
+          a_stroke_width (2., Some `Px);
+        ]
+      [
+        path
+          ~a:
+            [
+              a_stroke_linecap `Round;
+              a_stroke_linejoin `Round;
+              a_d "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z";
+            ]
+          [];
+      ])
+
 let github_logo =
   Tyxml.Svg.(
     Tyxml.Html.svg
@@ -305,6 +327,33 @@ let gitlab_logo =
             ]
           [];
       ])
+
+let speed_over_time speeds =
+  assert (List.length speeds <= 15);
+  let max_speed =
+    List.fold_left (fun curr x -> if x > curr then x else curr) 0.0 speeds
+  in
+  let green = `Color ("#32D583", None) in
+  let red = `Color ("#F97066", None) in
+  ignore red;
+  Tyxml.Svg.(
+    Tyxml.Html.svg
+      ~a:[ a_fill `None; a_viewBox (0., 0., 165., 40.) ]
+      (List.mapi
+         (fun i speed ->
+           let rel_speed = speed /. max_speed in
+           let height = 40. *. rel_speed in
+           rect
+             ~a:
+               [
+                 a_x (15. *. float_of_int i, Some `Px);
+                 a_y (40. -. height, Some `Px);
+                 a_width (10., Some `Px);
+                 a_height (height, Some `Px);
+                 a_fill green;
+               ]
+             [])
+         speeds))
 
 let flash ?(status = "Info") flash_message =
   let flash_message_css_status =
@@ -406,14 +455,49 @@ let breadcrumbs steps page_title =
         ]
       (List.rev steps))
 
-let table_head name =
+let table_head_tr name =
+  Tyxml.Html.(
+    thead
+      ~a:
+        [ a_class [ "bg-gray-50 px-6 py-3 text-gray-500 text-xs font-medium" ] ]
+      [
+        tr
+          [
+            th [ txt name ];
+            th [ txt "Speed over time" ];
+            th [ txt "Speed" ];
+            th [ txt "Reliability" ];
+            th [ txt "Build frequency" ];
+            th [];
+          ];
+      ])
+
+let tabulate_tr hd rows =
+  Tyxml.Html.(
+    div
+      ~a:[ a_class [ "mt-8" ] ]
+      [
+        table
+          ~a:
+            [
+              a_class
+                [
+                  "custom-table table-auto border border-gray-200 border-t-0 \
+                   rounded-lg w-full";
+                ];
+              a_id "table";
+            ]
+          ~thead:hd rows;
+      ])
+
+let table_head_div name =
   Tyxml.Html.(
     div
       ~a:
         [ a_class [ "bg-gray-50 px-6 py-3 text-gray-500 text-xs font-medium" ] ]
       [ txt name ])
 
-let tabulate rows =
+let tabulate_div rows =
   Tyxml.Html.(
     div
       ~a:[ a_class [ "container-fluid mt-8 flex flex-col space-y-6" ] ]
