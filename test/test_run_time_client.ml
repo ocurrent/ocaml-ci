@@ -401,6 +401,15 @@ let test_total_of_run_times =
   Alcotest.(check (float 0.001)) "total_of_run_times" expected result
 
 let test_first_step_queued_at =
+  let not_started : Client.job_info =
+    {
+      variant = "variant";
+      outcome = NotStarted;
+      queued_at = None;
+      started_at = None;
+      finished_at = None;
+    }
+  in
   let step_1 : Client.job_info =
     {
       variant = "variant";
@@ -438,7 +447,13 @@ let test_first_step_queued_at =
   let expected = Ok 1234567. in
   let result = Run_time.first_step_queued_at build in
   Alcotest.(check (result (float 0.001) string))
-    "first_step_queued_at not-empty" expected result
+    "first_step_queued_at not-empty" expected result;
+
+  let build = [ not_started ] in
+  let expected = Error "Empty build" in
+  let result = Run_time.first_step_queued_at build in
+  Alcotest.(check (result (float 0.001) string))
+    "first_step_queued_at no-timestamp" expected result
 
 let test_duration_pp =
   let ten_power_9 : int64 = 1000000000L in
