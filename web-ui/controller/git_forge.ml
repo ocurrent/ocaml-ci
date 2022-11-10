@@ -250,7 +250,7 @@ module Make (View : View) = struct
     @@ fun commit_cap ->
     Client.Commit.jobs commit_cap >>!= fun jobs ->
     cancel_many commit_cap jobs >>= fun (success, failed) ->
-    let success_msg = View.cancel_success_message_v1 success in
+    let success_msg = View.success_message_v1 `Cancel (List.rev success) in
     let fail_msg = View.cancel_fail_message_v1 failed in
     let flash_messages =
       List.map (fun (`Success, m) -> ("Success", m)) success_msg
@@ -294,7 +294,7 @@ module Make (View : View) = struct
     (* Client.Commit.refs commit_cap >>!= fun refs -> *)
     Client.Commit.jobs commit_cap >>!= fun jobs ->
     rebuild_many commit_cap jobs >>= fun (success, failed) ->
-    let success_msg = View.rebuild_success_message_v1 success in
+    let success_msg = View.success_message_v1 `Rebuild (List.rev success) in
     let fail_msg = View.rebuild_fail_message_v1 failed in
     let flash_messages =
       List.map (fun (`Success, m) -> ("Success", m)) success_msg
