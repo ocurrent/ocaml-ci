@@ -18,14 +18,12 @@ module type View = sig
     Client.job_info list -> [> `Div | `Ul ] Tyxml_html.elt
 
   val rebuild_fail_message : int -> [> Html_types.div ] Tyxml_html.elt
-
-  val cancel_success_message_v1 :
-    Client.job_info list -> ([> `Success ] * string) list
-
   val cancel_fail_message_v1 : int -> ([> `Fail ] * string) list
 
-  val rebuild_success_message_v1 :
-    Client.job_info list -> ([> `Success ] * string) list
+  val success_message_v1 :
+    [< `Cancel | `Rebuild ] ->
+    Client.job_info list ->
+    ([> `Success ] * string) list
 
   val rebuild_fail_message_v1 : int -> ([> `Fail ] * string) list
 

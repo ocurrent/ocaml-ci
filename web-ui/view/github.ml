@@ -132,13 +132,26 @@ let cancel_success_message success =
   | [] -> div [ span [ txt "No jobs were cancelled." ] ]
   | success -> ul (List.map format_job_info success)
 
-let cancel_success_message_v1 success =
-  let format_job_info ji =
-    (`Success, Printf.sprintf "Cancelling job: %s" ji.Client.variant)
+let success_message_v1 action jis =
+  let empty_message, prefix =
+    match action with
+    | `Cancel -> ("No jobs were cancelled.", "Cancelling")
+    | `Rebuild -> ("No jobs were rebuilt.", "Rebuilding")
   in
-  match success with
-  | [] -> [ (`Success, "No jobs were cancelled.") ]
-  | success -> List.map format_job_info success
+  match jis with
+  | [] -> [ (`Success, empty_message) ]
+  | jis ->
+      let trimmed = List.filteri (fun i _ -> i < 5) jis in
+      let message =
+        Astring.String.concat ~sep:", "
+          (List.map (fun ji -> ji.Client.variant) trimmed)
+      in
+      if List.length jis > 5 then
+        [
+          ( `Success,
+            Astring.String.concat [ prefix; " many: "; message; " ..." ] );
+        ]
+      else [ (`Success, Astring.String.concat [ prefix; ": "; message ]) ]
 
 let cancel_fail_message = function
   | n when n <= 0 -> div []
@@ -178,14 +191,6 @@ let rebuild_success_message success =
   match success with
   | [] -> div [ span [ txt "No jobs were rebuilt." ] ]
   | success -> ul (List.map format_job_info success)
-
-let rebuild_success_message_v1 success =
-  let format_job_info ji =
-    (`Success, Printf.sprintf "Rebuilding job: %s" ji.Client.variant)
-  in
-  match success with
-  | [] -> [ (`Success, "No jobs were rebuilt.") ]
-  | success -> List.map format_job_info success
 
 let rebuild_fail_message = function
   | n when n <= 0 -> div []
