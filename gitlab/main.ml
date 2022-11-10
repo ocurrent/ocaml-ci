@@ -21,7 +21,7 @@ module Metrics = struct
       Index.Ref_map.find_opt "refs/heads/master" (Index.get_active_refs repo)
     with
     | None -> acc
-    | Some hash -> (
+    | Some { Index.hash; _ } -> (
         match Index.get_status ~owner ~name ~hash with
         | `Failed -> { acc with failed = acc.failed + 1 }
         | `Passed -> { acc with ok = acc.ok + 1 }

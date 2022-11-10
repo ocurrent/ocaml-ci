@@ -163,7 +163,8 @@ let set_active_refs ~(repo : Gitlab.Repo_id.t Current.t) xs =
            let commit = Gitlab.Api.Commit.id x in
            let gref = Git.Commit_id.gref commit in
            let hash = Git.Commit_id.hash commit in
-           Index.Ref_map.add gref hash acc)
+           (* FIXME [benmandrew]: Implement fields for Gitlab *)
+           Index.Ref_map.add gref { Index.hash; message = ""; name = "" } acc)
          Index.Ref_map.empty);
   xs
 

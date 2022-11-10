@@ -6,8 +6,12 @@ module Run_time = Ocaml_ci_client_lib.Run_time
 open Tyxml.Html
 open Git_forge
 
-(* Paths for HTML links *)
 let prefix = "gitlab"
+
+module Ref = Ref.Make (struct
+  let prefix = prefix
+end)
+
 let org_url org = Fmt.str "/%s/%s" prefix org
 let repo_url org repo = Fmt.str "/%s/%s/%s" prefix org repo
 
@@ -236,10 +240,10 @@ let return_link ~org ~repo ~hash =
 
 (* TODO: Clean up so that success and fail messages appear in flash messages and we do a redirect
    instead of providing a return link *)
-let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
-    ~total_run_time ?(success_msg = div []) ?(fail_msg = div [])
-    ?(return_link = div []) ?(flash_messages = [])
+let list_steps ~org ~repo ~message ~refs ~hash ~jobs ~first_step_queued_at
+    ~total_run_time ?(flash_messages = [])
     ?(build_status : Client.State.t = Passed) ~csrf_token () =
+  ignore message;
   let () = ignore build_status in
   let can_cancel =
     let check job_info =
@@ -297,9 +301,6 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
         (short_hash hash);
       link_gitlab_refs ~org ~repo refs;
       link_jobs ~org ~repo ~hash jobs;
-      success_msg;
-      fail_msg;
-      return_link;
       Timestamps_durations.show_build ~first_step_queued_at ~total_run_time;
       div buttons;
     ]

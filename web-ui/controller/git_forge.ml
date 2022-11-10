@@ -125,6 +125,7 @@ module Make (View : View) = struct
     Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash)
     @@ fun commit_cap ->
     Client.Commit.status commit_cap >>!= fun status ->
+    Client.Commit.message commit_cap >>!= fun message ->
     Client.Commit.jobs commit_cap >>!= fun jobs ->
     Client.Commit.refs commit_cap >>!= fun refs ->
     let build_status = Client.State.from_build_status status in
@@ -139,7 +140,7 @@ module Make (View : View) = struct
     in
     let total_run_time = Run_time.total_of_run_times jobs in
     Dream.respond
-    @@ View.list_steps ~org ~repo ~refs ~hash ~jobs ~csrf_token
+    @@ View.list_steps ~org ~repo ~message ~refs ~hash ~jobs ~csrf_token
          ~first_step_queued_at ~total_run_time ~flash_messages ~build_status ()
 
   let list_history ~org ~repo ~gref ci =

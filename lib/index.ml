@@ -287,7 +287,16 @@ let get_active_repos ~owner =
 module Repo_map = Map.Make (Repo_id)
 module Ref_map = Map.Make (String)
 
-let active_refs : string Ref_map.t Repo_map.t ref = ref Repo_map.empty
+type ref_info = {
+  hash : string;
+  message : string;
+  name : string;
+      (* started_at : float option;
+         ran_for : float option; *)
+}
+[@@deriving show]
+
+let active_refs : ref_info Ref_map.t Repo_map.t ref = ref Repo_map.empty
 
 let set_active_refs ~repo refs =
   active_refs := Repo_map.add repo refs !active_refs

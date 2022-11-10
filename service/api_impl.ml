@@ -77,7 +77,7 @@ let make_commit ~engine ~owner ~name hash =
          let refs =
            Index.get_active_refs { Ocaml_ci.Repo_id.owner; name }
            |> Index.Ref_map.bindings
-           |> List.filter_map (fun (name, h) ->
+           |> List.filter_map (fun (name, { Index.hash = h; _ }) ->
                   if h = hash then Some name else None)
          in
          let response, results = Service.Response.create Results.init_pointer in
@@ -93,6 +93,40 @@ let make_commit ~engine ~owner ~name hash =
           | `Pending -> Results.status_set results Pending
           | `Failed -> Results.status_set results Failed
           | `Passed -> Results.status_set results Passed);
+         Service.return response
+
+       method message_impl _params release_param_caps =
+         let open Commit.Message in
+         release_param_caps ();
+         let response, results = Service.Response.create Results.init_pointer in
+         let active =
+           Index.get_active_refs { Ocaml_ci.Repo_id.owner; name }
+           |> Index.Ref_map.bindings
+           |> List.filter_map (fun (_, { Index.hash = h; message; _ }) ->
+                  if h = hash then Some message else None)
+         in
+         (match active with
+         | [] ->
+             Logs.err (fun m -> m "Commit has no associated message: %s" hash);
+             raise Not_found
+         | message :: _ -> Results.message_set results message);
+         Service.return response
+
+       method title_impl _params release_param_caps =
+         let open Commit.Title in
+         release_param_caps ();
+         let response, results = Service.Response.create Results.init_pointer in
+         let active =
+           Index.get_active_refs { Ocaml_ci.Repo_id.owner; name }
+           |> Index.Ref_map.bindings
+           |> List.filter_map (fun (_, { Index.hash = h; name; _ }) ->
+                  if h = hash then Some name else None)
+         in
+         (match active with
+         | [] ->
+             Logs.err (fun m -> m "Commit has no associated title: %s" hash);
+             raise Not_found
+         | title :: _ -> Results.title_set results title);
          Service.return response
      end
 
@@ -130,7 +164,8 @@ let make_repo ~engine ~owner ~name =
          let response, results = Service.Response.create Results.init_pointer in
          let arr = Results.refs_init results (List.length refs) in
          refs
-         |> List.iteri (fun i (gref, hash) ->
+         |> List.iteri
+              (fun i (gref, { Index.hash; message; name = ref_name }) ->
                 let slot = Capnp.Array.get arr i in
                 Raw.Builder.RefInfo.ref_set slot gref;
                 Raw.Builder.RefInfo.hash_set slot hash;
@@ -138,8 +173,14 @@ let make_repo ~engine ~owner ~name =
                   to_build_status (Index.get_status ~owner ~name ~hash)
                 in
                 Raw.Builder.RefInfo.status_set slot status;
-                let started_t = Raw.Builder.RefInfo.started_init slot in
-                Raw.Builder.RefInfo.Started.none_set started_t);
+                Raw.Builder.RefInfo.message_set slot message;
+                Raw.Builder.RefInfo.name_set slot ref_name;
+                (* FIXME [benmandrew]: We need the actual timestamps;
+                   this needs to be stored in the DB *)
+                let started_at_t = Raw.Builder.RefInfo.started_at_init slot in
+                Raw.Builder.RefInfo.StartedAt.none_set started_at_t;
+                let ran_for_t = Raw.Builder.RefInfo.ran_for_init slot in
+                Raw.Builder.RefInfo.RanFor.none_set ran_for_t);
          Service.return response
 
        method obsolete_refs_of_commit_impl _ release_param_caps =
@@ -156,7 +197,7 @@ let make_repo ~engine ~owner ~name =
              Service.fail "@[<v2>Unknown ref %S. Options are:@,%a@]" gref
                Fmt.(Dump.list string)
                (List.map fst (Index.Ref_map.bindings refs))
-         | Some hash ->
+         | Some { Index.hash; _ } ->
              let commit = get_commit hash in
              let response, results =
                Service.Response.create Results.init_pointer
@@ -196,10 +237,15 @@ let make_repo ~engine ~owner ~name =
                   to_build_status (Index.get_status ~owner ~name ~hash)
                 in
                 Raw.Builder.RefInfo.status_set slot status;
-                let started_t = Raw.Builder.RefInfo.started_init slot in
+                let started_at_t = Raw.Builder.RefInfo.started_at_init slot in
+                (match started with
+                | None -> Raw.Builder.RefInfo.StartedAt.none_set started_at_t
+                | Some time ->
+                    Raw.Builder.RefInfo.StartedAt.ts_set started_at_t time);
+                let ran_for_t = Raw.Builder.RefInfo.ran_for_init slot in
                 match started with
-                | None -> Raw.Builder.RefInfo.Started.none_set started_t
-                | Some time -> Raw.Builder.RefInfo.Started.ts_set started_t time);
+                | None -> Raw.Builder.RefInfo.RanFor.none_set ran_for_t
+                | Some time -> Raw.Builder.RefInfo.RanFor.ts_set ran_for_t time);
          Service.return response
 
        method obsolete_job_of_commit_impl _ release_param_caps =
@@ -258,7 +304,7 @@ let make_org ~engine owner =
                 in
                 let status =
                   match Index.Ref_map.find_opt "refs/heads/master" refs with
-                  | Some hash ->
+                  | Some { Index.hash; _ } ->
                       to_build_status (Index.get_status ~owner ~name ~hash)
                   | None -> NotStarted
                 in

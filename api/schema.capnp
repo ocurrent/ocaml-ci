@@ -57,18 +57,26 @@ interface Commit {
   # Get the set of branches and PRs with this commit at their head.
 
   status @3 () -> (status :BuildStatus);
-}
 
+  message @4 () -> (message :Text);
+
+  title  @5 () -> (title :Text);
+}
 
 struct RefInfo {
   ref     @0 :Text;
   hash    @1 :Text;
   status  @2 :BuildStatus;
-  started :union {
+  startedAt :union {
     ts    @3 :Float64;
     none  @4 :Void;
   }
   message @5 :Text;
+  name    @6 :Text;
+  ranFor :union {
+    ts    @7 :Float64;
+    none  @8 :Void;
+  }
   # The state of the ref's head commit
 }
 

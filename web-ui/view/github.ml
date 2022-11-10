@@ -5,28 +5,32 @@ module Run_time = Ocaml_ci_client_lib.Run_time
 open Tyxml.Html
 open Git_forge
 
-(* Paths for HTML links *)
 let prefix = "github"
-let org_url org = Fmt.str "/%s/%s" prefix org
-let repo_url org repo = Fmt.str "/%s/%s/%s" prefix org repo
+
+module Ref = Ref.Make (struct
+  let prefix = prefix
+end)
+
+let org_url org = Printf.sprintf "/%s/%s" prefix org
+let repo_url org repo = Printf.sprintf "/%s/%s/%s" prefix org repo
 
 let commit_url ~org ~repo hash =
-  Fmt.str "/%s/%s/%s/commit/%s" prefix org repo hash
+  Printf.sprintf "/%s/%s/%s/commit/%s" prefix org repo hash
 
 let job_url ~org ~repo ~hash variant =
-  Fmt.str "/%s/%s/%s/commit/%s/variant/%s" prefix org repo hash variant
+  Printf.sprintf "/%s/%s/%s/commit/%s/variant/%s" prefix org repo hash variant
 
 let github_branch_url ~org ~repo ref =
-  Fmt.str "https://github.com/%s/%s/tree/%s" org repo ref
+  Printf.sprintf "https://github.com/%s/%s/tree/%s" org repo ref
 
 let github_commit_url ~org ~repo ~hash =
-  Fmt.str "https://github.com/%s/%s/commit/%s" org repo hash
+  Printf.sprintf "https://github.com/%s/%s/commit/%s" org repo hash
 
 let github_pr_url ~org ~repo id =
-  Fmt.str "https://github.com/%s/%s/pull/%s" org repo id
+  Printf.sprintf "https://github.com/%s/%s/pull/%s" org repo id
 
-let github_repo_url ~org repo =
-  Printf.sprintf "https://github.com/%s/%s" org repo
+(* let github_repo_url ~org repo =
+   Printf.sprintf "https://github.com/%s/%s" org repo *)
 
 let format_org org = li [ a ~a:[ a_href (org_url org) ] [ txt org ] ]
 
@@ -34,12 +38,6 @@ let format_repo ~org { Client.Org.name; master_status } =
   li
     ~a:[ a_class [ Build_status.class_name master_status ] ]
     [ a ~a:[ a_href (repo_url org name) ] [ txt name ] ]
-
-let ref_name r =
-  match Astring.String.cuts ~sep:"/" r with
-  | "refs" :: "heads" :: branch -> Astring.String.concat ~sep:"/" branch
-  | [ "refs"; "pull"; id; "head" ] -> id
-  | _ -> Fmt.str "Bad ref format %S" r
 
 let orgs_v ~orgs = [ breadcrumbs [] prefix; ul (List.map format_org orgs) ]
 
@@ -101,7 +99,7 @@ let link_github_refs' ~org ~repo refs =
               a_class [ "flex items-center space-x-2" ];
               a_href (github_branch_url ~org ~repo branch);
             ]
-          [ span [ txt branch ]; Common.link_svg ]
+          [ span [ txt branch ]; Common.external_link ]
     | [ "refs"; "pull"; id; "head" ] ->
         a
           ~a:
@@ -109,107 +107,14 @@ let link_github_refs' ~org ~repo refs =
               a_class [ "flex items-center space-x-2" ];
               a_href (github_pr_url ~org ~repo id);
             ]
-          [ span [ txt ("PR#" ^ id) ]; Common.link_svg ]
+          [ span [ txt ("PR#" ^ id) ]; Common.external_link ]
     | _ -> txt ""
   in
   List.map f refs
 
 let list_orgs ~orgs = Template.instance @@ orgs_v ~orgs
 let list_repos ~org ~repos = Template.instance @@ repos_v ~org ~repos
-
-let list_refs ~org ~repo ~refs =
-  let f
-      {
-        Client.Repo.gref;
-        hash;
-        status;
-        started = last_updated;
-        message = _message;
-      } =
-    let short_hash = short_hash hash in
-    let last_updated = Timestamps_durations.pp_timestamp last_updated in
-    Build.ref_row ~ref_title:(ref_name gref) ~short_hash ~last_updated ~status
-      ~ref_uri:(commit_url ~org ~repo short_hash)
-      ~message:""
-  in
-  let default_table, main_ref =
-    let main_ref, main_ref_info =
-      Client.Ref_map.bindings refs
-      |> List.find (fun (_, { Client.Repo.gref; _ }) ->
-             String.equal gref "refs/heads/main"
-             || String.equal gref "refs/heads/master")
-    in
-    let table_head = Common.table_head "Default Branch" in
-    let table = table_head :: [ f main_ref_info ] in
-    (table, main_ref)
-  in
-  let refs = Client.Ref_map.remove main_ref refs in
-  let branch_table, n_branches =
-    let branches =
-      Client.Ref_map.filter
-        (fun ref _ -> String.starts_with ~prefix:"refs/heads/" ref)
-        refs
-    in
-    let n_branches = Client.Ref_map.cardinal branches in
-    let table_head =
-      Common.table_head (Printf.sprintf "Branches (%d)" n_branches)
-    in
-    let bindings = Client.Ref_map.bindings branches in
-    let table = table_head :: List.map (fun (_, ref) -> f ref) bindings in
-    (table, n_branches)
-  in
-  let pr_table, n_prs =
-    let prs =
-      Client.Ref_map.filter
-        (fun ref _ -> String.starts_with ~prefix:"refs/pull/" ref)
-        refs
-    in
-    let n_prs = Client.Ref_map.cardinal prs in
-    let table_head =
-      Common.table_head (Printf.sprintf "Refs Branches (%d)" n_prs)
-    in
-    let bindings = Client.Ref_map.bindings prs in
-    let table = table_head :: List.map (fun (_, ref) -> f ref) bindings in
-    (table, n_prs)
-  in
-  let title =
-    let github_repo_url = github_repo_url ~org repo in
-    div
-      ~a:[ a_class [ "justify-between items-center flex" ] ]
-      [
-        div
-          ~a:[ a_class [ "flex items-center space-x-2" ] ]
-          [
-            div
-              ~a:[ a_class [ "flex flex-col space-y-1" ] ]
-              [
-                div
-                  ~a:[ a_class [ "flex text-sm space-x-2 items-baseline" ] ]
-                  [
-                    h1 ~a:[ a_class [ "text-xl" ] ] [ txt repo ];
-                    a
-                      ~a:
-                        [
-                          a_class [ "flex items-center space-x-2" ];
-                          a_href github_repo_url;
-                        ]
-                      [ span [ txt github_repo_url ]; Common.link_svg ];
-                  ];
-              ];
-          ];
-      ]
-  in
-  [
-    Common.breadcrumbs [ (prefix, prefix); (org, org) ] repo;
-    title;
-    Build.tabulate default_table;
-  ]
-  |> (fun content ->
-       if n_branches = 0 then content
-       else content @ [ Build.tabulate branch_table ])
-  |> (fun content ->
-       if n_prs = 0 then content else content @ [ Build.tabulate pr_table ])
-  |> Template_v1.instance
+let list_refs = Ref.list
 
 let list_history ~org ~repo ~ref ~history =
   Template.instance
@@ -221,18 +126,18 @@ let list_history ~org ~repo ~ref ~history =
 
 let cancel_success_message success =
   let format_job_info ji =
-    li [ span [ txt @@ Fmt.str "Cancelling job: %s" ji.Client.variant ] ]
+    li [ span [ txt @@ Printf.sprintf "Cancelling job: %s" ji.Client.variant ] ]
   in
   match success with
-  | [] -> div [ span [ txt @@ Fmt.str "No jobs were cancelled." ] ]
+  | [] -> div [ span [ txt "No jobs were cancelled." ] ]
   | success -> ul (List.map format_job_info success)
 
 let cancel_success_message_v1 success =
   let format_job_info ji =
-    (`Success, Fmt.str "Cancelling job: %s" ji.Client.variant)
+    (`Success, Printf.sprintf "Cancelling job: %s" ji.Client.variant)
   in
   match success with
-  | [] -> [ (`Success, Fmt.str "No jobs were cancelled.") ]
+  | [] -> [ (`Success, "No jobs were cancelled.") ]
   | success -> List.map format_job_info success
 
 let cancel_fail_message = function
@@ -241,11 +146,7 @@ let cancel_fail_message = function
       div
         [
           span
-            [
-              txt
-              @@ Fmt.str
-                   "1 job could not be cancelled. Check logs for more detail.";
-            ];
+            [ txt "1 job could not be cancelled. Check logs for more detail." ];
         ]
   | n ->
       div
@@ -253,7 +154,7 @@ let cancel_fail_message = function
           span
             [
               txt
-              @@ Fmt.str
+              @@ Printf.sprintf
                    "%d jobs could not be cancelled. Check logs for more detail."
                    n;
             ];
@@ -262,31 +163,28 @@ let cancel_fail_message = function
 let cancel_fail_message_v1 : int -> ([> `Fail ] * uri) list_wrap = function
   | n when n <= 0 -> []
   | 1 ->
-      [
-        ( `Fail,
-          Fmt.str "1 job could not be cancelled. Check logs for more detail." );
-      ]
+      [ (`Fail, "1 job could not be cancelled. Check logs for more detail.") ]
   | n ->
       [
         ( `Fail,
-          Fmt.str "%d jobs could not be cancelled. Check logs for more detail."
-            n );
+          Printf.sprintf
+            "%d jobs could not be cancelled. Check logs for more detail." n );
       ]
 
 let rebuild_success_message success =
   let format_job_info ji =
-    li [ span [ txt @@ Fmt.str "Rebuilding job: %s" ji.Client.variant ] ]
+    li [ span [ txt @@ Printf.sprintf "Rebuilding job: %s" ji.Client.variant ] ]
   in
   match success with
-  | [] -> div [ span [ txt @@ Fmt.str "No jobs were rebuilt." ] ]
+  | [] -> div [ span [ txt "No jobs were rebuilt." ] ]
   | success -> ul (List.map format_job_info success)
 
 let rebuild_success_message_v1 success =
   let format_job_info ji =
-    (`Success, Fmt.str "Rebuilding job: %s" ji.Client.variant)
+    (`Success, Printf.sprintf "Rebuilding job: %s" ji.Client.variant)
   in
   match success with
-  | [] -> [ (`Success, Fmt.str "No jobs were rebuilt.") ]
+  | [] -> [ (`Success, "No jobs were rebuilt.") ]
   | success -> List.map format_job_info success
 
 let rebuild_fail_message = function
@@ -294,12 +192,7 @@ let rebuild_fail_message = function
   | 1 ->
       div
         [
-          span
-            [
-              txt
-              @@ Fmt.str
-                   "1 job could not be rebuilt. Check logs for more detail.";
-            ];
+          span [ txt "1 job could not be rebuilt. Check logs for more detail." ];
         ]
   | n ->
       div
@@ -307,39 +200,30 @@ let rebuild_fail_message = function
           span
             [
               txt
-              @@ Fmt.str
+              @@ Printf.sprintf
                    "%d jobs could not be rebuilt. Check logs for more detail." n;
             ];
         ]
 
 let rebuild_fail_message_v1 = function
   | n when n <= 0 -> []
-  | 1 ->
-      [
-        ( `Fail,
-          Fmt.str "1 job could not be rebuilt. Check logs for more detail." );
-      ]
+  | 1 -> [ (`Fail, "1 job could not be rebuilt. Check logs for more detail.") ]
   | n ->
       [
         ( `Fail,
-          Fmt.str "%d jobs could not be rebuilt. Check logs for more detail." n
-        );
+          Printf.sprintf
+            "%d jobs could not be rebuilt. Check logs for more detail." n );
       ]
 
 let return_link ~org ~repo ~hash =
   let uri = commit_url ~org ~repo hash in
-  a ~a:[ a_href uri ] [ txt @@ Fmt.str "Return to %s" (short_hash hash) ]
+  a ~a:[ a_href uri ] [ txt @@ Printf.sprintf "Return to %s" (short_hash hash) ]
 
 (* TODO: Clean up so that success and fail messages appear in flash messages and we do a redirect
    instead of providing a return link *)
-let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
-    ~total_run_time ?(success_msg = div []) ?(fail_msg = div [])
-    ?(return_link = div []) ?(flash_messages = [])
+let list_steps ~org ~repo ~message ~refs ~hash ~jobs ~first_step_queued_at
+    ~total_run_time ?(flash_messages = [])
     ?(build_status : Client.State.t = Passed) ~csrf_token () =
-  (*FIXME: Fix the interface for this function so that we drop the things we are now ignoring *)
-  ignore success_msg;
-  ignore fail_msg;
-  ignore return_link;
   let can_cancel =
     let check job_info =
       match job_info.Client.outcome with
@@ -362,7 +246,7 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
     :: Common.rebuild_button ~hash ~csrf_token ~show:show_rebuild ()
   in
   let title_card =
-    Build.title_card ~status:build_status ~card_title:(short_hash hash)
+    Build.title_card ~status:build_status ~card_title:message
       ~hash_link:(link_github_commit ~org ~repo ~hash:(short_hash hash))
       ~ref_links:(link_github_refs' ~org ~repo refs)
       ~first_created_at:(Timestamps_durations.pp_timestamp first_step_queued_at)
@@ -404,10 +288,10 @@ let list_steps ~org ~repo ~refs ~hash ~jobs ~first_step_queued_at
       Tyxml.Html.script ~a:[ a_src "/js/build-page-poll.js" ] (txt "");
       Common.breadcrumbs
         [ ("github", "github"); (org, org); (repo, repo) ]
-        (Fmt.str "%s" (short_hash hash));
+        (Printf.sprintf "%s" (short_hash hash));
       title_card;
       Common.flash_messages flash_messages;
-      Build.tabulate_steps steps_table;
+      Common.tabulate steps_table;
     ]
 
 let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
@@ -456,8 +340,8 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
               ("github", "github");
               (org, org);
               (repo, repo);
-              ( Fmt.str "%s (%s)" (short_hash hash) branch,
-                Fmt.str "commit/%s" hash );
+              ( Printf.sprintf "%s (%s)" (short_hash hash) branch,
+                Printf.sprintf "commit/%s" hash );
             ]
             variant;
           title_card;
@@ -623,7 +507,7 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
       else (
         last_line_blank := log_line = "";
         line_number := !line_number + 1;
-        Fmt.str "%s\n%s" l
+        Printf.sprintf "%s\n%s" l
           (Fmt.str "%a" (pp_elt ())
              (tr
                 ~a:
@@ -634,18 +518,20 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
                        startingLine && parseInt($el.id.substring(1, \
                        $el.id.length)) <= endingLine ? 'highlight' : ''";
                     Tyxml_helpers.at_click "highlightLine";
-                    a_id (Fmt.str "L%d" !line_number);
+                    a_id (Printf.sprintf "L%d" !line_number);
                   ]
                 [
                   td
                     ~a:[ a_class [ "code-line__number" ] ]
-                    [ txt (Fmt.str "%d" !line_number) ];
+                    [ txt (Printf.sprintf "%d" !line_number) ];
                   td
                     ~a:[ a_class [ "code-line__code" ] ]
                     [ pre [ Unsafe.data log_line ] ];
                 ])))
     in
-    Fmt.str "%s%s" (List.fold_left aux "<table><tbody>" data) "</tbody></table>"
+    Printf.sprintf "%s%s"
+      (List.fold_left aux "<table><tbody>" data)
+      "</tbody></table>"
   in
   let open Lwt.Infix in
   Dream.stream

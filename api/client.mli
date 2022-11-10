@@ -49,6 +49,10 @@ module Commit : sig
     Lwt_result.t
   (** [status t] is the result of the most-recent 'summarise' step on this
       commit. *)
+
+  val message :
+    t ->
+    (variant, [> `Capnp of Capnp_rpc.Error.t | `Msg of string ]) Lwt_result.t
 end
 
 module Repo : sig
@@ -59,8 +63,10 @@ module Repo : sig
     gref : string;
     hash : string;
     status : Build_status.t;
-    started : float option;
+    started_at : float option;
     message : string;
+    name : string;
+    ran_for : float option;
   }
 
   val refs :
