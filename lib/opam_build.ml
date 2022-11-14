@@ -106,6 +106,7 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   (if Variant.arch variant |> Ocaml_version.arch_is_32bit then
    [ shell [ "/usr/bin/linux32"; "/bin/sh"; "-c" ] ]
   else [])
+  @ [ env "CLICOLOR_FORCE" "1" ]
   @ distro_extras
   @ [
       run "sudo ln -f %s /usr/bin/opam" opam_cmd;
