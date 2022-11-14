@@ -101,3 +101,13 @@ let step_row ~step_title ~created_at ~queued_for ~ran_for ~status ~step_uri =
             div [ txt @@ Fmt.str "Ran for %s" ran_for ]; Common.right_arrow_head;
           ];
       ])
+
+let tabulate_steps step_rows =
+  Tyxml.Html.(
+    div
+      ~a:[ a_class [ "container-fluid mt-8 flex flex-col space-y-6" ] ]
+      [
+        div
+          ~a:[ a_id "table-container"; a_class [ "table-container" ] ]
+          step_rows;
+      ])

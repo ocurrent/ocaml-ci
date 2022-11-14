@@ -296,7 +296,7 @@ let list_steps ~org ~repo ~message ~refs ~hash ~jobs ~first_step_queued_at
         (Printf.sprintf "%s" (short_hash hash));
       title_card;
       Common.flash_messages flash_messages;
-      Common.tabulate steps_table;
+      Build.tabulate_steps steps_table;
     ]
 
 let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
