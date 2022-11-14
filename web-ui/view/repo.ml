@@ -23,7 +23,11 @@ module Make (M : M_Git_forge) = struct
           ~a:[ a_class [ "flex space-x-4" ] ]
           [
             img
-              ~a:[ a_class [ "w-20 h-20" ]; a_style "border-radius: 50%; width: 80px" ]
+              ~a:
+                [
+                  a_class [ "w-20 h-20" ];
+                  a_style "border-radius: 50%; width: 80px";
+                ]
               ~src:(profile_picture_url org)
               ~alt:(Printf.sprintf "%s profile picture" org)
               ();
@@ -52,6 +56,7 @@ module Make (M : M_Git_forge) = struct
                     [
                       a_input_type `Text;
                       a_placeholder "Search for a repository";
+                      a_onchange "search(this.value)";
                     ]
                   ();
               ];
@@ -79,11 +84,19 @@ module Make (M : M_Git_forge) = struct
       ]
 
   let row ~repo_title ~short_hash ~last_updated ~status ~description ~repo_uri =
+    let last_updated_fmt = Timestamps_durations.pp_timestamp last_updated in
+    (* Defaulting infinity means sorting by recent places them at the bottom of the page *)
+    let last_updated_data =
+      match last_updated with
+      | None -> "Infinity"
+      | Some v -> Printf.sprintf "%f" v
+    in
     tr
       ~a:
         [
           a_class [ "cursor-pointer" ];
           a_onclick (Printf.sprintf "window.location='%s'" repo_uri);
+          a_user_data "timestamp" last_updated_data;
         ]
       [
         td
@@ -102,7 +115,7 @@ module Make (M : M_Git_forge) = struct
                 div
                   [
                     span ~a:[ a_class [ "font-medium" ] ] [ txt short_hash ];
-                    txt (Printf.sprintf " on %s" last_updated);
+                    txt (Printf.sprintf " on %s" last_updated_fmt);
                   ];
                 div
                   ~a:[ a_class [ "text-grey-500" ] ]
@@ -125,11 +138,9 @@ module Make (M : M_Git_forge) = struct
     in
     let table =
       let f { Client.Org.name; main_status; main_hash; main_last_updated } =
-        let last_updated =
-          Timestamps_durations.pp_timestamp main_last_updated
-        in
-        row ~repo_title:name ~short_hash:(short_hash main_hash) ~last_updated
-          ~status:main_status ~description:"" ~repo_uri:(repo_url org name)
+        row ~repo_title:name ~short_hash:(short_hash main_hash)
+          ~last_updated:main_last_updated ~status:main_status ~description:""
+          ~repo_uri:(repo_url org name)
       in
       List.map f repos
     in
