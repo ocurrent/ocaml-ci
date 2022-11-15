@@ -1,7 +1,8 @@
 (rule
  (target static.ml)
  (deps
-  (source_tree static))
+  %{workspace_root}/web-ui/static/css/main.css
+  (source_tree %{workspace_root}/web-ui/static/))
  (action
   (run ocaml-crunch --mode=plain --output=%{target} static)))
 
