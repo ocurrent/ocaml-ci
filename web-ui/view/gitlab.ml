@@ -12,27 +12,19 @@ module Ref = Ref.Make (struct
   let prefix = prefix
 end)
 
-let org_url org = Fmt.str "/%s/%s" prefix org
-let repo_url org repo = Fmt.str "/%s/%s/%s" prefix org repo
-
-let commit_url ~org ~repo hash =
-  Fmt.str "/%s/%s/%s/commit/%s" prefix org repo hash
-
-let job_url ~org ~repo ~hash variant =
-  Fmt.str "/%s/%s/%s/commit/%s/variant/%s" prefix org repo hash variant
-
 let gitlab_branch_url ~org ~repo ref =
   Fmt.str "https://gitlab.com/%s/%s/-/tree/%s" org repo ref
 
 let gitlab_mr_url ~org ~repo id =
   Fmt.str "https://gitlab.com/%s/%s/-/merge_requests/%s" org repo id
 
-let format_org org = li [ a ~a:[ a_href (org_url org) ] [ txt org ] ]
+let format_org org =
+  li [ a ~a:[ a_href (Url.org_url prefix ~org) ] [ txt org ] ]
 
 let format_repo ~org { Client.Org.name; master_status } =
   li
     ~a:[ a_class [ Build_status.class_name master_status ] ]
-    [ a ~a:[ a_href (repo_url org name) ] [ txt name ] ]
+    [ a ~a:[ a_href (Url.repo_url prefix ~org ~repo:name) ] [ txt name ] ]
 
 let orgs_v ~orgs = [ breadcrumbs [] prefix; ul (List.map format_org orgs) ]
 
@@ -49,7 +41,11 @@ let refs_v ~org ~repo ~refs =
     |> List.map @@ fun (branch, { Client.Repo.hash; status; _ }) ->
        li
          ~a:[ a_class [ Build_status.class_name status ] ]
-         [ a ~a:[ a_href (commit_url ~org ~repo hash) ] [ txt branch ] ])
+         [
+           a
+             ~a:[ a_href (Url.commit_url prefix ~org ~repo ~hash) ]
+             [ txt branch ];
+         ])
 
 let history_v ~org ~repo ~history =
   ul
@@ -58,7 +54,11 @@ let history_v ~org ~repo ~history =
     |> List.map @@ fun (commit, status) ->
        li
          ~a:[ a_class [ Build_status.class_name status ] ]
-         [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt commit ] ])
+         [
+           a
+             ~a:[ a_href (Url.commit_url prefix ~org ~repo ~hash:commit) ]
+             [ txt commit ];
+         ])
 
 let link_gitlab_refs ~org ~repo = function
   | [] -> txt "(not at the head of any monitored branch or merge request)"
@@ -91,7 +91,7 @@ let link_gitlab_refs ~org ~repo = function
 
 let link_jobs ~org ~repo ~hash ?selected jobs =
   let render_job trees { Client.variant; outcome; _ } =
-    let uri = job_url ~org ~repo ~hash variant in
+    let uri = Url.job_url prefix ~org ~repo ~hash variant in
     match
       List.rev
         (Astring.String.cuts ~sep:(Fmt.str "%c" Common.status_sep) variant)
@@ -239,12 +239,6 @@ let rebuild_fail_message_v1 : int -> ([> `Fail ] * uri) list_wrap = function
         );
       ]
 
-let return_link ~org ~repo ~hash =
-  let uri = commit_url ~org ~repo hash in
-  a ~a:[ a_href uri ] [ txt @@ Fmt.str "Return to %s" (short_hash hash) ]
-
-(* TODO: Clean up so that success and fail messages appear in flash messages and we do a redirect
-   instead of providing a return link *)
 let list_steps ~org ~repo ~message ~refs ~hash ~jobs ~first_step_queued_at
     ~total_run_time ?(flash_messages = [])
     ?(build_status : Client.State.t = Passed) ~csrf_token () =

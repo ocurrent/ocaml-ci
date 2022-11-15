@@ -11,15 +11,6 @@ module Ref = Ref.Make (struct
   let prefix = prefix
 end)
 
-let org_url org = Printf.sprintf "/%s/%s" prefix org
-let repo_url org repo = Printf.sprintf "/%s/%s/%s" prefix org repo
-
-let commit_url ~org ~repo hash =
-  Printf.sprintf "/%s/%s/%s/commit/%s" prefix org repo hash
-
-let job_url ~org ~repo ~hash variant =
-  Printf.sprintf "/%s/%s/%s/commit/%s/variant/%s" prefix org repo hash variant
-
 let github_branch_url ~org ~repo ref =
   Printf.sprintf "https://github.com/%s/%s/tree/%s" org repo ref
 
@@ -32,12 +23,13 @@ let github_pr_url ~org ~repo id =
 (* let github_repo_url ~org repo =
    Printf.sprintf "https://github.com/%s/%s" org repo *)
 
-let format_org org = li [ a ~a:[ a_href (org_url org) ] [ txt org ] ]
+let format_org org =
+  li [ a ~a:[ a_href (Url.org_url prefix ~org) ] [ txt org ] ]
 
 let format_repo ~org { Client.Org.name; master_status } =
   li
     ~a:[ a_class [ Build_status.class_name master_status ] ]
-    [ a ~a:[ a_href (repo_url org name) ] [ txt name ] ]
+    [ a ~a:[ a_href (Url.repo_url prefix ~org ~repo:name) ] [ txt name ] ]
 
 let orgs_v ~orgs = [ breadcrumbs [] prefix; ul (List.map format_org orgs) ]
 
@@ -54,10 +46,14 @@ let history_v ~org ~repo ~history =
     |> List.map @@ fun (commit, status) ->
        li
          ~a:[ a_class [ Build_status.class_name status ] ]
-         [ a ~a:[ a_href (commit_url ~org ~repo commit) ] [ txt commit ] ])
+         [
+           a
+             ~a:[ a_href (Url.commit_url prefix ~org ~repo ~hash:commit) ]
+             [ txt commit ];
+         ])
 
 let link_github_commit ~org ~repo ~hash =
-  a ~a:[ a_href (github_commit_url ~org ~repo ~hash) ] [ txt hash ]
+  a ~a:[ a_href (github_commit_url ~org ~repo ~hash) ] [ txt (short_hash hash) ]
 
 let link_github_refs ~org ~repo = function
   | [] -> txt "(not at the head of any monitored branch or PR)"
@@ -220,12 +216,6 @@ let rebuild_fail_message_v1 = function
             "%d jobs could not be rebuilt. Check logs for more detail." n );
       ]
 
-let return_link ~org ~repo ~hash =
-  let uri = commit_url ~org ~repo hash in
-  a ~a:[ a_href uri ] [ txt @@ Printf.sprintf "Return to %s" (short_hash hash) ]
-
-(* TODO: Clean up so that success and fail messages appear in flash messages and we do a redirect
-   instead of providing a return link *)
 let list_steps ~org ~repo ~message ~refs ~hash ~jobs ~first_step_queued_at
     ~total_run_time ?(flash_messages = [])
     ?(build_status : Client.State.t = Passed) ~csrf_token () =
@@ -252,7 +242,7 @@ let list_steps ~org ~repo ~message ~refs ~hash ~jobs ~first_step_queued_at
   in
   let title_card =
     Build.title_card ~status:build_status ~card_title:message
-      ~hash_link:(link_github_commit ~org ~repo ~hash:(short_hash hash))
+      ~hash_link:(link_github_commit ~org ~repo ~hash)
       ~ref_links:(link_github_refs' ~org ~repo refs)
       ~first_created_at:(Timestamps_durations.pp_timestamp first_step_queued_at)
       ~ran_for:(Timestamps_durations.pp_duration (Some total_run_time))
@@ -280,7 +270,7 @@ let list_steps ~org ~repo ~message ~refs ~hash ~jobs ~first_step_queued_at
         let ran_for =
           Timestamps_durations.pp_duration (Option.map Run_time.ran_for rt)
         in
-        let step_uri = job_url ~org ~repo ~hash j.variant in
+        let step_uri = Url.job_url prefix ~org ~repo ~hash j.variant in
         List.append l
           [
             Build.step_row ~step_title:j.variant ~created_at ~queued_for
@@ -324,7 +314,7 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
     in
     let title_card =
       Step.title_card ~status:build_status ~card_title:variant
-        ~hash_link:(link_github_commit ~org ~repo ~hash:(short_hash hash))
+        ~hash_link:(link_github_commit ~org ~repo ~hash)
         ~created_at:(Timestamps_durations.pp_timestamp step_info.queued_at)
         ~finished_at:(Timestamps_durations.pp_timestamp step_info.finished_at)
         ~queued_for:
