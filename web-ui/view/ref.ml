@@ -79,12 +79,6 @@ module Make (M : M_Git_forge) = struct
             [ div [ txt ran_for ]; Common.right_arrow_head ];
         ])
 
-  let commit_url ~org ~repo hash =
-    Printf.sprintf "/%s/%s/%s/commit/%s" M.prefix org repo hash
-
-  let github_repo_url ~org repo =
-    Printf.sprintf "https://github.com/%s/%s" org repo
-
   let ref gref title =
     match Astring.String.cuts ~sep:"/" gref with
     | "refs" :: "heads" :: branch ->
@@ -99,7 +93,7 @@ module Make (M : M_Git_forge) = struct
       let started_at = Timestamps_durations.pp_timestamp started_at in
       let ran_for = Timestamps_durations.pp_timestamp ran_for in
       row ~ref:(ref gref name) ~short_hash ~started_at ~ran_for ~status
-        ~ref_uri:(commit_url ~org ~repo hash)
+        ~ref_uri:(Url.commit_url M.prefix ~org ~repo ~hash)
         ~message
     in
     let default_table, main_ref =
@@ -144,7 +138,7 @@ module Make (M : M_Git_forge) = struct
     in
     Dream.log "n_branches: %d - n_prs: %d" n_branches n_prs;
     let title =
-      let github_repo_url = github_repo_url ~org repo in
+      let repo_url = Url.repo_url M.prefix ~org ~repo in
       div
         ~a:[ a_class [ "justify-between items-center flex" ] ]
         [
@@ -162,9 +156,9 @@ module Make (M : M_Git_forge) = struct
                         ~a:
                           [
                             a_class [ "flex items-center space-x-2" ];
-                            a_href github_repo_url;
+                            a_href repo_url;
                           ]
-                        [ span [ txt github_repo_url ]; Common.external_link ];
+                        [ span [ txt repo_url ]; Common.external_link ];
                     ];
                 ];
             ];

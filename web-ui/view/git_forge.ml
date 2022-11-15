@@ -26,13 +26,6 @@ module type View = sig
     ([> `Success ] * string) list
 
   val rebuild_fail_message_v1 : int -> ([> `Fail ] * string) list
-
-  val return_link :
-    org:string ->
-    repo:string ->
-    hash:string ->
-    [> [> Html_types.txt ] Html_types.a ] Tyxml_html.elt
-
   val list_orgs : orgs:string list -> string
   val list_repos : org:string -> repos:Client.Org.repo_info list -> string
 

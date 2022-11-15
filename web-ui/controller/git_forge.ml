@@ -80,6 +80,7 @@ module Make (View : View) = struct
   module Capability = Capnp_rpc_lwt.Capability
 
   let job_url ~org ~repo ~hash variant =
+    assert (String.length hash > 10);
     Fmt.str "/%s/%s/%s/commit/%s/variant/%s" View.prefix org repo hash variant
 
   let list_orgs ci =
