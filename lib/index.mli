@@ -119,3 +119,23 @@ val get_active_refs : Repo_id.t -> ref_info Ref_map.t
 val get_default_gref : Repo_id.t -> string
 (** [get_default_gref repo] is the default gref of the repo last set with
     [set_active_refs] *)
+
+(** Aggregation of state for refs and repos. Refs take their state from their
+    head commit, and repos take their state from their main/master branch *)
+module Aggregate : sig
+  type status = [ `Not_started | `Pending | `Failed | `Passed ]
+  type ref_state
+  type repo_state
+
+  val get_ref_status : ref_state -> status
+  val get_ref_started_at : ref_state -> float
+  val get_ref_ran_for : ref_state -> float
+  val get_repo_status : repo_state -> status
+  val get_repo_started_at : repo_state -> float
+
+  val set_ref_state :
+    repo:Repo_id.t -> ref:string -> status -> float -> float -> unit
+
+  val get_ref_state : repo:Repo_id.t -> ref:string -> ref_state
+  val aggregate_repo : repo:Repo_id.t -> unit
+end
