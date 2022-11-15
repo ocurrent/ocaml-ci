@@ -12,6 +12,9 @@ module Make (M : M_Git_forge) = struct
     | _ -> raise Not_found
 
   let row ~ref ~short_hash ~started_at ~ran_for ~status ~ref_uri ~message =
+    ignore started_at; (*See FIXME - revert this when started_at is implemented *)
+    (* messages are of arbitrary length - let's truncate them *)
+    let message = Astring.String.with_range ~len:72 message in
     let ref_title =
       match ref with Branch title -> title | PR { title; _ } -> title
     in
@@ -27,7 +30,8 @@ module Make (M : M_Git_forge) = struct
                   ~a:[ a_class [ "flex space-x-1 items-center" ] ]
                   [ logo; div [ txt (Printf.sprintf "#%s" id) ] ];
               ])
-        @ [ div [ txt "-" ]; div [ txt started_at ] ]
+        (* FIXME: We do not have started_at implemented yet.*)
+        (* @ [ div [ txt "-" ]; div [ txt started_at ] ] *)
       in
       a
         ~a:[ a_class [ "table-row" ]; a_href ref_uri ]
@@ -93,7 +97,7 @@ module Make (M : M_Git_forge) = struct
       let started_at = Timestamps_durations.pp_timestamp started_at in
       let ran_for = Timestamps_durations.pp_timestamp ran_for in
       row ~ref:(ref gref name) ~short_hash ~started_at ~ran_for ~status
-        ~ref_uri:(commit_url ~org ~repo short_hash)
+        ~ref_uri:(commit_url ~org ~repo hash)
         ~message
     in
     let default_table, main_ref =
