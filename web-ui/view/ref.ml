@@ -12,7 +12,8 @@ module Make (M : M_Git_forge) = struct
     | _ -> raise Not_found
 
   let row ~ref ~short_hash ~started_at ~ran_for ~status ~ref_uri ~message =
-    ignore started_at; (*See FIXME - revert this when started_at is implemented *)
+    ignore started_at;
+    (*See FIXME - revert this when started_at is implemented *)
     (* messages are of arbitrary length - let's truncate them *)
     let message = Astring.String.with_range ~len:72 message in
     let ref_title =
@@ -21,15 +22,16 @@ module Make (M : M_Git_forge) = struct
     Tyxml.Html.(
       let description =
         [ div [ txt short_hash ] ]
-        @ (match ref with
-          | Branch _ -> []
-          | PR { id; _ } ->
-              [
-                div [ txt "-" ];
-                div
-                  ~a:[ a_class [ "flex space-x-1 items-center" ] ]
-                  [ logo; div [ txt (Printf.sprintf "#%s" id) ] ];
-              ])
+        @
+        match ref with
+        | Branch _ -> []
+        | PR { id; _ } ->
+            [
+              div [ txt "-" ];
+              div
+                ~a:[ a_class [ "flex space-x-1 items-center" ] ]
+                [ logo; div [ txt (Printf.sprintf "#%s" id) ] ];
+            ]
         (* FIXME: We do not have started_at implemented yet.*)
         (* @ [ div [ txt "-" ]; div [ txt started_at ] ] *)
       in
