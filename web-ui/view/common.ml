@@ -455,41 +455,6 @@ let breadcrumbs steps page_title =
         ]
       (List.rev steps))
 
-let table_head_tr name =
-  Tyxml.Html.(
-    thead
-      ~a:
-        [ a_class [ "bg-gray-50 px-6 py-3 text-gray-500 text-xs font-medium" ] ]
-      [
-        tr
-          [
-            th [ txt name ];
-            th [ txt "Speed over time" ];
-            th [ txt "Speed" ];
-            th [ txt "Reliability" ];
-            th [ txt "Build frequency" ];
-            th [];
-          ];
-      ])
-
-let tabulate_tr hd rows =
-  Tyxml.Html.(
-    div
-      ~a:[ a_class [ "mt-8" ] ]
-      [
-        table
-          ~a:
-            [
-              a_class
-                [
-                  "custom-table table-auto border border-gray-200 border-t-0 \
-                   rounded-lg w-full";
-                ];
-              a_id "table";
-            ]
-          ~thead:hd rows;
-      ])
-
 let table_head_div name =
   Tyxml.Html.(
     div

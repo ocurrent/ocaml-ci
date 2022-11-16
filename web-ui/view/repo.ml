@@ -56,7 +56,7 @@ module Make (M : M_Git_forge) = struct
                     [
                       a_input_type `Text;
                       a_placeholder "Search for a repository";
-                      a_onchange "search(this.value)";
+                      a_oninput "search(this.value)";
                     ]
                   ();
               ];
@@ -84,7 +84,19 @@ module Make (M : M_Git_forge) = struct
       ]
 
   let row ~repo_title ~short_hash ~last_updated ~status ~description ~repo_uri =
-    let last_updated_fmt = Timestamps_durations.pp_timestamp last_updated in
+    let info =
+      let hash = span ~a:[ a_class [ "font-medium" ] ] [ txt short_hash ] in
+      match last_updated with
+      | None -> div [ hash ]
+      | Some _ ->
+          div
+            [
+              hash;
+              txt
+                (Printf.sprintf " on %s"
+                   (Timestamps_durations.pp_timestamp last_updated));
+            ]
+    in
     (* Defaulting infinity means sorting by recent places them at the bottom of the page *)
     let last_updated_data =
       match last_updated with
@@ -112,11 +124,7 @@ module Make (M : M_Git_forge) = struct
                       a_class [ "repo-title text-gray-900 text-sm font-medium" ];
                     ]
                   [ txt repo_title ];
-                div
-                  [
-                    span ~a:[ a_class [ "font-medium" ] ] [ txt short_hash ];
-                    txt (Printf.sprintf " on %s" last_updated_fmt);
-                  ];
+                info;
                 div
                   ~a:[ a_class [ "text-grey-500" ] ]
                   [ div [ txt description ] ];
@@ -129,12 +137,56 @@ module Make (M : M_Git_forge) = struct
         td [ Common.right_arrow_head ];
       ]
 
-  let repo_url org repo = Fmt.str "/%s/%s/%s" M.prefix org repo
+  let repo_url org repo = Printf.sprintf "/%s/%s/%s" M.prefix org repo
+
+  let table_head name =
+    Tyxml.Html.(
+      thead
+        ~a:
+          [
+            a_class [ "bg-gray-50 px-6 py-3 text-gray-500 text-xs font-medium" ];
+          ]
+        [
+          tr
+            [
+              th [ txt name ];
+              th [];
+              th [];
+              th [];
+              th [];
+              (* th [ txt "Speed over time" ];
+                 th [ txt "Speed" ];
+                 th [ txt "Reliability" ];
+                 th [ txt "Build frequency" ]; *)
+              th [];
+            ];
+        ])
+
+  let tabulate hd rows =
+    Tyxml.Html.(
+      div
+        ~a:[ a_class [ "mt-8" ] ]
+        [
+          table
+            ~a:
+              [
+                a_class
+                  [
+                    "custom-table table-auto border border-gray-200 border-t-0 \
+                     rounded-lg w-full";
+                  ];
+                a_id "table";
+              ]
+            ~thead:hd rows;
+        ])
+
+  let repo_name_compare { Client.Org.name = n0; _ } { Client.Org.name = n1; _ }
+      =
+    String.compare (String.lowercase_ascii n0) (String.lowercase_ascii n1)
 
   let list ~org ~repos =
     let table_head =
-      Common.table_head_tr
-        (Printf.sprintf "Repositories (%d)" (List.length repos))
+      table_head (Printf.sprintf "Repositories (%d)" (List.length repos))
     in
     let table =
       let f { Client.Org.name; main_status; main_hash; main_last_updated } =
@@ -142,13 +194,13 @@ module Make (M : M_Git_forge) = struct
           ~last_updated:main_last_updated ~status:main_status ~description:""
           ~repo_uri:(repo_url org name)
       in
-      List.map f repos
+      List.map f (List.sort repo_name_compare repos)
     in
     Template_v1.instance
       [
         Tyxml.Html.script ~a:[ a_src "/js/repo-page-search.js" ] (txt "");
         Common.breadcrumbs [ (M.prefix, M.prefix) ] org;
         title ~org;
-        Common.tabulate_tr table_head table;
+        tabulate table_head table;
       ]
 end

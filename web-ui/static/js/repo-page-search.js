@@ -12,7 +12,9 @@ function time_comparator(a, b) {
   var ts_b = parseFloat(b.getAttribute("data-timestamp"))
   if (ts_a < ts_b) return -1
   if (ts_a > ts_b) return 1
-  return 0
+  // Fallback to title comparison for consistency when switching
+  // between the two; we don't want rows swapping unnecessarily
+  return title_comparator(a, b)
 }
 
 function sort(select) {
@@ -50,5 +52,4 @@ window.onload = function() {
   var table_root = document.getElementById("table")
   // table -> tbody
   body = table_root.lastChild
-  sort("alpha")
 }
