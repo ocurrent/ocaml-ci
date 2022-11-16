@@ -158,10 +158,9 @@ let make_repo ~engine ~owner ~name =
        method refs_impl _params release_param_caps =
          let open Repo.Refs in
          release_param_caps ();
-         let refs =
-           Index.get_active_refs { Ocaml_ci.Repo_id.owner; name }
-           |> Index.Ref_map.bindings
-         in
+
+         let repo_id = { Ocaml_ci.Repo_id.owner; name } in
+         let refs = Index.get_active_refs repo_id |> Index.Ref_map.bindings in
          let response, results = Service.Response.create Results.init_pointer in
          let arr = Results.refs_init results (List.length refs) in
          refs

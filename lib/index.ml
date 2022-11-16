@@ -355,61 +355,58 @@ let get_default_gref repo =
   | None -> raise Not_found
 
 module Aggregate = struct
-  type status = [ `Failed | `Pending | `Not_started | `Passed ] [@@deriving ord]
-  type ref_state = { s : status; started_at : float; ran_for : float }
+  type status = [ `Failed | `Pending | `Not_started | `Passed ]
+  (* [@@deriving ord] *)
+
+  type ref_state = {
+    s : status;
+    started_at : float option;
+    ran_for : float option;
+  }
 
   type repo_state = {
-    s : status;
-    started_at : float;
+    (* s : status;
+       started_at : float option; *)
     ref_states : ref_state Ref_map.t;
   }
+
+  let get_default_ref (s : repo_state) =
+    match Ref_map.find_opt "refs/heads/main" s.ref_states with
+    | Some s -> Some s
+    | None -> (
+        match Ref_map.find_opt "refs/heads/master" s.ref_states with
+        | Some s -> Some s
+        | None -> None)
 
   let get_ref_status (s : ref_state) = s.s
   let get_ref_started_at (s : ref_state) = s.started_at
   let get_ref_ran_for (s : ref_state) = s.ran_for
-  let get_repo_status (s : repo_state) = s.s
-  let get_repo_started_at (s : repo_state) = s.started_at
-  let state : repo_state Repo_map.t ref = ref Repo_map.empty
 
-  let aggregate_repo ~repo =
-    let aggregate_started_at ref_states =
-      Ref_map.fold
-        (fun _ ({ started_at; _ } : ref_state) acc -> Float.min acc started_at)
-        ref_states Float.infinity
-    in
-    let aggregate_repo_status ref_states =
-      if Ref_map.is_empty ref_states then `Not_started
-      else
-        Ref_map.fold
-          (fun _ ({ s; _ } : ref_state) acc ->
-            if compare_status acc s > 0 then acc else s)
-          ref_states `Passed
-    in
-    match Repo_map.find_opt repo !state with
-    | None -> raise Not_found
-    | Some { ref_states; _ } ->
-        let started_at = aggregate_started_at ref_states in
-        let s = aggregate_repo_status ref_states in
-        state := Repo_map.add repo { s; started_at; ref_states } !state
+  let get_repo_status (s : repo_state) =
+    match get_default_ref s with None -> `Not_started | Some s -> s.s
+
+  let get_repo_started_at (s : repo_state) =
+    get_default_ref s |> Option.map (fun s -> s.started_at) |> Option.join
+
+  let state : repo_state Repo_map.t ref = ref Repo_map.empty
 
   let set_ref_state ~repo ~ref s started_at ran_for =
     let s_ref = { s; started_at; ran_for } in
-    match Repo_map.find_opt repo !state with
-    | None ->
-        let s_repo =
-          { s; started_at; ref_states = Ref_map.singleton ref s_ref }
-        in
-        state := Repo_map.add repo s_repo !state
-    | Some { s; started_at; ref_states } ->
-        let s_repo =
-          { s; started_at; ref_states = Ref_map.add ref s_ref ref_states }
-        in
-        state := Repo_map.add repo s_repo !state
+    let s_repo =
+      match Repo_map.find_opt repo !state with
+      | None -> { ref_states = Ref_map.singleton ref s_ref }
+      | Some { ref_states } -> { ref_states = Ref_map.add ref s_ref ref_states }
+    in
+    state := Repo_map.add repo s_repo !state
 
   let get_ref_state ~repo ~ref =
-    let default = { s = `Not_started; started_at = 0.0; ran_for = 0.0 } in
+    let default_ref = { s = `Not_started; started_at = None; ran_for = None } in
     match Repo_map.find_opt repo !state with
-    | None -> default
+    | None -> default_ref
     | Some { ref_states; _ } ->
-        Ref_map.find_opt ref ref_states |> Option.value ~default
+        Ref_map.find_opt ref ref_states |> Option.value ~default:default_ref
+
+  let get_repo_state ~repo =
+    let default_repo = { ref_states = Ref_map.empty } in
+    Repo_map.find_opt repo !state |> Option.value ~default:default_repo
 end

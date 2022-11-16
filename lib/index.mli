@@ -97,13 +97,7 @@ val get_active_repos : owner:string -> Repo_set.t
 
 module Ref_map : Map.S with type key = string
 
-type ref_info = {
-  hash : string;
-  message : string;
-  name : string;
-      (* started_at : float option;
-         ran_for : float option; *)
-}
+type ref_info = { hash : string; message : string; name : string }
 [@@deriving show]
 
 val set_active_refs : repo:Repo_id.t -> ref_info Ref_map.t -> string -> unit
@@ -128,14 +122,19 @@ module Aggregate : sig
   type repo_state
 
   val get_ref_status : ref_state -> status
-  val get_ref_started_at : ref_state -> float
-  val get_ref_ran_for : ref_state -> float
+  val get_ref_started_at : ref_state -> float option
+  val get_ref_ran_for : ref_state -> float option
   val get_repo_status : repo_state -> status
-  val get_repo_started_at : repo_state -> float
+  val get_repo_started_at : repo_state -> float option
 
   val set_ref_state :
-    repo:Repo_id.t -> ref:string -> status -> float -> float -> unit
+    repo:Repo_id.t ->
+    ref:string ->
+    status ->
+    float option ->
+    float option ->
+    unit
 
   val get_ref_state : repo:Repo_id.t -> ref:string -> ref_state
-  val aggregate_repo : repo:Repo_id.t -> unit
+  val get_repo_state : repo:Repo_id.t -> repo_state
 end
