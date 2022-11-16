@@ -22,7 +22,7 @@
    logs
    current
    current_docker
-   (omigrate (>= 0.3.0))
+   (omigrate (>= 0.3.2))
    ocaml-ci-api
    capnp-rpc-unix
    ppx_deriving_yojson
