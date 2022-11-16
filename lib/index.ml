@@ -354,21 +354,17 @@ let get_default_gref repo =
   | Some { default_gref; _ } -> default_gref
   | None -> raise Not_found
 
-module Aggregate = struct
-  type status = [ `Failed | `Pending | `Not_started | `Passed ]
-  (* [@@deriving ord] *)
+type status = [ `Failed | `Pending | `Not_started | `Passed ]
+(* [@@deriving ord] *)
 
+module Aggregate = struct
   type ref_state = {
     s : status;
     started_at : float option;
     ran_for : float option;
   }
 
-  type repo_state = {
-    (* s : status;
-       started_at : float option; *)
-    ref_states : ref_state Ref_map.t;
-  }
+  type repo_state = { ref_states : ref_state Ref_map.t }
 
   let get_default_ref (s : repo_state) =
     match Ref_map.find_opt "refs/heads/main" s.ref_states with
@@ -409,4 +405,36 @@ module Aggregate = struct
   let get_repo_state ~repo =
     let default_repo = { ref_states = Ref_map.empty } in
     Repo_map.find_opt repo !state |> Option.value ~default:default_repo
+end
+
+module Commit_cache = struct
+  module Commit_map = Map.Make (struct
+    type t = string * string * string
+
+    let compare (a0, a1, a2) (b0, b1, b2) =
+      let res = String.compare a0 b0 in
+      if res != 0 then res
+      else
+        let res = String.compare a1 b1 in
+        if res != 0 then res else String.compare a2 b2
+  end)
+
+  type commit_state = {
+    s : status;
+    started_at : float option;
+    ran_for : float option;
+  }
+
+  let state : commit_state Commit_map.t ref = ref Commit_map.empty
+  let get_status s = s.s
+  let get_started_at s = s.started_at
+  let get_ran_for s = s.ran_for
+
+  let add ~owner ~name ~hash status started_at ran_for =
+    let v = { s = status; started_at; ran_for } in
+    state := Commit_map.add (owner, name, hash) v !state
+
+  let find ~owner ~name ~hash =
+    let default = { s = `Not_started; started_at = None; ran_for = None } in
+    Commit_map.find_opt (owner, name, hash) !state |> Option.value ~default
 end
