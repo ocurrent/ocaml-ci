@@ -355,7 +355,7 @@ let get_default_gref repo =
   | None -> raise Not_found
 
 module Aggregate = struct
-  type status = [ `Not_started | `Pending | `Failed | `Passed ]
+  type status = [ `Failed | `Pending | `Not_started | `Passed ] [@@deriving ord]
   type ref_state = { s : status; started_at : float; ran_for : float }
 
   type repo_state = {
@@ -378,27 +378,12 @@ module Aggregate = struct
         ref_states Float.infinity
     in
     let aggregate_repo_status ref_states =
-      let default = 4 in
-      (* Ugly way to do total ordering on variant type *)
-      let status_to_int = function
-        | `Failed -> 0
-        | `Pending -> 1
-        | `Not_started -> 2
-        | `Passed -> 3
-      in
-      let int_to_status = function
-        | 0 -> `Failed
-        | 1 -> `Pending
-        | 2 -> `Not_started
-        | 3 -> `Passed
-        | v when v = default ->
-            `Not_started (* If no ref_states, then assume we've not started *)
-        | _ -> raise Not_found
-      in
-      Ref_map.fold
-        (fun _ ({ s; _ } : ref_state) acc -> Int.min acc (status_to_int s))
-        ref_states default
-      |> int_to_status
+      if Ref_map.is_empty ref_states then `Not_started
+      else
+        Ref_map.fold
+          (fun _ ({ s; _ } : ref_state) acc ->
+            if compare_status acc s > 0 then acc else s)
+          ref_states `Passed
     in
     match Repo_map.find_opt repo !state with
     | None -> raise Not_found
