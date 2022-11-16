@@ -107,6 +107,7 @@ let install_project_deps ~opam_version ~opam_files ~selection =
    [ shell [ "/usr/bin/linux32"; "/bin/sh"; "-c" ] ]
   else [])
   @ [ env "CLICOLOR_FORCE" "1" ]
+  @ [ env "OPAMCOLOR" "always" ]
   @ distro_extras
   @ [
       run "sudo ln -f %s /usr/bin/opam" opam_cmd;
