@@ -394,6 +394,81 @@ let test_total_of_run_times =
   let result = Run_time.total_of_run_times build in
   Alcotest.(check (float 0.001)) "total_of_run_times" expected result
 
+let test_max_run_times =
+  let analysis_step : Client.job_info =
+    {
+      variant = "(analysis)";
+      outcome = Passed;
+      queued_at = Some 1234567.;
+      started_at = Some 1234570.;
+      finished_at = Some 1234575.;
+    }
+    (* thus run-time of analysis step is 3 + 5 = 8 *)
+  in
+  let lint_step : Client.job_info =
+    {
+      variant = "(lint-fmt)";
+      outcome = Passed;
+      queued_at = Some 1234576.;
+      started_at = Some 1234579.;
+      finished_at = Some 1234585.;
+    }
+    (* run-time of lint_step is 3 + 6 = 9 *)
+  in
+  let build_step : Client.job_info =
+    {
+      variant = "foo-11-4.14";
+      outcome = Passed;
+      queued_at = Some 1234576.;
+      started_at = Some 1234579.;
+      finished_at = Some 1234590.;
+    }
+    (* run-time of build_step is 3 + 11 = 14 -- this is the longest running step *)
+  in
+  let steps = [ analysis_step; lint_step; build_step ] in
+  let expected = 14. in
+  let result =
+    Run_time.max_of_step_run_times ~build_created_at:1234567. steps
+  in
+  Alcotest.(check (float 0.001)) "max_run_times" expected result
+
+let test_build_run_time =
+  let analysis_step : Client.job_info =
+    {
+      variant = "(analysis)";
+      outcome = Passed;
+      queued_at = Some 1234567.;
+      started_at = Some 1234570.;
+      finished_at = Some 1234575.;
+    }
+    (* thus run-time of analysis step is 3 + 5 = 8 *)
+  in
+  let lint_step : Client.job_info =
+    {
+      variant = "(lint-fmt)";
+      outcome = Passed;
+      queued_at = Some 1234576.;
+      started_at = Some 1234579.;
+      finished_at = Some 1234585.;
+    }
+    (* run-time of lint_step is 3 + 6 = 9 *)
+  in
+  let build_step : Client.job_info =
+    {
+      variant = "foo-11-4.14";
+      outcome = Passed;
+      queued_at = Some 1234576.;
+      started_at = Some 1234579.;
+      finished_at = Some 1234590.;
+    }
+    (* run-time of build_step is 3 + 11 = 14 -- this is the longest running step *)
+  in
+  let build = [ analysis_step; lint_step; build_step ] in
+  let expected = 8. +. 14. in
+  (* run-time of analysis + run-time of build-step (since it is the longest running step)*)
+  let result = Run_time.build_run_time build in
+  Alcotest.(check (float 0.001)) "build_run_time" expected result
+
 let test_first_step_queued_at =
   let not_started : Client.job_info =
     {

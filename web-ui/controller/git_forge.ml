@@ -123,6 +123,7 @@ module Make (View : View) = struct
       | Ok v -> Some v
     in
     let total_run_time = Run_time.total_of_run_times jobs in
+    (* let build_run_time = Run_time.wall_clock_run_time jobs in *)
     Dream.respond
     @@ View.list_steps ~org ~repo ~message ~refs ~hash ~jobs ~csrf_token
          ~first_step_queued_at ~total_run_time ~flash_messages ~build_status ()
