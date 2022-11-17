@@ -310,65 +310,6 @@ let list_steps ~org ~repo ~message ~refs ~hash ~jobs ~first_step_queued_at
       div buttons;
     ]
 
-let _show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
-    ~timestamps ~build_created_at ?(flash_messages = []) (data, next) =
-  let header, footer =
-    let can_rebuild = status.Current_rpc.Job.can_rebuild in
-    let buttons =
-      if can_rebuild then
-        [
-          form
-            ~a:[ a_action (variant ^ "/rebuild"); a_method `Post ]
-            [
-              Unsafe.data csrf_token;
-              input ~a:[ a_input_type `Submit; a_value "Rebuild" ] ();
-            ];
-        ]
-      else []
-    in
-    let body =
-      Template.instance ~flash_messages
-        [
-          breadcrumbs
-            [
-              (prefix, prefix);
-              (org, org);
-              (repo, repo);
-              (short_hash hash, "commit/" ^ hash);
-            ]
-            variant;
-          link_gitlab_refs ~org ~repo refs;
-          link_jobs ~org ~repo ~hash ~selected:variant jobs;
-          Timestamps_durations.show_step ~build_created_at timestamps;
-          div buttons;
-          pre [ txt "@@@" ];
-        ]
-    in
-    Astring.String.cut ~sep:"@@@" body |> Option.get
-  in
-  let ansi = Ansi.create () in
-  let open Lwt.Infix in
-  Dream.stream
-    ~headers:[ ("Content-type", "text/html; charset=utf-8") ]
-    (fun response_stream ->
-      Dream.write response_stream header >>= fun () ->
-      Dream.write response_stream (Ansi.process ansi data) >>= fun () ->
-      let rec loop next =
-        Current_rpc.Job.log job ~start:next >>= function
-        | Ok ("", _) ->
-            Dream.write response_stream footer >>= fun () ->
-            Dream.close response_stream
-        | Ok (data, next) ->
-            Dream.log "Fetching logs";
-            Dream.write response_stream (Ansi.process ansi data) >>= fun () ->
-            Dream.flush response_stream >>= fun () -> loop next
-        | Error (`Capnp ex) ->
-            Dream.log "Error fetching logs: %a" Capnp_rpc.Error.pp ex;
-            Dream.write response_stream
-              (Fmt.str "ocaml-ci error: %a@." Capnp_rpc.Error.pp ex)
-      in
-      loop next)
-
 let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
     ~timestamps ~build_created_at ?(flash_messages = []) (data, next) =
   let header, footer =
