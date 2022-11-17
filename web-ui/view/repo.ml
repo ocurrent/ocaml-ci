@@ -61,7 +61,7 @@ module Make (M : M_Git_forge) = struct
                   ();
               ];
             div
-              ~a:[ a_class [ "relative" ] ]
+              ~a:[ a_class [ "relative" ]; a_style "display:none" ]
               [
                 select
                   ~a:
@@ -142,14 +142,10 @@ module Make (M : M_Git_forge) = struct
   let table_head name =
     Tyxml.Html.(
       thead
-        ~a:
-          [
-            a_class [ "bg-gray-50 px-6 py-3 text-gray-500 text-xs font-medium" ];
-          ]
         [
           tr
             [
-              th [ txt name ];
+              th [ div [ txt name ] ];
               th [];
               th [];
               th [];
