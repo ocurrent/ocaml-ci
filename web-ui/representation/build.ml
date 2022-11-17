@@ -9,6 +9,7 @@ type t = {
   status : string;
   first_created_at : string;
   ran_for : string;
+  total_ran_for : string;
   can_cancel : bool;
   can_rebuild : bool;
   steps : Step.t list;
@@ -27,6 +28,7 @@ let from_jobs_status ~jobs ~build_status ~build_created_at ~step_route_prefix =
     | Ok v -> Some v
   in
   let total_run_time = Run_time.total_of_run_times jobs in
+  let build_run_time = Run_time.build_run_time jobs in
   let can_cancel =
     let check job_info =
       match job_info.Client.outcome with
@@ -54,7 +56,8 @@ let from_jobs_status ~jobs ~build_status ~build_created_at ~step_route_prefix =
     version;
     status = Fmt.str "%a" Client.State.pp build_status;
     first_created_at = Timestamps_durations.pp_timestamp first_step_queued_at;
-    ran_for = Timestamps_durations.pp_duration @@ Some total_run_time;
+    total_ran_for = Timestamps_durations.pp_duration @@ Some total_run_time;
+    ran_for = Timestamps_durations.pp_duration @@ Some build_run_time;
     can_cancel;
     can_rebuild;
     steps;

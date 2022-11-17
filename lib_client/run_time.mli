@@ -91,4 +91,5 @@ val total_of_run_times : Ocaml_ci_api.Client.job_info list -> float
 
 val build_run_time : Ocaml_ci_api.Client.job_info list -> float
 (** Takes a list of job_info which is meant to be the steps in a build. Returns
-    the (run-time of the analysis step) + max(run-times of the steps in the build) *)
+    the (run-time of the analysis step) + max(run-times of the steps in the
+    build) *)

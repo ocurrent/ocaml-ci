@@ -52,6 +52,7 @@ module type View = sig
     jobs:Client.job_info list ->
     first_step_queued_at:float option ->
     total_run_time:float ->
+    build_run_time:float ->
     ?flash_messages:(string * string) list ->
     ?build_status:Client.State.t ->
     csrf_token:string ->
