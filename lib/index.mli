@@ -11,8 +11,12 @@ type job_state =
 
 type build_status = [ `Not_started | `Pending | `Failed | `Passed ]
 
-val init : unit -> unit
+val init : unit -> unit Lwt.t
 (** Ensure the database is initialised (for unit-tests). *)
+
+val migrate : unit -> unit Current.t
+(** [migrate ()] ensures the database is up-to-date when the project is run. If
+    the date changes, it will try to run the migration again. **)
 
 val record :
   repo:Repo_id.t ->

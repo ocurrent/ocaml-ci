@@ -9,6 +9,8 @@
   current_docker
   current.term
   ocaml-ci-api
+  omigrate
+  omigrate.sqlite3
   str
   capnp-rpc-unix
   current.cache

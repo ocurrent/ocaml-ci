@@ -16,6 +16,7 @@
  (alias runtest)
  (package ocaml-ci-service)
  (deps
+  (source_tree migrations)
   (package ocaml-ci-solver))
  (action
-  (run ./test.exe)))
+  (run ./test.exe -e)))

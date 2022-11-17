@@ -28,8 +28,9 @@ let commits_jobs =
 let database = Alcotest.(list string)
 
 let setup () =
+  let open Lwt.Syntax in
+  let+ () = Index.init () in
   let db = Lazy.force Current.Db.v in
-  Index.init ();
   Current.Db.exec_literal db "DELETE FROM cache";
   db
 
@@ -50,8 +51,9 @@ let test_active_refs () =
   let result = Index.get_active_refs repo |> Ref_map.bindings in
   Alcotest.(check (list (pair string ref_info))) "Refs" expected result
 
-let test_get_jobs () =
-  let db = setup () in
+let test_get_jobs _switch () =
+  let open Lwt.Syntax in
+  let+ db = setup () in
   Alcotest.check database "Disk store initially empty" [] @@ [];
   let owner = "owner" in
   let name = "name" in
@@ -108,7 +110,9 @@ let test_get_jobs () =
   let result = Index.get_jobs ~owner ~name hash in
   Alcotest.(check jobs) "Jobs" expected result
 
-let test_get_build_history () =
+let test_get_build_history _ () =
+  let open Lwt.Syntax in
+  let+ _ = setup () in
   let owner = "owner" in
   let name = "name" in
   let repo = { Ocaml_ci.Repo_id.owner; name } in
@@ -127,7 +131,7 @@ let test_get_build_history () =
 
 let tests =
   [
-    Alcotest_lwt.test_case_sync "build_history" `Quick test_get_build_history;
+    Alcotest_lwt.test_case "build_history" `Quick test_get_build_history;
     Alcotest_lwt.test_case_sync "active_refs" `Quick test_active_refs;
-    Alcotest_lwt.test_case_sync "jobs" `Quick test_get_jobs;
+    Alcotest_lwt.test_case "jobs" `Quick test_get_jobs;
   ]
