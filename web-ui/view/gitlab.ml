@@ -1,5 +1,5 @@
 module Client = Ocaml_ci_api.Client
-module Common = Ocaml_ci_api.Common
+module Common_api = Ocaml_ci_api.Common
 module StatusTree = Status_tree
 module Build_status = Build_status
 module Run_time = Ocaml_ci_client_lib.Run_time
@@ -17,6 +17,9 @@ let gitlab_branch_url ~org ~repo ref =
 
 let gitlab_mr_url ~org ~repo id =
   Fmt.str "https://gitlab.com/%s/%s/-/merge_requests/%s" org repo id
+
+let gitlab_commit_url ~org ~repo ~hash =
+  Printf.sprintf "https://gitlab.com/%s/%s/-/commit/%s" org repo hash
 
 let format_org org =
   li [ a ~a:[ a_href (Url.org_url prefix ~org) ] [ txt org ] ]
@@ -60,6 +63,9 @@ let history_v ~org ~repo ~history =
              [ txt commit ];
          ])
 
+let link_gitlab_commit ~org ~repo ~hash =
+  a ~a:[ a_href (gitlab_commit_url ~org ~repo ~hash) ] [ txt hash ]
+
 let link_gitlab_refs ~org ~repo = function
   | [] -> txt "(not at the head of any monitored branch or merge request)"
   | refs ->
@@ -94,7 +100,7 @@ let link_jobs ~org ~repo ~hash ?selected jobs =
     let uri = Url.job_url prefix ~org ~repo ~hash variant in
     match
       List.rev
-        (Astring.String.cuts ~sep:(Fmt.str "%c" Common.status_sep) variant)
+        (Astring.String.cuts ~sep:(Fmt.str "%c" Common_api.status_sep) variant)
     with
     | [] -> assert false
     | label_txt :: k ->
@@ -304,7 +310,7 @@ let list_steps ~org ~repo ~message ~refs ~hash ~jobs ~first_step_queued_at
       div buttons;
     ]
 
-let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
+let _show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
     ~timestamps ~build_created_at ?(flash_messages = []) (data, next) =
   let header, footer =
     let can_rebuild = status.Current_rpc.Job.can_rebuild in
@@ -355,6 +361,275 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
         | Ok (data, next) ->
             Dream.log "Fetching logs";
             Dream.write response_stream (Ansi.process ansi data) >>= fun () ->
+            Dream.flush response_stream >>= fun () -> loop next
+        | Error (`Capnp ex) ->
+            Dream.log "Error fetching logs: %a" Capnp_rpc.Error.pp ex;
+            Dream.write response_stream
+              (Fmt.str "ocaml-ci error: %a@." Capnp_rpc.Error.pp ex)
+      in
+      loop next)
+
+let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
+    ~timestamps ~build_created_at ?(flash_messages = []) (data, next) =
+  let header, footer =
+    let can_rebuild = status.Current_rpc.Job.can_rebuild in
+    let button =
+      Some (Common.form_rebuild_step ~variant ~csrf_token ~show:can_rebuild ())
+    in
+    let branch =
+      if refs = [] then ""
+      else
+        match Astring.String.cuts ~sep:"/" (List.hd refs) with
+        | "refs" :: "heads" :: branch -> Astring.String.concat ~sep:"/" branch
+        | _ -> ""
+    in
+    (* FIXME: This will throw an exception and cause a noisy 500 *)
+    let step_info = List.find (fun j -> j.Client.variant = variant) jobs in
+    let build_status = step_info.outcome in
+    let build_created_at = Option.value ~default:0. build_created_at in
+    let run_time =
+      Option.map
+        (Run_time.run_times_from_timestamps ~build_created_at)
+        timestamps
+    in
+    let title_card =
+      Step.title_card ~status:build_status ~card_title:variant
+        ~hash_link:(link_gitlab_commit ~org ~repo ~hash:(short_hash hash))
+        ~created_at:(Timestamps_durations.pp_timestamp step_info.queued_at)
+        ~finished_at:(Timestamps_durations.pp_timestamp step_info.finished_at)
+        ~queued_for:
+          (Timestamps_durations.pp_duration
+             (Option.map Run_time.queued_for run_time))
+        ~ran_for:
+          (Timestamps_durations.pp_duration
+             (Option.map Run_time.ran_for run_time))
+        ~button
+    in
+    let body =
+      Template_v1.instance
+        [
+          Tyxml.Html.script ~a:[ a_src "/js/log-highlight.js" ] (txt "");
+          Tyxml.Html.script ~a:[ a_src "/js/step-page-poll.js" ] (txt "");
+          Common.breadcrumbs
+            [
+              ("gitlab", "gitlab");
+              (org, org);
+              (repo, repo);
+              ( Printf.sprintf "%s (%s)" (short_hash hash) branch,
+                Printf.sprintf "commit/%s" hash );
+            ]
+            variant;
+          title_card;
+          Common.flash_messages flash_messages;
+          div
+            ~a:
+              [
+                a_class [ "container-fluid mt-8 flex flex-col" ];
+                Tyxml_helpers.x_data
+                  "{ url: window.location.href, logs: true, artefacts: false, \
+                   codeCoverage: false, codeCopied: false, linkCopied: false, \
+                   startingLine: null, endingLine: null, manualSelection: \
+                   false}";
+              ]
+            [
+              div
+                ~a:
+                  [
+                    a_class [ "notification" ];
+                    Tyxml_helpers.x_cloak;
+                    Tyxml_helpers.x_show "linkCopied";
+                    Tyxml_helpers.x_transition;
+                  ]
+                [
+                  div
+                    ~a:[ a_class [ "flex items-center space-x-2" ] ]
+                    [
+                      div
+                        ~a:[ a_class [ "icon-status icon-status--success" ] ]
+                        [
+                          Tyxml.Svg.(
+                            Tyxml.Html.svg
+                              ~a:
+                                [
+                                  a_class [ "h-4 w-4" ];
+                                  a_viewBox (0., 0., 20., 20.);
+                                  a_fill (`Color ("#12B76A", None));
+                                ]
+                              [
+                                path
+                                  ~a:
+                                    [
+                                      Tyxml_helpers.a_svg_custom "fill-rule"
+                                        "evenodd";
+                                      Tyxml_helpers.a_svg_custom "clip-rule"
+                                        "evenodd";
+                                      a_d
+                                        "M16.707 5.293a1 1 0 010 1.414l-8 8a1 \
+                                         1 0 01-1.414 0l-4-4a1 1 0 \
+                                         011.414-1.414L8 12.586l7.293-7.293a1 \
+                                         1 0 011.414 0z";
+                                    ]
+                                  [];
+                              ]);
+                        ];
+                      div [ txt "Link copied" ];
+                    ];
+                  Tyxml.Html.button
+                    ~a:
+                      [
+                        a_class [ "icon-button" ];
+                        Tyxml_helpers.at_click "linkCopied=false";
+                      ]
+                    [
+                      Tyxml.Svg.(
+                        Tyxml.Html.svg
+                          ~a:
+                            [
+                              a_fill `None;
+                              a_viewBox (0., 0., 24., 24.);
+                              a_stroke_width (2.5, Some `Px);
+                              a_stroke `CurrentColor;
+                              a_class [ "w-4 h-4" ];
+                            ]
+                          [
+                            path
+                              ~a:
+                                [
+                                  a_stroke_linecap `Round;
+                                  a_stroke_linejoin `Round;
+                                  a_d "M4.5 19.5l15-15m-15 0l15 15";
+                                ]
+                              [];
+                          ]);
+                    ];
+                ];
+              div
+                ~a:
+                  [
+                    a_class
+                      [ "flex space-x-6 border-b border-gray-200 mb-6 text-sm" ];
+                  ]
+                [ h3 ~a:[ a_class [ "font-medium pb-2" ] ] [ txt "Logs" ] ];
+              div
+                [
+                  div
+                    ~a:
+                      [
+                        a_class [ "mt-6 bg-gray-900 rounded-lg relative" ];
+                        Tyxml_helpers.x_data "codeLink";
+                        Tyxml_helpers.x_init "highlightLine";
+                      ]
+                    [
+                      Tyxml.Html.button
+                        ~a:
+                          [
+                            a_class [ "copy-link-btn" ];
+                            Tyxml_helpers.at_click "copyCode";
+                            Tyxml_helpers.x_show "manualSelection";
+                            Tyxml_helpers.x_ref "copyLinkBtn";
+                            Tyxml_helpers.x_cloak;
+                          ]
+                        [
+                          Tyxml.Svg.(
+                            Tyxml.Html.svg
+                              ~a:
+                                [
+                                  a_class [ "w-4 h-4" ];
+                                  a_fill `None;
+                                  a_viewBox (0., 0., 24., 24.);
+                                  a_stroke_width (2., Some `Px);
+                                  a_stroke `CurrentColor;
+                                ]
+                              [
+                                path
+                                  ~a:
+                                    [
+                                      a_stroke_linecap `Round;
+                                      a_stroke_linejoin `Round;
+                                      a_d
+                                        "M13.19 8.688a4.5 4.5 0 011.242 \
+                                         7.244l-4.5 4.5a4.5 4.5 0 \
+                                         01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 \
+                                         4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 \
+                                         0 001.242 7.244";
+                                    ]
+                                  [];
+                              ]);
+                        ];
+                      div
+                        ~a:
+                          [
+                            a_class
+                              [ "table-overflow overflow-auto rounded-lg" ];
+                          ]
+                        [ txt "@@@" ];
+                    ];
+                ];
+            ];
+        ]
+    in
+    Astring.String.cut ~sep:"@@@" body |> Option.get
+  in
+  let ansi = Ansi.create () in
+  let line_number = ref 0 in
+  let last_line_blank = ref false in
+  let tabulate data : string =
+    let aux (l : string) log_line =
+      if !last_line_blank && log_line = "" then
+        (* Squash consecutive new lines *)
+        l
+      else (
+        last_line_blank := log_line = "";
+        line_number := !line_number + 1;
+        Printf.sprintf "%s\n%s" l
+          (Fmt.str "%a" (pp_elt ())
+             (tr
+                ~a:
+                  [
+                    a_class [ "code-line" ];
+                    Tyxml_helpers.colon_class
+                      "parseInt($el.id.substring(1, $el.id.length)) >= \
+                       startingLine && parseInt($el.id.substring(1, \
+                       $el.id.length)) <= endingLine ? 'highlight' : ''";
+                    Tyxml_helpers.at_click "highlightLine";
+                    a_id (Printf.sprintf "L%d" !line_number);
+                  ]
+                [
+                  td
+                    ~a:[ a_class [ "code-line__number" ] ]
+                    [ txt (Printf.sprintf "%d" !line_number) ];
+                  td
+                    ~a:[ a_class [ "code-line__code" ] ]
+                    [ pre [ Unsafe.data log_line ] ];
+                ])))
+    in
+    Printf.sprintf "%s%s"
+      (List.fold_left aux "<table><tbody>" data)
+      "</tbody></table>"
+  in
+  let open Lwt.Infix in
+  Dream.stream
+    ~headers:[ ("Content-type", "text/html; charset=utf-8") ]
+    (fun response_stream ->
+      Dream.write response_stream header >>= fun () ->
+      let data' =
+        data |> Ansi.process ansi |> Astring.String.cuts ~sep:"\n" |> tabulate
+      in
+      Dream.write response_stream data' >>= fun () ->
+      let rec loop next =
+        Current_rpc.Job.log job ~start:next >>= function
+        | Ok ("", _) ->
+            Dream.write response_stream footer >>= fun () ->
+            Dream.close response_stream
+        | Ok (data, next) ->
+            Dream.log "Fetching logs";
+            let data' =
+              data
+              |> Ansi.process ansi
+              |> Astring.String.cuts ~sep:"\n"
+              |> tabulate
+            in
+            Dream.write response_stream data' >>= fun () ->
             Dream.flush response_stream >>= fun () -> loop next
         | Error (`Capnp ex) ->
             Dream.log "Error fetching logs: %a" Capnp_rpc.Error.pp ex;
