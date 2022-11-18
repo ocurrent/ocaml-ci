@@ -36,20 +36,26 @@ function search(target) {
     var title = child.getElementsByClassName("repo-title")[0].textContent.toLowerCase()
     return title.indexOf(ss.toLowerCase()) !== -1
   }
-
+  var n_visible = 0
   for (i = 0; i < children.length; ++i) {
     if (has_substr(children[i], target)) {
       children[i].style.display = "";
+      n_visible++
     } else {
       children[i].style.display = "none";
     }
   }
+  var n_repositories_header = head.firstChild.firstChild.firstChild
+  n_repositories_header.textContent = `Repositories (${n_visible})`
 }
 
+var head = null
 var body = null
 
 window.onload = function() {
   var table_root = document.getElementById("table")
+  // table -> thead
+  head = table_root.firstChild
   // table -> tbody
   body = table_root.lastChild
 }
