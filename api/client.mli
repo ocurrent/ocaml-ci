@@ -93,7 +93,12 @@ module Org : sig
   type t = Raw.Client.Org.t Capability.t
   (** A GitHub organisation. *)
 
-  type repo_info = { name : string; master_status : Build_status.t }
+  type repo_info = {
+    name : string;
+    main_status : Build_status.t;
+    main_hash : string;
+    main_last_updated : float option;
+  }
 
   val repo : t -> string -> Repo.t
   (** [repo t name] is the GitHub organisation at

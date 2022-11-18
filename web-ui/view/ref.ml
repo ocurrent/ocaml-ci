@@ -19,11 +19,9 @@ module Make (M : M_Git_forge) = struct
     let ref_title =
       match ref with Branch title -> title | PR { title; _ } -> title
     in
-    Tyxml.Html.(
-      let description =
-        [ div [ txt short_hash ] ]
-        @
-        match ref with
+    let description =
+      [ div [ txt short_hash ] ]
+      @ (match ref with
         | Branch _ -> []
         | PR { id; _ } ->
             [
@@ -31,53 +29,66 @@ module Make (M : M_Git_forge) = struct
               div
                 ~a:[ a_class [ "flex space-x-1 items-center" ] ]
                 [ logo; div [ txt (Printf.sprintf "#%s" id) ] ];
-            ]
-        (* FIXME: We do not have started_at implemented yet.*)
-        (* @ [ div [ txt "-" ]; div [ txt started_at ] ] *)
-      in
-      a
-        ~a:[ a_class [ "table-row" ]; a_href ref_uri ]
-        [
-          div
-            ~a:[ a_class [ "flex items-center space-x-3" ] ]
-            [
-              Common.status_icon_build status;
-              div
-                ~a:[ a_class [ "flex items-center space-x-3" ] ]
-                [
-                  div
-                    ~a:
-                      [
-                        a_class
-                          [
-                            "font-medium text-gray-700 text-sm px-2 py-1 \
-                             border border-gray-300 rounded-lg";
-                          ];
-                      ]
-                    [ txt ref_title ];
-                  div
-                    ~a:[ a_class [ "flex flex-col" ] ]
-                    [
-                      div
-                        ~a:[ a_class [ "text-gray-900 text-sm font-medium" ] ]
-                        [ txt message ];
-                      div
-                        ~a:[ a_class [ "flex text-sm space-x-2" ] ]
-                        description;
-                    ];
-                ];
-            ];
-          div
-            ~a:
+            ])
+      @
+      match started_at with
+      | None -> []
+      | Some _ ->
+          [
+            div [ txt "-" ];
+            div [ txt (Timestamps_durations.pp_timestamp started_at) ];
+          ]
+    in
+    let rhs =
+      match ran_for with
+      | None -> [ Common.right_arrow_head ]
+      | Some _ ->
+          [
+            div [ txt (Timestamps_durations.pp_timestamp ran_for) ];
+            Common.right_arrow_head;
+          ]
+    in
+    a
+      ~a:[ a_class [ "table-row" ]; a_href ref_uri ]
+      [
+        div
+          ~a:[ a_class [ "flex items-center space-x-3" ] ]
+          [
+            Common.status_icon_build status;
+            div
+              ~a:[ a_class [ "flex items-center space-x-3" ] ]
               [
-                a_class
+                div
+                  ~a:
+                    [
+                      a_class
+                        [
+                          "font-medium text-gray-700 text-sm px-2 py-1 border \
+                           border-gray-300 rounded-lg";
+                        ];
+                    ]
+                  [ txt ref_title ];
+                div
+                  ~a:[ a_class [ "flex flex-col" ] ]
                   [
-                    "flex text-sm font-normal text-gray-500 space-x-8 \
-                     items-center";
+                    div
+                      ~a:[ a_class [ "text-gray-900 text-sm font-medium" ] ]
+                      [ txt message ];
+                    div ~a:[ a_class [ "flex text-sm space-x-2" ] ] description;
                   ];
-              ]
-            [ div [ txt ran_for ]; Common.right_arrow_head ];
-        ])
+              ];
+          ];
+        div
+          ~a:
+            [
+              a_class
+                [
+                  "flex text-sm font-normal text-gray-500 space-x-8 \
+                   items-center";
+                ];
+            ]
+          rhs;
+      ]
 
   let ref gref title =
     match Astring.String.cuts ~sep:"/" gref with
@@ -90,8 +101,6 @@ module Make (M : M_Git_forge) = struct
     let f { Client.Repo.gref; hash; status; started_at; message; name; ran_for }
         =
       let short_hash = short_hash hash in
-      let started_at = Timestamps_durations.pp_timestamp started_at in
-      let ran_for = Timestamps_durations.pp_timestamp ran_for in
       row ~ref:(ref gref name) ~short_hash ~started_at ~ran_for ~status
         ~ref_uri:(Url.commit_url M.prefix ~org ~repo ~hash)
         ~message
@@ -103,7 +112,7 @@ module Make (M : M_Git_forge) = struct
                String.equal gref "refs/heads/main"
                || String.equal gref "refs/heads/master")
       in
-      let table_head = Common.table_head "Default Branch" in
+      let table_head = Common.table_head_div "Default Branch" in
       let table = table_head :: [ f main_ref_info ] in
       (table, main_ref)
     in
@@ -116,7 +125,7 @@ module Make (M : M_Git_forge) = struct
       in
       let n_branches = Client.Ref_map.cardinal branches in
       let table_head =
-        Common.table_head (Printf.sprintf "Branches (%d)" n_branches)
+        Common.table_head_div (Printf.sprintf "Branches (%d)" n_branches)
       in
       let bindings = Client.Ref_map.bindings branches in
       let table = table_head :: List.map (fun (_, ref) -> f ref) bindings in
@@ -130,13 +139,12 @@ module Make (M : M_Git_forge) = struct
       in
       let n_prs = Client.Ref_map.cardinal prs in
       let table_head =
-        Common.table_head (Printf.sprintf "Refs Branches (%d)" n_prs)
+        Common.table_head_div (Printf.sprintf "Refs Branches (%d)" n_prs)
       in
       let bindings = Client.Ref_map.bindings prs in
       let table = table_head :: List.map (fun (_, ref) -> f ref) bindings in
       (table, n_prs)
     in
-    Dream.log "n_branches: %d - n_prs: %d" n_branches n_prs;
     let title =
       let repo_url = Url.repo_url M.prefix ~org ~repo in
       div
@@ -167,12 +175,13 @@ module Make (M : M_Git_forge) = struct
     [
       Common.breadcrumbs [ (M.prefix, M.prefix); (org, org) ] repo;
       title;
-      Common.tabulate default_table;
+      Common.tabulate_div default_table;
     ]
     |> (fun content ->
          if n_branches = 0 then content
-         else content @ [ Common.tabulate branch_table ])
+         else content @ [ Common.tabulate_div branch_table ])
     |> (fun content ->
-         if n_prs = 0 then content else content @ [ Common.tabulate pr_table ])
+         if n_prs = 0 then content
+         else content @ [ Common.tabulate_div pr_table ])
     |> Template_v1.instance
 end

@@ -11,6 +11,10 @@ module Ref = Ref.Make (struct
   let prefix = prefix
 end)
 
+module Repo = Repo.Make (struct
+  let prefix = prefix
+end)
+
 let github_branch_url ~org ~repo ref =
   Printf.sprintf "https://github.com/%s/%s/tree/%s" org repo ref
 
@@ -20,24 +24,10 @@ let github_commit_url ~org ~repo ~hash =
 let github_pr_url ~org ~repo id =
   Printf.sprintf "https://github.com/%s/%s/pull/%s" org repo id
 
-(* let github_repo_url ~org repo =
-   Printf.sprintf "https://github.com/%s/%s" org repo *)
-
 let format_org org =
   li [ a ~a:[ a_href (Url.org_url prefix ~org) ] [ txt org ] ]
 
-let format_repo ~org { Client.Org.name; master_status } =
-  li
-    ~a:[ a_class [ Build_status.class_name master_status ] ]
-    [ a ~a:[ a_href (Url.repo_url prefix ~org ~repo:name) ] [ txt name ] ]
-
 let orgs_v ~orgs = [ breadcrumbs [] prefix; ul (List.map format_org orgs) ]
-
-let repos_v ~org ~repos =
-  [
-    breadcrumbs [ (prefix, prefix) ] org;
-    ul ~a:[ a_class [ "statuses" ] ] (List.map (format_repo ~org) repos);
-  ]
 
 let history_v ~org ~repo ~history =
   ul
@@ -109,7 +99,7 @@ let link_github_refs' ~org ~repo refs =
   List.map f refs
 
 let list_orgs ~orgs = Template.instance @@ orgs_v ~orgs
-let list_repos ~org ~repos = Template.instance @@ repos_v ~org ~repos
+let list_repos ~org ~repos = Repo.list ~org ~repos
 let list_refs = Ref.list
 
 let list_history ~org ~repo ~ref ~history =

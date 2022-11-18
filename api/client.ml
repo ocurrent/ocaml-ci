@@ -63,7 +63,13 @@ end
 
 module Org = struct
   type t = Raw.Client.Org.t Capability.t
-  type repo_info = { name : string; master_status : Build_status.t }
+
+  type repo_info = {
+    name : string;
+    main_status : Build_status.t;
+    main_hash : string;
+    main_last_updated : float option;
+  }
 
   let repo t name =
     let open Raw.Client.Org.Repo in
@@ -79,8 +85,17 @@ module Org = struct
            Results.repos_get_list result
            |> List.map @@ fun repo ->
               let name = Raw.Reader.RepoInfo.name_get repo in
-              let master_status = Raw.Reader.RepoInfo.master_state_get repo in
-              { name; master_status })
+              let main_status = Raw.Reader.RepoInfo.main_state_get repo in
+              let main_hash = Raw.Reader.RepoInfo.main_hash_get repo in
+              let main_last_updated =
+                let time = Raw.Reader.RepoInfo.main_last_updated_get repo in
+                match Raw.Reader.RepoInfo.MainLastUpdated.get time with
+                | Raw.Reader.RepoInfo.MainLastUpdated.None
+                | Raw.Reader.RepoInfo.MainLastUpdated.Undefined _ ->
+                    None
+                | Raw.Reader.RepoInfo.MainLastUpdated.Ts v -> Some v
+              in
+              { name; main_status; main_hash; main_last_updated })
 end
 
 module Repo = struct

@@ -24,9 +24,9 @@ let gitlab_commit_url ~org ~repo ~hash =
 let format_org org =
   li [ a ~a:[ a_href (Url.org_url prefix ~org) ] [ txt org ] ]
 
-let format_repo ~org { Client.Org.name; master_status } =
+let format_repo ~org { Client.Org.name; main_status; _ } =
   li
-    ~a:[ a_class [ Build_status.class_name master_status ] ]
+    ~a:[ a_class [ Build_status.class_name main_status ] ]
     [ a ~a:[ a_href (Url.repo_url prefix ~org ~repo:name) ] [ txt name ] ]
 
 let orgs_v ~orgs = [ breadcrumbs [] prefix; ul (List.map format_org orgs) ]

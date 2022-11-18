@@ -295,6 +295,14 @@ let make_org ~engine owner =
          let response, results = Service.Response.create Results.init_pointer in
          let repos = Index.get_active_repos ~owner |> Index.Repo_set.elements in
          let arr = Results.repos_init results (List.length repos) in
+         let get_main_ref m =
+           match Index.Ref_map.find_opt "refs/heads/main" m with
+           | Some hash -> Some ("refs/heads/main", hash)
+           | None -> (
+               match Index.Ref_map.find_opt "refs/heads/master" m with
+               | Some hash -> Some ("refs/heads/master", hash)
+               | None -> None)
+         in
          repos
          |> List.iteri (fun i name ->
                 let slot = Capnp.Array.get arr i in
@@ -302,13 +310,20 @@ let make_org ~engine owner =
                 let refs =
                   Index.get_active_refs { Ocaml_ci.Repo_id.owner; name }
                 in
-                let status =
-                  match Index.Ref_map.find_opt "refs/heads/master" refs with
-                  | Some { Index.hash; _ } ->
-                      to_build_status (Index.get_status ~owner ~name ~hash)
-                  | None -> NotStarted
+                let hash, status =
+                  match get_main_ref refs with
+                  | Some (_, { Index.hash; _ }) ->
+                      ( hash,
+                        to_build_status (Index.get_status ~owner ~name ~hash) )
+                  | None -> ("", NotStarted)
                 in
-                Raw.Builder.RepoInfo.master_state_set slot status);
+                Raw.Builder.RepoInfo.main_hash_set slot hash;
+                Raw.Builder.RepoInfo.main_state_set slot status;
+                (* FIXME [benmandrew]: Always returning no time, change to actually get it from somewhere *)
+                let last_updated_t =
+                  Raw.Builder.RepoInfo.main_last_updated_init slot
+                in
+                Raw.Builder.RepoInfo.MainLastUpdated.none_set last_updated_t);
          Service.return response
      end
 
