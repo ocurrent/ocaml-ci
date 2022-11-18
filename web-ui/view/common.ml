@@ -397,7 +397,13 @@ let breadcrumbs steps page_title =
   in
   Tyxml.Html.(
     div
-      ~a:[ a_class [ "flex items-center mb-7 text-sm font-medium space-x-2" ] ]
+      ~a:
+        [
+          a_class
+            [
+              "flex items-center mb-7 text-xs md:text-sm font-medium space-x-2";
+            ];
+        ]
       (List.rev steps))
 
 let table_head name =
