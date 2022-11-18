@@ -29,7 +29,7 @@ services:
       - caddy_config:/config
   ci:
     image: ocaml-ci-service
-    command: --github-app-id 215418 --github-private-key-file /run/secrets/example-ci-github-key --github-account-allowlist "github-username" --confirm above-average --confirm-auto-release 120 --capnp-address=tcp:ci.example.org:8102 --submission-service /run/secrets/ocaml-ci-submission.cap --github-webhook-secret-file /run/secrets/example-ci-webhook-secret
+    command: --github-app-id 215418 --github-private-key-file /run/secrets/example-ci-github-key --github-account-allowlist "github-username" --confirm above-average --confirm-auto-release 120 --capnp-public-address=tcp:ci.example.org:8102 --capnp-listen-address=tcp:0.0.0.0:9000 --submission-service /run/secrets/ocaml-ci-submission.cap --github-webhook-secret-file /run/secrets/example-ci-webhook-secret
     environment:
       - "CI_PROFILE=production"
       - "DOCKER_BUILDKIT=1"
