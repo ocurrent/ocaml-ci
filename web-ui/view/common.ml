@@ -330,9 +330,7 @@ let gitlab_logo =
 
 let speed_over_time speeds =
   assert (List.length speeds <= 15);
-  let max_speed =
-    List.fold_left (fun curr x -> if x > curr then x else curr) 0.0 speeds
-  in
+  let max_speed = List.fold_left Float.max 0.0 speeds in
   let green = `Color ("#32D583", None) in
   let red = `Color ("#F97066", None) in
   ignore red;

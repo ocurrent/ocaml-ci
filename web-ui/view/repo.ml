@@ -178,7 +178,7 @@ module Make (M : M_Git_forge) = struct
 
   let repo_name_compare { Client.Org.name = n0; _ } { Client.Org.name = n1; _ }
       =
-    String.compare (String.lowercase_ascii n0) (String.lowercase_ascii n1)
+    String.(compare (lowercase_ascii n0) (lowercase_ascii n1))
 
   let list ~org ~repos =
     let table_head =

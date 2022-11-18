@@ -24,9 +24,6 @@ let github_commit_url ~org ~repo ~hash =
 let github_pr_url ~org ~repo id =
   Printf.sprintf "https://github.com/%s/%s/pull/%s" org repo id
 
-(* let github_repo_url ~org repo =
-   Printf.sprintf "https://github.com/%s/%s" org repo *)
-
 let format_org org =
   li [ a ~a:[ a_href (Url.org_url prefix ~org) ] [ txt org ] ]
 
