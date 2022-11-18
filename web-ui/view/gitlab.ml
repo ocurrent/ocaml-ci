@@ -95,26 +95,29 @@ let link_gitlab_refs ~org ~repo = function
                  | _ -> txt (Fmt.str "Bad ref format %S" r))
         @ [ txt ")" ])
 
-let link_jobs ~org ~repo ~hash ?selected jobs =
-  let render_job trees { Client.variant; outcome; _ } =
-    let uri = Url.job_url prefix ~org ~repo ~hash variant in
-    match
-      List.rev
-        (Astring.String.cuts ~sep:(Fmt.str "%c" Common_api.status_sep) variant)
-    with
-    | [] -> assert false
-    | label_txt :: k ->
-        let k = List.rev k in
-        let x =
-          let label =
-            txt (Fmt.str "%s (%a)" label_txt Client.State.pp outcome)
-          in
-          let label = if selected = Some variant then b [ label ] else label in
-          (outcome, [ a ~a:[ a_href uri ] [ label ] ])
-        in
-        StatusTree.add k x trees
+let link_gitlab_refs' ~org ~repo refs =
+  let f r =
+    match Astring.String.cuts ~sep:"/" r with
+    | "refs" :: "heads" :: branch ->
+        let branch = Astring.String.concat ~sep:"/" branch in
+        a
+          ~a:
+            [
+              a_class [ "flex items-center space-x-2" ];
+              a_href (gitlab_branch_url ~org ~repo branch);
+            ]
+          [ span [ txt branch ]; Common.external_link ]
+    | [ "refs"; "merge-requests"; id; "head" ] ->
+        a
+          ~a:
+            [
+              a_class [ "flex items-center space-x-2" ];
+              a_href (gitlab_mr_url ~org ~repo id);
+            ]
+          [ span [ txt ("MR#" ^ id) ]; Common.external_link ]
+    | _ -> txt ""
   in
-  statuses (List.fold_left render_job [] jobs)
+  List.map f refs
 
 let list_orgs ~orgs = Template.instance @@ orgs_v ~orgs
 let list_repos ~org ~repos = Template.instance @@ repos_v ~org ~repos
@@ -245,11 +248,11 @@ let rebuild_fail_message_v1 : int -> ([> `Fail ] * uri) list_wrap = function
         );
       ]
 
+(* TODO: Same as GitHub. Clean up so that success and fail messages appear
+   in flash messages and we do a redirect instead of providing a return link. *)
 let list_steps ~org ~repo ~message ~refs ~hash ~jobs ~first_step_queued_at
     ~total_run_time ?(flash_messages = [])
     ?(build_status : Client.State.t = Passed) ~csrf_token () =
-  ignore message;
-  let () = ignore build_status in
   let can_cancel =
     let check job_info =
       match job_info.Client.outcome with
@@ -266,48 +269,58 @@ let list_steps ~org ~repo ~message ~refs ~hash ~jobs ~first_step_queued_at
     in
     List.exists check jobs
   in
+  let show_rebuild = (not can_cancel) && can_rebuild in
   let buttons =
-    if can_cancel then
-      [
-        form
-          ~a:[ a_action (hash ^ "/cancel"); a_method `Post ]
-          [
-            Unsafe.data csrf_token;
-            input ~a:[ a_input_type `Submit; a_value "Cancel" ] ();
-          ];
-      ]
-    else if can_rebuild then
-      [
-        form
-          ~a:[ a_action (hash ^ "/rebuild-failed"); a_method `Post ]
-          [
-            Unsafe.data csrf_token;
-            button [ txt "Rebuild Failed" ];
-            input
-              ~a:[ a_name "filter"; a_input_type `Hidden; a_value "failed" ]
-              ();
-          ];
-        form
-          ~a:[ a_action (hash ^ "/rebuild-all"); a_method `Post ]
-          [
-            Unsafe.data csrf_token;
-            button [ txt "Rebuild All" ];
-            input
-              ~a:[ a_name "filter"; a_input_type `Hidden; a_value "none" ]
-              ();
-          ];
-      ]
-    else []
+    Common.form_cancel ~hash ~csrf_token ~show:can_cancel ()
+    :: Common.rebuild_button ~hash ~csrf_token ~show:show_rebuild ()
   in
-  Template.instance ~flash_messages
+  let title_card =
+    Build.title_card ~status:build_status ~card_title:message
+      ~hash_link:(link_gitlab_commit ~org ~repo ~hash:(short_hash hash))
+      ~ref_links:(link_gitlab_refs' ~org ~repo refs)
+      ~first_created_at:(Timestamps_durations.pp_timestamp first_step_queued_at)
+      ~ran_for:(Timestamps_durations.pp_duration (Some total_run_time))
+      ~buttons
+  in
+  let steps_table_div =
+    div
+      ~a:
+        [ a_class [ "bg-gray-50 px-6 py-3 text-gray-500 text-xs font-medium" ] ]
+        (* TODO: We need to start with no stage separation - introduce Analysis/Checks and Build steps later *)
+      [ txt "Build" ]
+  in
+  let steps_table =
+    List.fold_left
+      (fun l j ->
+        let build_created_at = Option.value ~default:0. first_step_queued_at in
+        let ts = Result.to_option @@ Run_time.timestamps_from_job_info j in
+        let rt =
+          Option.map (Run_time.run_times_from_timestamps ~build_created_at) ts
+        in
+        let created_at = Timestamps_durations.pp_timestamp j.queued_at in
+        let queued_for =
+          Timestamps_durations.pp_duration (Option.map Run_time.queued_for rt)
+        in
+        let ran_for =
+          Timestamps_durations.pp_duration (Option.map Run_time.ran_for rt)
+        in
+        let step_uri = Url.job_url prefix ~org ~repo ~hash j.variant in
+        List.append l
+          [
+            Build.step_row ~step_title:j.variant ~created_at ~queued_for
+              ~ran_for ~status:j.outcome ~step_uri;
+          ])
+      [ steps_table_div ] jobs
+  in
+  Template_v1.instance
     [
-      breadcrumbs
-        [ (prefix, prefix); (org, org); (repo, repo) ]
-        (short_hash hash);
-      link_gitlab_refs ~org ~repo refs;
-      link_jobs ~org ~repo ~hash jobs;
-      Timestamps_durations.show_build ~first_step_queued_at ~total_run_time;
-      div buttons;
+      Tyxml.Html.script ~a:[ a_src "/js/build-page-poll.js" ] (txt "");
+      Common.breadcrumbs
+        [ ("gitlab", "gitlab"); (org, org); (repo, repo) ]
+        (Printf.sprintf "%s" (short_hash hash));
+      title_card;
+      Common.flash_messages flash_messages;
+      Build.tabulate_steps steps_table;
     ]
 
 let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
