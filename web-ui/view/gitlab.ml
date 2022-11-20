@@ -122,7 +122,8 @@ let link_gitlab_refs' ~org ~repo refs =
 let list_orgs ~orgs = Template.instance @@ orgs_v ~orgs
 let list_repos ~org ~repos = Template.instance @@ repos_v ~org ~repos
 
-let list_refs ~org ~repo ~refs =
+let list_refs ~org ~repo ~default_ref ~refs =
+  ignore default_ref;
   Template.instance
     [
       breadcrumbs [ (prefix, prefix); (org, org) ] repo; refs_v ~org ~repo ~refs;

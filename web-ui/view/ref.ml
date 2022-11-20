@@ -97,7 +97,7 @@ module Make (M : M_Git_forge) = struct
     | [ "refs"; "pull"; id; "head" ] -> PR { title; id }
     | _ -> Branch (Printf.sprintf "Bad ref format %S" gref)
 
-  let list ~org ~repo ~refs =
+  let list ~org ~repo ~default_ref ~refs =
     let f { Client.Repo.gref; hash; status; started_at; message; name; ran_for }
         =
       let short_hash = short_hash hash in
@@ -108,9 +108,8 @@ module Make (M : M_Git_forge) = struct
     let default_table, main_ref =
       let main_ref, main_ref_info =
         Client.Ref_map.bindings refs
-        |> List.find (fun (_, { Client.Repo.gref; _ }) ->
-               String.equal gref "refs/heads/main"
-               || String.equal gref "refs/heads/master")
+        |> List.find (fun (_, { Client.Repo.name; _ }) ->
+               String.equal name default_ref)
       in
       let table_head = Common.table_head_div "Default Branch" in
       let table = table_head :: [ f main_ref_info ] in

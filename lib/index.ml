@@ -337,10 +337,19 @@ module Ref_map = Map.Make (String)
 type ref_info = { hash : string; message : string; name : string }
 [@@deriving show]
 
-let active_refs : ref_info Ref_map.t Repo_map.t ref = ref Repo_map.empty
+type repo_info = { default_gref : string; refs : ref_info Ref_map.t }
 
-let set_active_refs ~repo refs =
-  active_refs := Repo_map.add repo refs !active_refs
+let active_refs : repo_info Repo_map.t ref = ref Repo_map.empty
+
+let set_active_refs ~repo refs default_gref =
+  active_refs := Repo_map.add repo { refs; default_gref } !active_refs
 
 let get_active_refs repo =
-  Repo_map.find_opt repo !active_refs |> Option.value ~default:Ref_map.empty
+  Repo_map.find_opt repo !active_refs |> function
+  | Some { refs; _ } -> refs
+  | None -> Ref_map.empty
+
+let get_default_gref repo =
+  Repo_map.find_opt repo !active_refs |> function
+  | Some { default_gref; _ } -> default_gref
+  | None -> raise Not_found

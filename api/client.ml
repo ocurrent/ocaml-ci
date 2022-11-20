@@ -146,6 +146,35 @@ module Repo = struct
               Ref_map.add gref r acc)
             Ref_map.empty
 
+  let default_ref t =
+    let open Raw.Client.Repo.DefaultRef in
+    let request = Capability.Request.create_no_args () in
+    Capability.call_for_value t method_id request
+    |> Lwt_result.map @@ fun jobs ->
+       let res = Results.default_get jobs in
+       let gref = Raw.Reader.RefInfo.ref_get res in
+       let hash = Raw.Reader.RefInfo.hash_get res in
+       let status = Raw.Reader.RefInfo.status_get res in
+       let started_at =
+         let time = Raw.Reader.RefInfo.started_at_get res in
+         match Raw.Reader.RefInfo.StartedAt.get time with
+         | Raw.Reader.RefInfo.StartedAt.None
+         | Raw.Reader.RefInfo.StartedAt.Undefined _ ->
+             None
+         | Raw.Reader.RefInfo.StartedAt.Ts v -> Some v
+       in
+       let message = Raw.Reader.RefInfo.message_get res in
+       let name = Raw.Reader.RefInfo.name_get res in
+       let ran_for =
+         let time = Raw.Reader.RefInfo.ran_for_get res in
+         match Raw.Reader.RefInfo.RanFor.get time with
+         | Raw.Reader.RefInfo.RanFor.None
+         | Raw.Reader.RefInfo.RanFor.Undefined _ ->
+             None
+         | Raw.Reader.RefInfo.RanFor.Ts v -> Some v
+       in
+       { gref; hash; status; started_at; message; name; ran_for }
+
   let commit_of_hash t hash =
     let open Raw.Client.Repo.CommitOfHash in
     let request, params = Capability.Request.create Params.init_pointer in

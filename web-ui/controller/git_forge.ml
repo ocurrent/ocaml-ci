@@ -98,7 +98,9 @@ module Make (View : View) = struct
     Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
     Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
     Client.Repo.refs repo_cap >>!= fun refs ->
-    Dream.respond @@ View.list_refs ~org ~repo ~refs
+    Client.Repo.default_ref repo_cap >>!= function
+    | { Client.Repo.name = default_ref; _ } ->
+        Dream.respond @@ View.list_refs ~org ~repo ~default_ref ~refs
 
   let list_steps ~org ~repo ~hash request ci =
     Backend.ci ci >>= fun ci ->

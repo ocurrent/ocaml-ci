@@ -183,6 +183,34 @@ let make_repo ~engine ~owner ~name =
                 Raw.Builder.RefInfo.RanFor.none_set ran_for_t);
          Service.return response
 
+       method default_ref_impl _params release_param_caps =
+         let open Repo.DefaultRef in
+         release_param_caps ();
+         let default_gref =
+           Index.get_default_gref { Ocaml_ci.Repo_id.owner; name }
+         in
+         let refs = Index.get_active_refs { Ocaml_ci.Repo_id.owner; name } in
+         let default_ref = Index.Ref_map.find default_gref refs in
+         let response, results = Service.Response.create Results.init_pointer in
+         let slot = Results.default_init results in
+         (match default_ref with
+         | { Index.hash; message; name = ref_name } ->
+             Raw.Builder.RefInfo.ref_set slot default_gref;
+             Raw.Builder.RefInfo.hash_set slot hash;
+             let status =
+               to_build_status (Index.get_status ~owner ~name ~hash)
+             in
+             Raw.Builder.RefInfo.status_set slot status;
+             Raw.Builder.RefInfo.message_set slot message;
+             Raw.Builder.RefInfo.name_set slot ref_name;
+             (* FIXME [benmandrew]: We need the actual timestamps;
+                 this needs to be stored in the DB *)
+             let started_at_t = Raw.Builder.RefInfo.started_at_init slot in
+             Raw.Builder.RefInfo.StartedAt.none_set started_at_t;
+             let ran_for_t = Raw.Builder.RefInfo.ran_for_init slot in
+             Raw.Builder.RefInfo.RanFor.none_set ran_for_t);
+         Service.return response
+
        method obsolete_refs_of_commit_impl _ release_param_caps =
          release_param_caps ();
          Service.fail "This method no longer exists"

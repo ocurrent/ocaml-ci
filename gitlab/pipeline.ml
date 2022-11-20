@@ -161,8 +161,8 @@ let set_active_repos ~(installation : Installation.t Current.t)
 let set_active_refs ~(repo : Gitlab.Repo_id.t Current.t) xs =
   let+ repo = repo and+ xs = xs in
   let repo' = { Repo_id.owner = repo.owner; name = repo.name } in
-  Index.set_active_refs ~repo:repo'
-    (xs
+  let refs =
+    xs
     |> List.fold_left
          (fun acc x ->
            let commit = Gitlab.Api.Commit.id x in
@@ -170,7 +170,9 @@ let set_active_refs ~(repo : Gitlab.Repo_id.t Current.t) xs =
            let hash = Git.Commit_id.hash commit in
            (* FIXME [benmandrew]: Implement fields for Gitlab *)
            Index.Ref_map.add gref { Index.hash; message = ""; name = "" } acc)
-         Index.Ref_map.empty);
+         Index.Ref_map.empty
+  in
+  Index.set_active_refs ~repo:repo' refs "master";
   xs
 
 let get_job_id x =

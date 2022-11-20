@@ -96,6 +96,8 @@ interface Repo {
 
   historyOfRef @6 (ref :Text) -> (refs :List(RefInfo));
   # ref should be of the form "refs/heads/..." or "refs/pull/4/head"
+
+  defaultRef @7 () -> (default :RefInfo);
 }
 
 struct RepoInfo {
