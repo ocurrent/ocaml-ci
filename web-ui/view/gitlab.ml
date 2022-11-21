@@ -204,7 +204,7 @@ let success_message_v1 action jis =
         Astring.String.concat ~sep:"\x0C, "
           (List.map (fun ji -> ji.Client.variant) trimmed)
       in
-      if List.length jis > 5 then
+      if List.compare_length_with jis 5 > 0 then
         [
           ( `Success,
             Astring.String.concat [ prefix; " many: "; message; " ..." ] );
