@@ -65,7 +65,7 @@ val get_build_history_with_time :
     branch gref of the repo identfied by (owner, name). The builds are
     identified by triples (variant, hash, Some timestamp) *)
 
-val get_status : owner:string -> name:string -> hash:string -> build_status
+(* val get_status : owner:string -> name:string -> hash:string -> build_status *)
 (** [get_status ~owner ~name ~hash] is the latest status for this combination. *)
 
 val get_full_hash :

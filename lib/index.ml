@@ -190,7 +190,7 @@ let get_build_history_with_time ~owner ~name ~gref =
   |> List.filter (fun (gref', _, time) ->
          if Option.is_none time then false else gref = gref')
 
-module Status_cache = struct
+(* module Status_cache = struct
   let cache = Hashtbl.create 1_000
   let cache_max_size = 1_000_000
 
@@ -206,12 +206,11 @@ module Status_cache = struct
     | None -> `Not_started
 end
 
-let get_status = Status_cache.find
+let get_status = Status_cache.find *)
 
 let record ~repo ~hash ~status ~gref jobs =
   let { Repo_id.owner; name } = repo in
   let t = Lazy.force db in
-  let () = Status_cache.add ~owner ~name ~hash status in
   let jobs = Job_map.of_list jobs in
   let previous =
     get_job_ids_with_variant t ~owner ~name ~hash |> Job_map.of_list
@@ -265,7 +264,12 @@ let record ~repo ~hash ~status ~gref jobs =
     None
   in
   let (_ : [ `Empty ] Job_map.t) = Job_map.merge merge previous jobs in
-  ()
+  (* () *)
+
+
+  let () = Status_cache.add ~owner ~name ~hash status in
+  let first_queued = Run_time.build_created_at in
+  let ts = List.map (fun (_, job_id) -> Run_time.timestamps_of_job job_id) jobs in
 
 let get_full_hash ~owner ~name short_hash =
   let t = Lazy.force db in
@@ -355,7 +359,6 @@ let get_default_gref repo =
   | None -> raise Not_found
 
 type status = [ `Failed | `Pending | `Not_started | `Passed ]
-(* [@@deriving ord] *)
 
 module Aggregate = struct
   type ref_state = {
@@ -364,15 +367,10 @@ module Aggregate = struct
     ran_for : float option;
   }
 
-  type repo_state = { ref_states : ref_state Ref_map.t }
+  type repo_state = { default_ref : string; ref_states : ref_state Ref_map.t }
 
   let get_default_ref (s : repo_state) =
-    match Ref_map.find_opt "refs/heads/main" s.ref_states with
-    | Some s -> Some s
-    | None -> (
-        match Ref_map.find_opt "refs/heads/master" s.ref_states with
-        | Some s -> Some s
-        | None -> None)
+    Ref_map.find_opt s.default_ref s.ref_states
 
   let get_ref_status (s : ref_state) = s.s
   let get_ref_started_at (s : ref_state) = s.started_at
@@ -390,8 +388,8 @@ module Aggregate = struct
     let s_ref = { s; started_at; ran_for } in
     let s_repo =
       match Repo_map.find_opt repo !state with
-      | None -> { ref_states = Ref_map.singleton ref s_ref }
-      | Some { ref_states } -> { ref_states = Ref_map.add ref s_ref ref_states }
+      | None -> { default_ref = ref; ref_states = Ref_map.singleton ref s_ref }
+      | Some { default_ref; ref_states } -> { default_ref; ref_states = Ref_map.add ref s_ref ref_states }
     in
     state := Repo_map.add repo s_repo !state
 
@@ -403,13 +401,14 @@ module Aggregate = struct
         Ref_map.find_opt ref ref_states |> Option.value ~default:default_ref
 
   let get_repo_state ~repo =
-    let default_repo = { ref_states = Ref_map.empty } in
+    let default_repo = { default_ref = ""; ref_states = Ref_map.empty } in
     Repo_map.find_opt repo !state |> Option.value ~default:default_repo
 end
 
 module Commit_cache = struct
   module Commit_map = Map.Make (struct
     type t = string * string * string
+    (** (owner, repo, hash) *)
 
     let compare (a0, a1, a2) (b0, b1, b2) =
       let res = String.compare a0 b0 in
