@@ -84,16 +84,15 @@ module Org = struct
     |> Lwt_result.map (fun result ->
            Results.repos_get_list result
            |> List.map @@ fun repo ->
-              let name = Raw.Reader.RepoInfo.name_get repo in
-              let main_status = Raw.Reader.RepoInfo.main_state_get repo in
-              let main_hash = Raw.Reader.RepoInfo.main_hash_get repo in
+              let open Raw.Reader.RepoInfo in
+              let name = name_get repo in
+              let main_status = main_state_get repo in
+              let main_hash = main_hash_get repo in
               let main_last_updated =
-                let time = Raw.Reader.RepoInfo.main_last_updated_get repo in
-                match Raw.Reader.RepoInfo.MainLastUpdated.get time with
-                | Raw.Reader.RepoInfo.MainLastUpdated.None
-                | Raw.Reader.RepoInfo.MainLastUpdated.Undefined _ ->
-                    None
-                | Raw.Reader.RepoInfo.MainLastUpdated.Ts v -> Some v
+                let time = main_last_updated_get repo in
+                match MainLastUpdated.get time with
+                | MainLastUpdated.None | MainLastUpdated.Undefined _ -> None
+                | MainLastUpdated.Ts v -> Some v
               in
               { name; main_status; main_hash; main_last_updated })
 end
@@ -119,26 +118,23 @@ module Repo = struct
        Results.refs_get_list jobs
        |> List.fold_left
             (fun acc slot ->
-              let gref = Raw.Reader.RefInfo.ref_get slot in
-              let hash = Raw.Reader.RefInfo.hash_get slot in
-              let status = Raw.Reader.RefInfo.status_get slot in
+              let open Raw.Reader.RefInfo in
+              let gref = ref_get slot in
+              let hash = hash_get slot in
+              let status = status_get slot in
               let started_at =
-                let time = Raw.Reader.RefInfo.started_at_get slot in
-                match Raw.Reader.RefInfo.StartedAt.get time with
-                | Raw.Reader.RefInfo.StartedAt.None
-                | Raw.Reader.RefInfo.StartedAt.Undefined _ ->
-                    None
-                | Raw.Reader.RefInfo.StartedAt.Ts v -> Some v
+                let time = started_at_get slot in
+                match StartedAt.get time with
+                | StartedAt.None | StartedAt.Undefined _ -> None
+                | StartedAt.Ts v -> Some v
               in
-              let message = Raw.Reader.RefInfo.message_get slot in
-              let name = Raw.Reader.RefInfo.name_get slot in
+              let message = message_get slot in
+              let name = name_get slot in
               let ran_for =
-                let time = Raw.Reader.RefInfo.ran_for_get slot in
-                match Raw.Reader.RefInfo.RanFor.get time with
-                | Raw.Reader.RefInfo.RanFor.None
-                | Raw.Reader.RefInfo.RanFor.Undefined _ ->
-                    None
-                | Raw.Reader.RefInfo.RanFor.Ts v -> Some v
+                let time = ran_for_get slot in
+                match RanFor.get time with
+                | RanFor.None | RanFor.Undefined _ -> None
+                | RanFor.Ts v -> Some v
               in
               let r =
                 { gref; hash; status; started_at; message; name; ran_for }
@@ -151,27 +147,24 @@ module Repo = struct
     let request = Capability.Request.create_no_args () in
     Capability.call_for_value t method_id request
     |> Lwt_result.map @@ fun jobs ->
+       let open Raw.Reader.RefInfo in
        let res = Results.default_get jobs in
-       let gref = Raw.Reader.RefInfo.ref_get res in
-       let hash = Raw.Reader.RefInfo.hash_get res in
-       let status = Raw.Reader.RefInfo.status_get res in
+       let gref = ref_get res in
+       let hash = hash_get res in
+       let status = status_get res in
        let started_at =
-         let time = Raw.Reader.RefInfo.started_at_get res in
-         match Raw.Reader.RefInfo.StartedAt.get time with
-         | Raw.Reader.RefInfo.StartedAt.None
-         | Raw.Reader.RefInfo.StartedAt.Undefined _ ->
-             None
-         | Raw.Reader.RefInfo.StartedAt.Ts v -> Some v
+         let time = started_at_get res in
+         match StartedAt.get time with
+         | StartedAt.None | StartedAt.Undefined _ -> None
+         | StartedAt.Ts v -> Some v
        in
-       let message = Raw.Reader.RefInfo.message_get res in
-       let name = Raw.Reader.RefInfo.name_get res in
+       let message = message_get res in
+       let name = name_get res in
        let ran_for =
-         let time = Raw.Reader.RefInfo.ran_for_get res in
-         match Raw.Reader.RefInfo.RanFor.get time with
-         | Raw.Reader.RefInfo.RanFor.None
-         | Raw.Reader.RefInfo.RanFor.Undefined _ ->
-             None
-         | Raw.Reader.RefInfo.RanFor.Ts v -> Some v
+         let time = ran_for_get res in
+         match RanFor.get time with
+         | RanFor.None | RanFor.Undefined _ -> None
+         | RanFor.Ts v -> Some v
        in
        { gref; hash; status; started_at; message; name; ran_for }
 
@@ -197,13 +190,14 @@ module Repo = struct
        |> List.fold_left
             (fun acc slot ->
               let open Build_status in
-              let hash = Raw.Reader.RefInfo.hash_get slot in
-              let state = Raw.Reader.RefInfo.status_get slot in
-              let started = Raw.Reader.RefInfo.started_at_get slot in
+              let open Raw.Reader.RefInfo in
+              let hash = hash_get slot in
+              let state = status_get slot in
+              let started = started_at_get slot in
               let time =
-                match Raw.Reader.RefInfo.StartedAt.get started with
-                | Raw.Reader.RefInfo.StartedAt.None | Undefined _ -> None
-                | Raw.Reader.RefInfo.StartedAt.Ts v -> Some v
+                match StartedAt.get started with
+                | StartedAt.None | Undefined _ -> None
+                | StartedAt.Ts v -> Some v
               in
               match (state, Ref_map.find_opt hash acc) with
               | state, None -> Ref_map.add hash (state, time) acc

@@ -44,8 +44,7 @@ let test_active_refs () =
   let hash = "abc" in
   let message = "message" in
   let name = "name" in
-  let ref = { Index.hash; message; name } in
-  let refs = Ref_map.singleton "master" ref in
+  let refs = Ref_map.singleton "master" { Index.hash; message; name } in
   Index.set_active_refs ~repo refs "master";
 
   let expected = [ ("master", { Index.hash; message; name }) ] in
