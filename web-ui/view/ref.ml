@@ -112,10 +112,11 @@ module Make (M : M_Git_forge) = struct
       ]
 
   let ref gref title =
-    match Astring.String.cuts ~sep:"/" gref with
-    | "refs" :: "heads" :: branch ->
+    match (M.prefix, Astring.String.cuts ~sep:"/" gref) with
+    | _, "refs" :: "heads" :: branch ->
         Branch (Astring.String.concat ~sep:"/" branch)
-    | [ "refs"; "pull"; id; "head" ] -> PR { title; id }
+    | "github", [ "refs"; "pull"; id; "head" ] -> PR { title; id }
+    | "gitlab", [ "refs"; "merge-requests"; id; "head" ] -> PR { title; id }
     | _ -> Branch (Printf.sprintf "Bad ref format %S" gref)
 
   let list ~org ~repo ~default_ref ~refs =
@@ -153,9 +154,17 @@ module Make (M : M_Git_forge) = struct
     in
     let pr_table, n_prs =
       let prs =
-        Client.Ref_map.filter
-          (fun ref _ -> String.starts_with ~prefix:"refs/pull/" ref)
-          refs
+        match M.prefix with
+        | "github" ->
+            Client.Ref_map.filter
+              (fun ref _ -> String.starts_with ~prefix:"refs/pull/" ref)
+              refs
+        | "gitlab" ->
+            Client.Ref_map.filter
+              (fun ref _ ->
+                String.starts_with ~prefix:"refs/merge-requests/" ref)
+              refs
+        | _ -> Client.Ref_map.empty (* FIXME: This should lead to an error. *)
       in
       let n_prs = Client.Ref_map.cardinal prs in
       let table_head =
