@@ -86,12 +86,15 @@ let list_refs repo =
            Fmt.pr "%s %s (%a)@." hash gref Client.Build_status.pp status)
          refs
 
+let pp_timestamp f v =
+  Fmt.pf f "%a"
+    Fmt.(option ~none:(any "-") (Timedesc.pp_iso8601 ()))
+    (Option.bind v Timedesc.of_timestamp_float_s)
+
 let pp_job f { Client.variant; outcome; queued_at; started_at; finished_at } =
-  Fmt.pf f "%s (%a) (Queued_at: %g) (Started_at: %g) (Finished_at: %g)" variant
-    Client.State.pp outcome
-    (Option.value queued_at ~default:(-1.))
-    (Option.value started_at ~default:(-1.))
-    (Option.value finished_at ~default:(-1.))
+  Fmt.pf f "%s (%a) (Queued_at: %a) (Started_at: %a) (Finished_at: %a)" variant
+    Client.State.pp outcome pp_timestamp queued_at pp_timestamp started_at
+    pp_timestamp finished_at
 
 let list_variants commit =
   Client.Commit.jobs commit

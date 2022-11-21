@@ -9,4 +9,5 @@
   logs.cli
   logs.fmt
   fmt.cli
-  fmt.tty))
+  fmt.tty
+  timedesc))
