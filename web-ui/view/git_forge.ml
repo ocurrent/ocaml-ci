@@ -1,5 +1,6 @@
 module type M_Git_forge = sig
   val prefix : string
+  val request_url : org:string -> repo:string -> string -> string
 end
 
 module type View = sig

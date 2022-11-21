@@ -11,7 +11,8 @@ module Make (M : M_Git_forge) = struct
     | "gitlab" -> Common.gitlab_logo
     | _ -> raise Not_found
 
-  let row ~ref ~short_hash ~started_at ~ran_for ~status ~ref_uri ~message =
+  let row ~ref ~short_hash ~started_at ~ran_for ~status ~ref_uri ~request_url
+      ~message =
     ignore started_at;
     (*See FIXME - revert this when started_at is implemented *)
     (* messages are of arbitrary length - let's truncate them *)
@@ -28,7 +29,11 @@ module Make (M : M_Git_forge) = struct
               div [ txt "-" ];
               div
                 ~a:[ a_class [ "flex space-x-1 items-center" ] ]
-                [ logo; div [ txt (Printf.sprintf "#%s" id) ] ];
+                [
+                  a
+                    ~a:[ a_href (request_url id) ]
+                    [ logo; txt (Printf.sprintf "#%s" id) ];
+                ];
             ])
       @
       match started_at with
@@ -103,7 +108,7 @@ module Make (M : M_Git_forge) = struct
       let short_hash = short_hash hash in
       row ~ref:(ref gref name) ~short_hash ~started_at ~ran_for ~status
         ~ref_uri:(Url.commit_url M.prefix ~org ~repo ~hash)
-        ~message
+        ~request_url:(M.request_url ~org ~repo) ~message
     in
     let default_table, main_ref =
       let main_ref, main_ref_info =

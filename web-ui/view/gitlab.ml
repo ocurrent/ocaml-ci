@@ -8,10 +8,6 @@ open Git_forge
 
 let prefix = "gitlab"
 
-module Ref = Ref.Make (struct
-  let prefix = prefix
-end)
-
 let gitlab_branch_url ~org ~repo ref =
   Fmt.str "https://gitlab.com/%s/%s/-/tree/%s" org repo ref
 
@@ -20,6 +16,11 @@ let gitlab_mr_url ~org ~repo id =
 
 let gitlab_commit_url ~org ~repo ~hash =
   Printf.sprintf "https://gitlab.com/%s/%s/-/commit/%s" org repo hash
+
+module Ref = Ref.Make (struct
+  let prefix = prefix
+  let request_url = gitlab_mr_url
+end)
 
 let format_org org =
   li [ a ~a:[ a_href (Url.org_url prefix ~org) ] [ txt org ] ]

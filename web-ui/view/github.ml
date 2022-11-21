@@ -7,14 +7,6 @@ open Git_forge
 
 let prefix = "github"
 
-module Ref = Ref.Make (struct
-  let prefix = prefix
-end)
-
-module Repo = Repo.Make (struct
-  let prefix = prefix
-end)
-
 let github_branch_url ~org ~repo ref =
   Printf.sprintf "https://github.com/%s/%s/tree/%s" org repo ref
 
@@ -23,6 +15,16 @@ let github_commit_url ~org ~repo ~hash =
 
 let github_pr_url ~org ~repo id =
   Printf.sprintf "https://github.com/%s/%s/pull/%s" org repo id
+
+module Ref = Ref.Make (struct
+  let prefix = prefix
+  let request_url = github_pr_url
+end)
+
+module Repo = Repo.Make (struct
+  let prefix = prefix
+  let request_url = github_pr_url
+end)
 
 let format_org org =
   li [ a ~a:[ a_href (Url.org_url prefix ~org) ] [ txt org ] ]
