@@ -114,7 +114,8 @@
   current_rpc
   (capnp-rpc-unix (>= 1.2))
   ocaml-ci-api
-  dockerfile))
+  dockerfile
+  (timedesc (>= 0.9.0))))
 (package
  (name ocaml-ci-web)
  (synopsis "Web-server frontend for ocaml-ci")
