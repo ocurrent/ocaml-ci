@@ -256,13 +256,13 @@ module Aggregate = struct
 
   let state : repo_state Repo_map.t ref = ref Repo_map.empty
 
-  let set_ref_state ~repo ~ref s started_at ran_for =
+  let set_ref_state ~repo ~gref s started_at ran_for =
     let s_ref = { s; started_at; ran_for } in
     let s_repo =
       match Repo_map.find_opt repo !state with
-      | None -> { default_ref = ref; ref_states = Ref_map.singleton ref s_ref }
+      | None -> { default_ref = gref; ref_states = Ref_map.singleton gref s_ref }
       | Some { default_ref; ref_states } ->
-          { default_ref; ref_states = Ref_map.add ref s_ref ref_states }
+          { default_ref; ref_states = Ref_map.add gref s_ref ref_states }
     in
     state := Repo_map.add repo s_repo !state
 
@@ -302,11 +302,10 @@ module Commit_cache = struct
   let get_started_at s = s.started_at
   let get_ran_for s = s.ran_for
 
-  let add ~owner ~name ~hash status started_at ran_for =
+  let add ~owner ~name ~hash ~gref status started_at ran_for =
     let v = { s = status; started_at; ran_for } in
     state := Commit_map.add (owner, name, hash) v !state;
-    Aggregate.set_ref_state ~repo:{ Repo_id.owner; name }
-  (* !!! *)
+    Aggregate.set_ref_state ~repo:{ Repo_id.owner; name } ~gref status started_at ran_for
 
   let find ~owner ~name ~hash =
     let default = { s = `Not_started; started_at = None; ran_for = None } in
@@ -377,7 +376,7 @@ let record ~repo ~hash ~status ~gref jobs =
       jobs
   in
   let first_queued = Run_time.first_queued_at (List.filter_map Fun.id ts) in
-  Commit_cache.add ~owner ~name ~hash status first_queued None
+  Commit_cache.add ~owner ~name ~hash ~gref status first_queued None
 
 let get_full_hash ~owner ~name short_hash =
   let t = Lazy.force db in

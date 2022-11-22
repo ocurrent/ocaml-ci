@@ -72,7 +72,7 @@ module Aggregate : sig
 
   val set_ref_state :
     repo:Repo_id.t ->
-    ref:string ->
+    gref:string ->
     status ->
     float option ->
     float option ->
@@ -93,6 +93,7 @@ module Commit_cache : sig
     owner:string ->
     name:string ->
     hash:string ->
+    gref:string ->
     status ->
     float option ->
     float option ->
