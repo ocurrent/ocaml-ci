@@ -22,18 +22,18 @@ let getting_started =
               p
                 [
                   txt
-                    "It uses metadata from the project's opam and dune files \
-                     to work out what to build, and uses caching to make \
-                     builds fast. It uses the information in the opam files in \
-                     the project to automatically test against multiple OCaml \
-                     versions and OS platforms.";
+                    "OCaml-CI uses metadata from the project's opam and dune \
+                     files to work out what to build, and it also uses caching \
+                     to make builds fast. It takes the information in the \
+                     project's opam files to automatically test against \
+                     multiple OCaml versions and OS platforms.";
                 ];
               p [ txt "To start building with OCaml-CI:" ];
               ul
                 [
                   li
                     [
-                      txt "Add the app to your account, selecting ";
+                      txt "Add the app to your account by selecting ";
                       strong [ txt "Configure" ];
                       txt " at ";
                       a
@@ -44,9 +44,8 @@ let getting_started =
                     ];
                   li
                     [
-                      txt
-                        "Select the GitHub account or organisation and click \
-                         configure.";
+                      txt "Select the GitHub account or organisation and click ";
+                      strong [ txt "Configure" ];
                       img ~src:"/images/github-apps-2.png"
                         ~alt:"Click Configure" ();
                     ];
@@ -57,7 +56,7 @@ let getting_started =
                          (starting with no more than three please). If you \
                          select ";
                       strong [ txt "All Repositories" ];
-                      txt " we won't build anything!";
+                      txt " we won't be able to build anything!";
                       img ~src:"/images/github-apps-3.png"
                         ~alt:"Click Configure" ();
                     ];
@@ -73,11 +72,12 @@ let getting_started =
                   txt
                     ". You will need to be approved before it will start \
                      building anything. This is done by adding yourself to a \
-                     list by submitting a PR - e.g. ";
+                     list by submitting a PR (e.g. ";
                   a
                     ~a:
                       [ a_href "https://github.com/ocurrent/ocaml-ci/pull/346" ]
                     [ txt "https://github.com/ocurrent/ocaml-ci/pull/346" ];
+                  txt ").";
                 ];
               ul
                 [
