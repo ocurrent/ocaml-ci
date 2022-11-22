@@ -260,7 +260,8 @@ module Aggregate = struct
     let s_ref = { s; started_at; ran_for } in
     let s_repo =
       match Repo_map.find_opt repo !state with
-      | None -> { default_ref = gref; ref_states = Ref_map.singleton gref s_ref }
+      | None ->
+          { default_ref = gref; ref_states = Ref_map.singleton gref s_ref }
       | Some { default_ref; ref_states } ->
           { default_ref; ref_states = Ref_map.add gref s_ref ref_states }
     in
@@ -279,16 +280,18 @@ module Aggregate = struct
 end
 
 module Commit_cache = struct
-  module Commit_map = Map.Make (struct
-    type t = string * string * string
-    (** (owner, repo, hash) *)
+  type key = { owner : string; repo : string; hash : string }
 
-    let compare (a0, a1, a2) (b0, b1, b2) =
-      let res = String.compare a0 b0 in
+  module Commit_map = Map.Make (struct
+    type t = key
+
+    let compare { owner = o0; repo = r0; hash = h0 }
+        { owner = o1; repo = r1; hash = h1 } =
+      let res = String.compare o0 o1 in
       if res != 0 then res
       else
-        let res = String.compare a1 b1 in
-        if res != 0 then res else String.compare a2 b2
+        let res = String.compare r0 r1 in
+        if res != 0 then res else String.compare h0 h1
   end)
 
   type commit_state = {
@@ -304,12 +307,14 @@ module Commit_cache = struct
 
   let add ~owner ~name ~hash ~gref status started_at ran_for =
     let v = { s = status; started_at; ran_for } in
-    state := Commit_map.add (owner, name, hash) v !state;
-    Aggregate.set_ref_state ~repo:{ Repo_id.owner; name } ~gref status started_at ran_for
+    state := Commit_map.add { owner; repo = name; hash } v !state;
+    Aggregate.set_ref_state ~repo:{ Repo_id.owner; name } ~gref status
+      started_at ran_for
 
   let find ~owner ~name ~hash =
     let default = { s = `Not_started; started_at = None; ran_for = None } in
-    Commit_map.find_opt (owner, name, hash) !state |> Option.value ~default
+    Commit_map.find_opt { owner; repo = name; hash } !state
+    |> Option.value ~default
 end
 
 let record ~repo ~hash ~status ~gref jobs =
