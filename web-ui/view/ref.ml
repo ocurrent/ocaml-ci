@@ -11,14 +11,23 @@ module Make (M : M_Git_forge) = struct
     | "gitlab" -> Common.gitlab_logo
     | _ -> raise Not_found
 
+  let truncate ~len s =
+    let open Astring.String in
+    let orig = length s in
+    if len >= orig then s
+    else
+      let truncated = with_range ~len s in
+      append truncated "…"
+
   let row ~ref ~short_hash ~started_at ~ran_for ~status ~ref_uri ~message =
     ignore started_at;
     (*See FIXME - revert this when started_at is implemented *)
     (* messages are of arbitrary length - let's truncate them *)
-    let message = Astring.String.with_range ~len:72 message in
+    let message = truncate ~len:72 message in
     let ref_title =
       match ref with Branch title -> title | PR { title; _ } -> title
     in
+    let ref_title = truncate ~len:24 ref_title in
     let description =
       [ div [ txt short_hash ] ]
       @ (match ref with
