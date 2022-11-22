@@ -26,8 +26,6 @@ module Make (M : M_Git_forge) = struct
       append truncated "…"
 
   let row ~ref ~short_hash ~started_at ~ran_for ~status ~ref_uri ~message =
-    ignore started_at;
-    (*See FIXME - revert this when started_at is implemented *)
     (* messages are of arbitrary length - let's truncate them *)
     let message = truncate ~len:72 message in
     let ref_title =
