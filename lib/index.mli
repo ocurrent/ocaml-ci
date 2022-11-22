@@ -106,7 +106,7 @@ type ref_info = {
 }
 [@@deriving show]
 
-val set_active_refs : repo:Repo_id.t -> ref_info Ref_map.t -> unit
+val set_active_refs : repo:Repo_id.t -> ref_info Ref_map.t -> string -> unit
 (** [set_active_refs ~repo refs] records that [refs] is the current set of Git
     references that the CI is watching. There is one entry for each branch and
     PR. Each entry maps the Git reference name to the head commit's hash. *)
@@ -115,3 +115,7 @@ val get_active_refs : Repo_id.t -> ref_info Ref_map.t
 (** [get_active_refs repo] is the entries last set for [repo] with
     [set_active_refs], or [empty] if this repository isn't known. Elements in
     ref tuple are ([hash], [message], [title]) *)
+
+val get_default_gref : Repo_id.t -> string
+(** [get_default_gref repo] is the default gref of the repo last set with
+    [set_active_refs] *)

@@ -74,6 +74,11 @@ module Repo : sig
   (** [refs t] returns the known Git references (branches and pull requests)
       that ocaml-ci is monitoring, along with the current head of each one. *)
 
+  val default_ref :
+    t -> (ref_info, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
+  (** [default_ref t] returns the default branch of the repo that ocaml-ci is
+      monitoring. *)
+
   val commit_of_hash : t -> git_hash -> Commit.t
   (** [commit_of_hash t hash] is the commit [hash] in this repository. *)
 

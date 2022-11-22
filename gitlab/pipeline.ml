@@ -158,11 +158,14 @@ let set_active_repos ~(installation : Installation.t Current.t)
     (float_of_int (List.length repos));
   repos
 
-let set_active_refs ~(repo : Gitlab.Repo_id.t Current.t) xs =
-  let+ repo = repo and+ xs = xs in
+let gref_from_commit (x : Gitlab.Api.Commit.t) : string =
+  Git.Commit_id.gref @@ Gitlab.Api.Commit.id x
+
+let set_active_refs ~(repo : Gitlab.Repo_id.t Current.t) ~default xs =
+  let+ repo = repo and+ xs = xs and+ default = default in
   let repo' = { Repo_id.owner = repo.owner; name = repo.name } in
-  Index.set_active_refs ~repo:repo'
-    (xs
+  let refs =
+    xs
     |> List.fold_left
          (fun acc x ->
            let commit = Gitlab.Api.Commit.id x in
@@ -170,7 +173,10 @@ let set_active_refs ~(repo : Gitlab.Repo_id.t Current.t) xs =
            let hash = Git.Commit_id.hash commit in
            (* FIXME [benmandrew]: Implement fields for Gitlab *)
            Index.Ref_map.add gref { Index.hash; message = ""; name = "" } acc)
-         Index.Ref_map.empty);
+         Index.Ref_map.empty
+  in
+  let default_gref = gref_from_commit default in
+  Index.set_active_refs ~repo:repo' refs default_gref;
   xs
 
 let get_job_id x =
@@ -331,10 +337,11 @@ let v ?ocluster ~app ~solver ~migration () =
      |> Current.list_iter ~collapse_key:"repo" (module Gitlab.Repo_id)
         @@ fun repo ->
         let* repo_id = repo in
+        let default = Gitlab.Api.head_commit app repo_id in
         let refs =
           Gitlab.Api.ci_refs app ~staleness:Ocaml_ci_service.Conf.max_staleness
             repo_id
-          |> set_active_refs ~repo
+          |> set_active_refs ~repo ~default
         in
         refs
         |> Current.list_iter (module Gitlab.Api.Commit) @@ fun head ->

@@ -32,6 +32,7 @@ module type View = sig
   val list_refs :
     org:string ->
     repo:string ->
+    default_ref:string ->
     refs:Client.Repo.ref_info Client.Ref_map.t ->
     string
 

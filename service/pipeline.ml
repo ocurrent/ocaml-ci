@@ -102,23 +102,23 @@ let ref_name c =
   | None, Some x -> x
   | _ -> failwith "Commit is neither a branch nor a PR"
 
-let set_active_refs ~repo xs =
-  let+ repo = repo and+ xs = xs in
+let set_active_refs ~repo refs default_ref =
+  let+ repo = repo and+ xs = refs and+ default = default_ref in
   let github_repo = Github.Api.Repo.id repo in
   let repo = { Repo_id.owner = github_repo.owner; name = github_repo.name } in
   let refs =
     xs
     |> List.fold_left
          (fun acc x ->
-           let commit = Github.Api.Commit.id x in
            let gref = ref_from_commit x in
+           let commit = Github.Api.Commit.id x in
            let hash = Git.Commit_id.hash commit in
            let name = ref_name x in
            let message = Github.Api.Commit.message x in
            Index.Ref_map.add gref { Index.hash; message; name } acc)
          Index.Ref_map.empty
   in
-  Index.set_active_refs ~repo refs;
+  Index.set_active_refs ~repo refs (ref_from_commit default);
   xs
 
 let get_job_id x =
@@ -277,9 +277,12 @@ let v ?ocluster ~app ~solver ~migration () =
      repos
      |> Current.list_iter ~collapse_key:"repo" (module Github.Api.Repo)
         @@ fun repo ->
+        let default = Github.Api.Repo.head_commit repo in
         let refs =
-          Github.Api.Repo.ci_refs ~staleness:Conf.max_staleness repo
-          |> set_active_refs ~repo
+          let refs =
+            Github.Api.Repo.ci_refs ~staleness:Conf.max_staleness repo
+          in
+          set_active_refs ~repo refs default
         in
         refs
         |> Current.list_iter (module Github.Api.Commit) @@ fun head ->
