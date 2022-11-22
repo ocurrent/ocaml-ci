@@ -221,7 +221,14 @@ let create ~github ~gitlab =
        Dream.get "/js/**" @@ Dream.static ~loader "/js";
        Dream.get "/fonts/**" @@ Dream.static ~loader "/fonts";
        Dream.get "/" (fun _ ->
-           Dream.html @@ Controller.Index.render github gitlab);
+           match (github, gitlab) with
+           | None, None ->
+               Dream.log "No backend available";
+               Dream.empty `Internal_Server_Error
+           | Some github, None -> Controller.Index.list_orgs "github" github
+           | None, Some gitlab -> Controller.Index.list_orgs "gitlab" gitlab
+           | Some github, Some gitlab ->
+               Controller.Index.list_all_orgs ~github ~gitlab);
        Dream.get "/getting-started" (fun _ ->
            Dream.html @@ Controller.Documentation.getting_started);
      ]

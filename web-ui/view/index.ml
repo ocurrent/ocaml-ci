@@ -32,3 +32,89 @@ let render github gitlab =
           else li [ txt "No GitLab organisations" ]);
         ];
     ]
+
+let rows prefix orgs =
+  let open Organisation.Make (struct
+    let prefix = prefix
+  end) in
+  let orgs = List.sort String.compare orgs in
+  List.fold_left (fun l org -> List.append l [ row ~org ]) [] orgs
+
+let list_orgs prefix orgs =
+  Template_v1.instance
+    [
+      Tyxml.Html.script ~a:[ a_src "/js/index-page-org-search.js" ] (txt "");
+      div
+        ~a:[ a_class [ "justify-between items-center flex" ] ]
+        [
+          div
+            ~a:[ a_class [ "flex flex-col space-y-1" ] ]
+            [
+              h1 [ txt "Welcome to OCaml-CI" ];
+              div
+                ~a:[ a_class [ "text-gray-500" ] ]
+                [ txt "Here are the organisations registered with us" ];
+            ];
+          div
+            ~a:[ a_class [ "form-control relative w-80" ] ]
+            [
+              Common.search;
+              input
+                ~a:
+                  [
+                    a_input_type `Text;
+                    a_placeholder "Search for an organisation";
+                    a_oninput "search(this.value)";
+                  ]
+                ();
+            ];
+        ];
+      div
+        ~a:[ a_class [ "mt-8" ] ]
+        [
+          div
+            ~a:[ a_id "table"; a_class [ "flex flex-col space-y-6" ] ]
+            (rows prefix orgs);
+        ];
+    ]
+
+let list_all_orgs ~github_orgs ~gitlab_orgs =
+  let github_org_rows = rows "github" github_orgs in
+  let gitlab_org_rows = rows "gitlab" gitlab_orgs in
+  let org_rows = github_org_rows @ gitlab_org_rows in
+  Template_v1.instance
+    [
+      Tyxml.Html.script ~a:[ a_src "/js/index-page-org-search.js" ] (txt "");
+      div
+        ~a:[ a_class [ "justify-between items-center flex" ] ]
+        [
+          div
+            ~a:[ a_class [ "flex flex-col space-y-1" ] ]
+            [
+              h1 [ txt "Welcome to OCaml-CI" ];
+              div
+                ~a:[ a_class [ "text-gray-500" ] ]
+                [ txt "Here are the organisations registered with us" ];
+            ];
+          div
+            ~a:[ a_class [ "form-control relative w-80" ] ]
+            [
+              Common.search;
+              input
+                ~a:
+                  [
+                    a_input_type `Text;
+                    a_placeholder "Search for an organisation";
+                    a_oninput "search(this.value)";
+                  ]
+                ();
+            ];
+        ];
+      div
+        ~a:[ a_class [ "mt-8" ] ]
+        [
+          div
+            ~a:[ a_id "table"; a_class [ "flex flex-col space-y-6" ] ]
+            org_rows;
+        ];
+    ]
