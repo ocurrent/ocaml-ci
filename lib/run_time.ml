@@ -102,3 +102,18 @@ let timestamps_of_job job_id : timestamps option =
                 y.Current_cache.Db.job_id))
         x;
       None
+
+let first_queued_at ts =
+  let time =
+    List.fold_left
+      (fun acc x ->
+        let queued_at =
+          match x with
+          | Queued v -> v
+          | Running { queued_at; _ } -> queued_at
+          | Finished { queued_at; _ } -> queued_at
+        in
+        Float.min acc queued_at)
+      Float.infinity ts
+  in
+  if Float.is_finite time then Some time else None

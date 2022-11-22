@@ -89,7 +89,7 @@ let make_commit ~engine ~owner ~name hash =
          let open Commit.Status in
          release_param_caps ();
          let response, results = Service.Response.create Results.init_pointer in
-         (Index.get_status ~owner ~name ~hash |> function
+         (Index.Commit_cache.(find ~owner ~name ~hash |> get_status) |> function
           | `Not_started -> Results.status_set results NotStarted
           | `Pending -> Results.status_set results Pending
           | `Failed -> Results.status_set results Failed
@@ -171,7 +171,8 @@ let make_repo ~engine ~owner ~name =
                 ref_set slot gref;
                 hash_set slot hash;
                 let status =
-                  to_build_status (Index.get_status ~owner ~name ~hash)
+                  to_build_status
+                    Index.Commit_cache.(get_status @@ find ~owner ~name ~hash)
                 in
                 status_set slot status;
                 message_set slot message;
@@ -200,7 +201,8 @@ let make_repo ~engine ~owner ~name =
              ref_set slot default_gref;
              hash_set slot hash;
              let status =
-               to_build_status (Index.get_status ~owner ~name ~hash)
+               to_build_status
+                 Index.Commit_cache.(get_status @@ find ~owner ~name ~hash)
              in
              status_set slot status;
              message_set slot message;
@@ -265,7 +267,8 @@ let make_repo ~engine ~owner ~name =
                 ref_set slot gref;
                 hash_set slot hash;
                 let status =
-                  to_build_status (Index.get_status ~owner ~name ~hash)
+                  to_build_status
+                    Index.Commit_cache.(get_status @@ find ~owner ~name ~hash)
                 in
                 status_set slot status;
                 let started_at_t = started_at_init slot in
@@ -330,9 +333,9 @@ let make_org ~engine owner =
                 let open Raw.Builder.RepoInfo in
                 let slot = Capnp.Array.get arr i in
                 name_set slot name;
-                let refs =
-                  Index.get_active_refs { Ocaml_ci.Repo_id.owner; name }
-                in
+                let repo_id = { Ocaml_ci.Repo_id.owner; name } in
+                let refs = Index.get_active_refs repo_id in
+                let repo = Index.Aggregate.get_repo_state ~repo:repo_id in
                 let default_ref =
                   Index.get_default_gref { Ocaml_ci.Repo_id.owner; name }
                 in
@@ -340,13 +343,16 @@ let make_org ~engine owner =
                   match Index.Ref_map.find default_ref refs with
                   | { Index.hash; _ } ->
                       ( hash,
-                        to_build_status (Index.get_status ~owner ~name ~hash) )
+                        to_build_status
+                          Index.Commit_cache.(
+                            get_status @@ find ~owner ~name ~hash) )
                 in
                 main_hash_set slot hash;
                 main_state_set slot status;
-                (* FIXME [benmandrew]: Always returning no time, change to actually get it from somewhere *)
                 let last_updated_t = main_last_updated_init slot in
-                MainLastUpdated.none_set last_updated_t);
+                match Index.Aggregate.get_repo_started_at repo with
+                | None -> MainLastUpdated.none_set last_updated_t
+                | Some time -> MainLastUpdated.ts_set last_updated_t time);
          Service.return response
      end
 

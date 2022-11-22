@@ -32,3 +32,5 @@ val pp_timestamps : Format.formatter -> timestamps -> unit
 val timestamps_of_job : Current.job_id -> timestamps option
 (** Hydrates a timestamps instance for a step/job by looking up timestamps in
     the ocurrent layer. *)
+
+val first_queued_at : timestamps list -> float option
