@@ -5,7 +5,8 @@ let has_role user = function
       match Option.map Current_web.User.id user with
       | Some
           ( "github:talex5" | "github:avsm" | "github:kit-ty-kate"
-          | "github:samoht" | "github:tmcgilchrist" | "github:dra27" ) ->
+          | "github:samoht" | "github:tmcgilchrist" | "github:dra27"
+          | "github:maiste" ) ->
           true
       | Some _ | None -> false)
 

@@ -110,7 +110,7 @@ module Gitlab = struct
     | `Viewer | `Monitor -> true
     | `Builder | `Admin -> (
         match Option.map Current_web.User.id user with
-        | Some "gitlab:tmcgilchrist" -> true
+        | Some ("gitlab:tmcgilchrist" | "gitlab:maiste") -> true
         | Some _ | None -> false)
 
   let webhook_route ~webhook_secret =
