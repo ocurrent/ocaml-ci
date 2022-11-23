@@ -376,21 +376,18 @@ let record ~repo ~hash ~status ~gref jobs =
   let ts =
     List.map
       (fun (variant, job_id) ->
-        let id = 
+        let id =
           Option.map (fun id -> Run_time.timestamps_of_job id) job_id
           |> Option.join
         in
-        variant, id)
+        Dream.log "%s" variant;
+        (variant, id))
       jobs
   in
-  let ts = List.filter_map
-    (function
-      | (_, None) -> None
-      | (variant, Some ts) -> Some (variant, ts) ) ts
-  in
-  let build_queued_at = Run_time.build_queued_at ts in
-  let build_ran_for = Run_time.build_run_time ts in
-  Commit_cache.add ~owner ~name ~hash ~gref status build_queued_at
+  let first_queued_at = Run_time.first_step_queued_at (List.map snd ts) in
+  let build_ran_for = Run_time.build_ran_for ts in
+  Commit_cache.add ~owner ~name ~hash ~gref status
+    (Result.to_option first_queued_at)
     (Some build_ran_for)
 
 let get_full_hash ~owner ~name short_hash =

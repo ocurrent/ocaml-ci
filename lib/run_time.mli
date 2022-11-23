@@ -40,5 +40,5 @@ val timestamps_of_job : Current.job_id -> timestamps option
 (** Hydrates a timestamps instance for a step/job by looking up timestamps in
     the ocurrent layer. *)
 
-val first_queued_at : timestamps list -> float option
-val build_run_time : timestamps list -> float
+val build_ran_for : (string * timestamps option) list -> float
+val first_step_queued_at : timestamps option list -> (float, string) result

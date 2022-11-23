@@ -117,7 +117,9 @@ let queued_at = function
   | Finished v -> v.queued_at
 
 let partition_build_steps build =
-  let analysis_steps, rest = List.partition (fun (variant, _) -> String.equal variant "analysis") build in
+  let analysis_steps, rest =
+    List.partition (fun (variant, _) -> String.equal variant "(analysis)") build
+  in
   let analysis_steps = List.map snd analysis_steps in
   let rest = List.map snd rest in
   match analysis_steps with
@@ -162,42 +164,34 @@ let max_of_step_run_times ~build_created_at ts =
   in
   Option.value ~default:0. (List.nth_opt sorted_steps 0)
 
-let build_run_time build =
+let build_ran_for build =
   let partitioned = Result.to_option @@ partition_build_steps build in
-   match partitioned with
-   | None -> 0.
-   | Some (analysis_step, rest) -> (
-       let build_created_at = queued_at @@ snd analysis_step in
-       let analysis_step_timestamps = snd analysis_step
-       in
-       match analysis_step_timestamps with
-       | None -> 0.
-       | Some analysis_step_timestamps ->
-           let run_time_analysis_step =
-             total_time
-             @@ run_times_from_timestamps ~build_created_at
-                   analysis_step_timestamps
-           in
-           run_time_analysis_step +. max_of_step_run_times ~build_created_at rest
-       )
+  match partitioned with
+  | None -> 0.
+  | Some (analysis_step, rest) -> (
+      match analysis_step with
+      | None -> 0.
+      | Some analysis_step_timestamps ->
+          let build_created_at = queued_at analysis_step_timestamps in
+          let run_time_analysis_step =
+            total_time
+            @@ run_times_from_timestamps ~build_created_at
+                 analysis_step_timestamps
+          in
+          let rest = List.filter_map Fun.id rest in
+          let build_ran_for =
+            run_time_analysis_step
+            +. max_of_step_run_times ~build_created_at rest
+          in
+          build_ran_for)
 
-
-(* let build_run_time build =
-   let partitioned = Result.to_option @@ partition_build_steps build in
-   match partitioned with
-   | None -> 0.
-   | Some (analysis_step, rest) -> (
-       let build_created_at = Option.value ~default:0. analysis_step.queued_at in
-       let analysis_step_timestamps =
-         Result.to_option @@ timestamps_from_job_info analysis_step
-       in
-       match analysis_step_timestamps with
-       | None -> 0.
-       | Some analysis_step_timestamps ->
-           let run_time_analysis_step =
-             total_time
-             @@ run_times_from_timestamps ~build_created_at
-                   analysis_step_timestamps
-           in
-           run_time_analysis_step +. max_of_step_run_times ~build_created_at rest
-       ) *)
+let first_step_queued_at ts =
+  (* for_all holds for the empty list as well as preventing transient
+      error when only the analysis step exists with a None timestamp.
+      Error would be caused by trying to format [max_float] as a string. *)
+  if List.for_all Option.is_none ts then Error "Empty build"
+  else
+    let minn accum ts =
+      Option.fold ~none:accum ~some:(fun v -> min accum (queued_at v)) ts
+    in
+    Ok (List.fold_left minn max_float ts)

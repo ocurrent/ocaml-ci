@@ -67,10 +67,7 @@ module Make (M : M_Git_forge) = struct
       match ran_for with
       | None -> [ Common.right_arrow_head ]
       | Some _ ->
-          [
-            div [ txt (duration status ran_for) ];
-            Common.right_arrow_head;
-          ]
+          [ div [ txt (duration status ran_for) ]; Common.right_arrow_head ]
     in
     a
       ~a:[ a_class [ "table-row" ]; a_href ref_uri ]
