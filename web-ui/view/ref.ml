@@ -25,6 +25,17 @@ module Make (M : M_Git_forge) = struct
       let truncated = with_range ~len s in
       append truncated "…"
 
+  let duration (status : Build_status.t) t =
+    let text =
+      match status with
+      | NotStarted -> "In queue for"
+      | Failed -> "Failed in"
+      | Passed -> "Passed in"
+      | Pending -> "Running for"
+      | Undefined _ -> "In queue for"
+    in
+    Printf.sprintf "%s %s" text (Timestamps_durations.pp_duration t)
+
   let row ~ref ~short_hash ~started_at ~ran_for ~status ~ref_uri ~message =
     (* messages are of arbitrary length - let's truncate them *)
     let message = truncate ~len:72 message in
@@ -57,7 +68,7 @@ module Make (M : M_Git_forge) = struct
       | None -> [ Common.right_arrow_head ]
       | Some _ ->
           [
-            div [ txt (Timestamps_durations.pp_timestamp ran_for) ];
+            div [ txt (duration status ran_for) ];
             Common.right_arrow_head;
           ]
     in

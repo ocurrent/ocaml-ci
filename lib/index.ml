@@ -375,13 +375,23 @@ let record ~repo ~hash ~status ~gref jobs =
   let (_ : [ `Empty ] Job_map.t) = Job_map.merge merge previous jobs_m in
   let ts =
     List.map
-      (fun (_, job_id) ->
-        Option.map (fun id -> Run_time.timestamps_of_job id) job_id
-        |> Option.join)
+      (fun (variant, job_id) ->
+        let id = 
+          Option.map (fun id -> Run_time.timestamps_of_job id) job_id
+          |> Option.join
+        in
+        variant, id)
       jobs
   in
-  let first_queued = Run_time.first_queued_at (List.filter_map Fun.id ts) in
-  Commit_cache.add ~owner ~name ~hash ~gref status first_queued None
+  let ts = List.filter_map
+    (function
+      | (_, None) -> None
+      | (variant, Some ts) -> Some (variant, ts) ) ts
+  in
+  let build_queued_at = Run_time.build_queued_at ts in
+  let build_ran_for = Run_time.build_run_time ts in
+  Commit_cache.add ~owner ~name ~hash ~gref status build_queued_at
+    (Some build_ran_for)
 
 let get_full_hash ~owner ~name short_hash =
   let t = Lazy.force db in
