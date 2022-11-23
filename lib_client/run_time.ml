@@ -160,6 +160,20 @@ let timestamps_from_job_info (ji : Client.job_info) :
                    })))
   | Undefined _ -> Error "Outcome is Undefined - cannot construct timestamp."
 
+let partition_build_steps build =
+  let analysis (ji : Client.job_info) =
+    let re = Str.regexp_string "analysis" in
+    try
+      ignore (Str.search_forward re ji.variant 0);
+      true
+    with Not_found -> false
+  in
+  let analysis_steps, rest = List.partition analysis build in
+  match analysis_steps with
+  | [] -> Error "No analysis step found"
+  | [ h ] -> Ok (h, rest)
+  | _ :: _ -> Error "Multiple analysis steps found"
+
 let build_created_at ~build =
   let analysis (ji : Client.job_info) =
     let re = Str.regexp_string "analysis" in
@@ -189,6 +203,38 @@ let total_of_run_times (build : Client.job_info list) =
   |> List.filter_map (fun ji -> Result.to_option @@ timestamps_from_job_info ji)
   |> List.map (run_times_from_timestamps ~build_created_at)
   |> List.fold_left (fun subtotal rt -> subtotal +. total_time rt) 0.
+
+let max_of_step_run_times ~build_created_at steps =
+  let sorted_steps =
+    steps
+    |> List.filter_map (fun ji ->
+           Result.to_option @@ timestamps_from_job_info ji)
+    |> List.map (fun ts ->
+           total_time @@ run_times_from_timestamps ~build_created_at ts)
+    |> List.sort Float.compare
+    |> List.rev
+  in
+  Option.value ~default:0. (List.nth_opt sorted_steps 0)
+
+let build_run_time build =
+  let partitioned = Result.to_option @@ partition_build_steps build in
+  match partitioned with
+  | None -> 0.
+  | Some (analysis_step, rest) -> (
+      let build_created_at = Option.value ~default:0. analysis_step.queued_at in
+      let analysis_step_timestamps =
+        Result.to_option @@ timestamps_from_job_info analysis_step
+      in
+      match analysis_step_timestamps with
+      | None -> 0.
+      | Some analysis_step_timestamps ->
+          let run_time_analysis_step =
+            total_time
+            @@ run_times_from_timestamps ~build_created_at
+                 analysis_step_timestamps
+          in
+          run_time_analysis_step +. max_of_step_run_times ~build_created_at rest
+      )
 
 let first_step_queued_at (jil : Client.job_info list) =
   (* for_all holds for the empty list as well as preventing transient

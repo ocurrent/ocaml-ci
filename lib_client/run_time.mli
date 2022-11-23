@@ -78,6 +78,18 @@ val build_created_at :
 val total_time : run_time_info -> float
 (** The total time taken -- the sum of the queued and running times *)
 
+val max_of_step_run_times :
+  build_created_at:float -> Ocaml_ci_api.Client.job_info list -> float
+(** Takes a list of steps and returns the maximum of the run-times of the steps.
+    This is done by calculating the run-times of the steps in the list, sorting
+    the resulting list of run-times, and returning the head of the list
+    (defaulting to 0) *)
+
 val total_of_run_times : Ocaml_ci_api.Client.job_info list -> float
 (** Takes a list of job_info which is meant to be the steps in a build. Returns
     total of run times of the steps in the build.*)
+
+val build_run_time : Ocaml_ci_api.Client.job_info list -> float
+(** Takes a list of job_info which is meant to be the steps in a build. Returns
+    the (run-time of the analysis step) + max(run-times of the steps in the
+    build) *)

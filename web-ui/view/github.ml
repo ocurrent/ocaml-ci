@@ -207,7 +207,7 @@ let rebuild_fail_message_v1 = function
       ]
 
 let list_steps ~org ~repo ~message ~refs ~hash ~jobs ~first_step_queued_at
-    ~total_run_time ?(flash_messages = [])
+    ~total_run_time ~build_run_time ?(flash_messages = [])
     ?(build_status : Client.State.t = Passed) ~csrf_token () =
   let can_cancel =
     let check job_info =
@@ -235,7 +235,8 @@ let list_steps ~org ~repo ~message ~refs ~hash ~jobs ~first_step_queued_at
       ~hash_link:(link_github_commit ~org ~repo ~hash)
       ~ref_links:(link_github_refs' ~org ~repo refs)
       ~first_created_at:(Timestamps_durations.pp_timestamp first_step_queued_at)
-      ~ran_for:(Timestamps_durations.pp_duration (Some total_run_time))
+      ~ran_for:(Timestamps_durations.pp_duration (Some build_run_time))
+      ~total_run_time:(Timestamps_durations.pp_duration (Some total_run_time))
       ~buttons
   in
   let steps_table_div =
