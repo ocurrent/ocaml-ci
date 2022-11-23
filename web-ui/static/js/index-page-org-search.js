@@ -1,9 +1,9 @@
 function title_comparator(a, b) {
   var title_a = a
-    .getElementsByClassName("repo-title")[0]
+    .getElementsByClassName("org-title")[0]
     .textContent.toLowerCase();
   var title_b = b
-    .getElementsByClassName("repo-title")[0]
+    .getElementsByClassName("org-title")[0]
     .textContent.toLowerCase();
   if (title_a < title_b) return -1;
   if (title_a > title_b) return 1;
@@ -34,6 +34,13 @@ function sort(select) {
 
 function search(target) {
   var children = Array.from(body.children);
+  var selector = document.getElementsByTagName("select");
+  var gitForgeSelected = null;
+  if (selector.length > 0) {
+    if (selector[0].value.localeCompare("all") !== 0) {
+      gitForgeSelected = selector[0].value;
+    }
+  }
 
   function has_substr(child, ss) {
     var elts = child.getElementsByClassName("org-title");
@@ -44,15 +51,62 @@ function search(target) {
       return false;
     }
   }
+
   for (i = 0; i < children.length; ++i) {
     if (has_substr(children[i], target)) {
-      children[i].style.display = "";
+      if (gitForgeSelected) {
+        var elts = children[i].getElementsByClassName("data-info");
+        if (elts.length > 0) {
+          var dataInfo = elts[0].textContent.toLowerCase();
+          if (dataInfo.localeCompare(gitForgeSelected) == 0) {
+            children[i].style.display = "";
+          }
+        }
+      } else {
+        children[i].style.display = "";
+      }
     } else {
       children[i].style.display = "none";
     }
   }
 }
 
+function filter(target) {
+  var children = Array.from(body.children);
+
+  function has_target(child, ss) {
+    var elts = child.getElementsByClassName("data-info");
+    if (elts.length > 0) {
+      var title = elts[0].textContent.toLowerCase();
+      return title.indexOf(ss.toLowerCase()) !== -1;
+    } else {
+      return false;
+    }
+  }
+
+  if (target.toLowerCase().localeCompare("all") == 0) {
+    // make everything visible
+    for (i = 0; i < children.length; ++i) {
+      children[i].style.display = "";
+    }
+  } else {
+    for (i = 0; i < children.length; ++i) {
+      if (has_target(children[i], target)) {
+        children[i].style.display = "";
+      } else {
+        children[i].style.display = "none";
+      }
+    }
+  }
+}
+
 window.onload = function () {
   body = document.getElementById("table");
+  sort("alpha"); // Sort everything by default
+
+  // apply git-forge filter
+  var selector = document.getElementsByTagName("select");
+  if (selector.length > 0) {
+    filter(selector[0].value)
+  }
 };

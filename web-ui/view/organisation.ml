@@ -26,6 +26,9 @@ module Make (M : M_Git_forge) = struct
       a
         ~a:[ a_class [ "item-card flex space-x-4" ]; a_href org_url ]
         [
+          div
+            ~a:[ a_class [ "data-info" ]; a_style "display: none" ]
+            [ txt M.prefix ];
           img
             ~a:[ a_class [ "w-20 h-20 rounded-full" ] ]
             ~src:(profile_picture_url org)

@@ -97,17 +97,42 @@ let list_all_orgs ~github_orgs ~gitlab_orgs =
                 [ txt "Here are the organisations registered with us" ];
             ];
           div
-            ~a:[ a_class [ "form-control relative w-80" ] ]
+            ~a:[ a_class [ "flex items-center justify-between space-x-3" ] ]
             [
-              Common.search;
-              input
-                ~a:
-                  [
-                    a_input_type `Text;
-                    a_placeholder "Search for an organisation";
-                    a_oninput "search(this.value)";
-                  ]
-                ();
+              div
+                ~a:[ a_class [ "form-control relative w-80" ] ]
+                [
+                  Common.search;
+                  input
+                    ~a:
+                      [
+                        a_input_type `Text;
+                        a_placeholder "Search for an organisation";
+                        a_oninput "search(this.value)";
+                      ]
+                    ();
+                ];
+              div
+                ~a:[ a_class [ "relative" ] ]
+                [
+                  select
+                    ~a:
+                      [
+                        a_class
+                          [
+                            "input-control relative input-text text-gray-500 \
+                             items-center justify-between flex px-3 py-2 \
+                             appearance-none";
+                          ];
+                        a_name "Languages";
+                        a_onchange "filter(this.value)";
+                      ]
+                    [
+                      option ~a:[ a_value "all" ] (txt "All");
+                      option ~a:[ a_value "gitlab" ] (txt "Gitlab");
+                      option ~a:[ a_value "github" ] (txt "GitHub");
+                    ];
+                ];
             ];
         ];
       div
