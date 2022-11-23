@@ -21,7 +21,10 @@ let head =
       link ~rel:[ `Stylesheet ] ~href:"/css/ansi.css" ();
     ]
 
-let header =
+let header ~full =
+  let constrained = "container-fluid flex space-x-6 items-end" in
+  let maximised = "px-12 flex space-x-6 items-end" in
+  let klass = if full then maximised else constrained in
   header
     ~a:
       [
@@ -33,7 +36,7 @@ let header =
       ]
     [
       div
-        ~a:[ a_class [ "container-fluid flex space-x-6 items-end" ] ]
+        ~a:[ a_class [ klass ] ]
         [
           a
             ~a:[ a_href "/" ]
@@ -59,9 +62,13 @@ let header =
         ];
     ]
 
-let instance contents =
+let instance ?(full = false) contents =
+  let constrained = "container-fluid py-12" in
+  let maximised = "flex-basis px-12 py-12" in
+  let klass = if full then maximised else constrained in
+
   html_to_string
     (html head
        (body
           ~a:[ a_class [ "" ] ]
-          [ header; div ~a:[ a_class [ "container-fluid"; "py-12" ] ] contents ]))
+          [ header ~full; div ~a:[ a_class [ klass ] ] contents ]))
