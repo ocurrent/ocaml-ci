@@ -190,6 +190,15 @@ let get_build_history_with_time ~owner ~name ~gref =
   |> List.filter (fun (gref', _, time) ->
          if Option.is_none time then false else gref = gref')
 
+let get_build_history_hashes ~owner ~name ~gref =
+  let t = Lazy.force db in
+  Db.query t.get_commits_job_ids_for_ref
+    Sqlite3.Data.[ TEXT owner; TEXT name; TEXT gref ]
+  |> List.map @@ function
+     | Sqlite3.Data.[ TEXT _; TEXT hash; NULL ] -> hash
+     | Sqlite3.Data.[ TEXT _; TEXT hash; TEXT _ ] -> hash
+     | row -> Fmt.failwith "get_build_history: invalid row %a" Db.dump_row row
+
 module Owner_set = Set.Make (String)
 
 let active_owners = ref Owner_set.empty

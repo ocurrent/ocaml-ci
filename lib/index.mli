@@ -149,6 +149,12 @@ val get_build_history_with_time :
     branch gref of the repo identfied by (owner, name). The builds are
     identified by triples (variant, hash, Some timestamp) *)
 
+val get_build_history_hashes :
+  owner:string -> name:string -> gref:string -> string list
+(** [get_build_history ~owner ~name ~gref] is a list of builds for the branch
+    gref of the repo identfied by (owner, name) The builds are identified by
+    their hashes *)
+
 (* val get_status : owner:string -> name:string -> hash:string -> build_status *)
 (** [get_status ~owner ~name ~hash] is the latest status for this combination. *)
 
