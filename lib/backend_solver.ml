@@ -6,7 +6,8 @@ type t =
   [ `Remote of Current_ocluster.Connection.t
   | `Local of Ocaml_ci_api.Solver.t Lwt.t ]
 
-let pool = "solver"
+let switch = Current.Switch.create ~label:"solver-remote" ()
+let config = Current.Config.v ()
 
 let solve_to_custom req builder =
   let params =
@@ -24,9 +25,11 @@ let remote_solve con job request =
     @@ solve_to_custom request
   in
   let build_pool =
-    Current_ocluster.Connection.pool ~job ~pool ~action ~cache_hint:"" con
+    Current_ocluster.Connection.pool ~job ~pool:"solver" ~action ~cache_hint:""
+      con
   in
-  Current.Job.start_with ~pool:build_pool job ~level:Current.Level.Average
+  let dummy_job = Current.Job.create ~label:"solver-job" ~switch ~config () in
+  Current.Job.start_with ~pool:build_pool dummy_job ~level:Current.Level.Average
   >>= fun build_job ->
   Capnp_rpc_lwt.Capability.with_ref build_job
     (Current_ocluster.Connection.run_job ~job)
