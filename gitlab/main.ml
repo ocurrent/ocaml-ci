@@ -133,7 +133,7 @@ let main () config mode app capnp_public_address capnp_listen_address
      let ocluster =
        Option.map (Capnp_rpc_unix.Vat.import_exn vat) submission_uri
      in
-     let migration = no_migration in
+     let migration = not no_migration in
      let engine =
        Current.Engine.create ~config
          (Ocaml_ci_gitlab.Pipeline.v ?ocluster ~app ~solver ~migration)

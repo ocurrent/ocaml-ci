@@ -51,3 +51,6 @@ ENV OCAMLRUNPARAM=a=2
 # Enable experimental for docker manifest support
 ENV DOCKER_CLI_EXPERIMENTAL=enabled
 COPY --from=build /src/_build/install/default/bin/ocaml-ci-gitlab /src/_build/install/default/bin/ocaml-ci-solver /usr/local/bin/
+# Create migration directory
+RUN mkdir -p migrations
+COPY --from=build /src/migrations ./migrations
