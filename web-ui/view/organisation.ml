@@ -4,7 +4,7 @@ module Make (M : M_Git_forge) = struct
   let profile_picture_url org =
     (* FIXME [benmandrew]: How can we get the GitLab profile pictures? *)
     match M.prefix with
-    | "github" -> Printf.sprintf "https://github.com/%s.png?size=88" org
+    | "github" -> Printf.sprintf "https://github.com/%s.png?size=200" org
     | "gitlab" -> "/images/gitlab-logo-500.png"
     | _ -> ""
 
