@@ -380,7 +380,6 @@ let record ~repo ~hash ~status ~gref jobs =
           Option.map (fun id -> Run_time.timestamps_of_job id) job_id
           |> Option.join
         in
-        Dream.log "%s" variant;
         (variant, id))
       jobs
   in
