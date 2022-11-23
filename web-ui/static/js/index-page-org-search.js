@@ -109,4 +109,6 @@ window.onload = function () {
   if (selector.length > 0) {
     filter(selector[0].value)
   }
+
+  document.getElementsByTagName("input")[0].focus()
 };
