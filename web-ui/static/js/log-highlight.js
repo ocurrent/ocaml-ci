@@ -1,5 +1,4 @@
 document.addEventListener('alpine:init', () => {
-    console.log("alpine init");
     Alpine.data('codeLink', () => ({
         permalinkButton: false,
 
