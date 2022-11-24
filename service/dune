@@ -68,13 +68,13 @@
 (rule
  (target main-copy.exe)
  (deps
-  (package ocaml-ci-solver))
+  (package solver-service))
  (action
   (copy main.exe main-copy.exe)))
 
 (rule
  (target local-copy.exe)
  (deps
-  (package ocaml-ci-solver))
+  (package solver-service))
  (action
   (copy local.exe local-copy.exe)))

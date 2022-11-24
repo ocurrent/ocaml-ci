@@ -11,7 +11,7 @@ module Analysis : sig
     | `Opam_monorepo of Opam_monorepo.config list ]
 
   val of_dir :
-    solver:Ocaml_ci_api.Solver.t ->
+    solver:Backend_solver.t ->
     job:Current.Job.t ->
     platforms:(Variant.t * Ocaml_ci_api.Worker.Vars.t) list ->
     opam_repository_commit:Current_git.Commit_id.t ->
@@ -20,7 +20,7 @@ module Analysis : sig
 end
 
 val examine :
-  solver:Ocaml_ci_api.Solver.t ->
+  solver:Backend_solver.t ->
   platforms:Platform.t list Current.t ->
   opam_repository_commit:Current_git.Commit_id.t Current.t ->
   Current_git.Commit.t Current.t ->

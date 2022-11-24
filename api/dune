@@ -1,7 +1,12 @@
 (library
  (name ocaml_ci_api)
  (public_name ocaml-ci-api)
- (libraries unix capnp-rpc-lwt current_rpc ppx_deriving_yojson.runtime)
+ (libraries
+  unix
+  capnp-rpc-lwt
+  current_rpc
+  ppx_deriving_yojson.runtime
+  solver-service-api)
  (flags
   (:standard -w -53-55))
  (preprocess
