@@ -17,7 +17,7 @@ let gitlab_routes gitlab =
           ~repo:(Dream.param request "repo")
           ~branch:(Dream.param request "branch")
           gitlab);
-    Dream.get "/gitlab" (fun _ -> Controller.Gitlab.list_orgs gitlab);
+    Dream.get "/gitlab" (fun request -> Dream.redirect request "/");
     Dream.get "/gitlab/:org" (fun request ->
         Controller.Gitlab.list_repos ~org:(Dream.param request "org") gitlab);
     Dream.get "/gitlab/:org/:repo" (fun request ->
@@ -94,7 +94,7 @@ let github_routes github =
           ~repo:(Dream.param request "repo")
           ~branch:(Dream.param request "branch")
           github);
-    Dream.get "/github" (fun _ -> Controller.Github.list_orgs github);
+    Dream.get "/github" (fun request -> Dream.redirect request "/");
     Dream.get "/github/:org" (fun request ->
         Controller.Github.list_repos ~org:(Dream.param request "org") github);
     Dream.get "/github/:org/:repo" (fun request ->

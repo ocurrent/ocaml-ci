@@ -11,6 +11,12 @@ module Make (M : M_Git_forge) = struct
     | "gitlab" -> Common.gitlab_logo
     | _ -> raise Not_found
 
+  let git_forge_url ~org ~repo =
+    match M.prefix with
+    | "github" -> Printf.sprintf "https://github.com/%s/%s" org repo
+    | "gitlab" -> Printf.sprintf "https://gitlab.com/%s/%s" org repo
+    | _ -> raise Not_found
+
   let truncate ~len s =
     let open Astring.String in
     let orig = length s in
@@ -153,8 +159,8 @@ module Make (M : M_Git_forge) = struct
       let table = table_head :: List.map (fun (_, ref) -> f ref) bindings in
       (table, n_prs)
     in
-    let title =
-      let repo_url = Url.repo_url M.prefix ~org ~repo in
+    let top_matter =
+      let external_url = git_forge_url ~org ~repo in
       div
         ~a:[ a_class [ "justify-between items-center flex" ] ]
         [
@@ -172,9 +178,9 @@ module Make (M : M_Git_forge) = struct
                         ~a:
                           [
                             a_class [ "flex items-center space-x-2" ];
-                            a_href repo_url;
+                            a_href external_url;
                           ]
-                        [ span [ txt repo_url ]; Common.external_link ];
+                        [ span [ txt external_url ]; Common.external_link ];
                     ];
                 ];
             ];
@@ -182,7 +188,7 @@ module Make (M : M_Git_forge) = struct
     in
     [
       Common.breadcrumbs [ (M.prefix, M.prefix); (org, org) ] repo;
-      title;
+      top_matter;
       Common.tabulate_div default_table;
     ]
     |> (fun content ->
