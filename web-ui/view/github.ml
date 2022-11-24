@@ -246,10 +246,15 @@ let list_steps ~org ~repo ~message ~refs ~hash ~jobs ~first_step_queued_at
         (* TODO: We need to start with no stage separation - introduce Analysis/Checks and Build steps later *)
       [ txt "Build" ]
   in
+  let build_created_at =
+    Run_time.build_created_at ~build:jobs
+    |> Result.to_option
+    |> Option.join
+    |> Option.value ~default:0.
+  in
   let steps_table =
     List.fold_left
       (fun l j ->
-        let build_created_at = Option.value ~default:0. first_step_queued_at in
         let ts = Result.to_option @@ Run_time.timestamps_from_job_info j in
         let rt =
           Option.map (Run_time.run_times_from_timestamps ~build_created_at) ts
