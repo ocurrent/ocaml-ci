@@ -15,6 +15,11 @@ COPY --chown=opam \
 	ocluster/current_ocluster.opam \
 	/src/ocluster/
 COPY --chown=opam \
+	solver-service/solver-service-api.opam \
+	solver-service/solver-service.opam \
+	solver-service/solver-worker.opam \
+	/src/solver-service/
+COPY --chown=opam \
 	ocaml-version/ocaml-version.opam \
 	/src/ocaml-version/
 COPY --chown=opam \
@@ -32,8 +37,11 @@ RUN opam pin add -yn current_docker.dev "./ocurrent" && \
     opam pin add -yn ocaml-version.dev "./ocaml-version" && \
     opam pin add -yn dockerfile.dev "./ocaml-dockerfile" && \
     opam pin add -yn dockerfile-opam.dev "./ocaml-dockerfile" && \
+    opam pin add -yn solver-service-api.dev "./solver-service" && \
+    opam pin add -yn solver-service.dev "./solver-service" && \
+    opam pin add -yn solver-worker.dev "./solver-service" && \
     opam pin add -yn ocluster-api.dev "./ocluster"
-COPY --chown=opam ocaml-ci.opam ocaml-ci-service.opam ocaml-ci-api.opam ocaml-ci-solver.opam /src/
+COPY --chown=opam ocaml-ci.opam ocaml-ci-service.opam ocaml-ci-api.opam /src/
 RUN opam-2.1 install -y --deps-only .
 ADD --chown=opam . .
 RUN opam-2.1 exec -- dune build ./_build/install/default/bin/ocaml-ci-service
@@ -48,7 +56,7 @@ ENTRYPOINT ["dumb-init", "/usr/local/bin/ocaml-ci-service"]
 ENV OCAMLRUNPARAM=a=2
 # Enable experimental for docker manifest support
 ENV DOCKER_CLI_EXPERIMENTAL=enabled
-COPY --from=build /src/_build/install/default/bin/ocaml-ci-service /src/_build/install/default/bin/ocaml-ci-solver /usr/local/bin/
+COPY --from=build /src/_build/install/default/bin/ocaml-ci-service /src/_build/install/default/bin/solver-service /usr/local/bin/
 # Create migration directory
 RUN mkdir -p /migrations
 COPY --from=build /src/migrations /migrations
