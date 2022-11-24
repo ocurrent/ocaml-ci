@@ -60,7 +60,7 @@
 (rule
  (target main-copy.exe)
  (deps
-  (package ocaml-ci-solver))
+  (package solver-service))
  (action
   (copy main.exe main-copy.exe)))
 

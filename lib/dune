@@ -19,4 +19,5 @@
   opam-0install
   current_ocluster
   ocluster-api
+  solver-worker
   obuilder-spec))

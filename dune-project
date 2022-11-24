@@ -54,7 +54,7 @@
   current_ocluster
   (capnp-rpc-unix (>= 1.2))
   ocaml-ci-api
-  ocaml-ci-solver
+  solver-service
   ocluster-api
   obuilder-spec
   (timedesc (>= 0.9.0))
@@ -84,27 +84,6 @@
   ocaml-ci-service
   (ocaml (>= 4.13))
   (logs (>= 0.7.0))))
-(package
- (name ocaml-ci-solver)
- (synopsis "Choose package versions to test")
- (depends
-  (ppx_deriving_yojson (>= 3.6.1))
-  (ppx_deriving (>= 5.1))
-  yojson
-  (lwt (>= 5.6.1))
-  logs
-  fmt
-  ocaml-ci
-  ocaml-ci-api
-  (conf-libev (<> :os "win32"))
-  (opam-0install (>= "0.4.3"))
-  (git-unix (>= 3.9.0))
-  (timedesc (>= 0.9.0))
-  (ocaml (>= 4.14.0))
-  (capnp-rpc-unix (>= 1.2)))
- (conflicts
-  (carton (< 0.4.2))) ; workaround for mirage/ocaml-git#514
-)
 (package
  (name ocaml-ci-client)
  (synopsis "Command-line client for ocaml-ci")

@@ -10,10 +10,10 @@ type t = {
 
 let of_worker ~root_pkgs w =
   let module W = Ocaml_ci_api.Worker.Selection in
-  let { W.id; compat_pkgs; packages; commit } = w in
+  let { W.id; compat_pkgs; packages; commits } = w in
   let variant = Variant.of_string id in
   let only_packages = if root_pkgs = compat_pkgs then [] else compat_pkgs in
-  { variant; only_packages; packages; commit }
+  { variant; only_packages; packages; commit = snd (List.hd commits) }
 
 let remove_package t ~package =
   {

@@ -127,7 +127,7 @@ end
 let main () config mode app capnp_public_address capnp_listen_address
     gitlab_auth submission_uri migrations : ('a, [ `Msg of string ]) result =
   Lwt_main.run
-    (let solver = Ocaml_ci.Solver_pool.spawn_local () in
+    (let solver = Ocaml_ci.Backend_solver.create None in
      run_capnp capnp_public_address capnp_listen_address
      >>= fun (vat, rpc_engine_resolver) ->
      let ocluster =
