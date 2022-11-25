@@ -1,12 +1,24 @@
 open Git_forge
 
 module Make (M : M_Git_forge) = struct
-  let profile_picture_url org =
+  let profile_picture org =
     (* FIXME [benmandrew]: How can we get the GitLab profile pictures? *)
-    match M.prefix with
-    | "github" -> Printf.sprintf "https://github.com/%s.png?size=200" org
-    | "gitlab" -> "/images/gitlab-logo-500.png"
-    | _ -> ""
+    let url =
+      match M.prefix with
+      | "github" -> Printf.sprintf "https://github.com/%s.png?size=200" org
+      | "gitlab" -> "/images/gitlab-logo-500.png"
+      | _ -> ""
+    in
+    let fallback_js =
+      Printf.sprintf "this.onerror=null; this.src='/images/%s-logo-500.png'"
+        M.prefix
+    in
+    Tyxml.Html.(
+      img
+        ~a:[ a_class [ "w-20 h-20 rounded-full" ]; a_onerror fallback_js ]
+        ~src:url
+        ~alt:(Printf.sprintf "%s profile picture" org)
+        ())
 
   let logo =
     match M.prefix with
@@ -21,6 +33,7 @@ module Make (M : M_Git_forge) = struct
     | _ -> raise Not_found
 
   let row ~org =
+    Dream.log "WHAT";
     let org_url = Url.org_url M.prefix ~org in
     Tyxml.Html.(
       a
@@ -29,11 +42,7 @@ module Make (M : M_Git_forge) = struct
           div
             ~a:[ a_class [ "data-info" ]; a_style "display: none" ]
             [ txt M.prefix ];
-          img
-            ~a:[ a_class [ "w-20 h-20 rounded-full" ] ]
-            ~src:(profile_picture_url org)
-            ~alt:(Printf.sprintf "%s profile picture" org)
-            ();
+          profile_picture org;
           div
             ~a:[ a_class [ "flex flex-col" ] ]
             [
