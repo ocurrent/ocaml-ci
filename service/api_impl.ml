@@ -170,15 +170,16 @@ let make_repo ~engine ~owner ~name =
                 let slot = Capnp.Array.get arr i in
                 ref_set slot gref;
                 hash_set slot hash;
-                let ref_s =
-                  Index.Aggregate.get_ref_state ~repo:repo_id ~ref:gref
-                in
                 let status =
-                  to_build_status (Index.Aggregate.get_ref_status ref_s)
+                  to_build_status
+                    Index.Commit_cache.(get_status @@ find ~owner ~name ~hash)
                 in
                 status_set slot status;
                 message_set slot message;
                 name_set slot ref_name;
+                let ref_s =
+                  Index.Aggregate.get_ref_state ~repo:repo_id ~ref:gref
+                in
                 let started_at_t = started_at_init slot in
                 (match Index.Aggregate.get_ref_started_at ref_s with
                 | None -> StartedAt.none_set started_at_t
@@ -205,15 +206,16 @@ let make_repo ~engine ~owner ~name =
              let open Raw.Builder.RefInfo in
              ref_set slot default_gref;
              hash_set slot hash;
-             let ref_s =
-               Index.Aggregate.get_ref_state ~repo:repo_id ~ref:default_gref
-             in
              let status =
-               to_build_status (Index.Aggregate.get_ref_status ref_s)
+               to_build_status
+                 Index.Commit_cache.(get_status @@ find ~owner ~name ~hash)
              in
              status_set slot status;
              message_set slot message;
              name_set slot ref_name;
+             let ref_s =
+               Index.Aggregate.get_ref_state ~repo:repo_id ~ref:default_gref
+             in
              let started_at_t = started_at_init slot in
              (match Index.Aggregate.get_ref_started_at ref_s with
              | None -> StartedAt.none_set started_at_t
@@ -266,26 +268,26 @@ let make_repo ~engine ~owner ~name =
          let open Repo.HistoryOfRef in
          let gref = Params.ref_get params in
          release_param_caps ();
-         let history = Index.get_build_history_hashes ~owner ~name ~gref in
+         let history = Index.get_build_history_with_time ~owner ~name ~gref in
          let response, results = Service.Response.create Results.init_pointer in
          let arr = Results.refs_init results (List.length history) in
          history
-         |> List.iteri (fun i hash ->
+         |> List.iteri (fun i (_, hash, started) ->
                 let open Raw.Builder.RefInfo in
                 let slot = Capnp.Array.get arr i in
                 ref_set slot gref;
                 hash_set slot hash;
-                let commit_s = Index.Commit_cache.find ~owner ~name ~hash in
                 let status =
-                  to_build_status (Index.Commit_cache.get_status commit_s)
+                  to_build_status
+                    Index.Commit_cache.(get_status @@ find ~owner ~name ~hash)
                 in
                 status_set slot status;
                 let started_at_t = started_at_init slot in
-                (match Index.Commit_cache.get_started_at commit_s with
+                (match started with
                 | None -> StartedAt.none_set started_at_t
                 | Some time -> StartedAt.ts_set started_at_t time);
                 let ran_for_t = ran_for_init slot in
-                match Index.Commit_cache.get_ran_for commit_s with
+                match started with
                 | None -> RanFor.none_set ran_for_t
                 | Some time -> RanFor.ts_set ran_for_t time);
          Service.return response
