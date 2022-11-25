@@ -10,7 +10,7 @@ module Migration = struct
 
   let ( >>!= ) = Lwt_result.Infix.( >>= )
 
-  type t = unit
+  type t = string
 
   let id = "ocaml-ci-db"
 
@@ -55,12 +55,8 @@ module Migration = struct
     let database = Uri.(make ~scheme:"sqlite3" ~path:db_path () |> to_string) in
     Omigrate.create ~database >>!= fun () -> Omigrate.up ~source ~database ()
 
-  let build () job _date =
+  let build source job _date =
     Current.Job.start job ~level:Current.Level.Dangerous >>= fun () ->
-    let source =
-      let pwd = Fpath.v (Sys.getcwd ()) in
-      Fpath.(to_string (pwd / "migrations"))
-    in
     Current.Job.log job "Running migration from migrations/";
     migrate source >>= to_current_error
 
@@ -79,10 +75,10 @@ end
 
 module Migration_cache = Current_cache.Make (Migration)
 
-let migrate () =
+let migrate path =
   Current.component "migrations"
   |> let> date = Current.return (Unix.time ()) in
-     Migration_cache.get () date
+     Migration_cache.get path date
 
 type t = {
   record_job : Sqlite3.stmt;

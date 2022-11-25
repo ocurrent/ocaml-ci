@@ -320,11 +320,15 @@ let gitlab_status_of_state head result =
   | Error (`Msg m) ->
       Gitlab.Api.Status.v ~url `Failure ~description:m ~name:program_name
 
-let v ?ocluster ~app ~solver ~migration () =
+let v ?ocluster ~app ~solver ~migrations () =
   let ocluster =
     Option.map (Cluster_build.config ~timeout:(Duration.of_hour 1)) ocluster
   in
-  let migrations = if migration then Index.migrate () else Current.return () in
+  let migrations =
+    match migrations with
+    | Some path -> Index.migrate path
+    | None -> Current.return ()
+  in
   Current.with_context migrations @@ fun () ->
   Current.with_context opam_repository_commit @@ fun () ->
   Current.with_context platforms @@ fun () ->
