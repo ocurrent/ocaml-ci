@@ -161,6 +161,11 @@ let set_active_repos ~(installation : Installation.t Current.t)
 let gref_from_commit (x : Gitlab.Api.Commit.t) : string =
   Git.Commit_id.gref @@ Gitlab.Api.Commit.id x
 
+let ref_name c =
+  match (Gitlab.Api.Commit.branch_name c, Gitlab.Api.Commit.mr_name c) with
+  | Some name, None | None, Some name -> name
+  | _ -> failwith "Commit is neither a branch nor a MR"
+
 let set_active_refs ~(repo : Gitlab.Repo_id.t Current.t) ~default xs =
   let+ repo = repo and+ xs = xs and+ default = default in
   let repo' = { Repo_id.owner = repo.owner; name = repo.name } in
@@ -171,8 +176,9 @@ let set_active_refs ~(repo : Gitlab.Repo_id.t Current.t) ~default xs =
            let commit = Gitlab.Api.Commit.id x in
            let gref = Git.Commit_id.gref commit in
            let hash = Git.Commit_id.hash commit in
-           (* FIXME [benmandrew]: Implement fields for Gitlab *)
-           Index.Ref_map.add gref { Index.hash; message = ""; name = "" } acc)
+           let name = ref_name x in
+           let message = Gitlab.Api.Commit.message x in
+           Index.Ref_map.add gref { Index.hash; message; name } acc)
          Index.Ref_map.empty
   in
   let default_gref = gref_from_commit default in
