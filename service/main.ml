@@ -183,7 +183,7 @@ let migrations =
     @@ opt (some dir) None
     @@ info ~docv:"MIGRATIONS_PATH"
          ~doc:
-           "Specify the patht to the migration directory. If no path is given \
+           "Specify the path to the migration directory. If no path is given \
             the migration step is ignored."
          [ "migration-path" ])
 
