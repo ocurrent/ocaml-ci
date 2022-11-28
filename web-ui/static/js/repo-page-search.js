@@ -1,15 +1,7 @@
 
 function title_comparator(a, b) {
-  var title_a =
-    a
-    .getElementsByClassName("repo-title")[0]
-    .textContent
-    .toLowerCase()
-  var title_b =
-    b
-    .getElementsByClassName("repo-title")[0]
-    .textContent
-    .toLowerCase()
+  var title_a = a.getElementsByClassName("repo-title")[0].textContent.toLowerCase()
+  var title_b = b.getElementsByClassName("repo-title")[0].textContent.toLowerCase()
   if (title_a < title_b) return -1
   if (title_a > title_b) return 1
   return 0
@@ -41,11 +33,7 @@ function search(target) {
   var children = Array.from(body.children)
 
   function has_substr(child, ss) {
-    var title =
-      child
-      .getElementsByClassName("repo-title")[0]
-      .textContent
-      .toLowerCase()
+    var title = child.getElementsByClassName("repo-title")[0].textContent.toLowerCase()
     return title.indexOf(ss.toLowerCase()) !== -1
   }
   var n_visible = 0
