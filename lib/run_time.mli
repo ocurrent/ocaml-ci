@@ -23,6 +23,13 @@ type timestamps =
             and when it finished. Note that it may never run -- it may be
             cancelled or it may timeout. *)
 
+type run_time_info =
+  | Cached
+  | Queued_for of float
+  | Running of { queued_for : float; ran_for : float }
+  | Finished of { queued_for : float; ran_for : float option }
+[@@deriving show]
+
 val eq_timestamps : timestamps -> timestamps -> bool
 (** equality of timestamps - useful for tests *)
 
@@ -32,3 +39,6 @@ val pp_timestamps : Format.formatter -> timestamps -> unit
 val timestamps_of_job : Current.job_id -> timestamps option
 (** Hydrates a timestamps instance for a step/job by looking up timestamps in
     the ocurrent layer. *)
+
+val build_ran_for : (string * timestamps option) list -> float
+val first_step_queued_at : timestamps option list -> (float, string) result
