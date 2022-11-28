@@ -1,0 +1,50 @@
+#!/bin/sh -eu
+
+usage() {
+    cat >&2 <<EOF
+usage: add-profile-picture [--github | --gitlab] ORGANISATION_NAME
+
+Add the organisation ORGANISATION in git-forge GITFORGE to ocaml-ci.
+
+Known git-forges are "github" and "gitlab"
+
+Example: add-organisation --github ocurrent
+
+EOF
+    exit 1
+}
+
+if [ $# -ne 2 ] ; then
+    usage
+fi
+
+GITFORGE=""
+
+while echo "${1:-}" | grep -q '^-'; do
+    case "$1" in
+        --github)
+            shift
+            GITFORGE="github"
+            ;;
+        --gitlab)
+            echo "sorry - gitlab is not currently supported."
+            exit 1
+            # shift
+            # GITFORGE="gitlab"
+            ;;
+        *)
+            echo >&2 "Unknown flag: $1"
+            usage
+    esac
+done
+
+if [ $# -ne 1 ]; then
+    usage
+fi
+
+ORGANISATION_NAME=$1
+
+PROFILE_PICTURE_URL="https://github.com/$ORGANISATION_NAME.png?size=200"
+PROFILE_PICTURE_PATH="./web-ui/static/images/profile-pictures/$GITFORGE/$ORGANISATION_NAME.png"
+
+curl -L "$PROFILE_PICTURE_URL" -o "$PROFILE_PICTURE_PATH"

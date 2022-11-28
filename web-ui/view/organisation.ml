@@ -3,22 +3,26 @@ open Git_forge
 module Make (M : M_Git_forge) = struct
   let profile_picture org =
     (* FIXME [benmandrew]: How can we get the GitLab profile pictures? *)
-    let url =
+    let local_image =
       match M.prefix with
-      | "github" -> Printf.sprintf "https://github.com/%s.png?size=200" org
+      | "github" -> Printf.sprintf "/images/profile-pictures/github/%s.png" org
       | "gitlab" -> "/images/gitlab-logo-500.png"
       | _ -> ""
     in
-    let fallback_js =
-      Printf.sprintf "this.onerror=null; this.src='/images/%s-logo-500.png'"
-        M.prefix
+    let fallback_image = Printf.sprintf "/images/%s-logo-500.png" M.prefix in
+    let local_image_exists =
+      try
+        let _ = Unix.stat (Printf.sprintf "./web-ui/static%s" local_image) in
+        true
+      with _ -> false
     in
-    Tyxml.Html.(
-      img
-        ~a:[ a_class [ "w-20 h-20 rounded-full" ]; a_onerror fallback_js ]
-        ~src:url
-        ~alt:(Printf.sprintf "%s profile picture" org)
-        ())
+    let url = if local_image_exists then local_image else fallback_image in
+  Tyxml.Html.(
+    img
+      ~a:[ a_class [ "w-20 h-20 rounded-full" ] ]
+      ~src:url
+      ~alt:(Printf.sprintf "%s profile picture" org)
+      ())
 
   let logo =
     match M.prefix with
