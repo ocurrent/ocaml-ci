@@ -222,26 +222,27 @@ module Commit = struct
     |> Lwt_result.map @@ fun jobs ->
        Results.jobs_get_list jobs
        |> List.map (fun job ->
-              let variant = Raw.Reader.JobInfo.variant_get job in
-              let state = Raw.Reader.JobInfo.state_get job in
-              let outcome = Raw.Reader.JobInfo.State.get state in
-              let queued_at = Raw.Reader.JobInfo.queued_at_get job in
+              let open Raw.Reader.JobInfo in
+              let variant = variant_get job in
+              let state = state_get job in
+              let outcome = State.get state in
+              let queued_at = queued_at_get job in
               let queued_at =
-                match Raw.Reader.JobInfo.QueuedAt.get queued_at with
-                | Raw.Reader.JobInfo.QueuedAt.None | Undefined _ -> None
-                | Raw.Reader.JobInfo.QueuedAt.Ts v -> Some v
+                match QueuedAt.get queued_at with
+                | QueuedAt.None | Undefined _ -> None
+                | QueuedAt.Ts v -> Some v
               in
-              let started_at = Raw.Reader.JobInfo.started_at_get job in
+              let started_at = started_at_get job in
               let started_at =
-                match Raw.Reader.JobInfo.StartedAt.get started_at with
-                | Raw.Reader.JobInfo.StartedAt.None | Undefined _ -> None
-                | Raw.Reader.JobInfo.StartedAt.Ts v -> Some v
+                match StartedAt.get started_at with
+                | StartedAt.None | Undefined _ -> None
+                | StartedAt.Ts v -> Some v
               in
-              let finished_at = Raw.Reader.JobInfo.finished_at_get job in
+              let finished_at = finished_at_get job in
               let finished_at =
-                match Raw.Reader.JobInfo.FinishedAt.get finished_at with
-                | Raw.Reader.JobInfo.FinishedAt.None | Undefined _ -> None
-                | Raw.Reader.JobInfo.FinishedAt.Ts v -> Some v
+                match FinishedAt.get finished_at with
+                | FinishedAt.None | Undefined _ -> None
+                | FinishedAt.Ts v -> Some v
               in
               { variant; outcome; queued_at; started_at; finished_at })
 

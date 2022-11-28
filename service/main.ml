@@ -22,7 +22,7 @@ module Metrics = struct
     with
     | None -> acc
     | Some { Index.hash; _ } -> (
-        match Index.get_status ~owner ~name ~hash with
+        match Index.Commit_cache.(find ~owner ~name ~hash |> get_status) with
         | `Failed -> { acc with failed = acc.failed + 1 }
         | `Passed -> { acc with ok = acc.ok + 1 }
         | `Not_started | `Pending -> { acc with active = acc.active + 1 })

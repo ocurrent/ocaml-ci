@@ -186,29 +186,137 @@ let get_build_history_with_time ~owner ~name ~gref =
   |> List.filter (fun (gref', _, time) ->
          if Option.is_none time then false else gref = gref')
 
-module Status_cache = struct
-  let cache = Hashtbl.create 1_000
-  let cache_max_size = 1_000_000
+module Owner_set = Set.Make (String)
 
-  type elt = [ `Not_started | `Pending | `Failed | `Passed ]
+let active_owners = ref Owner_set.empty
+let set_active_owners x = active_owners := x
+let get_active_owners () = !active_owners
 
-  let add ~owner ~name ~hash (status : elt) =
-    if Hashtbl.length cache > cache_max_size then Hashtbl.clear cache;
-    Hashtbl.add cache (owner, name, hash) status
+module Owner_map = Map.Make (String)
+module Repo_set = Set.Make (String)
 
-  let find ~owner ~name ~hash : elt =
-    Hashtbl.find_opt cache (owner, name, hash) |> function
-    | Some s -> s
-    | None -> `Not_started
+let active_repos = ref Owner_map.empty
+
+let set_active_repos ~owner x =
+  active_repos := Owner_map.add owner x !active_repos
+
+let get_active_repos ~owner =
+  Owner_map.find_opt owner !active_repos |> Option.value ~default:Repo_set.empty
+
+module Repo_map = Map.Make (Repo_id)
+module Ref_map = Map.Make (String)
+
+type ref_info = { hash : string; message : string; name : string }
+[@@deriving show]
+
+type repo_info = { default_gref : string; refs : ref_info Ref_map.t }
+
+let active_refs : repo_info Repo_map.t ref = ref Repo_map.empty
+
+let set_active_refs ~repo refs default_gref =
+  active_refs := Repo_map.add repo { refs; default_gref } !active_refs
+
+let get_active_refs repo =
+  Repo_map.find_opt repo !active_refs |> function
+  | Some { refs; _ } -> refs
+  | None -> Ref_map.empty
+
+let get_default_gref repo =
+  Repo_map.find_opt repo !active_refs |> function
+  | Some { default_gref; _ } -> default_gref
+  | None -> raise Not_found
+
+type status = [ `Failed | `Pending | `Not_started | `Passed ]
+
+module Aggregate = struct
+  type ref_state = {
+    s : status;
+    started_at : float option;
+    ran_for : float option;
+  }
+
+  type repo_state = { default_ref : string; ref_states : ref_state Ref_map.t }
+
+  let get_default_ref (s : repo_state) =
+    Ref_map.find_opt s.default_ref s.ref_states
+
+  let get_ref_status (s : ref_state) = s.s
+  let get_ref_started_at (s : ref_state) = s.started_at
+  let get_ref_ran_for (s : ref_state) = s.ran_for
+
+  let get_repo_status (s : repo_state) =
+    match get_default_ref s with None -> `Not_started | Some s -> s.s
+
+  let get_repo_started_at (s : repo_state) =
+    get_default_ref s |> Option.map (fun s -> s.started_at) |> Option.join
+
+  let state : repo_state Repo_map.t ref = ref Repo_map.empty
+
+  let set_ref_state ~repo ~gref s started_at ran_for =
+    let s_ref = { s; started_at; ran_for } in
+    let s_repo =
+      match Repo_map.find_opt repo !state with
+      | None ->
+          { default_ref = gref; ref_states = Ref_map.singleton gref s_ref }
+      | Some { default_ref; ref_states } ->
+          { default_ref; ref_states = Ref_map.add gref s_ref ref_states }
+    in
+    state := Repo_map.add repo s_repo !state
+
+  let get_ref_state ~repo ~ref =
+    let default_ref = { s = `Not_started; started_at = None; ran_for = None } in
+    match Repo_map.find_opt repo !state with
+    | None -> default_ref
+    | Some { ref_states; _ } ->
+        Ref_map.find_opt ref ref_states |> Option.value ~default:default_ref
+
+  let get_repo_state ~repo =
+    let default_repo = { default_ref = ""; ref_states = Ref_map.empty } in
+    Repo_map.find_opt repo !state |> Option.value ~default:default_repo
 end
 
-let get_status = Status_cache.find
+module Commit_cache = struct
+  type key = { owner : string; repo : string; hash : string }
+
+  module Commit_map = Map.Make (struct
+    type t = key
+
+    let compare { owner = o0; repo = r0; hash = h0 }
+        { owner = o1; repo = r1; hash = h1 } =
+      let res = String.compare o0 o1 in
+      if res != 0 then res
+      else
+        let res = String.compare r0 r1 in
+        if res != 0 then res else String.compare h0 h1
+  end)
+
+  type commit_state = {
+    s : status;
+    started_at : float option;
+    ran_for : float option;
+  }
+
+  let state : commit_state Commit_map.t ref = ref Commit_map.empty
+  let get_status s = s.s
+  let get_started_at s = s.started_at
+  let get_ran_for s = s.ran_for
+
+  let add ~owner ~name ~hash ~gref status started_at ran_for =
+    let v = { s = status; started_at; ran_for } in
+    state := Commit_map.add { owner; repo = name; hash } v !state;
+    Aggregate.set_ref_state ~repo:{ Repo_id.owner; name } ~gref status
+      started_at ran_for
+
+  let find ~owner ~name ~hash =
+    let default = { s = `Not_started; started_at = None; ran_for = None } in
+    Commit_map.find_opt { owner; repo = name; hash } !state
+    |> Option.value ~default
+end
 
 let record ~repo ~hash ~status ~gref jobs =
   let { Repo_id.owner; name } = repo in
   let t = Lazy.force db in
-  let () = Status_cache.add ~owner ~name ~hash status in
-  let jobs = Job_map.of_list jobs in
+  let jobs_m = Job_map.of_list jobs in
   let previous =
     get_job_ids_with_variant t ~owner ~name ~hash |> Job_map.of_list
   in
@@ -260,8 +368,22 @@ let record ~repo ~hash ~status ~gref jobs =
     | None, None -> assert false);
     None
   in
-  let (_ : [ `Empty ] Job_map.t) = Job_map.merge merge previous jobs in
-  ()
+  let (_ : [ `Empty ] Job_map.t) = Job_map.merge merge previous jobs_m in
+  let ts =
+    List.map
+      (fun (variant, job_id) ->
+        let id =
+          Option.map (fun id -> Run_time.timestamps_of_job id) job_id
+          |> Option.join
+        in
+        (variant, id))
+      jobs
+  in
+  let first_queued_at = Run_time.first_step_queued_at (List.map snd ts) in
+  let build_ran_for = Run_time.build_ran_for ts in
+  Commit_cache.add ~owner ~name ~hash ~gref status
+    (Result.to_option first_queued_at)
+    (Some build_ran_for)
 
 let get_full_hash ~owner ~name short_hash =
   let t = Lazy.force db in
@@ -309,43 +431,3 @@ let get_job ~owner ~name ~hash ~variant =
 let get_job_ids ~owner ~name ~hash =
   let t = Lazy.force db in
   get_job_ids_with_variant t ~owner ~name ~hash |> List.filter_map snd
-
-module Owner_set = Set.Make (String)
-
-let active_owners = ref Owner_set.empty
-let set_active_owners x = active_owners := x
-let get_active_owners () = !active_owners
-
-module Owner_map = Map.Make (String)
-module Repo_set = Set.Make (String)
-
-let active_repos = ref Owner_map.empty
-
-let set_active_repos ~owner x =
-  active_repos := Owner_map.add owner x !active_repos
-
-let get_active_repos ~owner =
-  Owner_map.find_opt owner !active_repos |> Option.value ~default:Repo_set.empty
-
-module Repo_map = Map.Make (Repo_id)
-module Ref_map = Map.Make (String)
-
-type ref_info = { hash : string; message : string; name : string }
-[@@deriving show]
-
-type repo_info = { default_gref : string; refs : ref_info Ref_map.t }
-
-let active_refs : repo_info Repo_map.t ref = ref Repo_map.empty
-
-let set_active_refs ~repo refs default_gref =
-  active_refs := Repo_map.add repo { refs; default_gref } !active_refs
-
-let get_active_refs repo =
-  Repo_map.find_opt repo !active_refs |> function
-  | Some { refs; _ } -> refs
-  | None -> Ref_map.empty
-
-let get_default_gref repo =
-  Repo_map.find_opt repo !active_refs |> function
-  | Some { default_gref; _ } -> default_gref
-  | None -> raise Not_found

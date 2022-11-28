@@ -7,3 +7,4 @@ var
 .*.swp
 .vscode
 /capnp-secrets/
+.DS_Store
