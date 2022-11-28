@@ -107,7 +107,7 @@ let run_capnp capnp_public_address capnp_listen_address =
       Lwt.return (vat, Some rpc_engine_resolver)
 
 let main () config mode app capnp_public_address capnp_listen_address
-    github_auth submission_uri no_migration : ('a, [ `Msg of string ]) result =
+    github_auth submission_uri migrations : ('a, [ `Msg of string ]) result =
   Lwt_main.run
     (let solver = Ocaml_ci.Solver_pool.spawn_local () in
      run_capnp capnp_public_address capnp_listen_address
@@ -115,10 +115,9 @@ let main () config mode app capnp_public_address capnp_listen_address
      let ocluster =
        Option.map (Capnp_rpc_unix.Vat.import_exn vat) submission_uri
      in
-     let migration = not no_migration in
      let engine =
        Current.Engine.create ~config
-         (Pipeline.v ?ocluster ~app ~solver ~migration)
+         (Pipeline.v ?ocluster ~app ~solver ~migrations)
      in
      rpc_engine_resolver
      |> Option.iter (fun r ->
@@ -178,12 +177,15 @@ let submission_service =
   @@ Arg.info ~doc:"The submission.cap file for the build scheduler service"
        ~docv:"FILE" [ "submission-service" ]
 
-let disable_migrations =
+let migrations =
   Arg.(
     value
-    @@ flag
-    @@ info ~doc:"Disable the system to execute the migrations."
-         [ "disable-migrations" ])
+    @@ opt (some dir) None
+    @@ info ~docv:"MIGRATIONS_PATH"
+         ~doc:
+           "Specify the patht to the migration directory. If no path is given \
+            the migration step is ignored."
+         [ "migration-path" ])
 
 let cmd =
   let doc = "Build OCaml projects on GitHub" in
@@ -200,6 +202,6 @@ let cmd =
         $ capnp_listen_address
         $ Current_github.Auth.cmdliner
         $ submission_service
-        $ disable_migrations))
+        $ migrations))
 
 let () = exit @@ Cmd.eval cmd

@@ -42,6 +42,7 @@ dune exec -- ocaml-ci-service \
   --submission-service <path-to-the-submission-capability-file> \
   --github-webhook-secret-file <path-to-the-app-secret> \
   --capnp-listen-address tcp:127.0.0.1:9001
+  --migration-path "$PWD/migrations"
 ```
 
 This will generate a capability file. See the logs for `Wrote capability reference to "./capnp-secrets/ocaml-ci-admin.cap"`
@@ -57,11 +58,12 @@ You will need the following:
 3. A capability file for submitting jobs to a cluster, in this case the main ocaml-ci cluster as documented in https://github.com/ocurrent/ocluster#admin
 
 ``` shell
-dune exec -- ocaml-ci-gitlab \                             
+dune exec -- ocaml-ci-gitlab \
   --gitlab-token-file <your-gitlab-token> \
   --gitlab-webhook-secret-file <your-gitlab-secret> \
   --submission-service <path-to-the-submission-capability-file> \
   --capnp-listen-address tcp:127.0.0.1:9800
+  --migration-path "$PWD/migrations"
 ```
 
 This will generate a capability file. See the logs for `Wrote capability reference to "./capnp-secrets/ocaml-ci-gitlab-admin.cap"`

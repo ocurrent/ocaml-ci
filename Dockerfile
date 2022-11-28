@@ -50,5 +50,5 @@ ENV OCAMLRUNPARAM=a=2
 ENV DOCKER_CLI_EXPERIMENTAL=enabled
 COPY --from=build /src/_build/install/default/bin/ocaml-ci-service /src/_build/install/default/bin/ocaml-ci-solver /usr/local/bin/
 # Create migration directory
-RUN mkdir -p migrations
-COPY --from=build /src/migrations ./migrations
+RUN mkdir -p /migrations
+COPY --from=build /src/migrations /migrations
