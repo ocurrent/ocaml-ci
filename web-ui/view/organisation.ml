@@ -2,12 +2,9 @@ open Git_forge
 
 module Make (M : M_Git_forge) = struct
   let profile_picture org =
-    (* FIXME [benmandrew]: How can we get the GitLab profile pictures? *)
+    (* /profile-pictures is where images are downloaded -- see Dockerfile.web *)
     let local_image =
-      match M.prefix with
-      | "github" -> Printf.sprintf "/profile-pictures/github/%s.png" org
-      | "gitlab" -> "/images/gitlab-logo-500.png"
-      | _ -> ""
+      Printf.sprintf "/profile-pictures/%s/%s.png" M.prefix org
     in
     let fallback_image = Printf.sprintf "/images/%s-logo-500.png" M.prefix in
     let local_image_exists =
@@ -30,14 +27,9 @@ module Make (M : M_Git_forge) = struct
     | "gitlab" -> Common.gitlab_logo
     | _ -> raise Not_found
 
-  let git_forge_url org =
-    match M.prefix with
-    | "github" -> Printf.sprintf "https://github.com/%s" org
-    | "gitlab" -> Printf.sprintf "https://gitlab.com/%s" org
-    | _ -> raise Not_found
+  let git_forge_url org = Printf.sprintf "https://%s.com/%s" M.prefix org
 
   let row ~org =
-    Dream.log "WHAT";
     let org_url = Url.org_url M.prefix ~org in
     Tyxml.Html.(
       a

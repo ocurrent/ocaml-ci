@@ -12,7 +12,7 @@ ADD --chown=opam . .
 RUN opam config exec -- dune build ./_build/install/default/bin/ocaml-ci-web
 
 FROM debian:11
-RUN apt-get update && apt-get install libev4 curl dumb-init -y --no-install-recommends
+RUN apt-get update && apt-get install libev4 curl jq dumb-init -y --no-install-recommends
 WORKDIR /
 ENTRYPOINT ["dumb-init", "/usr/local/bin/ocaml-ci-web"]
 
@@ -24,4 +24,6 @@ RUN mkdir -p /profile-pictures/github
 RUN mkdir -p /profile-pictures/gitlab
 COPY --from=build /src/bin/add-profile-picture /usr/local/bin
 COPY --from=build /src/deploy-data/github-organisations.txt /github-organisations.txt
+COPY --from=build /src/deploy-data/gitlab-organisations.txt /gitlab-organisations.txt
 RUN xargs -n 1 /usr/local/bin/add-profile-picture --github < /github-organisations.txt
+RUN xargs -n 1 /usr/local/bin/add-profile-picture --gitlab < /gitlab-organisations.txt

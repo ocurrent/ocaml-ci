@@ -2,17 +2,31 @@ open Tyxml.Html
 open Git_forge
 
 module Make (M : M_Git_forge) = struct
-  let profile_picture_url org =
-    (* FIXME [benmandrew]: How can we get the GitLab profile pictures? *)
-    match M.prefix with
-    | "github" -> Printf.sprintf "https://github.com/%s.png?size=200" org
-    | _ -> ""
+  let profile_picture org =
+    (* /profile-pictures is where images are downloaded -- see Dockerfile.web *)
+    let local_image =
+      Printf.sprintf "/profile-pictures/%s/%s.png" M.prefix org
+    in
+    let fallback_image = Printf.sprintf "/images/%s-logo-500.png" M.prefix in
+    let local_image_exists =
+      try
+        let _ = Unix.stat local_image in
+        true
+      with _ -> false
+    in
+    let url = if local_image_exists then local_image else fallback_image in
+    Tyxml.Html.(
+      img
+        ~a:
+          [
+            a_class [ "w-20 h-20 rounded-full" ];
+            a_style "border-radius: 50%; width: 80px";
+          ]
+        ~src:url
+        ~alt:(Printf.sprintf "%s profile picture" org)
+        ())
 
-  let org_url org =
-    match M.prefix with
-    | "github" -> Printf.sprintf "https://github.com/%s" org
-    | "gitlab" -> Printf.sprintf "https://gitlab.com/%s" org
-    | _ -> raise Not_found
+  let org_url org = Printf.sprintf "https://%s.com/%s" M.prefix org
 
   let title ~org =
     let org_url = org_url org in
@@ -22,15 +36,7 @@ module Make (M : M_Git_forge) = struct
         div
           ~a:[ a_class [ "flex space-x-4" ] ]
           [
-            img
-              ~a:
-                [
-                  a_class [ "w-20 h-20" ];
-                  a_style "border-radius: 50%; width: 80px";
-                ]
-              ~src:(profile_picture_url org)
-              ~alt:(Printf.sprintf "%s profile picture" org)
-              ();
+            profile_picture org;
             div
               ~a:[ a_class [ "flex flex-col" ] ]
               [

@@ -1,4 +1,4 @@
-#!/bin/sh -eu
+#!/bin/sh -u
 
 usage() {
     cat >&2 <<EOF
@@ -27,10 +27,8 @@ while echo "${1:-}" | grep -q '^-'; do
             GITFORGE="github"
             ;;
         --gitlab)
-            echo "sorry - gitlab is not currently supported."
-            exit 1
-            # shift
-            # GITFORGE="gitlab"
+            shift
+            GITFORGE="gitlab"
             ;;
         *)
             echo >&2 "Unknown flag: $1"
@@ -42,9 +40,19 @@ if [ $# -ne 1 ]; then
     usage
 fi
 
+PROFILE_PICTURE_URL=""
 ORGANISATION_NAME=$1
-
-PROFILE_PICTURE_URL="https://github.com/$ORGANISATION_NAME.png?size=200"
 PROFILE_PICTURE_PATH="/profile-pictures/$GITFORGE/$ORGANISATION_NAME.png"
 
-curl -L "$PROFILE_PICTURE_URL" -o "$PROFILE_PICTURE_PATH"
+if [ "$GITFORGE" = "github" ]; then
+    PROFILE_PICTURE_URL="https://github.com/$ORGANISATION_NAME.png?size=200"
+else
+    PROFILE_PICTURE_URL="$(curl -X GET https://gitlab.com/api/v4/users\?username="$ORGANISATION_NAME" | jq '.[] | .avatar_url' | sed 's/"//g')" >/dev/null
+fi
+
+if [ "$PROFILE_PICTURE_URL" = "" ]; then
+    echo "ERROR: Profile picture lookup for $ORGANISATION_NAME"
+else
+    curl -L "$PROFILE_PICTURE_URL" -o "$PROFILE_PICTURE_PATH" >/dev/null
+    echo "$ORGANISATION_NAME ok"
+fi
