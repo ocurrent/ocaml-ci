@@ -37,7 +37,10 @@ let rows prefix orgs =
   let open Organisation.Make (struct
     let prefix = prefix
   end) in
-  let orgs = List.sort String.compare orgs in
+  let compare s0 s1 =
+    String.(compare (lowercase_ascii s0) (lowercase_ascii s1))
+  in
+  let orgs = List.sort compare orgs in
   List.fold_left (fun l org -> List.append l [ row ~org ]) [] orgs
 
 let list_orgs prefix orgs =

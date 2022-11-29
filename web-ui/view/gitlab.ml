@@ -21,15 +21,10 @@ let gitlab_mr_url ~org ~repo id =
 let gitlab_commit_url ~org ~repo ~hash =
   Printf.sprintf "https://gitlab.com/%s/%s/-/commit/%s" org repo hash
 
-let format_org org =
-  li [ a ~a:[ a_href (Url.org_url prefix ~org) ] [ txt org ] ]
-
 let format_repo ~org { Client.Org.name; main_status; _ } =
   li
     ~a:[ a_class [ Build_status.class_name main_status ] ]
     [ a ~a:[ a_href (Url.repo_url prefix ~org ~repo:name) ] [ txt name ] ]
-
-let orgs_v ~orgs = [ breadcrumbs [] prefix; ul (List.map format_org orgs) ]
 
 let repos_v ~org ~repos =
   [
@@ -119,7 +114,6 @@ let link_gitlab_refs' ~org ~repo refs =
   in
   List.map f refs
 
-let list_orgs ~orgs = Template.instance @@ orgs_v ~orgs
 let list_repos ~org ~repos = Template.instance @@ repos_v ~org ~repos
 
 let list_refs ~org ~repo ~default_ref ~refs =

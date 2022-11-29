@@ -4,7 +4,6 @@ module Client = Ocaml_ci_api.Client
 module Run_time = Ocaml_ci_client_lib.Run_time
 
 module type Controller = sig
-  val list_orgs : Backend.t -> Dream.response Lwt.t
   val list_repos : org:string -> Backend.t -> Dream.server Dream.message Lwt.t
 
   val list_refs :
@@ -82,10 +81,6 @@ module Make (View : View) = struct
   let job_url ~org ~repo ~hash variant =
     assert (String.length hash > 10);
     Fmt.str "/%s/%s/%s/commit/%s/variant/%s" View.prefix org repo hash variant
-
-  let list_orgs ci =
-    Backend.ci ci >>= Client.CI.orgs >>!= fun orgs ->
-    Dream.respond @@ View.list_orgs ~orgs
 
   let list_repos ~org ci =
     Backend.ci ci >>= fun ci ->

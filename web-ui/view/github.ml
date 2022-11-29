@@ -24,11 +24,6 @@ let github_commit_url ~org ~repo ~hash =
 let github_pr_url ~org ~repo id =
   Printf.sprintf "https://github.com/%s/%s/pull/%s" org repo id
 
-let format_org org =
-  li [ a ~a:[ a_href (Url.org_url prefix ~org) ] [ txt org ] ]
-
-let orgs_v ~orgs = [ breadcrumbs [] prefix; ul (List.map format_org orgs) ]
-
 let history_v ~org ~repo ~history =
   ul
     ~a:[ a_class [ "statuses" ] ]
@@ -98,8 +93,7 @@ let link_github_refs' ~org ~repo refs =
   in
   List.map f refs
 
-let list_orgs ~orgs = Template.instance @@ orgs_v ~orgs
-let list_repos ~org ~repos = Repo.list ~org ~repos
+let list_repos = Repo.list
 let list_refs = Ref.list
 
 let list_history ~org ~repo ~ref ~history =

@@ -220,6 +220,7 @@ let create ~github ~gitlab =
        Dream.get "/images/**" @@ Dream.static ~loader "/images";
        Dream.get "/js/**" @@ Dream.static ~loader "/js";
        Dream.get "/fonts/**" @@ Dream.static ~loader "/fonts";
+       Dream.get "/profile-pictures/**" @@ Dream.static "profile-pictures";
        Dream.get "/" (fun _ ->
            match (github, gitlab) with
            | None, None ->
