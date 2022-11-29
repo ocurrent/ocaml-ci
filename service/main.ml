@@ -192,8 +192,9 @@ let submission_solver_service =
   @@ Arg.opt Arg.(some Capnp_rpc_unix.sturdy_uri) None
   @@ Arg.info
        ~doc:
-         "The solve.cap/submission.cap file for the build scheduler service \
-          when a solver-worker is connected to that scheduler."
+         "The submission-solve.cap file for a scheduler service which handle a \
+          solver-worker. The cap file could be same as \
+          $(b,--submission-service)."
        ~docv:"FILE"
        [ "submission-solver-service" ]
 
