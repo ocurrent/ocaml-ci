@@ -212,11 +212,11 @@ select {
 }
 
 .code-line__number {
-  @apply bg-gray-800 px-6 w-14 text-gray-400 cursor-pointer select-none border-none;
+  @apply bg-gray-200 px-6 w-14 text-gray-700 text-sm cursor-pointer select-none border-none;
 }
 
 .code-line__code {
-  @apply px-6 text-gray-300 whitespace-pre bg-transparent border-none;
+  @apply px-6 text-gray-800 whitespace-pre bg-transparent border-none text-sm;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   border-left: 1px solid transparent;
 
@@ -227,8 +227,8 @@ select {
 }
 
 .code-line.highlight .code-line__code {
-  background-color: rgb(204 136 0 / 32%);
-  border-left: 1px solid rgb(204 136 0 / 64%);
+  background-color: rgb(168, 198, 246);
+  border-left: 1px solid rgba(0, 105, 204, 0.64);
 }
 
 .copy-link-btn {

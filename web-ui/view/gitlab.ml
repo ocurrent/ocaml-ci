@@ -362,7 +362,7 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
         ~button
     in
     let body =
-      Template_v1.instance
+      Template_v1.instance ~full:true
         [
           Tyxml.Html.script ~a:[ a_src "/js/log-highlight.js" ] (txt "");
           Tyxml.Html.script ~a:[ a_src "/js/step-page-poll.js" ] (txt "");
@@ -380,7 +380,7 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
           div
             ~a:
               [
-                a_class [ "container-fluid mt-8 flex flex-col" ];
+                a_class [ "mt-8 flex flex-col" ];
                 Tyxml_helpers.x_data
                   "{ url: window.location.href, logs: true, artefacts: false, \
                    codeCoverage: false, codeCopied: false, linkCopied: false, \
@@ -471,7 +471,8 @@ let show_step ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
                   div
                     ~a:
                       [
-                        a_class [ "mt-6 bg-gray-900 rounded-lg relative" ];
+                        a_class
+                          [ "mt-6 bg-gray-100 rounded-lg relative border" ];
                         Tyxml_helpers.x_data "codeLink";
                         Tyxml_helpers.x_init "highlightLine";
                       ]
