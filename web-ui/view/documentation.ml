@@ -29,9 +29,10 @@ let getting_started =
                     " files to work out what to build, and it also uses \
                      caching to make builds fast. It takes the information in \
                      the project's ";
-                     code [ txt "opam"];
-                     txt " files to automatically test against \
-                     multiple OCaml versions and OS platforms.";
+                  code [ txt "opam" ];
+                  txt
+                    " files to automatically test against multiple OCaml \
+                     versions and OS platforms.";
                 ];
               p [ txt "To start building with OCaml-CI:" ];
               ul
@@ -146,7 +147,7 @@ let user_guide =
               p
                 [
                   txt "OCaml-CI uses metadata from the project’s ";
-                  code [ txt "opam"];
+                  code [ txt "opam" ];
                   txt " and ";
                   code [ txt "dune" ];
                   txt
@@ -208,6 +209,38 @@ let user_guide =
                      source files. This means that rebuilds are often very \
                      fast, because Docker will reuse the previously cached \
                      build step as long as the opam files don’t change.";
+                ];
+              p
+                [
+                  txt
+                    "A key point is that OCaml-CI will run an opam solve for \
+                     all of the dependencies in all the";
+                  code [ txt "*.opam" ];
+                  txt " files together.";
+                ];
+              p
+                [
+                  txt
+                    "For example, given a project with the following opam files";
+                ];
+              pre
+                [
+                  code
+                    [
+                      txt "\n bondi.opam\n bondi-lwt.opam\n bondi-async.opam\n ";
+                    ];
+                ];
+              p
+                [
+                  txt
+                    "OCaml-CI will run an opam solve for all of the \
+                     dependencies in the three opam files. So, if you depend \
+                     on OCaml 5 in ";
+                  code [ txt "bondi-lwt.opam," ];
+                  txt
+                    " then a build will only happen on that version of OCaml, \
+                     even if the other two packages could run on earlier \
+                     versions of OCaml.";
                 ];
               div ~a:[ a_id "concepts" ] [ h2 [ txt "Concepts & Terms" ] ];
               p
