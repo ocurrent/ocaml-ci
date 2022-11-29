@@ -8,10 +8,7 @@ module Make (M : M_Git_forge) = struct
     in
     let fallback_image = Printf.sprintf "/images/%s-logo-500.png" M.prefix in
     let local_image_exists =
-      try
-        let _ = Unix.stat local_image in
-        true
-      with _ -> false
+      Result.is_ok @@ Bos.OS.File.exists (Fpath.v local_image)
     in
     let url = if local_image_exists then local_image else fallback_image in
     Tyxml.Html.(
