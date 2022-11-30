@@ -12,6 +12,10 @@ module Ref = Ref.Make (struct
   let prefix = prefix
 end)
 
+module Repo = Repo.Make (struct
+  let prefix = prefix
+end)
+
 let gitlab_branch_url ~org ~repo ref =
   Fmt.str "https://gitlab.com/%s/%s/-/tree/%s" org repo ref
 
@@ -20,17 +24,6 @@ let gitlab_mr_url ~org ~repo id =
 
 let gitlab_commit_url ~org ~repo ~hash =
   Printf.sprintf "https://gitlab.com/%s/%s/-/commit/%s" org repo hash
-
-let format_repo ~org { Client.Org.name; main_status; _ } =
-  li
-    ~a:[ a_class [ Build_status.class_name main_status ] ]
-    [ a ~a:[ a_href (Url.repo_url prefix ~org ~repo:name) ] [ txt name ] ]
-
-let repos_v ~org ~repos =
-  [
-    breadcrumbs [ (prefix, prefix) ] org;
-    ul ~a:[ a_class [ "statuses" ] ] (List.map (format_repo ~org) repos);
-  ]
 
 let history_v ~org ~repo ~history =
   ul
@@ -101,7 +94,7 @@ let link_gitlab_refs' ~org ~repo refs =
   in
   List.map f refs
 
-let list_repos ~org ~repos = Template.instance @@ repos_v ~org ~repos
+let list_repos ~org ~repos = Repo.list ~org ~repos
 let list_refs = Ref.list
 
 let list_history ~org ~repo ~ref ~history =
