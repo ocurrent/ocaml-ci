@@ -24,7 +24,7 @@ To add the CI to your own project:
 1. Go to https://github.com/apps/ocaml-ci and install the app for your GitHub user.
 2. Configure just the repositories you want to test (start with one!). If you select `All Repositories` we won't build anything.
 3. Ask us to add you to the alpha-testers list by submitting a PR against this
-   repository adding yourself to `--github-account-allowlist` in `stack.yml`. eg https://github.com/ocurrent/ocaml-ci/pull/346
+   repository adding yourself to `--github-account-allowlist` in `stack.yml`. eg https://github.com/ocurrent/ocaml-ci/pull/346. Additionally, please add yourself to `deploy-data/github-organisations.txt`.
 4. Add a status badge from the OCaml-CI endpoint with:
    ```
    [![OCaml-CI Build Status](https://img.shields.io/endpoint?url=https://ci.ocamllabs.io/badge/<user>/<repo>/<branch>&logo=ocaml)](https://ci.ocamllabs.io/github/<user>/<repo>)
@@ -132,16 +132,16 @@ $ ocaml-ci mirage/irmin pull/867 alpine-3.10-ocaml-4.08 cancel
 
 ## Deployment
 
-`ocaml-ci` is deployed as two docker images built from `Dockerfile` and `Dockerfile.web`, with 
+`ocaml-ci` is deployed as two docker images built from `Dockerfile` and `Dockerfile.web`, with
 the live service following `live-engine` for the backend and `live-www` for the frontend.
-An ocurrent-deployer [pipeline](deploy.ci3.ocamllabs.io) watches these branches, performing a docker build 
-and deploy whenever it sees a new commit. The live branches should typically contain commits from `master` plus potentially 
+An ocurrent-deployer [pipeline](deploy.ci3.ocamllabs.io) watches these branches, performing a docker build
+and deploy whenever it sees a new commit. The live branches should typically contain commits from `master` plus potentially
 short lived commits for testing changes that are later merged into `master`.
 
 To deploy code changes either from `master` or a branch:
  * check that you've rebased the changes onto master
  * git push -u upstream HEAD:live-engine or
- * git push -u upstream HEAD:live-www 
+ * git push -u upstream HEAD:live-www
 
 To deploy changes to `stack.yml` run (assuming a docker context with sufficient access):
 

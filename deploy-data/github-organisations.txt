@@ -15,11 +15,11 @@ gpetiot
 ocaml-ppx
 CraigFe
 pascutto
-julow
+Julow
 ocaml-gospel
 vbmithr
 gs0510
-magnuss
+MagnusS
 dune-universe
 janestreet
 emillon
@@ -38,7 +38,7 @@ dinosaure
 hannesm
 mirleft
 roburio
-misterda
+MisterDA
 ocaml-multicore
 cdaringe
 inhabitedtype
