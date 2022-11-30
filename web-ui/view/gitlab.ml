@@ -32,19 +32,6 @@ let repos_v ~org ~repos =
     ul ~a:[ a_class [ "statuses" ] ] (List.map (format_repo ~org) repos);
   ]
 
-let refs_v ~org ~repo ~refs =
-  ul
-    ~a:[ a_class [ "statuses" ] ]
-    (Client.Ref_map.bindings refs
-    |> List.map @@ fun (branch, { Client.Repo.hash; status; _ }) ->
-       li
-         ~a:[ a_class [ Build_status.class_name status ] ]
-         [
-           a
-             ~a:[ a_href (Url.commit_url prefix ~org ~repo ~hash) ]
-             [ txt branch ];
-         ])
-
 let history_v ~org ~repo ~history =
   ul
     ~a:[ a_class [ "statuses" ] ]
@@ -115,13 +102,7 @@ let link_gitlab_refs' ~org ~repo refs =
   List.map f refs
 
 let list_repos ~org ~repos = Template.instance @@ repos_v ~org ~repos
-
-let list_refs ~org ~repo ~default_ref ~refs =
-  ignore default_ref;
-  Template.instance
-    [
-      breadcrumbs [ (prefix, prefix); (org, org) ] repo; refs_v ~org ~repo ~refs;
-    ]
+let list_refs = Ref.list
 
 let list_history ~org ~repo ~ref ~history =
   Template.instance
