@@ -19,11 +19,13 @@ let jobs =
   in
   Alcotest.testable (Fmt.Dump.list state) (List.equal equal)
 
-let commits_jobs =
-  let state f (variant, hash, job_id) =
-    Fmt.pf f "%s:%s %a@" variant hash Fmt.(Dump.option string) job_id
+let commit_state_status =
+  let state f (cs : Index.Commit_cache.commit_state) =
+    let s = Index.Commit_cache.get_status cs in
+    Fmt.pf f "%a" Index.pp_status s
   in
-  Alcotest.testable (Fmt.Dump.list state) ( = )
+  let equal cs1 cs2 = cs1.Index.Commit_cache.s = cs2.Index.Commit_cache.s in
+  Alcotest.testable (Fmt.Dump.list state) (List.equal equal)
 
 let database = Alcotest.(list string)
 
@@ -118,16 +120,27 @@ let test_get_build_history _ () =
   let repo = { Ocaml_ci.Repo_id.owner; name } in
   let hash = "abc" in
   Index.record ~repo ~hash ~status:`Failed ~gref:"master"
-    [ ("analysis", Some "job1"); ("alpine", Some "job2") ];
-  Index.record ~repo ~hash ~status:`Passed ~gref:"master"
-    [ ("analysis", Some "job1") ];
-  Index.record ~repo ~hash:"def" ~status:`Passed ~gref:"master"
-    [ ("lint", Some "job2") ];
-  let expected =
-    [ ("analysis", "abc", Some "job1"); ("lint", "def", Some "job2") ]
+    [
+      ("analysis", Some "job1"); ("lint", Some "job2"); ("alpine", Some "job2");
+    ];
+  let expected : Index.Commit_cache.commit_state =
+    { s = `Failed; started_at = None; ran_for = None }
   in
-  let result = Index.get_build_history ~owner ~name ~gref:"master" in
-  Alcotest.(check commits_jobs) "Commits" expected result
+  let build_summary = Index.get_build_history ~owner ~name ~gref:"master" in
+  let result =
+    List.map
+      (fun ( hash,
+             build_number,
+             status,
+             started_at,
+             total_ran_for,
+             ran_for,
+             total_queued_for ) ->
+        Index.Commit_cache.commit_state_from_build_summary ~hash ~build_number
+          ~status ~started_at ~total_ran_for ~ran_for ~total_queued_for)
+      build_summary
+  in
+  Alcotest.(check commit_state_status) "Commits" [ expected ] result
 
 let tests =
   [

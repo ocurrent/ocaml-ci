@@ -164,8 +164,8 @@ let max_of_step_run_times ~build_created_at ts =
   in
   Option.value ~default:0. (List.nth_opt sorted_steps 0)
 
-let build_ran_for build =
-  let partitioned = Result.to_option @@ partition_build_steps build in
+let build_ran_for ts =
+  let partitioned = Result.to_option @@ partition_build_steps ts in
   match partitioned with
   | None -> 0.
   | Some (analysis_step, rest) -> (
@@ -189,9 +189,16 @@ let first_step_queued_at ts =
   (* for_all holds for the empty list as well as preventing transient
       error when only the analysis step exists with a None timestamp.
       Error would be caused by trying to format [max_float] as a string. *)
-  if List.for_all Option.is_none ts then Error "Empty build"
-  else
-    let minn accum ts =
-      Option.fold ~none:accum ~some:(fun v -> min accum (queued_at v)) ts
-    in
-    Ok (List.fold_left minn max_float ts)
+  if ts = [] then Error "Empty build"
+  else Ok (List.fold_left (fun accum v -> min accum (queued_at v)) max_float ts)
+
+let total_time = function
+  | Cached -> 0.
+  | Queued_for v -> v
+  | Running v -> v.queued_for +. v.ran_for
+  | Finished v -> v.queued_for +. Option.value ~default:0. v.ran_for
+
+let total_of_run_times ~build_created_at ts =
+  ts
+  |> List.map (run_times_from_timestamps ~build_created_at)
+  |> List.fold_left (fun subtotal rt -> subtotal +. total_time rt) 0.

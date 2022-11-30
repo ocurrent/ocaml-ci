@@ -41,4 +41,5 @@ val timestamps_of_job : Current.job_id -> timestamps option
     the ocurrent layer. *)
 
 val build_ran_for : (string * timestamps option) list -> float
-val first_step_queued_at : timestamps option list -> (float, string) result
+val first_step_queued_at : timestamps list -> (float, string) result
+val total_of_run_times : build_created_at:float -> timestamps list -> float

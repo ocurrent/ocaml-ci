@@ -82,5 +82,17 @@ You should see the client site on `localhost:8090` note that both backends are o
 
 ### Running a scheduler and a worker (OPTIONAL)
 
-You can run a scheduler and a worker to connect it to the CI. 
+You can run a scheduler and a worker to connect it to the CI.
 Follow the instruction from [ocurrent/ocluster](https://github.com/ocurrent/ocluster#the-scheduler-service).
+
+### Migrations
+
+Migrations are managed using `omigrate.` If you are using an opam switch for ocaml-ci then `omigrate` should be installed and you can create a new migration by doing this from the project root:
+
+```
+omigrate create --dir migrations <migration-name>
+```
+
+This will create timestamped files in the `migrations` directory that you can then populate with the sql necessary to introduce and remove the migration (in the `up` and `down` files respectively).
+
+Migrations will not run unless the `--migration-path` flag is present when invoking `ocaml-ci-service.`

@@ -77,7 +77,7 @@ struct RefInfo {
     ts    @7 :Float64;
     none  @8 :Void;
   }
-  # The state of the ref's head commit
+  # The state of a ref's commit
 }
 
 interface Repo {

@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS ci_build_summary;

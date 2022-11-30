@@ -11,18 +11,43 @@ let breadcrumbs steps page_title =
   let steps = li [ b [ txt page_title ] ] :: steps in
   ol ~a:[ a_class [ "breadcrumbs" ] ] (List.rev steps)
 
+let duration (status : Build_status.t) t =
+  let text =
+    match status with
+    | NotStarted -> "In queue for"
+    | Failed -> "Failed in"
+    | Passed -> "Passed in"
+    | Pending -> "Running for"
+    | Undefined _ -> "In queue for"
+  in
+  Printf.sprintf "%s %s" text (Timestamps_durations.pp_duration t)
+
 module Make (M : Git_forge_intf.Forge) = struct
-  let history_v ~org ~repo ~history =
+  let history_v ~org ~repo ~(history : Git_forge_intf.Client.Repo.ref_info list)
+      =
     ul
       ~a:[ a_class [ "statuses" ] ]
       (history
-      |> List.map @@ fun (commit, status) ->
+      |> List.map @@ fun ref_info ->
          li
-           ~a:[ a_class [ Build_status.class_name status ] ]
+           ~a:
+             [
+               a_class
+                 [
+                   Build_status.class_name
+                     ref_info.Git_forge_intf.Client.Repo.status;
+                 ];
+             ]
            [
              a
-               ~a:[ a_href (Url.commit_url M.prefix ~org ~repo ~hash:commit) ]
-               [ txt commit ];
+               ~a:
+                 [
+                   a_href
+                     (Url.commit_url M.prefix ~org ~repo ~hash:ref_info.hash);
+                 ]
+               [ txt ref_info.hash ];
+             div [ txt (Timestamps_durations.pp_timestamp ref_info.started_at) ];
+             div [ txt (duration ref_info.status ref_info.ran_for) ];
            ])
 
   let link_forge_refs ~org ~repo = function
