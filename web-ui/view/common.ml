@@ -1,3 +1,10 @@
+let short_hash = Astring.String.with_range ~len:6
+
+let rec intersperse ~sep = function
+  | [] -> []
+  | [ x ] -> [ x ]
+  | x :: xs -> x :: sep :: intersperse ~sep xs
+
 let failing_red = "#D92D20"
 let success_green = "#12B76A"
 
