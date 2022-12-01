@@ -14,16 +14,15 @@ module Make (M : Git_forge_intf.Forge) = struct
       | Error _ -> false
     in
     let url = if local_image_exists then local_image else fallback_image in
-    Tyxml.Html.(
-      img
-        ~a:
-          [
-            a_class [ "w-20 h-20 rounded-full" ];
-            a_style "border-radius: 50%; width: 80px";
-          ]
-        ~src:url
-        ~alt:(Printf.sprintf "%s profile picture" org)
-        ())
+    img
+      ~a:
+        [
+          a_class [ "w-20 h-20 rounded-full" ];
+          a_style "border-radius: 50%; width: 80px";
+        ]
+      ~src:url
+      ~alt:(Printf.sprintf "%s profile picture" org)
+      ()
 
   let title ~org =
     let org_url = M.org_url ~org in
@@ -139,7 +138,30 @@ module Make (M : Git_forge_intf.Forge) = struct
                   [ div [ txt description ] ];
               ];
           ];
-        td ~a:[ a_class [ "text-xs space-y-1" ] ] [];
+        td
+          ~a:[ a_class [ "text-xs space-y-1" ] ]
+          [
+            div [ txt "master" ];
+            div
+              ~a:[ a_class [ "shadow-sm mb-4" ] ]
+              [
+                div
+                  ~a:[ a_class [ "overflow-hidden" ] ]
+                  [
+                    div
+                      ~a:[ a_class [ "bottom-0 inset-x-0" ] ]
+                      [
+                        canvas
+                          ~a:
+                            [
+                              a_id (Printf.sprintf "chart_%s" repo_title);
+                              a_height 28;
+                            ]
+                          [];
+                      ];
+                  ];
+              ];
+          ];
         td [];
         td [];
         td [];
@@ -149,23 +171,18 @@ module Make (M : Git_forge_intf.Forge) = struct
   let repo_url org repo = Printf.sprintf "/%s/%s/%s" M.prefix org repo
 
   let table_head name =
-    Tyxml.Html.(
-      thead
-        [
-          tr
-            [
-              th [ div [ txt name ] ];
-              th [];
-              th [];
-              th [];
-              th [];
-              (* th [ txt "Speed over time" ];
-                 th [ txt "Speed" ];
-                 th [ txt "Reliability" ];
-                 th [ txt "Build frequency" ]; *)
-              th [];
-            ];
-        ])
+    thead
+      [
+        tr
+          [
+            th [ div [ txt name ] ];
+            th [ txt "Speed over time" ];
+            th [ txt "Speed" ];
+            th [ txt "Reliability" ];
+            th [ txt "Build frequency" ];
+            th [];
+          ];
+      ]
 
   let tabulate hd rows =
     Tyxml.Html.(
@@ -204,7 +221,16 @@ module Make (M : Git_forge_intf.Forge) = struct
     in
     Template_v1.instance
       [
-        Tyxml.Html.script ~a:[ a_src "/js/repo-page-search.js" ] (txt "");
+        script
+          ~a:
+            [
+              a_src
+                "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js";
+            ]
+          (txt "");
+        script ~a:[ a_src "/js/repo-page/search.js" ] (txt "");
+        script ~a:[ a_src "/js/repo-page/chart.js" ] (txt "");
+        script ~a:[ a_src "/js/repo-page/onload.js" ] (txt "");
         Common.breadcrumbs [ (M.prefix, M.prefix) ] org;
         title ~org;
         tabulate table_head table;

@@ -73,6 +73,21 @@ let ( >>!= ) x f =
       Dream.empty `Internal_Server_Error
   | Ok y -> f y
 
+(* let join xs f : Dream.response Lwt.t =
+   let to_option = function
+     | Error (`Capnp ex) ->
+         Dream.log "Internal server error: %s"
+           (Fmt.to_to_string Capnp_rpc.Error.pp ex);
+         None
+     | Error (`Msg v) ->
+         Dream.log "Internal server error: %s" v;
+         None
+     | Ok y -> Some y
+   in
+   let xs = List.map to_option xs in
+   if List.exists Option.is_none xs then Dream.empty `Internal_Server_Error
+   else f (List.filter_map Fun.id xs) *)
+
 module Make (View : View) = struct
   open Lwt.Infix
   module Client = Ocaml_ci_api.Client

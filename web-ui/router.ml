@@ -239,6 +239,9 @@ let github_routes github =
         let repo = Dream.param request "repo" in
         let hash = Dream.param request "hash" in
         Api_controller.Github.list_steps ~org ~repo ~hash github);
+    Dream.get "/api/github/:org" (fun request ->
+        let org = Dream.param request "org" in
+        Api_controller.Github.list_repos ~org github);
   ]
 
 let create ~github ~gitlab =
