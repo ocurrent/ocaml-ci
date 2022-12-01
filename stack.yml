@@ -20,6 +20,8 @@ secrets:
     external: true
   ocaml-ci-gitlab-webhook-secret:
     external: true
+  ocaml-ci-solver.cap:
+    external: true
 
 services:
   ci:
@@ -47,7 +49,7 @@ services:
     image: ocurrent/ocaml-ci-gitlab-service:live
     # image: ocaml-ci-gitlab-service
     # For local deploys using docker -c ci.ocamllabs.io build -t ocaml-ci-gitlab-service -f Dockerfile.gitlab .
-    command: --gitlab-oauth /run/secrets/ocaml-ci-gitlab-oauth --gitlab-token-file /run/secrets/ocaml-ci-gitlab-token --gitlab-webhook-secret-file /run/secrets/ocaml-ci-gitlab-webhook-secret --submission-service /run/secrets/ocaml-ci-submission.cap --capnp-public-address=tcp:ci.ocamllabs.io:8202 --capnp-listen-address=tcp:0.0.0.0:9000 --migration-path "/migrations" -v
+    command: --gitlab-oauth /run/secrets/ocaml-ci-gitlab-oauth --gitlab-token-file /run/secrets/ocaml-ci-gitlab-token --gitlab-webhook-secret-file /run/secrets/ocaml-ci-gitlab-webhook-secret --submission-service /run/secrets/ocaml-ci-submission.cap --capnp-public-address=tcp:ci.ocamllabs.io:8202 --capnp-listen-address=tcp:0.0.0.0:9000 --migration-path "/migrations" --submission-solver-service /run/secrets/ocaml-ci-solver.cap -v
     environment:
       - "CI_PROFILE=production"
       - "DOCKER_BUILDKIT=1"
@@ -62,6 +64,7 @@ services:
       - 'ocaml-ci-gitlab-oauth'
       - 'ocaml-ci-gitlab-token'
       - 'ocaml-ci-submission.cap'
+      - 'ocaml-ci-solver.cap'
       - 'ocaml-ci-gitlab-webhook-secret'
     sysctls:
       - 'net.ipv4.tcp_keepalive_time=60'
