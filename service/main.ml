@@ -107,7 +107,8 @@ let run_capnp capnp_public_address capnp_listen_address =
       Lwt.return (vat, Some rpc_engine_resolver)
 
 let main () config mode app capnp_public_address capnp_listen_address
-    github_auth submission_uri solve_uri migrations : ('a, [ `Msg of string ]) result =
+    github_auth submission_uri solve_uri migrations :
+    ('a, [ `Msg of string ]) result =
   Lwt_main.run
     (let solver = Ocaml_ci.Backend_solver.create solve_uri in
      run_capnp capnp_public_address capnp_listen_address
