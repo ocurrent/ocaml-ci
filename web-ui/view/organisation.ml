@@ -1,6 +1,6 @@
 open Git_forge
 
-module Make (M : M_Git_forge) = struct
+module Make (M : Forge_prefix) = struct
   let profile_picture org =
     (* /profile-pictures is where images are downloaded -- see Dockerfile.web *)
     let local_image =
