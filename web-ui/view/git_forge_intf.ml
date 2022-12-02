@@ -19,6 +19,8 @@ module type Forge = sig
 end
 
 module type View = sig
+  val prefix : string
+
   val cancel_success_message :
     Client.job_info list -> [> `Div | `Ul ] Tyxml_html.elt
 

@@ -6,6 +6,7 @@ module Make (F : Forge) : View = struct
   module Step = Step.Make (F)
   module History = History.Make (F)
 
+  let prefix = F.prefix
   let list_history = History.list
   let list_repos = Repo.list
   let list_refs = Ref.list
