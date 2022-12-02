@@ -1,8 +1,7 @@
 module Client = Ocaml_ci_api.Client
 open Tyxml.Html
-open Git_forge
 
-module Make (M : M_Git_forge) = struct
+module Make (M : Git_forge_intf.Forge) = struct
   type t = Branch of string | PR of { title : string; id : string }
 
   let logo =
@@ -122,7 +121,7 @@ module Make (M : M_Git_forge) = struct
   let list ~org ~repo ~default_ref ~refs =
     let f { Client.Repo.gref; hash; status; started_at; message; name; ran_for }
         =
-      let short_hash = short_hash hash in
+      let short_hash = Common.short_hash hash in
       row ~ref:(ref gref name) ~short_hash ~started_at ~ran_for ~status
         ~ref_uri:(Url.commit_url M.prefix ~org ~repo ~hash)
         ~message

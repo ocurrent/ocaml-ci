@@ -1,7 +1,7 @@
 open Tyxml.Html
-open Git_forge
+module Client = Git_forge_intf.Client
 
-module Make (M : M_Git_forge) = struct
+module Make (M : Git_forge_intf.Forge) = struct
   let profile_picture org =
     (* /profile-pictures is where images are downloaded -- see Dockerfile.web *)
     let local_image =
@@ -189,7 +189,8 @@ module Make (M : M_Git_forge) = struct
     in
     let table =
       let f { Client.Org.name; main_status; main_hash; main_last_updated } =
-        row ~repo_title:name ~short_hash:(short_hash main_hash)
+        row ~repo_title:name
+          ~short_hash:(Common.short_hash main_hash)
           ~last_updated:main_last_updated ~status:main_status ~description:""
           ~repo_uri:(repo_url org name)
       in
