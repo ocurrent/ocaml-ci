@@ -298,6 +298,22 @@ let gitlab_status_of_state head result =
   | Error (`Msg m) ->
       Gitlab.Api.Status.v ~url `Failure ~description:m ~name:program_name
 
+let local_test ~solver repo () =
+  let platforms = Ocaml_ci_service.Conf.fetch_platforms ~include_macos:false () in
+  let src = Git.Local.head_commit repo in
+  let repo = Current.return { Gitlab.Repo_id.owner = "local"; name = "test"; project_id = 0 }
+  and analysis =
+    Analyse.examine ~solver ~platforms ~opam_repository_commit src
+  in
+  Current.component "summarise"
+  |> let> results = build_with_docker ~repo ~analysis ~platforms src in
+     let result =
+       results
+       |> List.map (fun (variant, (build, _job)) -> (variant, build))
+       |> summarise
+     in
+     Current_incr.const (result, None)
+
 let v ?ocluster ~app ~solver ~migrations () =
   let ocluster =
     Option.map (Cluster_build.config ~timeout:(Duration.of_hour 1)) ocluster
@@ -365,3 +381,4 @@ let v ?ocluster ~app ~solver ~migrations () =
              |> Gitlab.Api.Commit.set_status head "ocaml-ci"
            in
            Current.all [ index; set_gitlab_status ]
+
