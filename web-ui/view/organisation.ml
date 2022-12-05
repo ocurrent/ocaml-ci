@@ -8,9 +8,14 @@ module Make (M : Forge_prefix) = struct
     in
     let fallback_image = Printf.sprintf "/images/%s-logo-500.png" M.prefix in
     let local_image_exists =
-      Result.is_ok @@ Bos.OS.File.exists (Fpath.v local_image)
+      (* TODO fix error when not in deployement *)
+      match Bos.OS.File.exists (Fpath.v local_image) with
+      | Ok b -> b
+      | Error _ -> false
     in
+    Logs.warn (fun l -> l "Looking for %s@." local_image);
     let url = if local_image_exists then local_image else fallback_image in
+    Logs.warn (fun l -> l "Image is %S" url);
     Tyxml.Html.(
       img
         ~a:[ a_class [ "w-20 h-20 rounded-full" ] ]
