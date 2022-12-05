@@ -48,10 +48,20 @@ let list_orgs prefix orgs =
     [
       Tyxml.Html.script ~a:[ a_src "/js/index-page-org-search.js" ] (txt "");
       div
-        ~a:[ a_class [ "justify-between items-center flex" ] ]
+        ~a:
+          [
+            a_class [ "flex flex-col md:flex-row justify-between items-center" ];
+          ]
         [
           div
-            ~a:[ a_class [ "flex flex-col space-y-1" ] ]
+            ~a:
+              [
+                a_class
+                  [
+                    "flex flex-col space-y-1 items-center md:items-start py-8 \
+                     md:py-0";
+                  ];
+              ]
             [
               h1 [ txt "Welcome to OCaml-CI" ];
               div
@@ -81,6 +91,7 @@ let list_orgs prefix orgs =
         ];
     ]
 
+(** TODO: this function can be factorized with the one above. *)
 let list_all_orgs ~github_orgs ~gitlab_orgs =
   let github_org_rows = rows "github" github_orgs in
   let gitlab_org_rows = rows "gitlab" gitlab_orgs in
@@ -89,10 +100,20 @@ let list_all_orgs ~github_orgs ~gitlab_orgs =
     [
       Tyxml.Html.script ~a:[ a_src "/js/index-page-org-search.js" ] (txt "");
       div
-        ~a:[ a_class [ "justify-between items-center flex" ] ]
+        ~a:
+          [
+            a_class [ "flex flex-col md:flex-row justify-between items-center" ];
+          ]
         [
           div
-            ~a:[ a_class [ "flex flex-col space-y-1" ] ]
+            ~a:
+              [
+                a_class
+                  [
+                    "flex flex-col space-y-1 items-center md:items-start py-8 \
+                     md:py-0";
+                  ];
+              ]
             [
               h1 [ txt "Welcome to OCaml-CI" ];
               div
@@ -100,10 +121,17 @@ let list_all_orgs ~github_orgs ~gitlab_orgs =
                 [ txt "Here are the organisations registered with us" ];
             ];
           div
-            ~a:[ a_class [ "flex items-center justify-between space-x-3" ] ]
+            ~a:
+              [
+                a_class
+                  [
+                    "flex flex-col md:flex-row items-center justify-between \
+                     space-x-3";
+                  ];
+              ]
             [
               div
-                ~a:[ a_class [ "form-control relative w-80" ] ]
+                ~a:[ a_class [ "form-control relative w-80 pb-6 md:pb-0" ] ]
                 [
                   Common.search;
                   input
