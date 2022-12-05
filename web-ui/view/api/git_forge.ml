@@ -2,9 +2,6 @@ module type Api = sig
   module Client = Ocaml_ci_api.Client
   module Run_time = Ocaml_ci_client_lib.Run_time
 
-  val list_repos :
-    repos:(string * Client.Repo.ref_info list) list -> Dream.response Lwt.t
-
   val show_step :
     step_info:Client.job_info option ->
     run_time:Run_time.run_time_info option ->
@@ -33,7 +30,6 @@ end
 module Make (M : M_Git_forge) = struct
   module Build = Representation.Build
   module Step = Representation.Step
-  module Repo = Representation.Repo
   module Run_time = Ocaml_ci_client_lib.Run_time
   module Client = Ocaml_ci_api.Client
 
@@ -57,6 +53,4 @@ module Make (M : M_Git_forge) = struct
     @@ Build.to_json
     @@ Build.from_jobs_status ~jobs ~build_status ~build_created_at
          ~step_route_prefix
-
-  let list_repos ~repos = Dream.json @@ Repo.to_json @@ Repo.from_repos ~repos
 end

@@ -206,6 +206,37 @@ module Make (M : Git_forge_intf.Forge) = struct
       =
     String.(compare (lowercase_ascii n0) (lowercase_ascii n1))
 
+  let js_of_histories data =
+    let ( ++ ) a b = List.append a b in
+    let commit_data { Client.Repo.ran_for; _ } =
+      string_of_float (Option.value ~default:0. ran_for)
+    in
+    let commit_colour { Client.Repo.status; _ } =
+      match status with
+      | Passed -> "rgba(18, 183, 106, 1)"
+      | Failed -> "rgba(217, 45, 32, 1)"
+      | _ -> "rgba(226, 232, 240, 1)"
+    in
+    let js_of_history fmt (name, data) =
+      let data = List.map fmt data in
+      [ "\""; name; "\":[" ] ++ data ++ [ "]," ]
+    in
+    let chart_labels = List.init 15 (fun x -> Printf.sprintf "%d," (x + 1)) in
+    let chart_data =
+      List.map (js_of_history commit_data) data |> List.flatten
+    in
+    let chart_colours =
+      List.map (js_of_history commit_colour) data |> List.flatten
+    in
+    [ "var chart_labels = {" ]
+    ++ chart_labels
+    ++ [ "}\nvar chart_data = {" ]
+    ++ chart_data
+    ++ [ "}\nvar chart_colours = {" ]
+    ++ chart_colours
+    ++ [ "}" ]
+    |> String.concat ""
+
   let list ~org ~repos =
     let table_head =
       table_head (Printf.sprintf "Repositories (%d)" (List.length repos))
@@ -228,9 +259,8 @@ module Make (M : Git_forge_intf.Forge) = struct
                 "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js";
             ]
           (txt "");
-        script ~a:[ a_src "/js/repo-page/search.js" ] (txt "");
-        script ~a:[ a_src "/js/repo-page/chart.js" ] (txt "");
-        script ~a:[ a_src "/js/repo-page/onload.js" ] (txt "");
+        (* script (txt (js_of_histories histories)); *)
+        script ~a:[ a_src "/js/repo-page-search.js" ] (txt "");
         Common.breadcrumbs [ (M.prefix, M.prefix) ] org;
         title ~org;
         tabulate table_head table;

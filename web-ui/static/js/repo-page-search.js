@@ -1,3 +1,4 @@
+// Search
 
 function title_comparator(a, b) {
   var title_a =
@@ -63,3 +64,91 @@ function search(target) {
 
 var head = null;
 var body = null;
+
+
+// Charts
+
+const chartOptions = {
+  maintainAspectRatio: false,
+  legend: {
+    display: false
+  },
+  tooltips: {
+    enabled: false
+  },
+  elements: {
+    point: {
+      radius: 0
+    }
+  },
+  scales: {
+    xAxes: [{
+      gridLines: false,
+      scaleLabel: false,
+      ticks: {
+        display: false
+      }
+    }],
+    yAxes: [{
+      gridLines: false,
+      scaleLabel: false,
+      ticks: {
+        display: false,
+        suggestedMin: 0,
+        suggestedMax: 10
+      }
+    }]
+  },
+  animation: {
+    duration: 0
+  }
+};
+
+function getRepoNames() {
+  var children = Array.from(body.children);
+  var names = [];
+  for (const child of children) {
+    names.push(child
+      .getElementsByClassName("repo-title")[0]
+      .textContent);
+  }
+  return names;
+}
+
+// Chart data is defined with inline <script> tags in TyXML
+function charts_init() {
+  var repos = getRepoNames();
+  charts = {};
+  for (const repo of repos) {
+    var ctx = document.getElementById("chart_" + repo).getContext("2d");
+    charts[repo] =
+      new Chart(
+        ctx, {
+          type: "bar",
+          data: {
+            barThickness: "flex",
+            labels: chart_labels,
+            datasets: [{
+              data: chart_data[repo],
+              backgroundColor: chart_colour[repo]
+            }]
+          },
+          options: chartOptions
+        }
+      )
+  }
+  return charts
+}
+
+
+// onload
+
+window.onload = function() {
+  var table_root = document.getElementById("table");
+  // table -> thead
+  head = table_root.firstChild;
+  // table -> tbody
+  body = table_root.lastChild;
+
+  charts_init();
+}
