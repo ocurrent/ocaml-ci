@@ -232,6 +232,8 @@ let create ~github ~gitlab =
                Controller.Index.list_all_orgs ~github ~gitlab);
        Dream.get "/getting-started" (fun _ ->
            Dream.html @@ Controller.Documentation.getting_started);
+       Dream.get "/documentation" (fun _ ->
+           Dream.html @@ Controller.Documentation.user_guide);
      ]
     @ (match github with Some github -> github_routes github | None -> [])
     @ match gitlab with Some gitlab -> gitlab_routes gitlab | None -> [])

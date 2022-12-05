@@ -56,7 +56,11 @@ let header ~full =
                   ]
                 [ txt "Getting Started" ];
               a
-                ~a:[ a_class [ "header-link link-hover" ]; a_href "#" ]
+                ~a:
+                  [
+                    a_class [ "header-link link-hover" ];
+                    a_href "/documentation";
+                  ]
                 [ txt "Documentation" ];
             ];
         ];
