@@ -51,8 +51,16 @@ let export service ~on:socket =
       Lwt.return_unit)
   >>= fun () -> crashed
 
-let main () = function
+let main () sockpath = function
   | None ->
+      let socket =
+        match sockpath with
+        | Some path ->
+            let sock = Unix.(socket PF_UNIX SOCK_STREAM 0) in
+            Unix.connect sock (ADDR_UNIX path);
+            Lwt_unix.of_unix_file_descr sock
+        | None -> Lwt_unix.stdin
+      in
       Lwt_main.run
         (let create_worker hash =
            let cmd =
@@ -63,7 +71,7 @@ let main () = function
            Lwt_process.open_process cmd
          in
          Service.v ~n_workers ~create_worker >>= fun service ->
-         export service ~on:Lwt_unix.stdin)
+         export service ~on:socket)
   | Some hash -> Solver.main (Git_unix.Store.Hash.of_hex hash)
 
 (* Command-line parsing *)
@@ -77,9 +85,18 @@ let worker_hash =
   @@ Arg.opt Arg.(some string) None
   @@ Arg.info ~doc:"The hash of the worker." ~docv:"HASH" [ "worker" ]
 
+let sockpath =
+  Arg.value
+  @@ Arg.opt Arg.(some string) None
+  @@ Arg.info
+       ~doc:
+         "The UNIX domain socket path to read requests from, if not provided \
+          will use stdin."
+       ~docv:"SOCKPATH" [ "sockpath" ]
+
 let cmd =
   let doc = "Solver for ocaml-ci" in
   let info = Cmd.info "solver" ~doc in
-  Cmd.v info Term.(const main $ setup_log $ worker_hash)
+  Cmd.v info Term.(const main $ setup_log $ sockpath $ worker_hash)
 
 let () = exit @@ Cmd.eval cmd
