@@ -26,7 +26,10 @@ module Make (M : Git_forge_intf.Forge) = struct
   let title ~org =
     let org_url = M.org_url ~org in
     div
-      ~a:[ a_class [ "justify-between items-center flex" ] ]
+      ~a:
+        [
+          a_class [ "flex flex-col md:flex-row justify-between items-center " ];
+        ]
       [
         div
           ~a:[ a_class [ "flex space-x-4" ] ]
@@ -49,7 +52,7 @@ module Make (M : Git_forge_intf.Forge) = struct
           ~a:[ a_class [ "flex items-center justify-between space-x-3" ] ]
           [
             div
-              ~a:[ a_class [ "form-control relative w-80" ] ]
+              ~a:[ a_class [ "form-control relative w-80 py-6 md:py-0" ] ]
               [
                 Common.search;
                 input
