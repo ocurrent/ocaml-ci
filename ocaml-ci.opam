@@ -16,7 +16,7 @@ depends: [
   "capnp-rpc-unix"
   "ppx_deriving_yojson"
   "ocaml-version"
-  "opam-0install"
+  "opam-0install" {>= "0.4.3"}
   "current_ocluster"
   "ocluster-api"
   "obuilder-spec"
