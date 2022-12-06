@@ -108,8 +108,8 @@ let make_commit ~engine ~owner ~name hash =
          in
          (match active with
          | [] ->
-             Logs.err (fun m -> m "Commit has no associated message: %s" hash);
-             raise Not_found
+             Logs.info (fun m -> m "Commit has no associated message: %s" hash);
+             Results.message_set results hash
          | message :: _ -> Results.message_set results message);
          Service.return response
 
