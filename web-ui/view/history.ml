@@ -1,77 +1,136 @@
 open Tyxml.Html
 
-(* TODO: this is intended to be delete when the history page will be rewritten *)
-let breadcrumbs steps page_title =
-  let add (prefix, results) (label, link) =
-    let prefix = Fmt.str "%s/%s" prefix link in
-    let link = li [ a ~a:[ a_href prefix ] [ txt label ] ] in
-    (prefix, link :: results)
-  in
-  let _, steps = List.fold_left add ("", []) steps in
-  let steps = li [ b [ txt page_title ] ] :: steps in
-  ol ~a:[ a_class [ "breadcrumbs" ] ] (List.rev steps)
-
 module Make (M : Git_forge_intf.Forge) = struct
+  let row ~short_hash ~started_at ~ran_for ~status ~build_uri ~message =
+    let message = Common.truncate ~len:72 message in
+    let description =
+      [ div [ txt short_hash ] ]
+      @
+      match started_at with
+      | None -> []
+      | Some _ ->
+          [
+            div [ txt "-" ];
+            div [ txt (Timestamps_durations.pp_timestamp started_at) ];
+          ]
+    in
+    let rhs =
+      match ran_for with
+      | None -> [ Common.right_arrow_head ]
+      | Some _ ->
+          [
+            div [ txt (Common.duration status ran_for) ];
+            Common.right_arrow_head;
+          ]
+    in
+    a
+      ~a:[ a_class [ "table-row" ]; a_href build_uri ]
+      [
+        div
+          ~a:[ a_class [ "flex items-center space-x-3" ] ]
+          [
+            Common.status_icon_build status;
+            div
+              ~a:[ a_class [ "flex items-center space-x-3" ] ]
+              [
+                div
+                  ~a:[ a_class [ "flex flex-col" ] ]
+                  [
+                    div
+                      ~a:[ a_class [ "text-gray-900 text-sm font-medium" ] ]
+                      [ txt message ];
+                    div ~a:[ a_class [ "flex text-sm space-x-2" ] ] description;
+                  ];
+              ];
+          ];
+        div
+          ~a:
+            [
+              a_class
+                [
+                  "flex text-sm font-normal text-gray-500 space-x-8 \
+                   items-center";
+                ];
+            ]
+          rhs;
+      ]
+
   let history_v ~org ~repo ~(history : Git_forge_intf.Client.Repo.ref_info list)
       =
-    ul
-      ~a:[ a_class [ "statuses" ] ]
-      (history
-      |> List.map @@ fun ref_info ->
-         li
-           ~a:
-             [
-               a_class
-                 [
-                   Build_status.class_name
-                     ref_info.Git_forge_intf.Client.Repo.status;
-                 ];
-             ]
-           [
-             a
-               ~a:
-                 [
-                   a_href
-                     (Url.commit_url M.prefix ~org ~repo ~hash:ref_info.hash);
-                 ]
-               [ txt ref_info.hash ];
-             div [ txt (Timestamps_durations.pp_timestamp ref_info.started_at) ];
-             div [ txt (Common.duration ref_info.status ref_info.ran_for) ];
-           ])
+    let n_builds = List.length history in
+    let f
+        {
+          Git_forge_intf.Client.Repo.gref;
+          hash;
+          status;
+          started_at;
+          message;
+          name;
+          ran_for;
+        } =
+      ignore name;
+      ignore gref;
+      let short_hash = Common.short_hash hash in
+      row ~short_hash ~started_at ~ran_for ~status
+        ~build_uri:(Url.commit_url M.prefix ~org ~repo ~hash)
+        ~message
+    in
+    let table_head =
+      Common.table_head_div (Printf.sprintf "Builds (%d)" n_builds)
+    in
+    table_head :: List.map f history
 
-  let link_forge_refs ~org ~repo = function
-    | [] -> txt "(not at the head of any monitored branch or merge request)"
-    | refs ->
-        let refs = List.map M.parse_ref refs in
-        let f = function
-          | `Branch branch ->
-              span
+  let top_matter ~org ~repo ~ref ~tref =
+    let external_url = M.branch_url ~org ~repo ref in
+    div
+      ~a:[ a_class [ "justify-between items-center flex" ] ]
+      [
+        div
+          ~a:[ a_class [ "flex items-center space-x-4" ] ]
+          [
+            div
+              ~a:[ a_class [ "flex flex-col space-y-1" ] ]
+              [
+                h1
+                  ~a:[ a_class [ "text-xl" ] ]
+                  [ txt (Printf.sprintf "Build History for %s" tref) ];
+                div
+                  ~a:[ a_class [ "text-gray-500 flex text-sm space-x-2" ] ]
+                  [
+                    span
+                      [
+                        txt
+                          (Printf.sprintf "Build history for branch %s on %s"
+                             tref repo);
+                      ];
+                    a ~a:[ a_href external_url ] [ Common.external_link ];
+                  ];
+              ];
+          ];
+        div
+          ~a:
+            [ a_class [ "form-control relative w-80" ]; a_style "display:none" ]
+          [
+            Common.search;
+            input
+              ~a:
                 [
-                  txt "branch ";
-                  a
-                    ~a:[ a_href (M.branch_url ~org ~repo branch) ]
-                    [ txt branch ];
+                  a_input_type `Text;
+                  a_placeholder "Search for a branch";
+                  a_oninput "search(this.value)";
                 ]
-          | `Request id ->
-              let id = string_of_int id in
-              span
-                [
-                  txt M.request_abbrev;
-                  a
-                    ~a:[ a_href (M.request_url ~org ~repo id) ]
-                    [ txt ("#" ^ id) ];
-                ]
-          | `Unknown s -> txt (Fmt.str "Bad ref format %S" s)
-        in
-        p
-          ((txt "(for " :: Common.intersperse ~sep:(txt ", ") (List.map f refs))
-          @ [ txt ")" ])
+              ();
+          ];
+      ]
 
   let list ~org ~repo ~ref ~history =
-    Template.instance
+    let tref = String.split_on_char '/' ref |> List.rev |> List.hd in
+    Template_v1.instance
       [
-        breadcrumbs [ (M.prefix, M.prefix); (org, org) ] repo;
-        link_forge_refs ~org ~repo [ ref ];
-        history_v ~org ~repo ~history;
+        Common.breadcrumbs
+          [ (M.prefix, M.prefix); (org, org); (repo, repo); (tref, tref) ]
+          "Build History";
+        top_matter ~org ~repo ~ref ~tref;
+        Common.tabulate_div @@ history_v ~org ~repo ~history;
       ]
 end
