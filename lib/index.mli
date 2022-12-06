@@ -57,7 +57,10 @@ val get_default_gref : Repo_id.t -> string
 (** [get_default_gref repo] is the default gref of the repo last set with
     [set_active_refs] *)
 
-type status = [ `Not_started | `Pending | `Failed | `Passed ]
+type status = [ `Not_started | `Pending | `Failed | `Passed ] [@@deriving show]
+
+val status_to_int : status -> int
+val int_to_status : int -> (status, string) result
 
 (** Aggregation of state for refs and repos. Refs take their state from their
     head commit, and repos take their state from their main/master branch *)
@@ -84,7 +87,11 @@ module Aggregate : sig
 end
 
 module Commit_cache : sig
-  type commit_state
+  type commit_state = {
+    s : status;
+    started_at : float option;
+    ran_for : float option;
+  }
 
   val get_status : commit_state -> status
   val get_started_at : commit_state -> float option
@@ -101,6 +108,16 @@ module Commit_cache : sig
     unit
 
   val find : owner:string -> name:string -> hash:string -> commit_state
+
+  val commit_state_from_build_summary :
+    hash:string ->
+    build_number:int64 ->
+    status:int64 ->
+    started_at:float option ->
+    total_ran_for:float option ->
+    ran_for:float option ->
+    total_queued_for:float ->
+    commit_state
 end
 
 val record :
@@ -111,7 +128,8 @@ val record :
   (string * Current.job_id option) list ->
   unit
 (** [record ~repo ~hash ~gref jobs] updates the entry for [repo, hash] to point
-    at [jobs]. *)
+    at [jobs]. It also updates a Commit_cache with aggregated build data. If the
+    build has finished, it also writes an entry to the build_summary table. *)
 
 val get_jobs :
   owner:string ->
@@ -136,22 +154,12 @@ val get_build_history :
   owner:string ->
   name:string ->
   gref:string ->
-  (string * string * string option) list
+  (string * int64 * int64 * float option * float option * float option * float)
+  list
 (** [get_build_history ~owner ~name ~gref] is a list of builds for the branch
     gref of the repo identfied by (owner, name) The builds are identified by
-    triples (variant, hash, Some job_id) *)
-
-val get_build_history_with_time :
-  owner:string ->
-  name:string ->
-  gref:string ->
-  (string * string * float option) list
-(** [get_build_history_with_time ~owner ~name ~gref] is a list of builds for the
-    branch gref of the repo identfied by (owner, name). The builds are
-    identified by triples (variant, hash, Some timestamp) *)
-
-(* val get_status : owner:string -> name:string -> hash:string -> build_status *)
-(** [get_status ~owner ~name ~hash] is the latest status for this combination. *)
+    (hash, build_number, status, started_at, total_ran_for, ran_for,
+    total_queued_for) *)
 
 val get_full_hash :
   owner:string ->

@@ -186,24 +186,26 @@ module Repo = struct
     Params.ref_set params gref;
     Capability.call_for_value t method_id request
     |> Lwt_result.map @@ fun history ->
+       let open Raw.Reader.RefInfo in
        Results.refs_get_list history
-       |> List.fold_left
-            (fun acc slot ->
-              let open Build_status in
-              let open Raw.Reader.RefInfo in
+       |> List.map (fun slot ->
               let hash = hash_get slot in
-              let state = status_get slot in
+              let status = status_get slot in
               let started = started_at_get slot in
-              let time =
+              let started_at =
                 match StartedAt.get started with
                 | StartedAt.None | Undefined _ -> None
                 | StartedAt.Ts v -> Some v
               in
-              match (state, Ref_map.find_opt hash acc) with
-              | state, None -> Ref_map.add hash (state, time) acc
-              | Passed, Some (state', _) -> Ref_map.add hash (state', time) acc
-              | Failed, _ | _ -> acc)
-            Ref_map.empty
+              let message = message_get slot in
+              let name = name_get slot in
+              let time = ran_for_get slot in
+              let ran_for =
+                match RanFor.get time with
+                | RanFor.None | RanFor.Undefined _ -> None
+                | RanFor.Ts v -> Some v
+              in
+              { gref; hash; status; started_at; message; name; ran_for })
 end
 
 module Commit = struct

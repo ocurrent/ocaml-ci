@@ -16,32 +16,13 @@ module Make (M : Git_forge_intf.Forge) = struct
     | "gitlab" -> Printf.sprintf "https://gitlab.com/%s/%s" org repo
     | _ -> raise Not_found
 
-  let truncate ~len s =
-    let open Astring.String in
-    let orig = length s in
-    if len >= orig then s
-    else
-      let truncated = with_range ~len s in
-      append truncated "…"
-
-  let duration (status : Build_status.t) t =
-    let text =
-      match status with
-      | NotStarted -> "In queue for"
-      | Failed -> "Failed in"
-      | Passed -> "Passed in"
-      | Pending -> "Running for"
-      | Undefined _ -> "In queue for"
-    in
-    Printf.sprintf "%s %s" text (Timestamps_durations.pp_duration t)
-
   let row ~ref ~short_hash ~started_at ~ran_for ~status ~ref_uri ~message =
     (* messages are of arbitrary length - let's truncate them *)
-    let message = truncate ~len:72 message in
+    let message = Common.truncate ~len:72 message in
     let ref_title =
       match ref with Branch title -> title | PR { title; _ } -> title
     in
-    let ref_title = truncate ~len:24 ref_title in
+    let ref_title = Common.truncate ~len:24 ref_title in
     let description =
       [ div [ txt short_hash ] ]
       @ (match ref with
@@ -66,7 +47,10 @@ module Make (M : Git_forge_intf.Forge) = struct
       match ran_for with
       | None -> [ Common.right_arrow_head ]
       | Some _ ->
-          [ div [ txt (duration status ran_for) ]; Common.right_arrow_head ]
+          [
+            div [ txt (Common.duration status ran_for) ];
+            Common.right_arrow_head;
+          ]
     in
     a
       ~a:[ a_class [ "table-row" ]; a_href ref_uri ]

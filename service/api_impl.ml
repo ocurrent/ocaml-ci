@@ -268,26 +268,38 @@ let make_repo ~engine ~owner ~name =
          let open Repo.HistoryOfRef in
          let gref = Params.ref_get params in
          release_param_caps ();
-         let history = Index.get_build_history_with_time ~owner ~name ~gref in
+         let history = Index.get_build_history ~owner ~name ~gref in
          let response, results = Service.Response.create Results.init_pointer in
          let arr = Results.refs_init results (List.length history) in
          history
-         |> List.iteri (fun i (_, hash, started) ->
+         |> List.iteri
+              (fun
+                i
+                ( hash,
+                  _build_number,
+                  status,
+                  started_at,
+                  _total_ran_for,
+                  ran_for,
+                  _total_queued_for )
+              ->
                 let open Raw.Builder.RefInfo in
                 let slot = Capnp.Array.get arr i in
                 ref_set slot gref;
                 hash_set slot hash;
                 let status =
                   to_build_status
-                    Index.Commit_cache.(get_status @@ find ~owner ~name ~hash)
+                  @@ Result.get_ok
+                  @@ Index.int_to_status
+                  @@ Int64.to_int status
                 in
                 status_set slot status;
                 let started_at_t = started_at_init slot in
-                (match started with
+                (match started_at with
                 | None -> StartedAt.none_set started_at_t
                 | Some time -> StartedAt.ts_set started_at_t time);
                 let ran_for_t = ran_for_init slot in
-                match started with
+                match ran_for with
                 | None -> RanFor.none_set ran_for_t
                 | Some time -> RanFor.ts_set ran_for_t time);
          Service.return response

@@ -86,9 +86,10 @@ type t = {
   get_jobs : Sqlite3.stmt;
   get_job : Sqlite3.stmt;
   get_job_ids : Sqlite3.stmt;
-  get_commits_job_ids_for_ref : Sqlite3.stmt;
-  get_git_fetch_outcome_by_time : Sqlite3.stmt;
   full_hash : Sqlite3.stmt;
+  record_job_summary : Sqlite3.stmt;
+  get_build_summary_by_commit : Sqlite3.stmt;
+  get_build_summary_by_gref : Sqlite3.stmt;
 }
 
 type job_state =
@@ -127,18 +128,28 @@ let db =
        Sqlite3.prepare db
          "SELECT variant, job_id FROM ci_build_index WHERE owner = ? AND name \
           = ? AND hash = ?"
-     and get_commits_job_ids_for_ref =
-       Sqlite3.prepare db
-         "SELECT variant, hash, job_id FROM ci_build_index WHERE owner = ? AND \
-          name = ? AND gref = ?"
-     and get_git_fetch_outcome_by_time =
-       Sqlite3.prepare db
-         " SELECT key, strftime('%s', ready) FROM cache WHERE op LIKE \
-          'git-fetch' AND key LIKE ? ORDER BY ready DESC"
      and full_hash =
        Sqlite3.prepare db
          "SELECT DISTINCT hash FROM ci_build_index WHERE owner = ? AND name = \
           ? AND hash LIKE ?"
+     and record_job_summary =
+       Sqlite3.prepare db
+         "INSERT INTO ci_build_summary (owner, name, hash, gref, build_number, \
+          status, started_at, total_ran_for, ran_for, created_at) VALUES (?, \
+          ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+     and get_build_summary_by_commit =
+       Sqlite3.prepare db
+         "SELECT build_number, status, started_at, total_ran_for, ran_for, \
+          total_queued_for FROM ci_build_summary WHERE owner = ? AND name = ? \
+          AND hash = ? ORDER BY build_number DESC"
+     and get_build_summary_by_gref =
+       Sqlite3.prepare db
+         "SELECT hash, build_number, status, started_at, total_ran_for, \
+          ran_for, total_queued_for FROM ci_build_summary c1 WHERE owner = ? \
+          AND name = ? AND gref = ? AND build_number = (SELECT \
+          MAX(build_number) FROM ci_build_summary c2 WHERE c1.owner = c2.owner \
+          AND c1.name = c2.name AND c1.hash = c2.hash) ORDER BY created_at \
+          DESC"
      in
      {
        record_job;
@@ -146,9 +157,10 @@ let db =
        get_jobs;
        get_job;
        get_job_ids;
-       get_commits_job_ids_for_ref;
-       get_git_fetch_outcome_by_time;
        full_hash;
+       record_job_summary;
+       get_build_summary_by_commit;
+       get_build_summary_by_gref;
      })
 
 let init () = Lwt.map (fun () -> ignore (Lazy.force db)) (Migration.init ())
@@ -161,30 +173,47 @@ let get_job_ids_with_variant t ~owner ~name ~hash =
      | row -> Fmt.failwith "get_job_ids: invalid row %a" Db.dump_row row
 
 let get_build_history ~owner ~name ~gref =
+  let some_of_nullable_float =
+    let open Sqlite3.Data in
+    function FLOAT v -> Some v | NULL -> None | _ -> raise Not_found
+  in
+  let f = function
+    | Sqlite3.Data.
+        [
+          TEXT hash;
+          INT build_number;
+          INT status;
+          started_at;
+          total_ran_for;
+          ran_for;
+          FLOAT total_queued_for;
+        ] as row -> (
+        try
+          ( hash,
+            build_number,
+            status,
+            some_of_nullable_float started_at,
+            some_of_nullable_float total_ran_for,
+            some_of_nullable_float ran_for,
+            total_queued_for )
+        with Not_found ->
+          Fmt.failwith "get_job_summary: invalid row %a" Db.dump_row row)
+    | row -> Fmt.failwith "get_job_summary: invalid row %a" Db.dump_row row
+  in
   let t = Lazy.force db in
-  Db.query t.get_commits_job_ids_for_ref
+  Db.query t.get_build_summary_by_gref
     Sqlite3.Data.[ TEXT owner; TEXT name; TEXT gref ]
-  |> List.map @@ function
-     | Sqlite3.Data.[ TEXT variant; TEXT hash; NULL ] -> (variant, hash, None)
-     | Sqlite3.Data.[ TEXT variant; TEXT hash; TEXT id ] ->
-         (variant, hash, Some id)
-     | row -> Fmt.failwith "get_build_history: invalid row %a" Db.dump_row row
+  |> List.map @@ f
 
-let get_build_history_with_time ~owner ~name ~gref =
-  let t = Lazy.force db in
-  let repo = Fmt.str "%%%s/%s.git %%" owner name in
-  Logs.debug (fun l -> l "Trying to fetch %s on %s" repo gref);
-  Db.query t.get_git_fetch_outcome_by_time Sqlite3.Data.[ TEXT repo ]
-  |> (List.map @@ function
-      | Sqlite3.Data.[ BLOB key; TEXT ready ] -> (
-          let key = String.split_on_char ' ' key in
-          match key with
-          | [ _; gref; hash ] -> (gref, hash, Float.of_string_opt ready)
-          | _ -> Fmt.failwith "get_build_history_slow: wrong key format")
-      | row ->
-          Fmt.failwith "get_build_history_slow: invalid row %a" Db.dump_row row)
-  |> List.filter (fun (gref', _, time) ->
-         if Option.is_none time then false else gref = gref')
+let get_latest_build_number t ~owner ~name ~hash =
+  let build_numbers =
+    Db.query t.get_build_summary_by_commit
+      Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash ]
+    |> List.map @@ function
+       | Sqlite3.Data.[ INT build_number; _; _; _; _; _ ] -> build_number
+       | row -> Fmt.failwith "get_job_summary: invalid row %a" Db.dump_row row
+  in
+  match build_numbers with [] -> 0 | x :: _ -> Int64.to_int x
 
 module Owner_set = Set.Make (String)
 
@@ -226,7 +255,20 @@ let get_default_gref repo =
   | Some { default_gref; _ } -> default_gref
   | None -> raise Not_found
 
-type status = [ `Failed | `Pending | `Not_started | `Passed ]
+type status = [ `Failed | `Pending | `Not_started | `Passed ] [@@deriving show]
+
+let status_to_int = function
+  | `Failed -> 0
+  | `Pending -> 1
+  | `Not_started -> 2
+  | `Passed -> 3
+
+let int_to_status = function
+  | 0 -> Ok `Failed
+  | 1 -> Ok `Pending
+  | 2 -> Ok `Not_started
+  | 3 -> Ok `Passed
+  | _ -> Error "Unrecognised status: %d"
 
 module Aggregate = struct
   type ref_state = {
@@ -311,7 +353,53 @@ module Commit_cache = struct
     let default = { s = `Not_started; started_at = None; ran_for = None } in
     Commit_map.find_opt { owner; repo = name; hash } !state
     |> Option.value ~default
+
+  let commit_state_from_build_summary ~hash ~build_number ~status ~started_at
+      ~total_ran_for ~ran_for ~total_queued_for =
+    ignore hash;
+    ignore build_number;
+    ignore total_ran_for;
+    ignore total_queued_for;
+    let s = Result.get_ok @@ int_to_status @@ Int64.to_int status in
+    { s; started_at; ran_for }
 end
+
+let _record_build_summary t ~owner ~name ~hash ~gref ~status
+    ~(variants_timestamps : (string * Run_time.timestamps option) list) =
+  let ts = List.filter_map snd variants_timestamps in
+  let first_queued_at = Run_time.first_step_queued_at ts in
+  let build_ran_for = Run_time.build_ran_for variants_timestamps in
+  Commit_cache.add ~owner ~name ~hash ~gref status
+    (Result.to_option first_queued_at)
+    (Some build_ran_for);
+  let v status_int =
+    let build_created_at =
+      Run_time.first_step_queued_at ts
+      |> Result.to_option
+      |> Option.value ~default:0.
+    in
+    let total_run_time = Run_time.total_of_run_times ~build_created_at ts in
+    let current_time = Unix.gettimeofday () in
+    let build_number = 1 + get_latest_build_number t ~owner ~name ~hash in
+    Db.exec t.record_job_summary
+      Sqlite3.Data.
+        [
+          TEXT owner;
+          TEXT name;
+          TEXT hash;
+          TEXT gref;
+          INT (Int64.of_int build_number);
+          INT (Int64.of_int status_int);
+          FLOAT build_created_at;
+          FLOAT total_run_time;
+          FLOAT build_ran_for;
+          FLOAT current_time;
+        ]
+  in
+  match status with
+  | `Not_started | `Pending -> ()
+  | `Failed -> v 0
+  | `Passed -> v 1
 
 let record ~repo ~hash ~status ~gref jobs =
   let { Repo_id.owner; name } = repo in
@@ -369,7 +457,7 @@ let record ~repo ~hash ~status ~gref jobs =
     None
   in
   let (_ : [ `Empty ] Job_map.t) = Job_map.merge merge previous jobs_m in
-  let ts =
+  let variants_timestamps =
     List.map
       (fun (variant, job_id) ->
         let id =
@@ -379,11 +467,7 @@ let record ~repo ~hash ~status ~gref jobs =
         (variant, id))
       jobs
   in
-  let first_queued_at = Run_time.first_step_queued_at (List.map snd ts) in
-  let build_ran_for = Run_time.build_ran_for ts in
-  Commit_cache.add ~owner ~name ~hash ~gref status
-    (Result.to_option first_queued_at)
-    (Some build_ran_for)
+  _record_build_summary t ~owner ~name ~hash ~gref ~variants_timestamps ~status
 
 let get_full_hash ~owner ~name short_hash =
   let t = Lazy.force db in

@@ -88,9 +88,7 @@ module Repo : sig
   val history_of_ref :
     t ->
     git_ref ->
-    ( (Build_status.t * float option) Ref_map.t,
-      [> `Capnp of Capnp_rpc.Error.t ] )
-    Lwt_result.t
+    (ref_info list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
   (** [history_of_ref t gref] is the list of builds for the Git reference [gref] *)
 end
 
