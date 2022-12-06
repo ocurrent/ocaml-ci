@@ -396,10 +396,7 @@ let _record_build_summary t ~owner ~name ~hash ~gref ~status
           FLOAT current_time;
         ]
   in
-  match status with
-  | `Not_started | `Pending -> ()
-  | `Failed -> v 0
-  | `Passed -> v 1
+  v (status_to_int status)
 
 let record ~repo ~hash ~status ~gref jobs =
   let { Repo_id.owner; name } = repo in
