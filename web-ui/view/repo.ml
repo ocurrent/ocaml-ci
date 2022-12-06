@@ -91,7 +91,14 @@ module Make (M : Git_forge_intf.Forge) = struct
           ];
       ]
 
-  let row ~repo_title ~short_hash ~last_updated ~status ~description ~repo_uri =
+  type repo_stats = {
+    speed : float;
+    reliability : float;
+    build_frequency_per_week : int;
+  }
+
+  let row ~repo_title ~short_hash ~last_updated ~status ~description ~repo_uri
+      ~statistics =
     let info =
       let hash = span ~a:[ a_class [ "font-medium" ] ] [ txt short_hash ] in
       match last_updated with
@@ -111,6 +118,19 @@ module Make (M : Git_forge_intf.Forge) = struct
       | None -> "Infinity"
       | Some v -> Printf.sprintf "%f" v
     in
+    let speed =
+      if statistics.speed > 60. then
+        [
+          txt (Printf.sprintf "%.1f" (statistics.speed /. 60.));
+          span ~a:[ a_class [ "text-sm pl-0.5" ] ] [ txt "min" ];
+        ]
+      else
+        [
+          txt (Printf.sprintf "%.1f" statistics.speed);
+          span ~a:[ a_class [ "text-sm pl-0.5" ] ] [ txt "sec" ];
+        ]
+    in
+
     tr
       ~a:
         [
@@ -162,9 +182,25 @@ module Make (M : Git_forge_intf.Forge) = struct
                   ];
               ];
           ];
-        td [];
-        td [];
-        td [];
+        td [ div ~a:[ a_class [ "text-2xl gray-700" ] ] speed ];
+        td
+          [
+            div
+              ~a:[ a_class [ "text-2xl gray-700" ] ]
+              [
+                txt (Printf.sprintf "%.0f" (100. *. statistics.reliability));
+                span ~a:[ a_class [ "text-sm pl-0.5" ] ] [ txt "%" ];
+              ];
+          ];
+        td
+          [
+            div
+              ~a:[ a_class [ "text-2xl gray-700" ] ]
+              [
+                txt (Printf.sprintf "%d" statistics.build_frequency_per_week);
+                span ~a:[ a_class [ "text-sm pl-0.5" ] ] [ txt "/week" ];
+              ];
+          ];
         td [ Common.right_arrow_head ];
       ]
 
@@ -208,16 +244,17 @@ module Make (M : Git_forge_intf.Forge) = struct
 
   let js_of_histories data =
     let ( ++ ) a b = List.append a b in
-    let commit_data { Client.Repo.ran_for; _ } =
-      string_of_float (Option.value ~default:0. ran_for)
+    let commit_data { Client.Org.ran_for; _ } =
+      Printf.sprintf "%s," (string_of_float (Option.value ~default:0. ran_for))
     in
-    let commit_colour { Client.Repo.status; _ } =
+    let commit_colour { Client.Org.status; _ } =
       match status with
-      | Passed -> "rgba(18, 183, 106, 1)"
-      | Failed -> "rgba(217, 45, 32, 1)"
-      | _ -> "rgba(226, 232, 240, 1)"
+      | Passed -> "\"rgba(18, 183, 106, 1)\","
+      | Failed -> "\"rgba(217, 45, 32, 1)\","
+      | _ -> "\"rgba(226, 232, 240, 1)\","
     in
     let js_of_history fmt (name, data) =
+      assert (List.compare_length_with data 15 <= 0);
       let data = List.map fmt data in
       [ "\""; name; "\":[" ] ++ data ++ [ "]," ]
     in
@@ -228,25 +265,49 @@ module Make (M : Git_forge_intf.Forge) = struct
     let chart_colours =
       List.map (js_of_history commit_colour) data |> List.flatten
     in
-    [ "var chart_labels = {" ]
+    [ "var chart_labels = [" ]
     ++ chart_labels
-    ++ [ "}\nvar chart_data = {" ]
+    ++ [ "]\nvar chart_data = {" ]
     ++ chart_data
     ++ [ "}\nvar chart_colours = {" ]
     ++ chart_colours
-    ++ [ "}" ]
+    ++ [ "}\n" ]
     |> String.concat ""
 
-  let list ~org ~repos =
+  let repo_statistics history =
+    let n = List.length history in
+    let sum_speed =
+      List.fold_left
+        (fun acc { Client.Org.ran_for; _ } ->
+          acc +. Option.value ~default:0. ran_for)
+        0. history
+    in
+    let n_succeeded, n_finished =
+      List.fold_left
+        (fun (n_succeeded, n_finished) { Client.Org.status; _ } ->
+          match status with
+          | Passed -> (n_succeeded + 1, n_finished + 1)
+          | Failed -> (n_succeeded, n_finished + 1)
+          | _ -> (n_succeeded, n_finished))
+        (0, 0) history
+    in
+    let speed = sum_speed /. float_of_int n in
+    let reliability = float_of_int n_succeeded /. float_of_int n_finished in
+    { speed; reliability; build_frequency_per_week = -1 }
+
+  let list ~org ~repos ~histories =
     let table_head =
       table_head (Printf.sprintf "Repositories (%d)" (List.length repos))
     in
     let table =
       let f { Client.Org.name; main_status; main_hash; main_last_updated } =
+        let history =
+          snd @@ List.find (fun (repo, _) -> String.equal name repo) histories
+        in
         row ~repo_title:name
           ~short_hash:(Common.short_hash main_hash)
           ~last_updated:main_last_updated ~status:main_status ~description:""
-          ~repo_uri:(repo_url org name)
+          ~repo_uri:(repo_url org name) ~statistics:(repo_statistics history)
       in
       List.map f (List.sort repo_name_compare repos)
     in
@@ -259,7 +320,7 @@ module Make (M : Git_forge_intf.Forge) = struct
                 "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js";
             ]
           (txt "");
-        (* script (txt (js_of_histories histories)); *)
+        script (Unsafe.data (js_of_histories histories));
         script ~a:[ a_src "/js/repo-page-search.js" ] (txt "");
         Common.breadcrumbs [ (M.prefix, M.prefix) ] org;
         title ~org;

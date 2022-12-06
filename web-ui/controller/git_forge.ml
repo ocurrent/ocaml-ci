@@ -101,7 +101,8 @@ module Make (View : View) = struct
     Backend.ci ci >>= fun ci ->
     Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
     Client.Org.repos org_cap >>!= fun repos ->
-    Dream.respond @@ View.list_repos ~org ~repos
+    Client.Org.repo_histories org_cap >>!= fun histories ->
+    Dream.respond @@ View.list_repos ~org ~repos ~histories
 
   let list_refs ~org ~repo ci =
     Backend.ci ci >>= fun ci ->

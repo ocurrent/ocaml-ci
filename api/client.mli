@@ -103,6 +103,16 @@ module Org : sig
     main_last_updated : float option;
   }
 
+  type ref_info = {
+    gref : string;
+    hash : string;
+    status : Build_status.t;
+    started_at : float option;
+    ran_for : float option;
+  }
+
+  type repo_history_info = string * ref_info list
+
   val repo : t -> string -> Repo.t
   (** [repo t name] is the GitHub organisation at
       "https://github.com/$owner/$name". It returns an error if ocaml-ci doesn't
@@ -110,6 +120,9 @@ module Org : sig
 
   val repos :
     t -> (repo_info list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
+
+  val repo_histories :
+    t -> (repo_history_info list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
 end
 
 module CI : sig

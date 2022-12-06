@@ -42,7 +42,12 @@ module type View = sig
     ([> `Success ] * string) list
 
   val rebuild_fail_message_v1 : int -> ([> `Fail ] * string) list
-  val list_repos : org:string -> repos:Client.Org.repo_info list -> string
+
+  val list_repos :
+    org:string ->
+    repos:Client.Org.repo_info list ->
+    histories:Client.Org.repo_history_info list ->
+    string
 
   val list_refs :
     org:string ->

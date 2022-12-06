@@ -372,6 +372,60 @@ let make_org ~engine owner =
                 | None -> MainLastUpdated.none_set last_updated_t
                 | Some time -> MainLastUpdated.ts_set last_updated_t time);
          Service.return response
+
+       method repo_histories_impl _params release_param_caps =
+         let open Org.RepoHistories in
+         release_param_caps ();
+         let response, results = Service.Response.create Results.init_pointer in
+         let repos = Index.get_active_repos ~owner |> Index.Repo_set.elements in
+         let arr = Results.histories_init results (List.length repos) in
+         let history_f default_ref
+             ( hash,
+               _build_number,
+               status,
+               started_at,
+               _total_ran_for,
+               ran_for,
+               _total_queued_for ) =
+           let open Raw.Builder.RefInfo in
+           let slot = Raw.Builder.RefInfo.init_root () in
+           (* let slot = Capnp.Array.get history_arr i in *)
+           ref_set slot default_ref;
+           hash_set slot hash;
+           let status =
+             to_build_status
+             @@ Result.get_ok
+             @@ Index.int_to_status
+             @@ Int64.to_int status
+           in
+           status_set slot status;
+           let started_at_t = started_at_init slot in
+           (match started_at with
+           | None -> StartedAt.none_set started_at_t
+           | Some time -> StartedAt.ts_set started_at_t time);
+           let ran_for_t = ran_for_init slot in
+           (match ran_for with
+           | None -> RanFor.none_set ran_for_t
+           | Some time -> RanFor.ts_set ran_for_t time);
+           slot
+         in
+         repos
+         |> List.iteri (fun i name ->
+                let open Raw.Builder.RepoHistory in
+                let slot = Capnp.Array.get arr i in
+                name_set slot name;
+                let default_ref =
+                  Index.Aggregate.(
+                    get_repo_default_ref @@ get_repo_state ~repo:{ owner; name })
+                in
+                let history =
+                  (* Does the length of the array need to be dynamic? *)
+                  (* let arr = Raw.Builder.RepoHistory.history_init slot 15 in *)
+                  Index.get_build_history ~owner ~name ~gref:default_ref
+                  |> List.map (history_f default_ref)
+                in
+                ignore (history_set_list slot history));
+         Service.return response
      end
 
 let make_ci ~engine =

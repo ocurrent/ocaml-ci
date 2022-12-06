@@ -120,6 +120,22 @@ function charts_init() {
   var repos = getRepoNames();
   charts = {};
   for (const repo of repos) {
+    var data = chart_data[repo];
+    if (data.length < 15) {
+      var padding = Array.from({
+          length: (15 - data.length)
+        },
+        (v, i) => 0);
+      data = padding.concat(data);
+    }
+    var colours = chart_colours[repo];
+    if (colours.length < 15) {
+      var padding = Array.from({
+          length: (15 - colours.length)
+        },
+        (v, i) => "rgba(226, 232, 240, 1)");
+      colours = padding.concat(colours);
+    }
     var ctx = document.getElementById("chart_" + repo).getContext("2d");
     charts[repo] =
       new Chart(
@@ -129,8 +145,8 @@ function charts_init() {
             barThickness: "flex",
             labels: chart_labels,
             datasets: [{
-              data: chart_data[repo],
-              backgroundColor: chart_colour[repo]
+              data: data,
+              backgroundColor: colours
             }]
           },
           options: chartOptions

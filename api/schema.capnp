@@ -106,10 +106,14 @@ struct RepoInfo {
   mainHash     @2 :Text;
   mainLastUpdated :union {
     ts         @3 :Float64;
-    # timestamp as seconds since epoch
     none       @4 :Void;
   }
   # The status of the repository's main branch (notStarted if there isn't one)
+}
+
+struct RepoHistory {
+  name @0 :Text;
+  history @1 :List(RefInfo);
 }
 
 interface Org {
@@ -117,6 +121,8 @@ interface Org {
 
   repos        @1 () -> (repos :List(RepoInfo));
   # Get the list of tracked repositories for this organisation.
+
+  repoHistories @2 () -> (histories :List(RepoHistory));
 }
 
 interface CI {

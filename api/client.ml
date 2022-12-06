@@ -71,6 +71,16 @@ module Org = struct
     main_last_updated : float option;
   }
 
+  type ref_info = {
+    gref : string;
+    hash : string;
+    status : Build_status.t;
+    started_at : float option;
+    ran_for : float option;
+  }
+
+  type repo_history_info = string * ref_info list
+
   let repo t name =
     let open Raw.Client.Org.Repo in
     let request, params = Capability.Request.create Params.init_pointer in
@@ -95,6 +105,38 @@ module Org = struct
                 | MainLastUpdated.Ts v -> Some v
               in
               { name; main_status; main_hash; main_last_updated })
+
+  let repo_histories t =
+    let open Raw.Client.Org.RepoHistories in
+    let request = Capability.Request.create_no_args () in
+    Capability.call_for_value t method_id request
+    |> Lwt_result.map @@ fun histories ->
+       let open Raw.Reader.RepoHistory in
+       Results.histories_get_list histories
+       |> List.map (fun repo_slot ->
+              let repo_name = name_get repo_slot in
+              let history =
+                history_get_list repo_slot
+                |> List.map (fun ref_slot ->
+                       let open Raw.Reader.RefInfo in
+                       let gref = ref_get ref_slot in
+                       let hash = hash_get ref_slot in
+                       let status = status_get ref_slot in
+                       let started = started_at_get ref_slot in
+                       let started_at =
+                         match StartedAt.get started with
+                         | StartedAt.None | Undefined _ -> None
+                         | StartedAt.Ts v -> Some v
+                       in
+                       let time = ran_for_get ref_slot in
+                       let ran_for =
+                         match RanFor.get time with
+                         | RanFor.None | RanFor.Undefined _ -> None
+                         | RanFor.Ts v -> Some v
+                       in
+                       { gref; hash; status; started_at; ran_for })
+              in
+              (repo_name, history))
 end
 
 module Repo = struct
