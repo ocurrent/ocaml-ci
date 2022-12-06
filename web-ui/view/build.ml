@@ -20,21 +20,21 @@ let title_card ~status ~card_title ~hash_link ~ref_links ~first_created_at
   in
   Tyxml.Html.(
     div
-      ~a:[ a_class [ "justify-between items-center flex" ] ]
+      ~a:[ a_class [ "justify-between items-center flex space-x-3 truncate" ] ]
       [
         div
-          ~a:[ a_class [ "flex items-center space-x-4" ] ]
+          ~a:[ a_class [ "flex items-center space-x-4 truncate" ] ]
           [
             div ~a:[ a_id "build-status" ] [ Common.status_icon status ];
             div
-              ~a:[ a_class [ "flex flex-col space-y-1" ] ]
+              ~a:[ a_class [ "flex flex-col space-y-1 truncate" ] ]
               [
                 div
-                  ~a:[ a_class [ "flex items-center" ] ]
+                  ~a:[ a_class [ "flex items-center truncate" ] ]
                   [
                     h1
-                      ~a:[ a_class [ "text-xl" ] ]
-                      [ txt (Common.truncate ~len:80 card_title) ];
+                      ~a:[ a_class [ "text-xl truncate" ] ]
+                      [ txt card_title ];
                     (* a
                        ~a:
                          [

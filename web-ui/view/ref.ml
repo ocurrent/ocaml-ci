@@ -17,8 +17,6 @@ module Make (M : Git_forge_intf.Forge) = struct
     | _ -> raise Not_found
 
   let row ~ref ~short_hash ~started_at ~ran_for ~status ~ref_uri ~message =
-    (* messages are of arbitrary length - let's truncate them *)
-    let message = Common.truncate ~len:72 message in
     let ref_title =
       match ref with Branch title -> title | PR { title; _ } -> title
     in
@@ -53,14 +51,14 @@ module Make (M : Git_forge_intf.Forge) = struct
           ]
     in
     a
-      ~a:[ a_class [ "table-row" ]; a_href ref_uri ]
+      ~a:[ a_class [ "table-row space-x-3" ]; a_href ref_uri ]
       [
         div
-          ~a:[ a_class [ "flex items-center space-x-3" ] ]
+          ~a:[ a_class [ "flex items-center space-x-3 truncate" ] ]
           [
             Common.status_icon_build status;
             div
-              ~a:[ a_class [ "flex items-center space-x-3" ] ]
+              ~a:[ a_class [ "flex items-center space-x-3 truncate" ] ]
               [
                 div
                   ~a:
@@ -73,10 +71,10 @@ module Make (M : Git_forge_intf.Forge) = struct
                     ]
                   [ txt ref_title ];
                 div
-                  ~a:[ a_class [ "flex flex-col" ] ]
+                  ~a:[ a_class [ "flex flex-col truncate" ] ]
                   [
                     div
-                      ~a:[ a_class [ "text-gray-900 text-sm font-medium" ] ]
+                      ~a:[ a_class [ "text-gray-900 text-sm font-medium truncate" ] ]
                       [ txt message ];
                     div ~a:[ a_class [ "flex text-sm space-x-2" ] ] description;
                   ];
