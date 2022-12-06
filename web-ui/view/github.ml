@@ -1,6 +1,8 @@
 include Git_forge.Make (struct
   let prefix = "github"
   let request_abbrev = "PR"
+  let org_url ~org = Printf.sprintf "https://github.com/%s" org
+  let repo_url ~org ~repo = Printf.sprintf "https://github.com/%s/%s" org repo
 
   let branch_url ~org ~repo ref =
     Printf.sprintf "https://github.com/%s/%s/tree/%s" org repo ref

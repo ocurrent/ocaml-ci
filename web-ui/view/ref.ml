@@ -10,12 +10,6 @@ module Make (M : Git_forge_intf.Forge) = struct
     | "gitlab" -> Common.gitlab_logo
     | _ -> raise Not_found
 
-  let git_forge_url ~org ~repo =
-    match M.prefix with
-    | "github" -> Printf.sprintf "https://github.com/%s/%s" org repo
-    | "gitlab" -> Printf.sprintf "https://gitlab.com/%s/%s" org repo
-    | _ -> raise Not_found
-
   let row ~ref ~short_hash ~started_at ~ran_for ~status ~ref_uri ~message =
     (* messages are of arbitrary length - let's truncate them *)
     let message = Common.truncate ~len:72 message in
@@ -158,7 +152,7 @@ module Make (M : Git_forge_intf.Forge) = struct
       (table, n_prs)
     in
     let top_matter =
-      let external_url = git_forge_url ~org ~repo in
+      let external_url = M.repo_url ~org ~repo in
       div
         ~a:[ a_class [ "justify-between items-center flex" ] ]
         [
