@@ -478,3 +478,22 @@ let tabulate_div rows =
             ]
           rows;
       ])
+
+let truncate ~len s =
+  let open Astring.String in
+  let orig = length s in
+  if len >= orig then s
+  else
+    let truncated = with_range ~len s in
+    append truncated "…"
+
+let duration (status : Build_status.t) t =
+  let text =
+    match status with
+    | NotStarted -> "In queue for"
+    | Failed -> "Failed in"
+    | Passed -> "Passed in"
+    | Pending -> "Running for"
+    | Undefined _ -> "In queue for"
+  in
+  Printf.sprintf "%s %s" text (Timestamps_durations.pp_duration t)

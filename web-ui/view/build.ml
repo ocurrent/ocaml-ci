@@ -32,7 +32,9 @@ let title_card ~status ~card_title ~hash_link ~ref_links ~first_created_at
                 div
                   ~a:[ a_class [ "flex items-center" ] ]
                   [
-                    h1 ~a:[ a_class [ "text-xl" ] ] [ txt card_title ];
+                    h1
+                      ~a:[ a_class [ "text-xl" ] ]
+                      [ txt (Common.truncate ~len:80 card_title) ];
                     (* a
                        ~a:
                          [
