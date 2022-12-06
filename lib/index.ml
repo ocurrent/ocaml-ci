@@ -135,18 +135,18 @@ let db =
      and record_job_summary =
        Sqlite3.prepare db
          "INSERT INTO ci_build_summary (owner, name, hash, gref, build_number, \
-          status, started_at, total_ran_for, ran_for, created_at) VALUES (?, \
-          ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+          status, started_at, total_ran_for, ran_for, created_at, message) \
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
      and get_build_summary_by_commit =
        Sqlite3.prepare db
          "SELECT build_number, status, started_at, total_ran_for, ran_for, \
-          total_queued_for FROM ci_build_summary WHERE owner = ? AND name = ? \
-          AND hash = ? ORDER BY build_number DESC"
+          total_queued_for, message FROM ci_build_summary WHERE owner = ? AND \
+          name = ? AND hash = ? ORDER BY build_number DESC"
      and get_build_summary_by_gref =
        Sqlite3.prepare db
          "SELECT hash, build_number, status, started_at, total_ran_for, \
-          ran_for, total_queued_for FROM ci_build_summary c1 WHERE owner = ? \
-          AND name = ? AND gref = ? AND build_number = (SELECT \
+          ran_for, total_queued_for, message FROM ci_build_summary c1 WHERE \
+          owner = ? AND name = ? AND gref = ? AND build_number = (SELECT \
           MAX(build_number) FROM ci_build_summary c2 WHERE c1.owner = c2.owner \
           AND c1.name = c2.name AND c1.hash = c2.hash) ORDER BY created_at \
           DESC"
@@ -187,6 +187,7 @@ let get_build_history ~owner ~name ~gref =
           total_ran_for;
           ran_for;
           FLOAT total_queued_for;
+          TEXT message;
         ] as row -> (
         try
           ( hash,
@@ -195,7 +196,8 @@ let get_build_history ~owner ~name ~gref =
             some_of_nullable_float started_at,
             some_of_nullable_float total_ran_for,
             some_of_nullable_float ran_for,
-            total_queued_for )
+            total_queued_for,
+            message )
         with Not_found ->
           Fmt.failwith "get_job_summary: invalid row %a" Db.dump_row row)
     | row -> Fmt.failwith "get_job_summary: invalid row %a" Db.dump_row row
@@ -210,7 +212,7 @@ let get_latest_build_number t ~owner ~name ~hash =
     Db.query t.get_build_summary_by_commit
       Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash ]
     |> List.map @@ function
-       | Sqlite3.Data.[ INT build_number; _; _; _; _; _ ] -> build_number
+       | Sqlite3.Data.[ INT build_number; _; _; _; _; _; _ ] -> build_number
        | row -> Fmt.failwith "get_job_summary: invalid row %a" Db.dump_row row
   in
   match build_numbers with [] -> 0 | x :: _ -> Int64.to_int x
@@ -249,6 +251,19 @@ let get_active_refs repo =
   Repo_map.find_opt repo !active_refs |> function
   | Some { refs; _ } -> refs
   | None -> Ref_map.empty
+
+let get_commit_message ~repo ~hash =
+  let results =
+    get_active_refs repo
+    |> Ref_map.bindings
+    |> List.filter_map (fun (_, { hash = h; message; _ }) ->
+           if h = hash then Some message else None)
+  in
+  match results with
+  | [] ->
+      Logs.info (fun m -> m "Commit has no associated message: %s" hash);
+      hash
+  | message :: _ -> message
 
 let get_default_gref repo =
   Repo_map.find_opt repo !active_refs |> function
@@ -364,7 +379,7 @@ module Commit_cache = struct
     { s; started_at; ran_for }
 end
 
-let _record_build_summary t ~owner ~name ~hash ~gref ~status
+let _record_build_summary t ~owner ~name ~hash ~gref ~status ~commit_message
     ~(variants_timestamps : (string * Run_time.timestamps option) list) =
   let ts = List.filter_map snd variants_timestamps in
   let first_queued_at = Run_time.first_step_queued_at ts in
@@ -394,6 +409,7 @@ let _record_build_summary t ~owner ~name ~hash ~gref ~status
           FLOAT total_run_time;
           FLOAT build_ran_for;
           FLOAT current_time;
+          TEXT commit_message;
         ]
   in
   v (status_to_int status)
@@ -464,7 +480,9 @@ let record ~repo ~hash ~status ~gref jobs =
         (variant, id))
       jobs
   in
+  let commit_message = get_commit_message ~repo ~hash in
   _record_build_summary t ~owner ~name ~hash ~gref ~variants_timestamps ~status
+    ~commit_message
 
 let get_full_hash ~owner ~name short_hash =
   let t = Lazy.force db in

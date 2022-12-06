@@ -135,7 +135,8 @@ let test_get_build_history _ () =
              started_at,
              total_ran_for,
              ran_for,
-             total_queued_for ) ->
+             total_queued_for,
+             _message ) ->
         Index.Commit_cache.commit_state_from_build_summary ~hash ~build_number
           ~status ~started_at ~total_ran_for ~ran_for ~total_queued_for)
       build_summary
