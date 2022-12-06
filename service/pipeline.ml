@@ -22,6 +22,13 @@ let opam_repository_commit =
   let repo = { Github.Repo_id.owner = "ocaml"; name = "opam-repository" } in
   Github.Api.Anonymous.head_of repo @@ `Ref "refs/heads/master"
 
+(* Check whether a variant is considered experimental.
+   If it is experimental we allow those builds to fail without
+   failing the overall build for a commit.
+*)
+let experimental_variant variant =
+  Astring.String.is_prefix ~affix:"macos-homebrew" variant
+
 let github_status_of_state ~head result results =
   let+ head = head and+ result = result and+ results = results in
   let { Github.Repo_id.owner; name } = Github.Api.Commit.repo_id head in
@@ -37,6 +44,9 @@ let github_status_of_state ~head result results =
             Fmt.pf f "%s [%s (%s)](%s)" "✅" variant "passed" job_url
         | Error (`Msg m) when Astring.String.is_prefix ~affix:"[SKIP]" m ->
             Fmt.pf f "%s [%s (%s)](%s)" "¯\\_(ツ)_/¯" variant "skipped" job_url
+        | Error (`Msg m) when experimental_variant variant ->
+            Fmt.pf f "%s [EXPERIMENTAL: %s (%s)](%s)" "❌" variant
+              ("failure: " ^ m) job_url
         | Error (`Msg m) ->
             Fmt.pf f "%s [%s (%s)](%s)" "❌" variant ("failed: " ^ m) job_url
         | Error (`Active _) ->
@@ -209,6 +219,9 @@ let summarise results =
          | _, Ok `Built -> (ok + 1, pending, err, skip)
          | l, Error (`Msg m) when Astring.String.is_prefix ~affix:"[SKIP]" m ->
              (ok, pending, err, (m, l) :: skip)
+         | l, Error (`Msg _) when experimental_variant l ->
+             (ok + 1, pending, err, skip)
+         (* Don't fail the commit if an experimental build failed. *)
          | l, Error (`Msg m) -> (ok, pending, (m, l) :: err, skip)
          | _, Error (`Active _) -> (ok, pending + 1, err, skip))
        (0, 0, [], [])
@@ -297,7 +310,7 @@ let v ?ocluster ~app ~solver ~migrations () =
              let+ commit = head and+ builds = builds and+ status = status in
              let gref = ref_from_commit commit in
              let repo = Current_github.Api.Commit.repo_id commit in
-             let repo' =
+             let repo =
                { Ocaml_ci.Repo_id.owner = repo.owner; name = repo.name }
              in
              let hash = Current_github.Api.Commit.hash commit in
@@ -305,7 +318,7 @@ let v ?ocluster ~app ~solver ~migrations () =
                builds
                |> List.map (fun (variant, (_, job_id)) -> (variant, job_id))
              in
-             Index.record ~repo:repo' ~hash ~status ~gref jobs
+             Index.record ~repo ~hash ~status ~gref jobs
            and set_github_status =
              builds
              |> github_status_of_state ~head summary

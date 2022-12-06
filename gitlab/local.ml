@@ -9,7 +9,8 @@ let main () config mode repo : ('a, [ `Msg of string ]) result =
   let solver = Ocaml_ci.Solver_pool.spawn_local () in
   let repo = Current_git.Local.v (Fpath.v repo) in
   let engine =
-    Current.Engine.create ~config (Ocaml_ci_gitlab.Pipeline.local_test ~solver repo)
+    Current.Engine.create ~config
+      (Ocaml_ci_gitlab.Pipeline.local_test ~solver repo)
   in
   let site =
     Current_web.Site.(v ~has_role:allow_all)
