@@ -126,6 +126,8 @@ let install_project_deps ~opam_version ~opam_files ~selection =
     | `macOS -> Some (Fpath.v "./src/")
     | `linux -> None
   in
+  (* XXX: don't overwrite default config? *)
+  let opamrc = "" in
   let opam_version_str = Opam_version.to_string opam_version in
   let compatible_root_pkgs = String.concat " " compatible_root_pkgs in
   let non_root_pkgs = String.concat " " non_root_pkgs in
@@ -149,7 +151,10 @@ let install_project_deps ~opam_version ~opam_files ~selection =
     | Some home_dir -> [ Obuilder_spec.workdir home_dir ]
     | None -> [])
   @ distro_extras
-  @ [ run "%s -f %s/bin/opam-%s %s/bin/opam" ln prefix opam_version_str prefix ]
+  @ [
+      run "%s -f %s/bin/opam-%s %s/bin/opam" ln prefix opam_version_str prefix;
+      run "opam init --reinit%s -ni" opamrc;
+    ]
   @ (match home_dir with
     | Some home_dir -> [ workdir home_dir; run "sudo chown opam /src" ]
     | None -> [])
