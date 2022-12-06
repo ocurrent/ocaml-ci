@@ -25,6 +25,13 @@ let url ~owner ~name ~hash =
     (Printf.sprintf "https://ci.ocamllabs.io/gitlab/%s/%s/commit/%s" owner name
        hash)
 
+(* Check whether a variant is considered experimental.
+   If it is experimental we allow those builds to fail without
+   failing the overall build for a commit.
+*)
+let experimental_variant variant =
+  Astring.String.is_prefix ~affix:"macos-homebrew" variant
+
 let opam_repository_commit =
   let module Github = Current_github in
   let repo = { Github.Repo_id.owner = "ocaml"; name = "opam-repository" } in
@@ -264,6 +271,9 @@ let summarise results =
          | _, Ok `Built -> (ok + 1, pending, err, skip)
          | l, Error (`Msg m) when Astring.String.is_prefix ~affix:"[SKIP]" m ->
              (ok, pending, err, (m, l) :: skip)
+         | l, Error (`Msg _m) when experimental_variant l ->
+             (ok + 1, pending, err, skip)
+             (* Don't fail the commit if an experimental build failed. *)
          | l, Error (`Msg m) -> (ok, pending, (m, l) :: err, skip)
          | _, Error (`Active _) -> (ok, pending + 1, err, skip))
        (0, 0, [], [])
@@ -292,16 +302,22 @@ let gitlab_status_of_state head result =
   let hash = Gitlab.Api.Commit.hash head in
   let url = url ~owner ~name ~hash in
   match result with
-  | Ok _ ->
+  | Ok () ->
       Gitlab.Api.Status.v ~url `Success ~description:"Passed" ~name:program_name
   | Error (`Active _) -> Gitlab.Api.Status.v ~url `Pending ~name:program_name
+  | Error (`Msg m) when Astring.String.is_prefix ~affix:"[SKIP]" m ->
+      Gitlab.Api.Status.v ~url `Success ~description:m ~name:program_name
   | Error (`Msg m) ->
       Gitlab.Api.Status.v ~url `Failure ~description:m ~name:program_name
 
 let local_test ~solver repo () =
-  let platforms = Ocaml_ci_service.Conf.fetch_platforms ~include_macos:false () in
+  let platforms =
+    Ocaml_ci_service.Conf.fetch_platforms ~include_macos:false ()
+  in
   let src = Git.Local.head_commit repo in
-  let repo = Current.return { Gitlab.Repo_id.owner = "local"; name = "test"; project_id = 0 }
+  let repo =
+    Current.return
+      { Gitlab.Repo_id.owner = "local"; name = "test"; project_id = 0 }
   and analysis =
     Analyse.examine ~solver ~platforms ~opam_repository_commit src
   in
@@ -381,4 +397,3 @@ let v ?ocluster ~app ~solver ~migrations () =
              |> Gitlab.Api.Commit.set_status head "ocaml-ci"
            in
            Current.all [ index; set_gitlab_status ]
-

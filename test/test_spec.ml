@@ -3,7 +3,8 @@ let expected_macos_spec =
   {|
 ((from macos-homebrew-ocaml-4.14)
  (comment macos-homebrew-4.14.0_opam-2.1)
- (user (uid 1000) (gid 1000))
+ (user (uid 1000) (gid 1000)) (env CLICOLOR_FORCE 1)
+ (env OPAMCOLOR always)
  (run (shell "ln -f ~/local/bin/opam-2.1 ~/local/bin/opam"))
  (run (cache (opam-archives (target ~/.opam/download-cache)))
       (network host)
@@ -30,7 +31,8 @@ let expected_linux_spec =
   {|
 ((from ocaml/opam@sha256:03668731d460043acc763d35e1d5dfc6e6fe68a02f987849ac74f855e3e42c10)
  (comment debian-11-4.14.0_opam-2.1)
- (user (uid 1000) (gid 1000))
+ (user (uid 1000) (gid 1000)) (env CLICOLOR_FORCE 1)
+ (env OPAMCOLOR always)
  (workdir /src)
  (run (shell "sudo ln -f /usr/bin/opam-2.1 /usr/bin/opam"))
  (workdir /src)
