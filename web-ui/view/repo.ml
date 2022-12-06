@@ -23,10 +23,8 @@ module Make (M : Git_forge_intf.Forge) = struct
         ~alt:(Printf.sprintf "%s profile picture" org)
         ())
 
-  let org_url org = Printf.sprintf "https://%s.com/%s" M.prefix org
-
   let title ~org =
-    let org_url = org_url org in
+    let org_url = M.org_url ~org in
     div
       ~a:[ a_class [ "justify-between items-center flex" ] ]
       [
