@@ -73,6 +73,31 @@ module Query = struct
       | Error e -> failwith e
   end
 
+  (* This is needed iff the opam used isn't the image default opam. *)
+  let prepare_image ~job ~docker_context ~opam ~tag variant image =
+    let prefix =
+      match Variant.os variant with `macOS -> "~/local" | `linux -> "/usr"
+    in
+    let ln =
+      match Variant.os variant with `macOS -> "ln" | `linux -> "sudo ln"
+    in
+    (* XXX: don't overwrite default config? *)
+    let opamrc = "" in
+    let spec =
+      let open Obuilder_spec in
+      stage ~from:image
+        [
+          run "%s -f %s/bin/%s %s/bin/opam" ln prefix opam prefix;
+          run "opam init --reinit%s -ni" opamrc;
+        ]
+      |> Docker.dockerfile_of_spec ~buildkit:true ~os:`Unix
+    in
+    let cmd =
+      Raw.Cmd.docker ~docker_context [ "build"; "--pull"; "-t"; tag; "-" ]
+    in
+    Current.Process.exec ~stdin:spec ~cancellable:false ~job cmd >>!= fun () ->
+    Lwt_result.ok (Lwt.return tag)
+
   let opam_template arch =
     let arch = Option.value ~default:"%{arch}%" arch in
     Fmt.str
@@ -115,7 +140,10 @@ module Query = struct
     let opam =
       "opam-" ^ Opam_version.to_string (Variant.opam_version variant)
     in
-    let cmd = get_ocaml_package ~docker_context ~opam host_image in
+    let prep_tag = Fmt.str "ocaml-ci-%a" Variant.pp variant in
+    prepare_image ~job ~docker_context ~opam ~tag:prep_tag variant host_image
+    >>!= fun prep_image ->
+    let cmd = get_ocaml_package ~docker_context ~opam prep_image in
     Current.Process.check_output ~cancellable:false ~job cmd
     >>!= fun ocaml_package ->
     let ocaml_package = String.trim ocaml_package in
@@ -129,7 +157,7 @@ module Query = struct
       if Ocaml_version.arch_is_32bit v then Some (Ocaml_version.to_opam_arch v)
       else None
     in
-    let cmd = get_vars ~arch ~opam docker_context host_image in
+    let cmd = get_vars ~arch ~opam docker_context prep_image in
     Current.Process.check_output ~cancellable:false ~job cmd >>!= fun vars ->
     let json =
       match Yojson.Safe.from_string vars with

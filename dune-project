@@ -27,7 +27,7 @@
    capnp-rpc-unix
    ppx_deriving_yojson
    ocaml-version
-   opam-0install
+   (opam-0install (>= 0.4.3))
    current_ocluster
    ocluster-api
    obuilder-spec))
@@ -40,7 +40,7 @@
   (ppx_sexp_conv (>= v0.14.1))
   (ppx_deriving_yojson (>= 3.6.1))
   (ppx_deriving (>= 5.1))
-  (opam-0install (>= 0.4))
+  (opam-0install (>= 0.4.3))
   (mirage-crypto-rng (>= 0.8.7))
   (logs (>= 0.7.0))
   (fmt (>= 0.8.9))
@@ -96,7 +96,7 @@
   ocaml-ci
   ocaml-ci-api
   (conf-libev (<> :os "win32"))
-  (opam-0install (>= "0.2"))
+  (opam-0install (>= "0.4.3"))
   (git-unix (>= 3.9.0))
   (timedesc (>= 0.9.0))
   (ocaml (>= 4.13))
