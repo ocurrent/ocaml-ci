@@ -158,6 +158,13 @@ let platforms ~include_macos opam_version =
       (* The first one in this list is used for lint actions *)
       let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas in
       List.map make_release ovs @ distros
+  | `Dev when Sys.win32 ->
+      (* Assume we're building using native Windows images. *)
+      let distro =
+        DD.tag_of_distro (`Windows (`Mingw, DD.win10_latest_image) :> DD.t)
+      in
+      let ov = OV.with_just_major_and_minor OV.Releases.latest in
+      [ v (OV.to_string ov) distro ov ]
   | `Dev ->
       let[@warning "-8"] (latest :: previous :: _) =
         List.rev OV.Releases.recent
