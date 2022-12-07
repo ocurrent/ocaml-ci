@@ -128,6 +128,7 @@ module Make (M : Git_forge_intf.Forge) = struct
       ]
 
   let list ~org ~repo ~ref ~head_commit ~history =
+    let pretty_ref = Result.value ~default:"branch" (M.ref_path ref) in
     let breadcrumbs =
       match head_commit with
       | None -> [ (M.prefix, M.prefix); (org, org); (repo, repo) ]
@@ -136,7 +137,7 @@ module Make (M : Git_forge_intf.Forge) = struct
             (M.prefix, M.prefix);
             (org, org);
             (repo, repo);
-            (Common.short_hash commit, Printf.sprintf "commit/%s" commit);
+            (pretty_ref, Printf.sprintf "commit/%s" commit);
           ]
     in
     let tref = Result.get_ok @@ M.ref_path ref in
