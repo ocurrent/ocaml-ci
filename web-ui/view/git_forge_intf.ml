@@ -16,6 +16,8 @@ module type Forge = sig
 
   val parse_ref :
     string -> [ `Branch of string | `Request of int | `Unknown of string ]
+
+  val ref_path : string -> (string, string) result
 end
 
 module type View = sig

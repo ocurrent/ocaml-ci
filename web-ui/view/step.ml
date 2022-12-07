@@ -116,9 +116,12 @@ module Make (M : Git_forge_intf.Forge) = struct
       :: Common.rebuild_button ~hash ~csrf_token ~show:show_rebuild ()
     in
     let title_card =
+      let ref_path = Result.get_ok (M.ref_path (List.hd refs)) in
       Build.title_card ~status:build_status ~card_title:message
         ~hash_link:(link_forge_commit ~org ~repo ~hash:(Common.short_hash hash))
         ~ref_links:(link_forge_refs ~org ~repo refs)
+        ~history_url:
+          (Url.history_url M.prefix ~org ~repo ~ref:ref_path)
         ~first_created_at:
           (Timestamps_durations.pp_timestamp first_step_queued_at)
         ~ran_for:(Timestamps_durations.pp_duration (Some build_run_time))

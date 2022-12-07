@@ -23,4 +23,15 @@ include Git_forge.Make (struct
         let id = int_of_string id in
         `Request id
     | _ -> `Unknown r
+
+  let ref_path r =
+    match Astring.String.cuts ~sep:"/" r with
+    | "refs" :: "heads" :: branch ->
+        let branch = Astring.String.concat ~sep:"/" branch in
+        Ok (Printf.sprintf "branch/%s" branch)
+    | [ "refs"; "merge-requests"; id; "head" ] ->
+        let id = int_of_string id in
+        Ok (Printf.sprintf "merge-request/%d" id)
+    | _ ->
+      Error (Printf.sprintf "Could not parse ref %s" r)
 end)
