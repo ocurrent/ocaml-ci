@@ -29,6 +29,5 @@ include Git_forge.Make (struct
     | [ "refs"; "pull"; id; "head" ] ->
         let id = int_of_string id in
         Ok (Printf.sprintf "pull/%d" id)
-    | _ ->
-      Error (Printf.sprintf "Could not parse ref %s" r)
+    | _ -> Error (Printf.sprintf "Could not parse ref %s" r)
 end)

@@ -134,7 +134,12 @@ module Make (View : View) = struct
       | `Pull n -> Fmt.str "refs/pull/%s/head" n
     in
     Client.Repo.history_of_ref repo_cap ref >>!= fun history ->
-    Dream.respond @@ View.list_history ~org ~repo ~ref ~history
+    let head_commit =
+      match history with
+      | [] -> None
+      | head_ref_info :: _ -> Some head_ref_info.Client.Repo.hash
+    in
+    Dream.respond @@ View.list_history ~org ~repo ~ref ~head_commit ~history
 
   let show_step ~org ~repo ~hash ~variant request ci =
     Backend.ci ci >>= fun ci ->
@@ -165,7 +170,9 @@ module Make (View : View) = struct
         (* Dream.log "Error - No step-info for variant: %s hash: %s" variant hash; *)
         Dream.empty `Not_Found
     | Some step_info ->
-        let timestamps = Result.to_option @@ Run_time.timestamps_from_job_info step_info in
+        let timestamps =
+          Result.to_option @@ Run_time.timestamps_from_job_info step_info
+        in
         let step_created_at = step_info.queued_at in
         let step_finished_at = step_info.finished_at in
         let can_rebuild = status.Current_rpc.Job.can_rebuild in

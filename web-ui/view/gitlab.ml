@@ -32,6 +32,5 @@ include Git_forge.Make (struct
     | [ "refs"; "merge-requests"; id; "head" ] ->
         let id = int_of_string id in
         Ok (Printf.sprintf "merge-request/%d" id)
-    | _ ->
-      Error (Printf.sprintf "Could not parse ref %s" r)
+    | _ -> Error (Printf.sprintf "Could not parse ref %s" r)
 end)

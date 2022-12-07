@@ -53,6 +53,7 @@ module type View = sig
     org:string ->
     repo:string ->
     ref:string ->
+    head_commit:string option ->
     history:Client.Repo.ref_info list ->
     string
 

@@ -93,20 +93,19 @@ module Make (M : Git_forge_intf.Forge) = struct
               [
                 h1
                   ~a:[ a_class [ "text-xl" ] ]
-                  [ span ~a:[a_class ["flex grow"]]
-                    [txt (Printf.sprintf "Build History for %s" tref);
-                    a ~a:[ a_class ["ml-2"]; a_href external_url ] [ Common.external_link ]
-                    ]];
-
-                div
-                  ~a:[ a_class [ "text-gray-500 flex text-sm space-x-2" ] ]
                   [
                     span
+                      ~a:[ a_class [ "flex grow" ] ]
                       [
-                        txt
-                          (Printf.sprintf "Repo: %s" repo);
+                        txt (Printf.sprintf "Build History for %s" tref);
+                        a
+                          ~a:[ a_class [ "ml-2" ]; a_href external_url ]
+                          [ Common.external_link ];
                       ];
                   ];
+                div
+                  ~a:[ a_class [ "text-gray-500 flex text-sm space-x-2" ] ]
+                  [ span [ txt (Printf.sprintf "Repo: %s" repo) ] ];
               ];
           ];
         div
@@ -125,13 +124,22 @@ module Make (M : Git_forge_intf.Forge) = struct
           ];
       ]
 
-  let list ~org ~repo ~ref ~history =
+  let list ~org ~repo ~ref ~head_commit ~history =
+    let breadcrumbs =
+      match head_commit with
+      | None -> [ (M.prefix, M.prefix); (org, org); (repo, repo) ]
+      | Some commit ->
+          [
+            (M.prefix, M.prefix);
+            (org, org);
+            (repo, repo);
+            (Common.short_hash commit, Printf.sprintf "commit/%s" commit);
+          ]
+    in
     let tref = Result.get_ok @@ M.ref_path ref in
     Template_v1.instance
       [
-        Common.breadcrumbs
-          [ (M.prefix, M.prefix); (org, org); (repo, repo); (tref, tref) ]
-          "Build History";
+        Common.breadcrumbs breadcrumbs "Build History";
         top_matter ~org ~repo ~ref ~tref;
         Common.tabulate_div @@ history_v ~org ~repo ~history;
       ]
