@@ -86,24 +86,26 @@ module Make (M : Git_forge_intf.Forge) = struct
       ~a:[ a_class [ "justify-between items-center flex" ] ]
       [
         div
-          ~a:[ a_class [ "flex items-center space-x-4" ] ]
+          ~a:[ a_class [ "flex items-center grow" ] ]
           [
             div
               ~a:[ a_class [ "flex flex-col space-y-1" ] ]
               [
                 h1
                   ~a:[ a_class [ "text-xl" ] ]
-                  [ txt (Printf.sprintf "Build History for %s" tref) ];
+                  [ span ~a:[a_class ["flex grow"]]
+                    [txt (Printf.sprintf "Build History for %s" tref);
+                    a ~a:[ a_class ["ml-2"]; a_href external_url ] [ Common.external_link ]
+                    ]];
+
                 div
                   ~a:[ a_class [ "text-gray-500 flex text-sm space-x-2" ] ]
                   [
                     span
                       [
                         txt
-                          (Printf.sprintf "Build history for branch %s on %s"
-                             tref repo);
+                          (Printf.sprintf "Repo: %s" repo);
                       ];
-                    a ~a:[ a_href external_url ] [ Common.external_link ];
                   ];
               ];
           ];
@@ -124,7 +126,7 @@ module Make (M : Git_forge_intf.Forge) = struct
       ]
 
   let list ~org ~repo ~ref ~history =
-    let tref = String.split_on_char '/' ref |> List.rev |> List.hd in
+    let tref = Result.get_ok @@ M.ref_path ref in
     Template_v1.instance
       [
         Common.breadcrumbs
