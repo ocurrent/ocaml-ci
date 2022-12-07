@@ -75,13 +75,16 @@ module type View = sig
     repo:string ->
     refs:string list ->
     hash:string ->
-    jobs:Client.job_info list ->
     variant:Client.variant ->
     job:Current_rpc.Job.t ->
-    status:Current_rpc.Job.status ->
+    status:Client.State.t ->
     csrf_token:string ->
     timestamps:Run_time.timestamps option ->
     build_created_at:float option ->
+    step_created_at:float option ->
+    step_finished_at:float option ->
+    can_rebuild:bool ->
+    can_cancel:bool ->
     ?flash_messages:(string * string) list ->
     string * int64 ->
     Dream.response Lwt.t
