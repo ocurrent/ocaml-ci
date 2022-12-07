@@ -226,7 +226,8 @@ module Analysis = struct
   let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
     let solve = solve ~opam_repository_commit ~job ~solver in
     let ty = type_of_dir dir in
-    let cmd = ("", [| "find"; "."; "-maxdepth"; "3"; "-name"; "*.opam" |]) in
+    let find = if Sys.win32 then {|C:\cygwin64\bin\find.exe|} else "find" in
+    let cmd = ("", [| find; "."; "-maxdepth"; "3"; "-name"; "*.opam" |]) in
     Current.Process.check_output ~cwd:dir ~cancellable:true ~job cmd
     >>!= fun output ->
     let opam_files =

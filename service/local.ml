@@ -1,7 +1,7 @@
 (* Utility program for testing the CI pipeline on a local repository. *)
 
 let setup_log default_level =
-  Unix.putenv "DOCKER_BUILDKIT" "1";
+  if not Sys.win32 then Unix.putenv "DOCKER_BUILDKIT" "1";
   Unix.putenv "PROGRESS_NO_TRUNC" "1";
   Prometheus_unix.Logging.init ?default_level ()
 
