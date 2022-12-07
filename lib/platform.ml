@@ -74,7 +74,10 @@ module Query = struct
   end
 
   (* This is needed iff the opam used isn't the image default opam. *)
-  let prepare_image ~job ~docker_context ~opam ~tag variant image =
+  let prepare_image ~job ~docker_context ~tag variant image =
+    let opam =
+      "opam-" ^ Opam_version.to_string (Variant.opam_version variant)
+    in
     let prefix =
       match Variant.os variant with `macOS -> "~/local" | `linux -> "/usr"
     in
@@ -113,17 +116,17 @@ module Query = struct
   |}
       arch
 
-  let get_vars ~arch ~opam docker_context image =
+  let get_vars ~arch ~docker_context image =
     Raw.Cmd.docker ~docker_context
-      [ "run"; "-i"; image; opam; "config"; "expand"; opam_template arch ]
+      [ "run"; "-i"; image; "opam"; "config"; "expand"; opam_template arch ]
 
-  let get_ocaml_package ~docker_context ~opam image =
+  let get_ocaml_package ~docker_context image =
     Raw.Cmd.docker ~docker_context
       [
         "run";
         "-i";
         image;
-        opam;
+        "opam";
         "list";
         "-s";
         "--base";
@@ -137,13 +140,10 @@ module Query = struct
   let run No_context job { Key.docker_context; variant }
       { Value.image; host_image } =
     Current.Job.start job ~level:Current.Level.Mostly_harmless >>= fun () ->
-    let opam =
-      "opam-" ^ Opam_version.to_string (Variant.opam_version variant)
-    in
-    let prep_tag = Fmt.str "ocaml-ci-%a" Variant.pp variant in
-    prepare_image ~job ~docker_context ~opam ~tag:prep_tag variant host_image
-    >>!= fun prep_image ->
-    let cmd = get_ocaml_package ~docker_context ~opam prep_image in
+    let prep_image = Fmt.str "ocaml-ci-%a" Variant.pp variant in
+    prepare_image ~job ~docker_context ~tag:prep_image variant host_image
+    >>!= fun host_image ->
+    let cmd = get_ocaml_package ~docker_context host_image in
     Current.Process.check_output ~cancellable:false ~job cmd
     >>!= fun ocaml_package ->
     let ocaml_package = String.trim ocaml_package in
@@ -157,7 +157,7 @@ module Query = struct
       if Ocaml_version.arch_is_32bit v then Some (Ocaml_version.to_opam_arch v)
       else None
     in
-    let cmd = get_vars ~arch ~opam docker_context prep_image in
+    let cmd = get_vars ~arch ~docker_context host_image in
     Current.Process.check_output ~cancellable:false ~job cmd >>!= fun vars ->
     let json =
       match Yojson.Safe.from_string vars with
