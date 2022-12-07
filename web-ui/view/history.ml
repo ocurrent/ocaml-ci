@@ -2,7 +2,6 @@ open Tyxml.Html
 
 module Make (M : Git_forge_intf.Forge) = struct
   let row ~short_hash ~started_at ~ran_for ~status ~build_uri ~message =
-    let message = Common.truncate ~len:72 message in
     let description =
       [ div [ txt short_hash ] ]
       @
@@ -24,20 +23,24 @@ module Make (M : Git_forge_intf.Forge) = struct
           ]
     in
     a
-      ~a:[ a_class [ "table-row" ]; a_href build_uri ]
+      ~a:[ a_class [ "table-row space-x-3" ]; a_href build_uri ]
       [
         div
-          ~a:[ a_class [ "flex items-center space-x-3" ] ]
+          ~a:[ a_class [ "flex items-center space-x-3 truncate" ] ]
           [
             Common.status_icon_build status;
             div
-              ~a:[ a_class [ "flex items-center space-x-3" ] ]
+              ~a:[ a_class [ "flex items-center space-x-3 grow-0 truncate" ] ]
               [
                 div
-                  ~a:[ a_class [ "flex flex-col" ] ]
+                  ~a:[ a_class [ "flex flex-col truncate" ] ]
                   [
                     div
-                      ~a:[ a_class [ "text-gray-900 text-sm font-medium" ] ]
+                      ~a:
+                        [
+                          a_class
+                            [ "text-gray-900 text-sm font-medium truncate" ];
+                        ]
                       [ txt message ];
                     div ~a:[ a_class [ "flex text-sm space-x-2" ] ] description;
                   ];
@@ -83,7 +86,7 @@ module Make (M : Git_forge_intf.Forge) = struct
   let top_matter ~org ~repo ~ref ~tref =
     let external_url = M.branch_url ~org ~repo ref in
     div
-      ~a:[ a_class [ "justify-between items-center flex" ] ]
+      ~a:[ a_class [ "justify-between items-center flex space-x-4" ] ]
       [
         div
           ~a:[ a_class [ "flex items-center grow" ] ]
@@ -103,9 +106,9 @@ module Make (M : Git_forge_intf.Forge) = struct
                           [ Common.external_link ];
                       ];
                   ];
-                div
-                  ~a:[ a_class [ "text-gray-500 flex text-sm space-x-2" ] ]
-                  [ span [ txt (Printf.sprintf "Repo: %s" repo) ] ];
+                (* div
+                   ~a:[ a_class [ "text-gray-500 flex text-sm space-x-2" ] ]
+                   [ span [ txt (Printf.sprintf "Repo: %s" repo) ] ]; *)
               ];
           ];
         div

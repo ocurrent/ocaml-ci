@@ -115,17 +115,29 @@ module Make (M : Git_forge_intf.Forge) = struct
       Common.form_cancel ~hash ~csrf_token ~show:can_cancel ()
       :: Common.rebuild_button ~hash ~csrf_token ~show:show_rebuild ()
     in
+    let show_history_button, history_url =
+      match refs with
+      | [] -> (false, "")
+      | ref :: _ ->
+          let ref_path = M.ref_path ref in
+          if Result.is_ok ref_path then
+            ( true,
+              Url.history_url M.prefix ~org ~repo ~ref:(Result.get_ok ref_path)
+            )
+          else (false, "")
+    in
+    (* FIXME: Remove below when we are ready to show history for Gitlab as well. *)
+    let show_history_button = show_history_button && M.prefix = "github" in
     let title_card =
-      let ref_path = Result.get_ok (M.ref_path (List.hd refs)) in
       Build.title_card ~status:build_status ~card_title:message
         ~hash_link:(link_forge_commit ~org ~repo ~hash:(Common.short_hash hash))
         ~ref_links:(link_forge_refs ~org ~repo refs)
-        ~history_url:(Url.history_url M.prefix ~org ~repo ~ref:ref_path)
+        ~history_url
         ~first_created_at:
           (Timestamps_durations.pp_timestamp first_step_queued_at)
         ~ran_for:(Timestamps_durations.pp_duration (Some build_run_time))
         ~total_run_time:(Timestamps_durations.pp_duration (Some total_run_time))
-        ~buttons
+        ~buttons ~show_history_button
     in
     let steps_table_div =
       div
