@@ -419,8 +419,6 @@ let make_org ~engine owner =
                     get_repo_default_ref @@ get_repo_state ~repo:{ owner; name })
                 in
                 let history =
-                  (* Does the length of the array need to be dynamic? *)
-                  (* let arr = Raw.Builder.RepoHistory.history_init slot 15 in *)
                   Index.get_build_history ~owner ~name ~gref:default_ref
                   |> List.map (history_f default_ref)
                 in

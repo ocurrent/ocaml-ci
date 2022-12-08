@@ -6,6 +6,9 @@ module Run_time = Ocaml_ci_client_lib.Run_time
 module type Controller = sig
   val list_repos : org:string -> Backend.t -> Dream.server Dream.message Lwt.t
 
+  val list_repos_new :
+    org:string -> Backend.t -> Dream.server Dream.message Lwt.t
+
   val list_refs :
     org:string -> repo:string -> Backend.t -> Dream.server Dream.message Lwt.t
 
@@ -73,21 +76,6 @@ let ( >>!= ) x f =
       Dream.empty `Internal_Server_Error
   | Ok y -> f y
 
-(* let join xs f : Dream.response Lwt.t =
-   let to_option = function
-     | Error (`Capnp ex) ->
-         Dream.log "Internal server error: %s"
-           (Fmt.to_to_string Capnp_rpc.Error.pp ex);
-         None
-     | Error (`Msg v) ->
-         Dream.log "Internal server error: %s" v;
-         None
-     | Ok y -> Some y
-   in
-   let xs = List.map to_option xs in
-   if List.exists Option.is_none xs then Dream.empty `Internal_Server_Error
-   else f (List.filter_map Fun.id xs) *)
-
 module Make (View : View) = struct
   open Lwt.Infix
   module Client = Ocaml_ci_api.Client
@@ -101,8 +89,14 @@ module Make (View : View) = struct
     Backend.ci ci >>= fun ci ->
     Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
     Client.Org.repos org_cap >>!= fun repos ->
+    Dream.respond @@ View.list_repos ~org ~repos
+
+  let list_repos_new ~org ci =
+    Backend.ci ci >>= fun ci ->
+    Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
+    Client.Org.repos org_cap >>!= fun repos ->
     Client.Org.repo_histories org_cap >>!= fun histories ->
-    Dream.respond @@ View.list_repos ~org ~repos ~histories
+    Dream.respond @@ View.list_repos_new ~org ~repos ~histories
 
   let list_refs ~org ~repo ci =
     Backend.ci ci >>= fun ci ->

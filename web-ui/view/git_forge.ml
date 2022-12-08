@@ -10,6 +10,7 @@ module Make (F : Forge) : View = struct
   let request_prefix = F.request_prefix
   let list_history = History.list
   let list_repos = Repo.list
+  let list_repos_new = Repo.list_new
   let list_refs = Ref.list
   let list_steps = Step.list
   let show_step = Step.show

@@ -294,7 +294,106 @@ module Make (M : Git_forge_intf.Forge) = struct
     let reliability = float_of_int n_succeeded /. float_of_int n_finished in
     { speed; reliability; build_frequency_per_week = -1 }
 
-  let list ~org ~repos ~histories =
+  let list ~org ~repos =
+    let tabulate hd rows =
+      Tyxml.Html.(
+        div
+          ~a:[ a_class [ "mt-8" ] ]
+          [
+            table
+              ~a:
+                [
+                  a_class
+                    [
+                      "custom-table table-auto border border-gray-200 \
+                       border-t-0 rounded-lg w-full min-w-0";
+                    ];
+                  a_id "table";
+                ]
+              ~thead:hd rows;
+          ])
+    in
+    let table_head name =
+      thead
+        [ tr [ th [ div [ txt name ] ]; th []; th []; th []; th []; th [] ] ]
+    in
+    let row ~repo_title ~short_hash ~last_updated ~status ~description ~repo_uri
+        =
+      let info =
+        let hash = span ~a:[ a_class [ "font-medium" ] ] [ txt short_hash ] in
+        match last_updated with
+        | None -> div [ hash ]
+        | Some _ ->
+            div
+              [
+                hash;
+                txt
+                  (Printf.sprintf " on %s"
+                     (Timestamps_durations.pp_timestamp last_updated));
+              ]
+      in
+      (* Defaulting infinity means sorting by recent places them at the bottom of the page *)
+      let last_updated_data =
+        match last_updated with
+        | None -> "Infinity"
+        | Some v -> Printf.sprintf "%f" v
+      in
+      tr
+        ~a:
+          [
+            a_class [ "cursor-pointer" ];
+            a_onclick (Printf.sprintf "window.location='%s'" repo_uri);
+            a_user_data "timestamp" last_updated_data;
+          ]
+        [
+          td
+            ~a:[ a_class [ "flex items-center space-x-3" ] ]
+            [
+              Common.status_icon_build status;
+              div
+                ~a:[ a_class [ "text-sm space-y-1" ] ]
+                [
+                  div
+                    ~a:
+                      [
+                        a_class
+                          [ "repo-title text-gray-900 text-sm font-medium" ];
+                      ]
+                    [ txt repo_title ];
+                  info;
+                  div
+                    ~a:[ a_class [ "text-grey-500" ] ]
+                    [ div [ txt description ] ];
+                ];
+            ];
+          td ~a:[ a_class [ "text-xs space-y-1" ] ] [];
+          td [];
+          td [];
+          td [];
+          td [ Common.right_arrow_head ];
+        ]
+    in
+    let table_head =
+      table_head (Printf.sprintf "Repositories (%d)" (List.length repos))
+    in
+    let table =
+      let f { Client.Org.name; main_status; main_hash; main_last_updated } =
+        row ~repo_title:name
+          ~short_hash:(Common.short_hash main_hash)
+          ~last_updated:main_last_updated ~status:main_status ~description:""
+          ~repo_uri:(repo_url org name)
+      in
+      List.map f (List.sort repo_name_compare repos)
+    in
+    Template_v1.instance
+      [
+        Tyxml.Html.script ~a:[ a_src "/js/repo-page-search.js" ] (txt "");
+        Common.breadcrumbs [ (M.prefix, M.prefix) ] org;
+        title ~org;
+        tabulate table_head table;
+      ]
+
+  let list_new ~org ~repos ~histories =
     let table_head =
       table_head (Printf.sprintf "Repositories (%d)" (List.length repos))
     in
