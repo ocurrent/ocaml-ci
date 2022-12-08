@@ -57,6 +57,10 @@ val get_default_gref : Repo_id.t -> string
 (** [get_default_gref repo] is the default gref of the repo last set with
     [set_active_refs] *)
 
+val get_commit_message : repo:Repo_id.t -> hash:string -> string
+(** attempts to get the commit message for repo and hash from Repo_map. Falls
+    back to the hash if not found. *)
+
 type status = [ `Not_started | `Pending | `Failed | `Passed ] [@@deriving show]
 
 val status_to_int : status -> int
@@ -154,12 +158,19 @@ val get_build_history :
   owner:string ->
   name:string ->
   gref:string ->
-  (string * int64 * int64 * float option * float option * float option * float)
+  (string
+  * int64
+  * int64
+  * float option
+  * float option
+  * float option
+  * float
+  * string)
   list
 (** [get_build_history ~owner ~name ~gref] is a list of builds for the branch
     gref of the repo identfied by (owner, name) The builds are identified by
     (hash, build_number, status, started_at, total_ran_for, ran_for,
-    total_queued_for) *)
+    total_queued_for, commit_message) *)
 
 val get_full_hash :
   owner:string ->

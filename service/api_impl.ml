@@ -100,17 +100,10 @@ let make_commit ~engine ~owner ~name hash =
          let open Commit.Message in
          release_param_caps ();
          let response, results = Service.Response.create Results.init_pointer in
-         let active =
-           Index.get_active_refs { Ocaml_ci.Repo_id.owner; name }
-           |> Index.Ref_map.bindings
-           |> List.filter_map (fun (_, { Index.hash = h; message; _ }) ->
-                  if h = hash then Some message else None)
-         in
-         (match active with
-         | [] ->
-             Logs.err (fun m -> m "Commit has no associated message: %s" hash);
-             raise Not_found
-         | message :: _ -> Results.message_set results message);
+         Results.message_set results
+           (Index.get_commit_message
+              ~repo:{ Ocaml_ci.Repo_id.owner; name }
+              ~hash);
          Service.return response
 
        method title_impl _params release_param_caps =
@@ -281,12 +274,14 @@ let make_repo ~engine ~owner ~name =
                   started_at,
                   _total_ran_for,
                   ran_for,
-                  _total_queued_for )
+                  _total_queued_for,
+                  message )
               ->
                 let open Raw.Builder.RefInfo in
                 let slot = Capnp.Array.get arr i in
                 ref_set slot gref;
                 hash_set slot hash;
+                message_set slot message;
                 let status =
                   to_build_status
                   @@ Result.get_ok

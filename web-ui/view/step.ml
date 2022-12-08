@@ -115,15 +115,29 @@ module Make (M : Git_forge_intf.Forge) = struct
       Common.form_cancel ~hash ~csrf_token ~show:can_cancel ()
       :: Common.rebuild_button ~hash ~csrf_token ~show:show_rebuild ()
     in
+    let show_history_button, history_url =
+      match refs with
+      | [] -> (false, "")
+      | ref :: _ ->
+          let ref_path = M.ref_path ref in
+          if Result.is_ok ref_path then
+            ( true,
+              Url.history_url M.prefix ~org ~repo ~ref:(Result.get_ok ref_path)
+            )
+          else (false, "")
+    in
+    (* FIXME: Remove below when we are ready to show history for Gitlab as well. *)
+    let show_history_button = show_history_button && M.prefix = "github" in
     let title_card =
       Build.title_card ~status:build_status ~card_title:message
         ~hash_link:(link_forge_commit ~org ~repo ~hash:(Common.short_hash hash))
         ~ref_links:(link_forge_refs ~org ~repo refs)
+        ~history_url
         ~first_created_at:
           (Timestamps_durations.pp_timestamp first_step_queued_at)
         ~ran_for:(Timestamps_durations.pp_duration (Some build_run_time))
         ~total_run_time:(Timestamps_durations.pp_duration (Some total_run_time))
-        ~buttons
+        ~buttons ~show_history_button
     in
     let steps_table_div =
       div
@@ -170,10 +184,13 @@ module Make (M : Git_forge_intf.Forge) = struct
         Build.tabulate_steps steps_table;
       ]
 
-  let show ~org ~repo ~refs ~hash ~jobs ~variant ~job ~status ~csrf_token
-      ~timestamps ~build_created_at ?(flash_messages = []) (data, next) =
+  let show ~org ~repo ~refs ~hash ~variant ~job ~status ~csrf_token ~timestamps
+      ~build_created_at ~step_created_at ~step_finished_at ~can_rebuild
+      ~can_cancel ?(flash_messages = []) (data, next) =
+    ignore can_cancel;
+
+    (* FIXME: Implement cancel step *)
     let header, footer =
-      let can_rebuild = status.Current_rpc.Job.can_rebuild in
       let button =
         Some
           (Common.form_rebuild_step ~variant ~csrf_token ~show:can_rebuild ())
@@ -185,9 +202,6 @@ module Make (M : Git_forge_intf.Forge) = struct
           | "refs" :: "heads" :: branch -> Astring.String.concat ~sep:"/" branch
           | _ -> ""
       in
-      (* FIXME: This will throw an exception and cause a noisy 500 *)
-      let step_info = List.find (fun j -> j.Client.variant = variant) jobs in
-      let build_status = step_info.outcome in
       let build_created_at = Option.value ~default:0. build_created_at in
       let run_time =
         Option.map
@@ -195,11 +209,11 @@ module Make (M : Git_forge_intf.Forge) = struct
           timestamps
       in
       let title_card =
-        title_card ~status:build_status ~card_title:variant
+        title_card ~status ~card_title:variant
           ~hash_link:
             (link_forge_commit ~org ~repo ~hash:(Common.short_hash hash))
-          ~created_at:(Timestamps_durations.pp_timestamp step_info.queued_at)
-          ~finished_at:(Timestamps_durations.pp_timestamp step_info.finished_at)
+          ~created_at:(Timestamps_durations.pp_timestamp step_created_at)
+          ~finished_at:(Timestamps_durations.pp_timestamp step_finished_at)
           ~queued_for:
             (Timestamps_durations.pp_duration
                (Option.map Run_time.queued_for run_time))

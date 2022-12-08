@@ -134,7 +134,12 @@ module Make (View : View) = struct
       | `Pull n -> Fmt.str "refs/pull/%s/head" n
     in
     Client.Repo.history_of_ref repo_cap ref >>!= fun history ->
-    Dream.respond @@ View.list_history ~org ~repo ~ref ~history
+    let head_commit =
+      match history with
+      | [] -> None
+      | head_ref_info :: _ -> Some head_ref_info.Client.Repo.hash
+    in
+    Dream.respond @@ View.list_history ~org ~repo ~ref ~head_commit ~history
 
   let show_step ~org ~repo ~hash ~variant request ci =
     Backend.ci ci >>= fun ci ->
@@ -158,23 +163,25 @@ module Make (View : View) = struct
     let build_created_at =
       Option.join @@ Result.to_option @@ Run_time.build_created_at ~build:jobs
     in
-    let step_info =
-      let filter (j : Client.job_info) = j.variant = variant in
-      List.find_opt filter jobs
-    in
-    let timestamps = Option.map Run_time.timestamps_from_job_info step_info in
-    let timestamps =
-      match timestamps with
-      | None ->
-          Dream.log "Error - No step-info.";
-          None
-      | Some (Error e) ->
-          Dream.log "Error - %s" e;
-          None
-      | Some (Ok t) -> Some t
-    in
-    View.show_step ~org ~repo ~refs ~hash ~jobs ~variant ~status ~csrf_token
-      ~flash_messages ~timestamps ~build_created_at ~job:job_cap chunk
+    let filter (j : Client.job_info) = j.variant = variant in
+
+    match List.find_opt filter jobs with
+    | None ->
+        (* Dream.log "Error - No step-info for variant: %s hash: %s" variant hash; *)
+        Dream.empty `Not_Found
+    | Some step_info ->
+        let timestamps =
+          Result.to_option @@ Run_time.timestamps_from_job_info step_info
+        in
+        let step_created_at = step_info.queued_at in
+        let step_finished_at = step_info.finished_at in
+        let can_rebuild = status.Current_rpc.Job.can_rebuild in
+        let can_cancel = status.can_cancel in
+
+        View.show_step ~org ~repo ~refs ~hash ~variant ~status:step_info.outcome
+          ~csrf_token ~flash_messages ~timestamps ~build_created_at
+          ~step_created_at ~step_finished_at ~can_rebuild ~can_cancel
+          ~job:job_cap chunk
 
   let rebuild_step ~org ~repo ~hash ~variant request ci =
     Backend.ci ci >>= fun ci ->

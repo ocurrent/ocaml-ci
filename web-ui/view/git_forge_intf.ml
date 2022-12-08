@@ -16,6 +16,8 @@ module type Forge = sig
 
   val parse_ref :
     string -> [ `Branch of string | `Request of int | `Unknown of string ]
+
+  val ref_path : string -> (string, string) result
 end
 
 module type View = sig
@@ -51,6 +53,7 @@ module type View = sig
     org:string ->
     repo:string ->
     ref:string ->
+    head_commit:string option ->
     history:Client.Repo.ref_info list ->
     string
 
@@ -75,13 +78,16 @@ module type View = sig
     repo:string ->
     refs:string list ->
     hash:string ->
-    jobs:Client.job_info list ->
     variant:Client.variant ->
     job:Current_rpc.Job.t ->
-    status:Current_rpc.Job.status ->
+    status:Client.State.t ->
     csrf_token:string ->
     timestamps:Run_time.timestamps option ->
     build_created_at:float option ->
+    step_created_at:float option ->
+    step_finished_at:float option ->
+    can_rebuild:bool ->
+    can_cancel:bool ->
     ?flash_messages:(string * string) list ->
     string * int64 ->
     Dream.response Lwt.t

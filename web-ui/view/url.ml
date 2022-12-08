@@ -8,3 +8,6 @@ let commit_url prefix ~org ~repo ~hash =
 let job_url prefix ~org ~repo ~hash variant =
   assert (String.length hash > 10);
   Printf.sprintf "/%s/%s/%s/commit/%s/variant/%s" prefix org repo hash variant
+
+let history_url prefix ~org ~repo ~ref =
+  Printf.sprintf "/%s/%s/%s/history/%s" prefix org repo ref
