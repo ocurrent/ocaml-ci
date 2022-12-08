@@ -221,22 +221,21 @@ module Make (M : Git_forge_intf.Forge) = struct
       ]
 
   let tabulate hd rows =
-    Tyxml.Html.(
-      div
-        ~a:[ a_class [ "mt-8" ] ]
-        [
-          table
-            ~a:
-              [
-                a_class
-                  [
-                    "custom-table table-auto border border-gray-200 border-t-0 \
-                     rounded-lg w-full min-w-0";
-                  ];
-                a_id "table";
-              ]
-            ~thead:hd rows;
-        ])
+    div
+      ~a:[ a_class [ "mt-8" ] ]
+      [
+        table
+          ~a:
+            [
+              a_class
+                [
+                  "custom-table table-auto border border-gray-200 border-t-0 \
+                   rounded-lg w-full min-w-0";
+                ];
+              a_id "table";
+            ]
+          ~thead:hd rows;
+      ]
 
   let repo_name_compare { Client.Org.name = n0; _ } { Client.Org.name = n1; _ }
       =

@@ -386,10 +386,10 @@ let make_org ~engine owner =
                started_at,
                _total_ran_for,
                ran_for,
-               _total_queued_for ) =
+               _total_queued_for,
+               _message ) =
            let open Raw.Builder.RefInfo in
            let slot = Raw.Builder.RefInfo.init_root () in
-           (* let slot = Capnp.Array.get history_arr i in *)
            ref_set slot default_ref;
            hash_set slot hash;
            let status =
