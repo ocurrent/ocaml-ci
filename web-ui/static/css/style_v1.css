@@ -78,6 +78,7 @@ table {
 }
 
 .icon-status {
+  min-width: 2rem;
   @apply h-8 w-8 rounded-2xl flex items-center justify-center
 }
 
