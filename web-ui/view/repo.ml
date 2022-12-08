@@ -9,7 +9,9 @@ module Make (M : Git_forge_intf.Forge) = struct
     in
     let fallback_image = Printf.sprintf "/images/%s-logo-500.png" M.prefix in
     let local_image_exists =
-      Result.is_ok @@ Bos.OS.File.exists (Fpath.v local_image)
+      match Bos.OS.File.exists (Fpath.v local_image) with
+      | Ok b -> b
+      | Error _ -> false
     in
     let url = if local_image_exists then local_image else fallback_image in
     Tyxml.Html.(
@@ -52,7 +54,7 @@ module Make (M : Git_forge_intf.Forge) = struct
           ~a:[ a_class [ "flex items-center justify-between space-x-3" ] ]
           [
             div
-              ~a:[ a_class [ "form-control relative w-80 py-6 md:py-0" ] ]
+              ~a:[ a_class [ "form-control relative max-w-80 py-6 md:py-0" ] ]
               [
                 Common.search;
                 input
@@ -173,7 +175,7 @@ module Make (M : Git_forge_intf.Forge) = struct
                 a_class
                   [
                     "custom-table table-auto border border-gray-200 border-t-0 \
-                     rounded-lg w-full";
+                     rounded-lg w-full min-w-0";
                   ];
                 a_id "table";
               ]
