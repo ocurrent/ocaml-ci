@@ -23,7 +23,15 @@ let spawn_local ?solver_dir () : Ocaml_ci_api.Solver.t =
     Lwt_process.open_process_none ~cwd:solver_dir ~stdin:`Close cmd
   in
   let switch = Lwt_switch.create () in
-  let p, _ = Unix.accept ~cloexec:true listener in
+  let p, _ =
+    match Unix.select [ listener ] [] [] 1. with
+    | [ listener' ], [], [] when listener = listener' ->
+        Unix.accept ~cloexec:true listener
+    | _ -> failwith "Solver process didn't start correctly"
+    | exception (Unix.Unix_error (Unix.EINTR, _, _) as exn) ->
+        prerr_endline "Solver process didn't start correctly";
+        raise exn
+  in
   Unix.close listener;
   Unix.unlink name;
   let p =
