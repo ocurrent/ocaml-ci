@@ -88,7 +88,7 @@ module Make (M : Git_forge_intf.Forge) = struct
                     ]
                   [ txt ref_title ];
                 div
-                  ~a:[ a_class [ "flex flex-col" ] ]
+                  ~a:[ a_class [ "flex flex-col w-full" ] ]
                   [
                     div
                       ~a:
