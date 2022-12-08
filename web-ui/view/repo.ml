@@ -94,7 +94,7 @@ module Make (M : Git_forge_intf.Forge) = struct
   type repo_stats = {
     speed : float;
     reliability : float;
-    build_frequency_per_week : int;
+    build_frequency_per_week : float;
   }
 
   let row ~repo_title ~short_hash ~last_updated ~status ~description ~repo_uri
@@ -137,6 +137,16 @@ module Make (M : Git_forge_intf.Forge) = struct
         [
           txt (Printf.sprintf "%.0f" (100. *. statistics.reliability));
           span ~a:[ a_class [ "text-sm pl-0.5" ] ] [ txt "%" ];
+        ]
+    in
+    let build_frequency_per_week =
+      if Float.is_nan statistics.build_frequency_per_week then [ txt "N/A" ]
+      else
+        [
+          txt
+            (Printf.sprintf "%.0f"
+               (Float.ceil statistics.build_frequency_per_week));
+          span ~a:[ a_class [ "text-sm pl-0.5" ] ] [ txt "/week" ];
         ]
     in
     tr
@@ -194,12 +204,7 @@ module Make (M : Git_forge_intf.Forge) = struct
         td [ div ~a:[ a_class [ "text-2xl gray-700" ] ] reliability ];
         td
           [
-            div
-              ~a:[ a_class [ "text-2xl gray-700" ] ]
-              [
-                txt (Printf.sprintf "%d" statistics.build_frequency_per_week);
-                span ~a:[ a_class [ "text-sm pl-0.5" ] ] [ txt "/week" ];
-              ];
+            div ~a:[ a_class [ "text-2xl gray-700" ] ] build_frequency_per_week;
           ];
         td [ Common.right_arrow_head ];
       ]
@@ -273,6 +278,23 @@ module Make (M : Git_forge_intf.Forge) = struct
     ++ [ "}\n" ]
     |> String.concat ""
 
+  let build_frequency_per_week history =
+    let ts =
+      history
+      |> List.filter_map (fun { Client.Org.started_at; _ } ->
+             match started_at with
+             | None -> None
+             | Some v -> if Float.equal v 0. then None else Some v)
+    in
+    match ts with
+    | [] -> 0.
+    | ts ->
+        let n_ts = List.length ts in
+        let to_week f = float_of_int Duration.(to_day @@ of_f f) /. 7. in
+        let now = Unix.gettimeofday () in
+        let earliest = List.fold_left Float.min Float.max_float ts in
+        to_week (now -. earliest) /. float_of_int n_ts
+
   let repo_statistics history =
     let n = List.length history in
     let sum_speed =
@@ -292,7 +314,8 @@ module Make (M : Git_forge_intf.Forge) = struct
     in
     let speed = sum_speed /. float_of_int n in
     let reliability = float_of_int n_succeeded /. float_of_int n_finished in
-    { speed; reliability; build_frequency_per_week = -1 }
+    let build_frequency_per_week = build_frequency_per_week history in
+    { speed; reliability; build_frequency_per_week }
 
   let list ~org ~repos =
     let tabulate hd rows =
