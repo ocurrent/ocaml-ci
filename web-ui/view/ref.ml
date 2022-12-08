@@ -23,7 +23,7 @@ module Make (M : Git_forge_intf.Forge) = struct
         | Branch _ -> []
         | PR { id; _ } ->
             [
-              div [ txt "-" ];
+              div ~a:[ a_class [ "hidden md:inline" ] ] [ txt "-" ];
               div
                 ~a:[ a_class [ "flex space-x-1 items-center" ] ]
                 [ logo; div [ txt (Printf.sprintf "#%s" id) ] ];
@@ -33,8 +33,10 @@ module Make (M : Git_forge_intf.Forge) = struct
       | None -> []
       | Some _ ->
           [
-            div [ txt "-" ];
-            div [ txt (Timestamps_durations.pp_timestamp started_at) ];
+            div ~a:[ a_class [ "hidden md:inline" ] ] [ txt "-" ];
+            div
+              ~a:[ a_class [ "hidden md:inline" ] ]
+              [ txt (Timestamps_durations.pp_timestamp started_at) ];
           ]
     in
     let rhs =
@@ -47,14 +49,33 @@ module Make (M : Git_forge_intf.Forge) = struct
           ]
     in
     a
-      ~a:[ a_class [ "table-row" ]; a_href ref_uri ]
+      ~a:
+        [
+          a_class
+            [
+              "table-row flex flex-col md:flex-row space-x-0 md:space-x-3 \
+               space-y-6 md:space-y-0 truncate";
+            ];
+          a_href ref_uri;
+        ]
       [
         div
-          ~a:[ a_class [ "flex items-center space-x-3" ] ]
+          ~a:
+            [
+              a_class
+                [ "flex items-center space-x-4 md:space-x-3 truncate w-full" ];
+            ]
           [
             Common.status_icon_build status;
             div
-              ~a:[ a_class [ "flex items-center space-x-3" ] ]
+              ~a:
+                [
+                  a_class
+                    [
+                      "flex flex-col md:flex-row items-start md:items-center \
+                       space-x-0 md:space-x-3 space-y-2 md:space-y-0 truncate";
+                    ];
+                ]
               [
                 div
                   ~a:
@@ -62,17 +83,23 @@ module Make (M : Git_forge_intf.Forge) = struct
                       a_class
                         [
                           "font-medium text-gray-700 text-sm px-2 py-1 border \
-                           border-gray-300 rounded-lg";
+                           border-gray-300 rounded-lg max-w-full truncate";
                         ];
                     ]
                   [ txt ref_title ];
                 div
-                  ~a:[ a_class [ "flex flex-col" ] ]
+                  ~a:[ a_class [ "flex flex-col w-full" ] ]
                   [
                     div
-                      ~a:[ a_class [ "text-gray-900 text-sm font-medium" ] ]
+                      ~a:
+                        [
+                          a_class
+                            [ "text-gray-900 text-sm font-medium truncate" ];
+                        ]
                       [ txt message ];
-                    div ~a:[ a_class [ "flex text-sm space-x-2" ] ] description;
+                    div
+                      ~a:[ a_class [ "flex flex-row text-sm space-x-2" ] ]
+                      description;
                   ];
               ];
           ];
@@ -81,8 +108,8 @@ module Make (M : Git_forge_intf.Forge) = struct
             [
               a_class
                 [
-                  "flex text-sm font-normal text-gray-500 space-x-8 \
-                   items-center";
+                  "hidden md:flex text-sm font-normal text-gray-500 space-x-8 \
+                   items-center self-center ";
                 ];
             ]
           rhs;
@@ -154,30 +181,30 @@ module Make (M : Git_forge_intf.Forge) = struct
     let top_matter =
       let external_url = M.repo_url ~org ~repo in
       div
-        ~a:[ a_class [ "justify-between items-center flex" ] ]
+        ~a:
+          [
+            a_class
+              [
+                "flex flex-col md:flex-row text-sm space-x-0 md:space-x-2 \
+                 items-center md:items-baseline";
+              ];
+          ]
         [
-          div
-            ~a:[ a_class [ "flex items-center space-x-2" ] ]
-            [
-              div
-                ~a:[ a_class [ "flex flex-col space-y-1" ] ]
-                [
-                  div
-                    ~a:[ a_class [ "flex text-sm space-x-2 items-baseline" ] ]
-                    [
-                      h1 ~a:[ a_class [ "text-xl" ] ] [ txt repo ];
-                      a
-                        ~a:
-                          [
-                            a_class [ "flex items-center space-x-2" ];
-                            a_href external_url;
-                          ]
-                        [ span [ txt external_url ]; Common.external_link ];
-                    ];
-                ];
-            ];
+          h1 ~a:[ a_class [ "text-xl" ] ] [ txt repo ];
+          a
+            ~a:
+              [
+                a_class
+                  [
+                    "flex flex-col md:flex-row items-center py-2 space-x-0 \
+                     md:space-x-2";
+                  ];
+                a_href external_url;
+              ]
+            [ span [ txt external_url ]; Common.external_link ];
         ]
     in
+
     [
       Common.breadcrumbs [ (M.prefix, M.prefix); (org, org) ] repo;
       top_matter;
