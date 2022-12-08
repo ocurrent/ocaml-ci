@@ -387,7 +387,7 @@ module Make (M : Git_forge_intf.Forge) = struct
     in
     Template_v1.instance
       [
-        Tyxml.Html.script ~a:[ a_src "/js/repo-page-search.js" ] (txt "");
+        Tyxml.Html.script ~a:[ a_src "/js/repo-page.js" ] (txt "");
         Common.breadcrumbs [ (M.prefix, M.prefix) ] org;
         title ~org;
         tabulate table_head table;
