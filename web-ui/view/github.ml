@@ -23,4 +23,4 @@ include Git_forge.Make (struct
         let id = int_of_string id in
         `Request id
     | _ -> `Unknown r
-  end)
+end)

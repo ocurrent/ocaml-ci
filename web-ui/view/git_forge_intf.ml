@@ -11,7 +11,6 @@ module type Forge = sig
 
   val request_abbrev : string
   val request_prefix : string
-  
   val org_url : org:string -> string
   val repo_url : org:string -> repo:string -> string
   val commit_url : org:string -> repo:string -> hash:string -> string
@@ -55,7 +54,7 @@ module type View = sig
   val list_history :
     org:string ->
     repo:string ->
-    gref:[`Branch of string | `Request of int ] ->
+    gref:[ `Branch of string | `Request of int ] ->
     head_commit:string option ->
     history:Client.Repo.ref_info list ->
     string

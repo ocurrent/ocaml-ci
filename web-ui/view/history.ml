@@ -84,11 +84,12 @@ module Make (M : Git_forge_intf.Forge) = struct
     table_head :: List.map f history
 
   let top_matter ~org ~repo ~gref ~tref =
-    let external_url = match gref with
-    | `Branch branch -> M.branch_url ~org ~repo branch
-    | `Request id ->
-            let id = string_of_int id in
-            M.request_url ~org ~repo id
+    let external_url =
+      match gref with
+      | `Branch branch -> M.branch_url ~org ~repo branch
+      | `Request id ->
+          let id = string_of_int id in
+          M.request_url ~org ~repo id
     in
     div
       ~a:[ a_class [ "justify-between items-center flex space-x-4" ] ]
@@ -133,9 +134,11 @@ module Make (M : Git_forge_intf.Forge) = struct
       ]
 
   let list ~org ~repo ~gref ~head_commit ~history =
-    let tref = match gref with
-    | `Branch branch -> Printf.sprintf "branch/%s" branch
-    | `Request id -> Printf.sprintf "%s/%d" M.request_prefix id in
+    let tref =
+      match gref with
+      | `Branch branch -> Printf.sprintf "branch/%s" branch
+      | `Request id -> Printf.sprintf "%s/%d" M.request_prefix id
+    in
     let breadcrumbs =
       match head_commit with
       | None -> [ (M.prefix, M.prefix); (org, org); (repo, repo) ]

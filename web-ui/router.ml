@@ -43,9 +43,9 @@ let gitlab_routes gitlab =
         let rec f = function
           | [] -> Dream.empty `Not_Found
           | "branch" :: refs ->
-              let gref = 
-                  let branch = String.concat Filename.dir_sep refs in
-                  `Branch branch
+              let gref =
+                let branch = String.concat Filename.dir_sep refs in
+                `Branch branch
               in
               Controller.Gitlab.list_history
                 ~org:(Dream.param request "org")
@@ -56,8 +56,8 @@ let gitlab_routes gitlab =
         f fpath);
     Dream.get "/gitlab/:org/:repo/history/merge-request/:number" (fun request ->
         let gref =
-            let id  = Dream.param request "number" |> int_of_string in
-            `Request id
+          let id = Dream.param request "number" |> int_of_string in
+          `Request id
         in
         Controller.Gitlab.list_history
           ~org:(Dream.param request "org")
@@ -132,9 +132,9 @@ let github_routes github =
         let rec f = function
           | [] -> Dream.empty `Not_Found
           | "branch" :: refs ->
-              let gref = 
-                  let branch = String.concat Filename.dir_sep refs in
-                  `Branch branch
+              let gref =
+                let branch = String.concat Filename.dir_sep refs in
+                `Branch branch
               in
               Controller.Github.list_history
                 ~org:(Dream.param request "org")
@@ -145,8 +145,8 @@ let github_routes github =
         f fpath);
     Dream.get "/github/:org/:repo/history/pull/:number" (fun request ->
         let gref =
-            let id = Dream.param request "number" |> int_of_string in
-            `Request id
+          let id = Dream.param request "number" |> int_of_string in
+          `Request id
         in
         Controller.Github.list_history
           ~org:(Dream.param request "org")
