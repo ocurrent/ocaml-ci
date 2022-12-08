@@ -497,3 +497,13 @@ let duration (status : Build_status.t) t =
     | Undefined _ -> "In queue for"
   in
   Printf.sprintf "%s %s" text (Timestamps_durations.pp_duration t)
+
+let build_history_button history_url =
+  Tyxml.Html.(
+    a
+      ~a:
+        [
+          a_class [ "btn btn-secondary btn-xs rounded-full" ];
+          a_href history_url;
+        ]
+      [ txt "Build History" ])

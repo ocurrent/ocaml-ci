@@ -71,22 +71,35 @@ module Make (M : Git_forge_intf.Forge) = struct
     let refs = List.map M.parse_ref refs in
     let f = function
       | `Branch branch ->
-          a
-            ~a:
-              [
-                a_class [ "flex items-center space-x-2" ];
-                a_href (M.branch_url ~org ~repo branch);
-              ]
-            [ span [ txt branch ]; Common.external_link ]
+          span
+            ~a:[ a_class [ "flex flex-row items-center space-x-2" ] ]
+            [
+              span [ txt branch ];
+              Common.build_history_button
+                (Url.history_url M.prefix ~org ~repo
+                   ~ref:(Printf.sprintf "branch/%s" branch));
+              a
+                ~a:[ a_href (M.branch_url ~org ~repo branch) ]
+                [ Common.external_link ];
+            ]
       | `Request id ->
           let id = string_of_int id in
-          a
-            ~a:
-              [
-                a_class [ "flex items-center space-x-2" ];
-                a_href (M.request_url ~org ~repo id);
-              ]
-            [ span [ txt (M.request_abbrev ^ "#" ^ id) ]; Common.external_link ]
+
+          span
+            ~a:[ a_class [ "flex flex-row items-center space-x-2" ] ]
+            [
+              span [ txt (M.request_abbrev ^ "#" ^ id) ];
+              Common.build_history_button
+                (Url.history_url M.prefix ~org ~repo
+                   ~ref:(Printf.sprintf "pull/%s" id));
+              a
+                ~a:
+                  [
+                    a_class [ "flex items-center space-x-2" ];
+                    a_href (M.request_url ~org ~repo id);
+                  ]
+                [ Common.external_link ];
+            ]
       | `Unknown _ -> txt ""
     in
     List.map f refs
@@ -115,29 +128,16 @@ module Make (M : Git_forge_intf.Forge) = struct
       Common.form_cancel ~hash ~csrf_token ~show:can_cancel ()
       :: Common.rebuild_button ~hash ~csrf_token ~show:show_rebuild ()
     in
-    let show_history_button, history_url =
-      match refs with
-      | [] -> (false, "")
-      | ref :: _ ->
-          let ref_path = M.ref_path ref in
-          if Result.is_ok ref_path then
-            ( true,
-              Url.history_url M.prefix ~org ~repo ~ref:(Result.get_ok ref_path)
-            )
-          else (false, "")
-    in
     (* FIXME: Remove below when we are ready to show history for Gitlab as well. *)
-    let show_history_button = show_history_button && M.prefix = "github" in
     let title_card =
       Build.title_card ~status:build_status ~card_title:message
         ~hash_link:(link_forge_commit ~org ~repo ~hash:(Common.short_hash hash))
         ~ref_links:(link_forge_refs ~org ~repo refs)
-        ~history_url
         ~first_created_at:
           (Timestamps_durations.pp_timestamp first_step_queued_at)
         ~ran_for:(Timestamps_durations.pp_duration (Some build_run_time))
         ~total_run_time:(Timestamps_durations.pp_duration (Some total_run_time))
-        ~buttons ~show_history_button
+        ~buttons
     in
     let steps_table_div =
       div

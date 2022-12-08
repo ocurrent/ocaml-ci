@@ -132,6 +132,10 @@ select {
   @apply space-x-1 text-sm h-9 px-3;
 }
 
+.btn-xs {
+  @apply space-x-1 text-xs h-5 px-2;
+}
+
 .btn-default {
   @apply text-gray-500 hover:bg-gray-100;
 }
