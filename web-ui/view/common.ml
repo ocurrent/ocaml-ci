@@ -214,7 +214,7 @@ let right_arrow_head =
     Tyxml.Html.svg
       ~a:
         [
-          a_class [ "h-5 w-5 -rotate-90" ];
+          a_class [ "hidden md:inline h-5 w-5 -rotate-90" ];
           a_fill `None;
           a_viewBox (0., 0., 24., 24.);
           a_stroke `CurrentColor;
