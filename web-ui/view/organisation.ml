@@ -12,7 +12,9 @@ module Make (M : Forge_prefix) = struct
       | Ok b -> b
       | Error _ -> false
     in
+    Logs.warn (fun l -> l "Looking for %s@." local_image);
     let url = if local_image_exists then local_image else fallback_image in
+    Logs.warn (fun l -> l "Image is %S" url);
     Tyxml.Html.(
       img
         ~a:[ a_class [ "w-20 h-20 rounded-full" ] ]

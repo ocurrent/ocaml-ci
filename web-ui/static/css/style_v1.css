@@ -44,7 +44,7 @@ table {
 .custom-table tr th,
 .custom-table tr td {
   padding: 5px;
-  @apply px-6 py-4 border-b border-gray-200;
+  @apply md:px-6 md:py-4 border-b border-gray-200;
 }
 
 .custom-table tr th {
