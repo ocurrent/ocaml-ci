@@ -119,7 +119,8 @@ module Make (M : Git_forge_intf.Forge) = struct
       | Some v -> Printf.sprintf "%f" v
     in
     let speed =
-      if statistics.speed > 60. then
+      if Float.is_nan statistics.speed then [ txt "N/A" ]
+      else if statistics.speed > 60. then
         [
           txt (Printf.sprintf "%.1f" (statistics.speed /. 60.));
           span ~a:[ a_class [ "text-sm pl-0.5" ] ] [ txt "min" ];
@@ -130,7 +131,14 @@ module Make (M : Git_forge_intf.Forge) = struct
           span ~a:[ a_class [ "text-sm pl-0.5" ] ] [ txt "sec" ];
         ]
     in
-
+    let reliability =
+      if Float.is_nan statistics.reliability then [ txt "N/A" ]
+      else
+        [
+          txt (Printf.sprintf "%.0f" (100. *. statistics.reliability));
+          span ~a:[ a_class [ "text-sm pl-0.5" ] ] [ txt "%" ];
+        ]
+    in
     tr
       ~a:
         [
@@ -183,15 +191,7 @@ module Make (M : Git_forge_intf.Forge) = struct
               ];
           ];
         td [ div ~a:[ a_class [ "text-2xl gray-700" ] ] speed ];
-        td
-          [
-            div
-              ~a:[ a_class [ "text-2xl gray-700" ] ]
-              [
-                txt (Printf.sprintf "%.0f" (100. *. statistics.reliability));
-                span ~a:[ a_class [ "text-sm pl-0.5" ] ] [ txt "%" ];
-              ];
-          ];
+        td [ div ~a:[ a_class [ "text-2xl gray-700" ] ] reliability ];
         td
           [
             div
@@ -321,7 +321,7 @@ module Make (M : Git_forge_intf.Forge) = struct
             ]
           (txt "");
         script (Unsafe.data (js_of_histories histories));
-        script ~a:[ a_src "/js/repo-page-search.js" ] (txt "");
+        script ~a:[ a_src "/js/repo-page.js" ] (txt "");
         Common.breadcrumbs [ (M.prefix, M.prefix) ] org;
         title ~org;
         tabulate table_head table;

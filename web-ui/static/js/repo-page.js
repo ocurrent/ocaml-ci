@@ -99,9 +99,6 @@ const chartOptions = {
       }
     }]
   },
-  animation: {
-    duration: 0
-  }
 };
 
 function getRepoNames() {
@@ -125,7 +122,7 @@ function charts_init() {
       var padding = Array.from({
           length: (15 - data.length)
         },
-        (v, i) => 0);
+        (_v, _i) => 0);
       data = padding.concat(data);
     }
     var colours = chart_colours[repo];
@@ -133,7 +130,7 @@ function charts_init() {
       var padding = Array.from({
           length: (15 - colours.length)
         },
-        (v, i) => "rgba(226, 232, 240, 1)");
+        (_v, _i) => "rgba(226, 232, 240, 1)");
       colours = padding.concat(colours);
     }
     var ctx = document.getElementById("chart_" + repo).getContext("2d");
@@ -151,7 +148,7 @@ function charts_init() {
           },
           options: chartOptions
         }
-      )
+      );
   }
   return charts
 }
@@ -167,4 +164,7 @@ window.onload = function() {
   body = table_root.lastChild;
 
   charts_init();
+  // Hack to make the bar charts consistently sized, without this on
+  // page load they are of different sizes until the window is resized.
+  window.dispatchEvent(new Event('resize'));
 }
