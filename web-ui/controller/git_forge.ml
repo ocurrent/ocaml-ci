@@ -12,7 +12,7 @@ module type Controller = sig
   val list_history :
     org:string ->
     repo:string ->
-    gref:[ `Branch of string | `Pull of string ] ->
+    gref:[ `Branch of string | `Request of int ] ->
     Backend.t ->
     Dream.response Lwt.t
 
@@ -131,7 +131,7 @@ module Make (View : View) = struct
     let ref =
       match gref with
       | `Branch b -> Fmt.str "refs/heads/%s" b
-      | `Pull n -> Fmt.str "refs/pull/%s/head" n
+      | `Request n -> Fmt.str "refs/%s/%d/head" View.request_prefix n
     in
     Client.Repo.history_of_ref repo_cap ref >>!= fun history ->
     let head_commit =
@@ -139,7 +139,7 @@ module Make (View : View) = struct
       | [] -> None
       | head_ref_info :: _ -> Some head_ref_info.Client.Repo.hash
     in
-    Dream.respond @@ View.list_history ~org ~repo ~ref ~head_commit ~history
+    Dream.respond @@ View.list_history ~org ~repo ~gref ~head_commit ~history
 
   let show_step ~org ~repo ~hash ~variant request ci =
     Backend.ci ci >>= fun ci ->
