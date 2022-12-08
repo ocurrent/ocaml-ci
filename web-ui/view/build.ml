@@ -1,7 +1,5 @@
 let title_card ~status ~card_title ~hash_link ~ref_links ~first_created_at
-    ~ran_for ~total_run_time ~buttons ~history_url ~show_history_button =
-  ignore history_url;
-  ignore show_history_button;
+    ~ran_for ~total_run_time ~buttons =
   let heading =
     Tyxml.Html.(
       div

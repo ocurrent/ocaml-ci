@@ -38,6 +38,25 @@ let gitlab_routes gitlab =
           ~hash:(Dream.param request "hash")
           ~variant:(Dream.param request "variant")
           request gitlab);
+    Dream.get "/gitlab/:org/:repo/history/branch/**" (fun request ->
+        let fpath = Dream.target request |> Dream.from_path in
+        let rec f = function
+          | [] -> Dream.empty `Not_Found
+          | "branch" :: refs ->
+              let gref = String.concat Filename.dir_sep refs in
+              Controller.Github.list_history
+                ~org:(Dream.param request "org")
+                ~repo:(Dream.param request "repo")
+                ~gref:(`Branch gref) gitlab
+          | _ :: paths -> f paths
+        in
+        f fpath);
+    Dream.get "/github/:org/:repo/history/merge-request/:number" (fun request ->
+        let number = Dream.param request "number" in
+        Controller.Github.list_history
+          ~org:(Dream.param request "org")
+          ~repo:(Dream.param request "repo")
+          ~gref:(`Pull number) gitlab);
     Dream.post "/gitlab/:org/:repo/commit/:hash/variant/:variant/rebuild"
       (fun request ->
         Dream.form request >>= function

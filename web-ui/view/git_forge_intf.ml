@@ -10,6 +10,8 @@ module type Forge = sig
   include Forge_prefix
 
   val request_abbrev : string
+  val request_prefix : string
+  
   val org_url : org:string -> string
   val repo_url : org:string -> repo:string -> string
   val commit_url : org:string -> repo:string -> hash:string -> string

@@ -84,14 +84,13 @@ module Make (M : Git_forge_intf.Forge) = struct
             ]
       | `Request id ->
           let id = string_of_int id in
-
           span
             ~a:[ a_class [ "flex flex-row items-center space-x-2" ] ]
             [
               span [ txt (M.request_abbrev ^ "#" ^ id) ];
               Common.build_history_button
                 (Url.history_url M.prefix ~org ~repo
-                   ~ref:(Printf.sprintf "pull/%s" id));
+                   ~ref:(Printf.sprintf "%s/%s" M.request_prefix id));
               a
                 ~a:
                   [
