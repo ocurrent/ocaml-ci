@@ -54,13 +54,7 @@ module Make (M : Git_forge_intf.Forge) = struct
           ~a:[ a_class [ "flex items-center justify-between space-x-3" ] ]
           [
             div
-<<<<<<< HEAD
               ~a:[ a_class [ "form-control relative max-w-80 py-6 md:py-0" ] ]
-||||||| parent of 58dc913 (Support mobile for repo)
-              ~a:[ a_class [ "form-control relative w-80" ] ]
-=======
-              ~a:[ a_class [ "form-control relative w-80 py-6 md:py-0" ] ]
->>>>>>> 58dc913 (Support mobile for repo)
               [
                 Common.search;
                 input
