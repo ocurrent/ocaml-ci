@@ -25,7 +25,9 @@ let head =
     ]
 
 let header ~full =
-  let constrained = "container-fluid flex space-x-6 items-end" in
+  let constrained =
+    "container-fluid flex space-x-6 items-center md:items-end"
+  in
   let maximised = "px-12 flex space-x-6 items-end" in
   let klass = if full then maximised else constrained in
   header
@@ -49,7 +51,7 @@ let header ~full =
                 ();
             ];
           div
-            ~a:[ a_class [ "space-x-4" ] ]
+            ~a:[ a_class [ "flex items-center md:inline space-x-4" ] ]
             [
               a
                 ~a:
