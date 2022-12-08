@@ -4,13 +4,13 @@ let title_card ~status ~card_title ~hash_link ~ref_links ~first_created_at
     let without_history_button =
       Tyxml.Html.(
         div
-          ~a:[ a_class [ "flex items-center" ] ]
+          ~a:[ a_class [ "flex items-center truncate" ] ]
           [ h1 ~a:[ a_class [ "text-xl truncate" ] ] [ txt card_title ] ])
     in
     if show_history_button then
       Tyxml.Html.(
         div
-          ~a:[ a_class [ "flex items-center" ] ]
+          ~a:[ a_class [ "flex items-center truncate" ] ]
           [
             h1 ~a:[ a_class [ "text-xl truncate" ] ] [ txt card_title ];
             a
@@ -43,14 +43,14 @@ let title_card ~status ~card_title ~hash_link ~ref_links ~first_created_at
   in
   Tyxml.Html.(
     div
-      ~a:[ a_class [ "justify-between items-center flex" ] ]
+      ~a:[ a_class [ "justify-between items-center flex truncate space-x-3" ] ]
       [
         div
-          ~a:[ a_class [ "flex items-center space-x-4" ] ]
+          ~a:[ a_class [ "flex items-center space-x-4 truncate" ] ]
           [
             div ~a:[ a_id "build-status" ] [ Common.status_icon status ];
             div
-              ~a:[ a_class [ "flex flex-col space-y-1" ] ]
+              ~a:[ a_class [ "flex flex-col space-y-1 truncate" ] ]
               [
                 heading;
                 div
