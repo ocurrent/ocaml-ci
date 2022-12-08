@@ -11,7 +11,10 @@ let head =
       meta
         ~a:
           [
-            a_name "viewport"; a_content "width=device-width, initial-scale=1.0";
+            a_name "viewport";
+            a_content
+              "width=device-width, initial-scale=1.0, minimum-scale=1.0, \
+               maximum-scale=1.0, user-scalable=no";
           ]
         ();
       script ~a:[ a_defer (); a_src "/js/alpine.js" ] (txt "");
@@ -22,7 +25,9 @@ let head =
     ]
 
 let header ~full =
-  let constrained = "container-fluid flex space-x-6 items-end" in
+  let constrained =
+    "container-fluid flex space-x-6 items-center md:items-end"
+  in
   let maximised = "px-12 flex space-x-6 items-end" in
   let klass = if full then maximised else constrained in
   header
@@ -46,7 +51,7 @@ let header ~full =
                 ();
             ];
           div
-            ~a:[ a_class [ "space-x-4" ] ]
+            ~a:[ a_class [ "flex items-center md:inline space-x-4" ] ]
             [
               a
                 ~a:
@@ -67,10 +72,9 @@ let header ~full =
     ]
 
 let instance ?(full = false) contents =
-  let constrained = "container-fluid py-12" in
+  let constrained = "container-fluid py-8 md:py-12" in
   let maximised = "flex-basis px-12 py-12" in
   let klass = if full then maximised else constrained in
-
   html_to_string
     (html head
        (body

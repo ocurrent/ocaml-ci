@@ -8,7 +8,9 @@ module Make (M : Forge_prefix) = struct
     in
     let fallback_image = Printf.sprintf "/images/%s-logo-500.png" M.prefix in
     let local_image_exists =
-      Result.is_ok @@ Bos.OS.File.exists (Fpath.v local_image)
+      match Bos.OS.File.exists (Fpath.v local_image) with
+      | Ok b -> b
+      | Error _ -> false
     in
     let url = if local_image_exists then local_image else fallback_image in
     Tyxml.Html.(
@@ -30,17 +32,31 @@ module Make (M : Forge_prefix) = struct
     let org_url = Url.org_url M.prefix ~org in
     Tyxml.Html.(
       a
-        ~a:[ a_class [ "item-card flex space-x-4" ]; a_href org_url ]
+        ~a:[ a_class [ "item-card flex" ]; a_href org_url ]
         [
           div
             ~a:[ a_class [ "data-info" ]; a_style "display: none" ]
             [ txt M.prefix ];
           profile_picture org;
           div
-            ~a:[ a_class [ "flex flex-col" ] ]
+            ~a:
+              [
+                a_class
+                  [
+                    "flex flex-row md:flex-col items-center md:items-start  \
+                     space-x-4 md:space-x-0 mx-4 flex-wrap truncate";
+                  ];
+              ]
             [
               div
-                ~a:[ a_class [ "org-title font-semibold text-lg mb-1" ] ]
+                ~a:
+                  [
+                    a_class
+                      [
+                        "org-title font-semibold text-2xl md:text-lg mb-1 \
+                         truncate";
+                      ];
+                  ]
                 [ txt org ];
               div ~a:[ a_class [ "text-sm" ] ] [];
               div
@@ -48,10 +64,16 @@ module Make (M : Forge_prefix) = struct
                   [
                     a_class
                       [
-                        "flex mt-4 text-sm text-gray-700 font-normal space-x-4";
+                        "flex mt-0 md:mt-4 text-sm text-gray-700 font-normal \
+                         space-x-4";
                       ];
                   ]
-                [ logo; div [ txt (git_forge_url org) ] ];
+                [
+                  logo;
+                  div
+                    ~a:[ a_class [ "hidden md:inline" ] ]
+                    [ txt (git_forge_url org) ];
+                ];
             ];
         ])
 end
