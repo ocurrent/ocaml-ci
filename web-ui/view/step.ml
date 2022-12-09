@@ -39,15 +39,21 @@ module Make (M : Git_forge_intf.Forge) = struct
                               div
                                 ~a:[ a_id "step-created-at" ]
                                 [ txt @@ Fmt.str "Created at %s" created_at ];
-                              div [ txt "-" ];
+                              div
+                                ~a:[ a_class [ "hidden md:inline" ] ]
+                                [ txt "-" ];
                               div
                                 ~a:[ a_id "step-queued-for" ]
                                 [ txt @@ Fmt.str "%s in queue" queued_for ];
-                              div [ txt "-" ];
+                              div
+                                ~a:[ a_class [ "hidden md:inline" ] ]
+                                [ txt "-" ];
                               div
                                 ~a:[ a_id "step-finished-at" ]
                                 [ txt @@ Fmt.str "Finished at %s" finished_at ];
-                              div [ txt "-" ];
+                              div
+                                ~a:[ a_class [ "hidden md:inline" ] ]
+                                [ txt "-" ];
                               div [ hash_link ];
                             ];
                         ];
@@ -55,7 +61,11 @@ module Make (M : Git_forge_intf.Forge) = struct
                 ];
             ];
           div
-            ~a:[ a_class [ "flex items-center justify-between space-x-4" ] ]
+            ~a:
+              [
+                a_class
+                  [ "hidden md:flex items-center justify-between space-x-4" ];
+              ]
             [
               div
                 ~a:[ a_id "step-ran-for"; a_class [ "text-sm" ] ]
