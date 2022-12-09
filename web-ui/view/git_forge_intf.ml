@@ -10,6 +10,7 @@ module type Forge = sig
   include Forge_prefix
 
   val request_abbrev : string
+  val request_prefix : string
   val org_url : org:string -> string
   val repo_url : org:string -> repo:string -> string
   val commit_url : org:string -> repo:string -> hash:string -> string
@@ -18,12 +19,11 @@ module type Forge = sig
 
   val parse_ref :
     string -> [ `Branch of string | `Request of int | `Unknown of string ]
-
-  val ref_path : string -> (string, string) result
 end
 
 module type View = sig
   val prefix : string
+  val request_prefix : string
 
   val cancel_success_message :
     Client.job_info list -> [> `Div | `Ul ] Tyxml_html.elt
@@ -54,7 +54,7 @@ module type View = sig
   val list_history :
     org:string ->
     repo:string ->
-    ref:string ->
+    gref:[ `Branch of string | `Request of int ] ->
     head_commit:string option ->
     history:Client.Repo.ref_info list ->
     string

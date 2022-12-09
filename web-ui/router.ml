@@ -38,6 +38,31 @@ let gitlab_routes gitlab =
           ~hash:(Dream.param request "hash")
           ~variant:(Dream.param request "variant")
           request gitlab);
+    Dream.get "/gitlab/:org/:repo/history/branch/**" (fun request ->
+        let fpath = Dream.target request |> Dream.from_path in
+        let rec f = function
+          | [] -> Dream.empty `Not_Found
+          | "branch" :: refs ->
+              let gref =
+                let branch = String.concat Filename.dir_sep refs in
+                `Branch branch
+              in
+              Controller.Gitlab.list_history
+                ~org:(Dream.param request "org")
+                ~repo:(Dream.param request "repo")
+                ~gref gitlab
+          | _ :: paths -> f paths
+        in
+        f fpath);
+    Dream.get "/gitlab/:org/:repo/history/merge-request/:number" (fun request ->
+        let gref =
+          let id = Dream.param request "number" |> int_of_string in
+          `Request id
+        in
+        Controller.Gitlab.list_history
+          ~org:(Dream.param request "org")
+          ~repo:(Dream.param request "repo")
+          ~gref gitlab);
     Dream.post "/gitlab/:org/:repo/commit/:hash/variant/:variant/rebuild"
       (fun request ->
         Dream.form request >>= function
@@ -107,20 +132,26 @@ let github_routes github =
         let rec f = function
           | [] -> Dream.empty `Not_Found
           | "branch" :: refs ->
-              let gref = String.concat Filename.dir_sep refs in
+              let gref =
+                let branch = String.concat Filename.dir_sep refs in
+                `Branch branch
+              in
               Controller.Github.list_history
                 ~org:(Dream.param request "org")
                 ~repo:(Dream.param request "repo")
-                ~gref:(`Branch gref) github
+                ~gref github
           | _ :: paths -> f paths
         in
         f fpath);
     Dream.get "/github/:org/:repo/history/pull/:number" (fun request ->
-        let number = Dream.param request "number" in
+        let gref =
+          let id = Dream.param request "number" |> int_of_string in
+          `Request id
+        in
         Controller.Github.list_history
           ~org:(Dream.param request "org")
           ~repo:(Dream.param request "repo")
-          ~gref:(`Pull number) github);
+          ~gref github);
     Dream.get "/github/:org/:repo/commit/:hash" (fun request ->
         Controller.Github.list_steps
           ~org:(Dream.param request "org")
