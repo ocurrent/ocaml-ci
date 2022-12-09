@@ -6,7 +6,14 @@ let title_card ~status ~card_title ~hash_link ~ref_links ~first_created_at
         ~a:[ a_class [ "flex flex-col md:flex-row items-center truncate" ] ]
         [
           h1
-            ~a:[ a_class [ "text-2xl md:text-xl w-full text-center truncate" ] ]
+            ~a:
+              [
+                a_class
+                  [
+                    "text-2xl md:text-xl w-full text-center md:text-start \
+                     truncate";
+                  ];
+              ]
             [ txt card_title ];
         ])
   in
@@ -117,7 +124,7 @@ let step_row ~step_title ~created_at ~queued_for ~ran_for ~status ~step_uri =
                   ~a:[ a_class [ "text-gray-900 text-sm font-medium" ] ]
                   [ txt step_title ];
                 div
-                  ~a:[ a_class [ "flex text-sm space-x-2" ] ]
+                  ~a:[ a_class [ "hidden md:flex text-sm space-x-2" ] ]
                   [
                     div [ txt @@ Fmt.str "Created at %s" created_at ];
                     div ~a:[ a_class [ "hidden md:inline" ] ] [ txt "-" ];
