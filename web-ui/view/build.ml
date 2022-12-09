@@ -6,7 +6,14 @@ let title_card ~status ~card_title ~hash_link ~ref_links ~first_created_at
         ~a:[ a_class [ "flex flex-col md:flex-row items-center truncate" ] ]
         [
           h1
-            ~a:[ a_class [ "text-2xl md:text-xl w-full text-center truncate" ] ]
+            ~a:
+              [
+                a_class
+                  [
+                    "text-2xl md:text-xl w-full text-center md:text-start \
+                     truncate";
+                  ];
+              ]
             [ txt card_title ];
         ])
   in
