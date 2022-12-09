@@ -77,7 +77,14 @@ let title_card ~status ~card_title ~hash_link ~ref_links ~first_created_at
               ];
           ];
         div
-          ~a:[ a_class [ "flex items-center justify-between space-x-4" ] ]
+          ~a:
+            [
+              a_class
+                [
+                  "flex flex-col md:flex-row items-center justify-between \
+                   space-x-0 md:space-x-4";
+                ];
+            ]
           [
             div
               ~a:[ a_id "build-ran-for"; a_class [ "text-sm" ] ]
