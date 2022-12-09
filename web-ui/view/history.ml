@@ -9,8 +9,10 @@ module Make (M : Git_forge_intf.Forge) = struct
       | None -> []
       | Some _ ->
           [
-            div [ txt "-" ];
-            div [ txt (Timestamps_durations.pp_timestamp started_at) ];
+            div ~a:[ a_class [ "hidden md:inline" ] ] [ txt "-" ];
+            div
+              ~a:[ a_class [ "hidden md:inline" ] ]
+              [ txt (Timestamps_durations.pp_timestamp started_at) ];
           ]
     in
     let rhs =
@@ -18,7 +20,9 @@ module Make (M : Git_forge_intf.Forge) = struct
       | None -> [ Common.right_arrow_head ]
       | Some _ ->
           [
-            div [ txt (Common.duration status ran_for) ];
+            div
+              ~a:[ a_class [ "hidden md:inline" ] ]
+              [ txt (Common.duration status ran_for) ];
             Common.right_arrow_head;
           ]
     in
@@ -51,7 +55,7 @@ module Make (M : Git_forge_intf.Forge) = struct
             [
               a_class
                 [
-                  "flex text-sm font-normal text-gray-500 space-x-8 \
+                  "hidden md:flex text-sm font-normal text-gray-500 space-x-8 \
                    items-center";
                 ];
             ]
@@ -108,7 +112,11 @@ module Make (M : Git_forge_intf.Forge) = struct
                       [
                         txt (Printf.sprintf "Build History for %s" tref);
                         a
-                          ~a:[ a_class [ "ml-2" ]; a_href external_url ]
+                          ~a:
+                            [
+                              a_class [ "hidden md:inline ml-2" ];
+                              a_href external_url;
+                            ]
                           [ Common.external_link ];
                       ];
                   ];
