@@ -11,12 +11,9 @@ module Make (M : Git_forge_intf.Forge) = struct
     | _ -> raise Not_found
 
   let row ~ref ~short_hash ~started_at ~ran_for ~status ~ref_uri ~message =
-    (* messages are of arbitrary length - let's truncate them *)
-    let message = Common.truncate ~len:72 message in
     let ref_title =
       match ref with Branch title -> title | PR { title; _ } -> title
     in
-    let ref_title = Common.truncate ~len:24 ref_title in
     let description =
       [ div [ txt short_hash ] ]
       @ (match ref with
@@ -88,7 +85,7 @@ module Make (M : Git_forge_intf.Forge) = struct
                     ]
                   [ txt ref_title ];
                 div
-                  ~a:[ a_class [ "flex flex-col w-full" ] ]
+                  ~a:[ a_class [ "flex flex-col min-w-0 w-full flex-1" ] ]
                   [
                     div
                       ~a:
