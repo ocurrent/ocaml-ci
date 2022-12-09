@@ -31,10 +31,11 @@ module Make (M : Git_forge_intf.Forge) = struct
                           *)
                         ];
                       div
-                        ~a:[ a_class [ "text-gray-500" ] ]
+                        ~a:[ a_class [ "hidden md:block text-gray-500" ] ]
                         [
                           div
-                            ~a:[ a_class [ "flex text-sm space-x-2" ] ]
+                            ~a:
+                              [ a_class [ "hidden md:flex text-sm space-x-2" ] ]
                             [
                               div
                                 ~a:[ a_id "step-created-at" ]
@@ -61,14 +62,13 @@ module Make (M : Git_forge_intf.Forge) = struct
                 ];
             ];
           div
-            ~a:
-              [
-                a_class
-                  [ "hidden md:flex items-center justify-between space-x-4" ];
-              ]
+            ~a:[ a_class [ "flex items-center justify-between space-x-4" ] ]
             [
               div
-                ~a:[ a_id "step-ran-for"; a_class [ "text-sm" ] ]
+                ~a:
+                  [
+                    a_id "step-ran-for"; a_class [ "hidden md:inline text-sm" ];
+                  ]
                 [ txt @@ Fmt.str "Ran for %s" ran_for ];
               rebuild_button;
             ];

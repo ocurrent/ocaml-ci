@@ -450,7 +450,8 @@ let breadcrumbs steps page_title =
         [
           a_class
             [
-              "flex items-center mb-7 text-xs md:text-sm font-medium space-x-2";
+              "flex flex-wrap items-center mb-7 text-xs md:text-sm font-medium \
+               space-x-0 md:space-x-2";
             ];
         ]
       (List.rev steps))

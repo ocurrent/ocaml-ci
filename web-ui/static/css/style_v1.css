@@ -218,14 +218,13 @@ select {
 }
 
 .code-line__number {
-  @apply bg-gray-200 px-6 w-14 text-gray-700 text-sm cursor-pointer select-none border-none;
+  @apply bg-gray-200 px-1 md:px-6 w-14 text-gray-700 text-sm cursor-pointer select-none border-none;
 }
 
 .code-line__code {
-  @apply px-6 text-gray-800 whitespace-pre bg-transparent border-none text-sm;
+  @apply px-3 md:px-6 text-gray-800 whitespace-pre bg-transparent border-none text-sm;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   border-left: 1px solid transparent;
-
 }
 
 .code-line.highlight {
@@ -292,7 +291,7 @@ select {
 .notification {
   @apply bg-white fixed bottom-6 right-6 flex items-center text-sm font-medium rounded-lg shadow-lg p-4 justify-between;
   z-index: 9999;
-  min-width: 400px;
+  min-width: 300px;
 }
 
 .flash-message {
