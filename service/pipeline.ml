@@ -29,6 +29,8 @@ let opam_repository_commit =
 let experimental_variant variant =
   Astring.String.is_prefix ~affix:"macos-homebrew" variant
 
+let pp_fail prefix f m = Fmt.pf f "%s: %s" prefix (Ansi.strip m)
+
 let github_status_of_state ~head result results =
   let+ head = head and+ result = result and+ results = results in
   let { Github.Repo_id.owner; name } = Github.Api.Commit.repo_id head in
@@ -45,10 +47,10 @@ let github_status_of_state ~head result results =
         | Error (`Msg m) when Astring.String.is_prefix ~affix:"[SKIP]" m ->
             Fmt.pf f "%s [%s (%s)](%s)" "¯\\_(ツ)_/¯" variant "skipped" job_url
         | Error (`Msg m) when experimental_variant variant ->
-            Fmt.pf f "%s [EXPERIMENTAL: %s (%s)](%s)" "❌" variant
-              ("failure: " ^ m) job_url
+            Fmt.pf f "%s [EXPERIMENTAL: %s (%a)](%s)" "❌" variant
+              (pp_fail "failure") m job_url
         | Error (`Msg m) ->
-            Fmt.pf f "%s [%s (%s)](%s)" "❌" variant ("failed: " ^ m) job_url
+            Fmt.pf f "%s [%s (%a)](%s)" "❌" variant (pp_fail "failed") m job_url
         | Error (`Active _) ->
             Fmt.pf f "%s [%s (%s)](%s)" "🟠" variant "active" job_url)
   in
