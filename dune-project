@@ -97,7 +97,7 @@
   ocaml-ci-api
   (conf-libev (<> :os "win32"))
   (opam-0install (>= "0.4.3"))
-  (git-unix (= 3.10.0))
+  (git-unix (>= 3.9.0))
   (timedesc (>= 0.9.0))
   (ocaml (>= 4.13))
   (capnp-rpc-unix (>= 1.2)))
