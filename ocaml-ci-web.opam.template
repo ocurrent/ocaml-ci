@@ -1,5 +1,5 @@
-
 pin-depends: [
+  ["ansi.dev" "git+https://github.com/ocurrent/ansi#db90a0e01956f34dc2be1d16b54e4d54ecf54e98"] # morecolors
   ["dream.dev" "git+https://github.com/novemberkilo/dream#4976439384c9da03300abdbc9ffb8528ac917982"]
   ["dream-httpaf.dev" "git+https://github.com/novemberkilo/dream#4976439384c9da03300abdbc9ffb8528ac917982"]
   ["dream-pure.dev" "git+https://github.com/novemberkilo/dream#4976439384c9da03300abdbc9ffb8528ac917982"]
