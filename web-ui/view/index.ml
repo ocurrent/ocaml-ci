@@ -117,7 +117,7 @@ let list_all_orgs ~github_orgs ~gitlab_orgs =
             [
               h1 [ txt "Welcome to OCaml-CI" ];
               div
-                ~a:[ a_class [ "text-gray-500" ] ]
+                ~a:[ a_class [ "text-gray-500 dark:text-gray-400" ] ]
                 [ txt "Here are the organisations registered with us" ];
             ];
           div
@@ -152,8 +152,8 @@ let list_all_orgs ~github_orgs ~gitlab_orgs =
                         a_class
                           [
                             "input-control relative input-text text-gray-500 \
-                             items-center justify-between flex px-3 py-2 \
-                             appearance-none";
+                             dark:text-gray-300 items-center justify-between \
+                             flex px-3 py-2 appearance-none";
                           ];
                         a_name "Languages";
                         a_onchange "filter(this.value)";

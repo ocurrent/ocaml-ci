@@ -37,8 +37,8 @@ let header ~full =
       [
         a_class
           [
-            "h-20 flex items-center border-b border-gray-200 bg-white top-0 \
-             z-50";
+            "h-20 flex items-center border-b border-gray-200 \
+             dark:border-gray-700 bg-white dark:bg-gray-850 top-0 z-50";
           ];
       ]
     [

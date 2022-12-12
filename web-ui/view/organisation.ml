@@ -66,8 +66,8 @@ module Make (M : Forge_prefix) = struct
                   [
                     a_class
                       [
-                        "flex mt-0 md:mt-4 text-sm text-gray-700 font-normal \
-                         space-x-4";
+                        "flex mt-0 md:mt-4 text-sm text-gray-700 \
+                         dark:text-gray-400 font-normal space-x-4";
                       ];
                   ]
                 [
