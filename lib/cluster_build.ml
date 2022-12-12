@@ -85,7 +85,7 @@ module Op = struct
       (Fmt.str
          "@.To reproduce locally:@.@.%a@.cat > Dockerfile \
           <<'END-OF-DOCKERFILE'@.\o033[34m%s\o033[0m@.END-OF-DOCKERFILE@.docker \
-          build .@.@."
+          build .@.END-REPRO-BLOCK@.@."
          Current_git.Commit_id.pp_user_clone commit
          (Obuilder_spec.Docker.dockerfile_of_spec ~buildkit:false ~os:`Unix
             build_spec));

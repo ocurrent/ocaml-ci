@@ -8,3 +8,4 @@ let at_click a = Tyxml.Html.Unsafe.string_attrib "@click" a
 let at_click_outside a = Tyxml.Html.Unsafe.string_attrib "@click.outside" a
 let a_svg_custom x y = Tyxml.Xml.string_attrib x y |> Tyxml.Svg.to_attrib
 let colon_class str = Tyxml.Html.Unsafe.string_attrib ":class" str
+let x_bind_style a = Tyxml.Html.Unsafe.string_attrib "x-bind:style" a

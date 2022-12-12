@@ -17,8 +17,8 @@ let head =
                maximum-scale=1.0, user-scalable=no";
           ]
         ();
-      script ~a:[ a_defer (); a_src "/js/alpine.js" ] (txt "");
       script ~a:[ a_defer (); a_src "/js/alpine-clipboard.js" ] (txt "");
+      script ~a:[ a_defer (); a_src "/js/alpine.js" ] (txt "");
       link ~rel:[ `Stylesheet ] ~href:"/fonts/inter.css" ();
       link ~rel:[ `Stylesheet ] ~href:"/css/main.css" ();
       link ~rel:[ `Stylesheet ] ~href:"/css/ansi.css" ();

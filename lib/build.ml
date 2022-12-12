@@ -109,7 +109,7 @@ module Op = struct
           (Fmt.str
              "@.To reproduce locally:@.@.cd $(mktemp -d)@.%a@.cat > Dockerfile \
               <<'END-OF-DOCKERFILE'@.\o033[34m%s\o033[0mEND-OF-DOCKERFILE@.docker \
-              build .@.@."
+              build .@.END-REPRO-BLOCK@.@."
              Current_git.Commit_id.pp_user_clone
              (Current_git.Commit.id commit)
              (make_dockerfile ~for_user:true));
