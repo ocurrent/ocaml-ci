@@ -419,8 +419,11 @@ let make_org ~engine owner =
                     get_repo_default_ref @@ get_repo_state ~repo:{ owner; name })
                 in
                 let history =
-                  Index.get_build_history ~owner ~name ~gref:default_ref
-                  |> List.map (history_f default_ref)
+                  match default_ref with
+                  | None -> []
+                  | Some default_ref ->
+                      Index.get_build_history ~owner ~name ~gref:default_ref
+                      |> List.map (history_f default_ref)
                 in
                 ignore (history_set_list slot history));
          Service.return response

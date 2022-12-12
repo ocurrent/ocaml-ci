@@ -88,7 +88,8 @@ module Aggregate : sig
 
   val get_ref_state : repo:Repo_id.t -> ref:string -> ref_state
   val get_repo_state : repo:Repo_id.t -> repo_state
-  val get_repo_default_ref : repo_state -> string
+  val get_repo_default_ref : repo_state -> string option
+  val set_repo_default_ref : repo:Repo_id.t -> string -> unit
 end
 
 module Commit_cache : sig
