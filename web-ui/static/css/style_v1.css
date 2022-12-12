@@ -49,7 +49,7 @@ table {
 }
 
 .custom-table tr th {
-  @apply bg-gray-50 dark:bg-gray-850 border-t border-gray-200 dark:border-gray-400 text-gray-500 dark:text-gray-200 text-xs font-medium;
+  @apply bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-400 text-gray-500 dark:text-gray-200 text-xs font-medium;
   text-align: left;
 }
 
@@ -158,7 +158,7 @@ select {
 }
 
 .table-row {
-  @apply px-6 py-3 bg-white flex justify-between items-start md:items-center;
+  @apply px-6 py-3 bg-white dark:bg-gray-850 flex justify-between items-start md:items-center;
 }
 
 .table-container {

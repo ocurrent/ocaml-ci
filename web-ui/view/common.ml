@@ -464,8 +464,8 @@ let table_head_div name =
         [
           a_class
             [
-              "bg-gray-50 px-6 py-3 text-gray-500 dark:text-gray-100 text-xs \
-               font-medium";
+              "bg-gray-50 dark:bg-gray-900 px-6 py-3 text-gray-500 \
+               dark:text-gray-100 text-xs font-medium";
             ];
         ]
       [ txt name ])
@@ -480,8 +480,9 @@ let tabulate_div rows =
             [
               a_class
                 [
-                  "border border-gray-200 dark:border-gray-850 rounded-lg \
-                   w-full overflow-hidden shadow-sm  divide-y divide-gray-200";
+                  "bg-white dark:bg-gray-850 border border-gray-200 \
+                   dark:border-gray-400 rounded-lg w-full overflow-hidden \
+                   shadow-sm divide-y divide-gray-200";
                 ];
             ]
           rows;
