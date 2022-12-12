@@ -290,7 +290,6 @@ module Aggregate = struct
       | Some { default_ref; ref_states } ->
           { default_ref; ref_states = Ref_map.add gref s_ref ref_states }
     in
-    Dream.log "SET_REF_STATE: %s %f %f" gref (Option.value ~default:0. started_at) (Option.value ~default:0. ran_for);
     state := Repo_map.add repo s_repo !state
 
   let get_ref_state ~repo ~ref =
