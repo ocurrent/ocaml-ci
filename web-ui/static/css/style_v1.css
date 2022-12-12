@@ -45,16 +45,16 @@ table {
 .custom-table tr td {
   padding: 5px;
   min-height: 80px;
-  @apply md:px-6 md:py-4 border-b border-gray-200;
+  @apply md:px-6 md:py-4 border-b border-gray-200 dark:border-gray-400;
 }
 
 .custom-table tr th {
-  @apply bg-gray-50 border-t border-gray-200 text-gray-500 text-xs font-medium;
+  @apply bg-gray-50 dark:bg-gray-850 border-t border-gray-200 dark:border-gray-400 text-gray-500 dark:text-gray-200 text-xs font-medium;
   text-align: left;
 }
 
 .custom-table tr td {
-  background: #fff;
+  @apply bg-white dark:bg-gray-850;
 }
 
 /* top-left border-radius */

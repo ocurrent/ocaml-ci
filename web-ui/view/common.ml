@@ -441,7 +441,8 @@ let breadcrumbs steps page_title =
   in
   let _, steps = List.fold_left add ("", []) steps in
   let steps =
-    Tyxml.Html.(a ~a:[ a_class [ "text-gray-700" ] ] [ txt page_title ])
+    Tyxml.Html.(
+      a ~a:[ a_class [ "text-gray-700 dark:text-gray-500" ] ] [ txt page_title ])
     :: steps
   in
   Tyxml.Html.(
@@ -460,7 +461,13 @@ let table_head_div name =
   Tyxml.Html.(
     div
       ~a:
-        [ a_class [ "bg-gray-50 px-6 py-3 text-gray-500 text-xs font-medium" ] ]
+        [
+          a_class
+            [
+              "bg-gray-50 px-6 py-3 text-gray-500 dark:text-gray-100 text-xs \
+               font-medium";
+            ];
+        ]
       [ txt name ])
 
 let tabulate_div rows =
@@ -473,8 +480,8 @@ let tabulate_div rows =
             [
               a_class
                 [
-                  "border border-gray-200 rounded-lg w-full overflow-hidden \
-                   shadow-sm  divide-y divide-gray-200";
+                  "border border-gray-200 dark:border-gray-850 rounded-lg \
+                   w-full overflow-hidden shadow-sm  divide-y divide-gray-200";
                 ];
             ]
           rows;
