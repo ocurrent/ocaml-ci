@@ -6,6 +6,9 @@ module Run_time = Ocaml_ci_client_lib.Run_time
 module type Controller = sig
   val list_repos : org:string -> Backend.t -> Dream.server Dream.message Lwt.t
 
+  val list_repos_new :
+    org:string -> Backend.t -> Dream.server Dream.message Lwt.t
+
   val list_refs :
     org:string -> repo:string -> Backend.t -> Dream.server Dream.message Lwt.t
 
@@ -87,6 +90,13 @@ module Make (View : View) = struct
     Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
     Client.Org.repos org_cap >>!= fun repos ->
     Dream.respond @@ View.list_repos ~org ~repos
+
+  let list_repos_new ~org ci =
+    Backend.ci ci >>= fun ci ->
+    Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
+    Client.Org.repos org_cap >>!= fun repos ->
+    Client.Org.repo_histories org_cap >>!= fun histories ->
+    Dream.respond @@ View.list_repos_new ~org ~repos ~histories
 
   let list_refs ~org ~repo ci =
     Backend.ci ci >>= fun ci ->

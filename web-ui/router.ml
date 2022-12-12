@@ -122,6 +122,8 @@ let github_routes github =
     Dream.get "/github" (fun request -> Dream.redirect request "/");
     Dream.get "/github/:org" (fun request ->
         Controller.Github.list_repos ~org:(Dream.param request "org") github);
+    Dream.get "/github/:org/new" (fun request ->
+        Controller.Github.list_repos_new ~org:(Dream.param request "org") github);
     Dream.get "/github/:org/:repo" (fun request ->
         Controller.Github.list_refs
           ~org:(Dream.param request "org")

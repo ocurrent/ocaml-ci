@@ -330,6 +330,8 @@ module Aggregate = struct
   let get_repo_state ~repo =
     let default_repo = { default_ref = ""; ref_states = Ref_map.empty } in
     Repo_map.find_opt repo !state |> Option.value ~default:default_repo
+
+  let get_repo_default_ref repo = repo.default_ref
 end
 
 module Commit_cache = struct
@@ -361,8 +363,8 @@ module Commit_cache = struct
   let add ~owner ~name ~hash ~gref status started_at ran_for =
     let v = { s = status; started_at; ran_for } in
     state := Commit_map.add { owner; repo = name; hash } v !state;
-    Aggregate.set_ref_state ~repo:{ Repo_id.owner; name } ~gref status
-      started_at ran_for
+    Aggregate.set_ref_state ~repo:{ owner; name } ~gref status started_at
+      ran_for
 
   let find ~owner ~name ~hash =
     let default = { s = `Not_started; started_at = None; ran_for = None } in
