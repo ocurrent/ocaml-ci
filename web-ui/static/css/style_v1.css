@@ -318,7 +318,7 @@ select {
   @apply bg-red-100;
 }
 
-/* LOGS */
+/* LOGO */
 
 .svg-fill {
     @apply fill-gray-900 dark:fill-gray-100;

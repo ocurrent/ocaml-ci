@@ -4,7 +4,7 @@ let getting_started =
   Template_v1.instance
     [
       div
-        ~a:[ a_class [ "grid grid-cols-6" ] ]
+        ~a:[ a_class [ "flex flex-col md:grid md:grid-cols-6" ] ]
         [
           div
             ~a:[ a_class [ "blog-sidebar" ] ]
@@ -14,7 +14,7 @@ let getting_started =
                 [ (* this is where we would have the sidebar links if we had any *) ];
             ];
           div
-            ~a:[ a_class [ "prose col-span-4" ] ]
+            ~a:[ a_class [ "prose dark:prose-invert col-span-4" ] ]
             [
               h1 [ txt "Getting Started" ];
               p [ txt "OCaml-CI is a CI service for OCaml projects." ];
@@ -114,7 +114,14 @@ let user_guide =
   Template_v1.instance
     [
       div
-        ~a:[ a_class [ "grid grid-cols-6" ] ]
+        ~a:
+          [
+            a_class
+              [
+                "flex flex-col-reverse md:grid md:grid-cols-6 \
+                 dark:text-gray-200";
+              ];
+          ]
         [
           div
             ~a:[ a_class [ "blog-sidebar" ] ]
@@ -124,7 +131,7 @@ let user_guide =
                 [ (* this is where we would have the sidebar links if we had any *) ];
             ];
           div
-            ~a:[ a_class [ "prose col-span-4" ] ]
+            ~a:[ a_class [ "prose dark:prose-invert col-span-4" ] ]
             [
               h1 [ txt "Documentation" ];
               p
@@ -305,7 +312,7 @@ let user_guide =
                 ];
             ];
           div
-            ~a:[ a_class [ "flex flex-col space-y-2" ] ]
+            ~a:[ a_class [ "flex flex-col space-y-2 pb-6 md:pb-0" ] ]
             [
               div ~a:[ a_class [ "font-semibold" ] ] [ txt "On this page" ];
               a
