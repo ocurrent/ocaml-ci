@@ -28,7 +28,9 @@ let header ~full =
   let constrained =
     "container-fluid flex space-x-6 items-center md:items-end"
   in
-  let maximised = "px-12 flex space-x-6 items-end" in
+  let maximised =
+    "container-fluid px-12 flex space-x-6 items-center md:items-end"
+  in
   let klass = if full then maximised else constrained in
   header
     ~a:

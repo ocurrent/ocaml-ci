@@ -38,7 +38,7 @@ module Make (M : Git_forge_intf.Forge) = struct
           [
             profile_picture org;
             div
-              ~a:[ a_class [ "flex flex-col" ] ]
+              ~a:[ a_class [ "flex flex-col truncate" ] ]
               [
                 h1 ~a:[ a_class [ "text-xl" ] ] [ txt org ];
                 a
@@ -47,7 +47,10 @@ module Make (M : Git_forge_intf.Forge) = struct
                       a_class [ "text-sm flex items-center space-x-2" ];
                       a_href org_url;
                     ]
-                  [ span [ txt org_url ]; Common.external_link ];
+                  [
+                    span ~a:[ a_class [ "truncate" ] ] [ txt org_url ];
+                    Common.external_link;
+                  ];
               ];
           ];
         div
