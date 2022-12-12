@@ -73,7 +73,7 @@ let header ~full =
 
 let instance ?(full = false) contents =
   let constrained = "container-fluid py-8 md:py-12" in
-  let maximised = "flex-basis px-12 py-12" in
+  let maximised = "flex-basis px-3 md:px-12 py-12" in
   let klass = if full then maximised else constrained in
   html_to_string
     (html head
