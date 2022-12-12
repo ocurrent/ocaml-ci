@@ -43,10 +43,15 @@ module Make (M : Git_forge_intf.Forge) = struct
                       ~a:
                         [
                           a_class
-                            [ "text-gray-900 text-sm font-medium truncate" ];
+                            [
+                              "text-gray-900 dark:text-gray-100 text-sm \
+                               font-medium truncate";
+                            ];
                         ]
                       [ txt message ];
-                    div ~a:[ a_class [ "flex text-sm space-x-2" ] ] description;
+                    div
+                      ~a:[ a_class [ "flex text-sm text-gray-500 space-x-2" ] ]
+                      description;
                   ];
               ];
           ];
