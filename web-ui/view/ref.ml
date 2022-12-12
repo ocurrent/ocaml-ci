@@ -198,7 +198,7 @@ module Make (M : Git_forge_intf.Forge) = struct
                   ];
                 a_href external_url;
               ]
-            [ span [ txt external_url ]; Common.external_link ];
+            [ span ~a:[ a_class [ "truncate" ] ] [ txt external_url ]; Common.external_link ];
         ]
     in
 
