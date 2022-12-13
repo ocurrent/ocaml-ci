@@ -241,6 +241,7 @@ module Make (M : Git_forge_intf.Forge) = struct
                     "shadow-sm rounded-lg overflow-hidden border \
                      border-gray-200 divide-x divide-gray-20";
                   ];
+                a_id "build-repro-container";
               ]
             [
               div
