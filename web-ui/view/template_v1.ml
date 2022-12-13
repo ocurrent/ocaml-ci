@@ -48,9 +48,10 @@ let header ~full =
           a
             ~a:[ a_href "/" ]
             [
-              img ~src:"/images/logo.svg" ~alt:"OCaml-CI"
-                ~a:[ a_width 116; a_height 32 ]
-                ();
+              (* img ~src:"/images/logo.svg" ~alt:"OCaml-CI" *)
+              (*   ~a:[ a_width 116; a_height 32 ] *)
+              (*   (); *)
+              Common.logo_unsafe;
             ];
           div
             ~a:[ a_class [ "flex items-center md:inline space-x-4" ] ]
