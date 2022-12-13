@@ -39,7 +39,7 @@ build: [
 ]
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
 pin-depends: [
-  ["ansi.dev" "git+https://github.com/ocurrent/ansi#34fc847eec87106e5467e2ca3174043298241022"] # morecolors
+  ["ansi.dev" "git+https://github.com/ocurrent/ansi#6efb1a97495319e6ec1a46a1e7e31f8932f3918b"] # morecolors
   ["dream.dev" "git+https://github.com/novemberkilo/dream#4976439384c9da03300abdbc9ffb8528ac917982"]
   ["dream-httpaf.dev" "git+https://github.com/novemberkilo/dream#4976439384c9da03300abdbc9ffb8528ac917982"]
   ["dream-pure.dev" "git+https://github.com/novemberkilo/dream#4976439384c9da03300abdbc9ffb8528ac917982"]
