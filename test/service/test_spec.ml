@@ -62,7 +62,7 @@ let expected_linux_spec =
 (* Create testable Sexp for Alcotest. *)
 let sexp = Alcotest.testable Sexplib0__Sexp.pp_hum Sexplib0__Sexp.equal
 
-let test_macos_spec () =
+let test_macos_spec _ () =
   let open Ocaml_ci in
   let expected = Sexplib__Pre_sexp.of_string expected_macos_spec in
   let variant =
@@ -97,9 +97,9 @@ let test_macos_spec () =
           }
     |> Obuilder_spec.sexp_of_t
   in
-  Alcotest.(check sexp) "validate" expected actual
+  Lwt.return (Alcotest.(check sexp) "validate" expected actual)
 
-let test_linux_spec () =
+let test_linux_spec _ () =
   let open Ocaml_ci in
   let expected = Sexplib__Pre_sexp.of_string expected_linux_spec in
   let variant =
@@ -136,10 +136,10 @@ let test_linux_spec () =
           }
     |> Obuilder_spec.sexp_of_t
   in
-  Alcotest.(check sexp) "validate" expected actual
+  Lwt.return (Alcotest.(check sexp) "validate" expected actual)
 
 let tests =
   [
-    Alcotest.test_case "macos" `Quick test_macos_spec;
-    Alcotest.test_case "linux" `Quick test_linux_spec;
+    Alcotest_lwt.test_case "macos" `Quick test_macos_spec;
+    Alcotest_lwt.test_case "linux" `Quick test_linux_spec;
   ]

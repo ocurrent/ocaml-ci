@@ -1,5 +1,5 @@
 (executables
- (names test test_lwt)
+ (names test)
  (libraries
   ocaml_ci
   alcotest
@@ -18,9 +18,4 @@
  (deps
   (source_tree migrations))
  (action
-  (run ./test_lwt.exe -e)))
-
-(rule
- (alias runtest)
- (action
-  (run ./test.exe)))
+  (run ./test.exe -e)))
