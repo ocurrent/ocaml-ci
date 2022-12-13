@@ -152,8 +152,9 @@ let list_all_orgs ~github_orgs ~gitlab_orgs =
                         a_class
                           [
                             "input-control relative input-text text-gray-500 \
-                             dark:text-gray-300  bg-gray-100 items-center \
-                             justify-between flex px-3 py-2 appearance-none";
+                             dark:text-gray-300 bg-gray-100 dark:bg-gray-850 \
+                             items-center justify-between flex px-3 py-2 \
+                             appearance-none";
                           ];
                         a_name "Languages";
                         a_onchange "filter(this.value)";

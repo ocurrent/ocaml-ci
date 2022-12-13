@@ -32,15 +32,7 @@ let header =
     [
       div
         ~a:[ a_class [ "container-fluid flex justify-between items-center" ] ]
-        [
-          a
-            ~a:[ a_href "/" ]
-            [
-              img ~src:"/images/logo.svg" ~alt:"OCaml-CI"
-                ~a:[ a_width 116; a_height 32 ]
-                ();
-            ];
-        ];
+        [ a ~a:[ a_href "/" ] [ Common.logo_unsafe ] ];
     ]
 
 let body ~code ~reason =
