@@ -162,7 +162,7 @@ select {
 }
 
 .table-container {
-  @apply border border-gray-200 rounded-lg w-full divide-y divide-gray-200 overflow-hidden shadow-sm;
+  @apply border border-gray-200 dark:border-gray-400 rounded-lg w-full divide-y divide-gray-200 overflow-hidden shadow-sm;
 }
 
 .dropdown-menu {
@@ -218,11 +218,11 @@ select {
 }
 
 .code-line__number {
-  @apply bg-gray-200 px-1 md:px-6 w-14 text-gray-700 text-sm cursor-pointer select-none border-none;
+  @apply text-gray-900 dark:text-gray-100 bg-gray-200 dark:bg-gray-850 text-center px-1 md:px-6 w-14 text-gray-700 text-sm cursor-pointer select-none border-none;
 }
 
 .code-line__code {
-  @apply px-3 md:px-6 text-gray-800 whitespace-pre bg-transparent border-none text-sm;
+  @apply px-3 md:px-6 whitespace-pre bg-transparent border-none text-sm ;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   border-left: 1px solid transparent;
 }

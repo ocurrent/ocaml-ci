@@ -517,6 +517,18 @@ let build_history_button history_url =
         ]
       [ txt "Build History" ])
 
+let css =
+  Printf.sprintf
+    {|
+@media (prefers-color-scheme: light) {
+%s
+}
+@media (prefers-color-scheme: dark) {
+%s
+}
+|}
+    Ansi.css Ansi.css_dark
+
 let logo_unsafe =
   (* FIXME: this an ugly trick to be able to use the dark mode in the ocaml logo *)
   Tyxml.Html.(
