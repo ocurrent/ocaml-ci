@@ -261,8 +261,9 @@ module Make (M : Git_forge_intf.Forge) = struct
       | _ -> "\"rgba(226, 232, 240, 1)\","
     in
     let js_of_history fmt (name, data) =
-      assert (List.compare_length_with data 15 <= 0);
-      let data = List.map fmt data in
+      let data =
+        List.filteri (fun i _ -> i < 15) data
+        |> List.map fmt in
       [ "\""; name; "\":[" ] ++ data ++ [ "]," ]
     in
     (* The chart is left-to-right old-to-new, which is the opposite direction to the provided data *)
