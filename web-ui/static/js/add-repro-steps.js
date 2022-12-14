@@ -12,6 +12,8 @@ function extractStepsToReproduce() {
   const br = document.createElement("br");
   const reproDiv = document.getElementById("build-repro");
 
+  document.getElementById("build-repro-container").style.removeProperty('display');
+
   for (let i = (startIndex); i < (finishIndex - 1); i++) {
     // Remove line-number, whitespace and possible newlines from the row
     const newContent = document.createTextNode(tableRows.rows[i].innerText.replace(/\d+\s*\n?/, ''));
