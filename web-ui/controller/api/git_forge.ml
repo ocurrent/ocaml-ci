@@ -66,6 +66,7 @@ module Make (Api : Api) = struct
         timestamps
     in
     Api.show_step ~step_info ~run_time ~can_rebuild:status.can_rebuild
+      ~can_cancel:status.can_cancel
 
   let list_steps ~org ~repo ~hash ci =
     Controller.Backend.ci ci >>= fun ci ->
