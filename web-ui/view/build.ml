@@ -48,7 +48,8 @@ let title_card ~status ~card_title ~hash_link ~ref_links ~first_created_at
             [
               "flex flex-col md:flex-row justify-between items-center \
                space-x-0 md:space-x-5";
-            ]; (* NOTE: Adding 'truncate' to this class breaks the Rebuild button *)
+            ];
+          (* NOTE: Adding 'truncate' to this class breaks the Rebuild button *)
         ]
       [
         div
