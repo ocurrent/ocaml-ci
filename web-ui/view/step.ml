@@ -590,8 +590,7 @@ module Make (M : Git_forge_intf.Forge) = struct
       in
       Printf.sprintf "%s%s"
         (List.fold_left aux
-           "<table class='fg-default bg-default' id='steps-table'><tbody>" data)
-        "</tbody></table>"
+           "<table class='fg-default bg-default flex' id='steps-table'><tbody>" data)
     in
     let open Lwt.Infix in
     Dream.stream
