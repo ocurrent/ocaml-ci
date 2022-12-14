@@ -36,6 +36,15 @@ module type Controller = sig
     Backend.t ->
     Dream.server Dream.message Lwt.t
 
+  val cancel_step :
+    org:string ->
+    repo:string ->
+    hash:string ->
+    variant:string ->
+    Dream.client Dream.message ->
+    Backend.t ->
+    Dream.server Dream.message Lwt.t
+
   val rebuild_step :
     org:string ->
     repo:string ->
@@ -192,6 +201,31 @@ module Make (View : View) = struct
           ~csrf_token ~flash_messages ~timestamps ~build_created_at
           ~step_created_at ~step_finished_at ~can_rebuild ~can_cancel
           ~job:job_cap chunk
+
+  let cancel_step ~org ~repo ~hash ~variant request ci =
+    Backend.ci ci >>= fun ci ->
+    Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
+    Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
+    Capability.with_ref (Client.Repo.commit_of_hash repo_cap hash)
+    @@ fun commit_cap ->
+    Capability.with_ref (Client.Commit.job_of_variant commit_cap variant)
+    @@ fun job ->
+    Current_rpc.Job.cancel job >>= function
+    | Ok () ->
+        let () =
+          Dream.add_flash_message request "Success"
+            (Fmt.str "Cancel %s" variant)
+        in
+        let uri = job_url ~org ~repo ~hash variant in
+        Dream.redirect request uri
+    | Error (`Capnp ex) ->
+        let () =
+          Dream.add_flash_message request "Error"
+            (Fmt.str "Can't cancel %s: internal error" variant)
+        in
+        Dream.log "Error cancelling job: %a" Capnp_rpc.Error.pp ex;
+        let uri = job_url ~org ~repo ~hash variant in
+        Dream.redirect request uri
 
   let rebuild_step ~org ~repo ~hash ~variant request ci =
     Backend.ci ci >>= fun ci ->
