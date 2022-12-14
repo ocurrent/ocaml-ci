@@ -70,8 +70,11 @@ var body = null;
 
 const chartOptions = {
   maintainAspectRatio: false,
-  legend: {
-    display: false,
+  label: "",
+  plugins: {
+    legend: {
+      display: false,
+    },
   },
   tooltips: {
     enabled: false,
@@ -82,22 +85,24 @@ const chartOptions = {
     },
   },
   scales: {
-    xAxes: [{
-      gridLines: false,
-      scaleLabel: false,
+    x: {
+      grid: {
+        display: false,
+        drawTicks: false,
+      },
       ticks: {
         display: false,
       },
-    }],
-    yAxes: [{
-      gridLines: false,
-      scaleLabel: false,
+    },
+    y: {
+      grid: {
+        display: false,
+        drawTicks: false,
+      },
       ticks: {
         display: false,
-        suggestedMin: 0,
-        suggestedMax: 10,
       },
-    }],
+    },
   },
 };
 

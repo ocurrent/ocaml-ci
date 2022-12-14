@@ -126,8 +126,8 @@ module Make (M : Git_forge_intf.Forge) = struct
         ]
       in
       if Float.is_nan statistics.speed then [ txt "N/A" ]
-      else if statistics.speed > 3600. then fmt (statistics.speed /. 3600.) "hr"
-      else if statistics.speed > 60. then fmt (statistics.speed /. 60.) "min"
+      else if statistics.speed >= 3600. then fmt (statistics.speed /. 3600.) "hr"
+      else if statistics.speed >= 60. then fmt (statistics.speed /. 60.) "min"
       else fmt statistics.speed "sec"
     in
     let reliability =
@@ -447,7 +447,7 @@ module Make (M : Git_forge_intf.Forge) = struct
           ~a:
             [
               a_src
-                "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js";
+                "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js";
             ]
           (txt "");
         script (Unsafe.data (js_of_histories histories));
