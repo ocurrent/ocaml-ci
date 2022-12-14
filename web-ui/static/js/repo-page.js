@@ -70,7 +70,6 @@ var body = null;
 
 const chartOptions = {
   maintainAspectRatio: false,
-  label: "",
   plugins: {
     legend: {
       display: false,
@@ -169,7 +168,4 @@ window.onload = function() {
   body = table_root.lastChild;
 
   charts_init();
-  // Hack to make the bar charts consistently sized, without this on
-  // page load they are of different sizes until the window is resized.
-  window.dispatchEvent(new Event('resize'));
 }

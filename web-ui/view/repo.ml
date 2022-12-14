@@ -126,7 +126,8 @@ module Make (M : Git_forge_intf.Forge) = struct
         ]
       in
       if Float.is_nan statistics.speed then [ txt "N/A" ]
-      else if statistics.speed >= 3600. then fmt (statistics.speed /. 3600.) "hr"
+      else if statistics.speed >= 3600. then
+        fmt (statistics.speed /. 3600.) "hr"
       else if statistics.speed >= 60. then fmt (statistics.speed /. 60.) "min"
       else fmt statistics.speed "sec"
     in
@@ -157,7 +158,7 @@ module Make (M : Git_forge_intf.Forge) = struct
         ]
       [
         td
-          ~a:[ a_class [ "flex items-center space-x-3" ] ]
+          ~a:[ a_class [ "flex items-center space-x-3 " ] ]
           [
             Common.status_icon_build status;
             div
@@ -180,7 +181,7 @@ module Make (M : Git_forge_intf.Forge) = struct
               ];
           ];
         td
-          ~a:[ a_class [ "text-xs space-y-1" ] ]
+          ~a:[ a_class [ "text-xs space-y-1 hidden lg:table-cell" ] ]
           [
             div [ txt "master" ];
             div
@@ -190,7 +191,7 @@ module Make (M : Git_forge_intf.Forge) = struct
                   ~a:[ a_class [ "overflow-hidden" ] ]
                   [
                     div
-                      ~a:[ a_class [ "bottom-0 inset-x-0" ] ]
+                      ~a:[ a_class [ "bottom-0 inset-x-0 relative" ] ]
                       [
                         canvas
                           ~a:
@@ -203,9 +204,14 @@ module Make (M : Git_forge_intf.Forge) = struct
                   ];
               ];
           ];
-        td [ div ~a:[ a_class [ "text-2xl gray-700" ] ] speed ];
-        td [ div ~a:[ a_class [ "text-2xl gray-700" ] ] reliability ];
         td
+          ~a:[ a_class [ "hidden md:table-cell" ] ]
+          [ div ~a:[ a_class [ "text-2xl gray-700" ] ] speed ];
+        td
+          ~a:[ a_class [ "hidden md:table-cell" ] ]
+          [ div ~a:[ a_class [ "text-2xl gray-700" ] ] reliability ];
+        td
+          ~a:[ a_class [ "hidden md:table-cell" ] ]
           [
             div ~a:[ a_class [ "text-2xl gray-700" ] ] build_frequency_per_week;
           ];
@@ -220,10 +226,14 @@ module Make (M : Git_forge_intf.Forge) = struct
         tr
           [
             th [ div [ txt name ] ];
-            th [ txt "Speed over time" ];
-            th [ txt "Speed" ];
-            th [ txt "Reliability" ];
-            th [ txt "Build frequency" ];
+            th
+              ~a:[ a_class [ "hidden lg:table-cell" ] ]
+              [ txt "Speed over time" ];
+            th ~a:[ a_class [ "hidden md:table-cell" ] ] [ txt "Speed" ];
+            th ~a:[ a_class [ "hidden md:table-cell" ] ] [ txt "Reliability" ];
+            th
+              ~a:[ a_class [ "hidden md:table-cell" ] ]
+              [ txt "Build frequency" ];
             th [];
           ];
       ]
