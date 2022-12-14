@@ -4,8 +4,7 @@ module Run_time = Ocaml_ci_client_lib.Run_time
 
 module Make (M : Git_forge_intf.Forge) = struct
   let title_card ~status ~card_title ~hash_link ~created_at ~finished_at
-      ~queued_for ~ran_for ~button =
-    let rebuild_button = Option.value ~default:(Tyxml.Html.div []) button in
+      ~queued_for ~ran_for ~buttons =
     Tyxml.Html.(
       div
         ~a:[ a_class [ "justify-between items-center flex" ] ]
@@ -70,7 +69,13 @@ module Make (M : Git_forge_intf.Forge) = struct
                     a_id "step-ran-for"; a_class [ "hidden md:inline text-sm" ];
                   ]
                 [ txt @@ Fmt.str "Ran for %s" ran_for ];
-              rebuild_button;
+              div
+                ~a:
+                  [
+                    a_class [ "relative" ];
+                    Tyxml_helpers.x_data "{rebuildMenu: false}";
+                  ]
+                buttons;
             ];
         ])
 
@@ -200,9 +205,11 @@ module Make (M : Git_forge_intf.Forge) = struct
 
     (* FIXME: Implement cancel step *)
     let header, footer =
-      let button =
-        Some
-          (Common.form_rebuild_step ~variant ~csrf_token ~show:can_rebuild ())
+      let buttons =
+        [
+          Common.form_cancel_step ~variant ~csrf_token ~show:can_cancel ();
+          Common.form_rebuild_step ~variant ~csrf_token ~show:can_rebuild ();
+        ]
       in
       let branch =
         if refs = [] then ""
@@ -229,7 +236,7 @@ module Make (M : Git_forge_intf.Forge) = struct
           ~ran_for:
             (Timestamps_durations.pp_duration
                (Option.map Run_time.ran_for run_time))
-          ~button
+          ~buttons
       in
       let steps_to_reproduce_build =
         Tyxml.Html.(
