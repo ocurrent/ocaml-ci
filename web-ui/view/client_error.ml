@@ -36,6 +36,12 @@ let header =
     ]
 
 let body ~code ~reason =
+  let error_text =
+    if code = 500 then "We're sorry, something's wrong on our end."
+    else
+      "We're sorry, the page you requested could not be found. Please go back \
+       to the homepage."
+  in
   body
     ~a:[ a_class [ "" ] ]
     [
@@ -57,12 +63,7 @@ let body ~code ~reason =
               div
                 ~a:[ a_class [ "text-2xl font-medium my-6" ] ]
                 [ txt (Fmt.str "Oops! %s" reason) ];
-              div
-                [
-                  txt
-                    "We're sorry, the page you requested could not be found. \
-                     Please go back to the homepage.";
-                ];
+              div [ txt error_text ];
               a
                 ~a:[ a_class [ "btn btn-secondary mt-8 btn-lg" ]; a_href "/" ]
                 [ txt "Take me home" ];
