@@ -55,5 +55,5 @@ build: [
 ]
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
 pin-depends: [
-  ["ansi.dev" "git+https://github.com/ocurrent/ansi#db90a0e01956f34dc2be1d16b54e4d54ecf54e98"] # morecolors
+  ["ansi.dev" "git+https://github.com/ocurrent/ansi#6efb1a97495319e6ec1a46a1e7e31f8932f3918b"] # morecolors
 ]

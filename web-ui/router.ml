@@ -247,7 +247,9 @@ let create ~github ~gitlab =
   Dream.router
     ([
        Dream.get "/css/ansi.css" (fun _ ->
-           Dream.respond ~headers:[ ("content-type", "text/css") ] Ansi.css);
+           Dream.respond
+             ~headers:[ ("content-type", "text/css") ]
+             View.Common.css);
        Dream.get "/favicon.ico" @@ Dream.static ~loader "/";
        Dream.get "/css/**" @@ Dream.static ~loader "/css";
        Dream.get "/images/**" @@ Dream.static ~loader "/images";

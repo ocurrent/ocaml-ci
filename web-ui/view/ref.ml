@@ -79,8 +79,9 @@ module Make (M : Git_forge_intf.Forge) = struct
                     [
                       a_class
                         [
-                          "font-medium text-gray-700 text-sm px-2 py-1 border \
-                           border-gray-300 rounded-lg max-w-full truncate";
+                          "font-medium text-gray-700 dark:text-gray-200 \
+                           text-sm px-2 py-1 border border-gray-300 rounded-lg \
+                           max-w-full truncate";
                         ];
                     ]
                   [ txt ref_title ];
@@ -91,7 +92,10 @@ module Make (M : Git_forge_intf.Forge) = struct
                       ~a:
                         [
                           a_class
-                            [ "text-gray-900 text-sm font-medium truncate" ];
+                            [
+                              "text-gray-900 dark:text-gray-100 text-sm \
+                               font-medium truncate";
+                            ];
                         ]
                       [ txt message ];
                     div
@@ -105,8 +109,8 @@ module Make (M : Git_forge_intf.Forge) = struct
             [
               a_class
                 [
-                  "hidden md:flex text-sm font-normal text-gray-500 space-x-8 \
-                   items-center self-center ";
+                  "hidden md:flex text-sm font-normal text-gray-500 \
+                   dark:text-gray-400 space-x-8 items-center self-center ";
                 ];
             ]
           rhs;

@@ -121,10 +121,20 @@ let step_row ~step_title ~created_at ~queued_for ~ran_for ~status ~step_uri =
               ~a:[ a_class [ "flex flex-col" ] ]
               [
                 div
-                  ~a:[ a_class [ "text-gray-900 text-sm font-medium" ] ]
+                  ~a:
+                    [
+                      a_class
+                        [
+                          "text-gray-900 dark:text-gray-100 text-sm font-medium";
+                        ];
+                    ]
                   [ txt step_title ];
                 div
-                  ~a:[ a_class [ "hidden md:flex text-sm space-x-2" ] ]
+                  ~a:
+                    [
+                      a_class
+                        [ "hidden md:flex text-gray-500 text-sm space-x-2" ];
+                    ]
                   [
                     div [ txt @@ Fmt.str "Created at %s" created_at ];
                     div ~a:[ a_class [ "hidden md:inline" ] ] [ txt "-" ];

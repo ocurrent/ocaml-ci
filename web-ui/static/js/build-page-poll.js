@@ -78,7 +78,7 @@ function poll(api_path, timeout, interval) {
           const right_arrow_elt = document.createElement("div");
 
           step_title.textContent = step["variant"];
-          step_title.setAttribute("class", "text-gray-900 text-base md:text-sm font-medium");
+          step_title.setAttribute("class", "text-gray-900 dark:text-gray-100 text-base md:text-sm font-medium");
 
           step_created_at.textContent = "Created at " + step["created_at"];
           hyphen.textContent = "-";
@@ -89,7 +89,7 @@ function poll(api_path, timeout, interval) {
           step_timestamps_durations.appendChild(step_queued_for);
           step_timestamps_durations.setAttribute(
             "class",
-            "hidden md:flex text-sm space-x-2"
+            "hidden md:flex text-gray-500 text-sm space-x-2"
           );
 
           step_info.appendChild(step_title);

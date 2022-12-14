@@ -167,12 +167,16 @@ module Make (M : Git_forge_intf.Forge) = struct
                 div
                   ~a:
                     [
-                      a_class [ "repo-title text-gray-900 text-sm font-medium" ];
+                      a_class
+                        [
+                          "repo-title text-gray-900 dark:text-gray-200 text-sm \
+                           font-medium";
+                        ];
                     ]
                   [ txt repo_title ];
                 info;
                 div
-                  ~a:[ a_class [ "text-grey-500" ] ]
+                  ~a:[ a_class [ "text-gray-500 dark:text-gray-400" ] ]
                   [ div [ txt description ] ];
               ];
           ];
@@ -234,8 +238,8 @@ module Make (M : Git_forge_intf.Forge) = struct
             [
               a_class
                 [
-                  "custom-table table-auto border border-gray-200 border-t-0 \
-                   rounded-lg w-full min-w-0";
+                  "custom-table table-auto border border-gray-200 \
+                   dark:border-gray-400 border-t-0 rounded-lg w-full min-w-0";
                 ];
               a_id "table";
             ]
@@ -380,12 +384,15 @@ module Make (M : Git_forge_intf.Forge) = struct
                     ~a:
                       [
                         a_class
-                          [ "repo-title text-gray-900 text-sm font-medium" ];
+                          [
+                            "repo-title text-gray-900 dark:text-gray-200 \
+                             text-sm font-medium";
+                          ];
                       ]
                     [ txt repo_title ];
                   info;
                   div
-                    ~a:[ a_class [ "text-grey-500" ] ]
+                    ~a:[ a_class [ "text-grey-500 dark:text-gray-400" ] ]
                     [ div [ txt description ] ];
                 ];
             ];

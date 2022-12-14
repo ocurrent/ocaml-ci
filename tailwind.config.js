@@ -9,6 +9,9 @@ module.exports = {
         warning: {
           50: "#FFFAEB",
           500: "#F79009",
+        },
+        gray: {
+            850: "#1B263D",
         }
       },
       typography (theme) {

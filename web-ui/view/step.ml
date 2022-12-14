@@ -239,7 +239,8 @@ module Make (M : Git_forge_intf.Forge) = struct
                 a_class
                   [
                     "shadow-sm rounded-lg overflow-hidden border \
-                     border-gray-200 divide-x divide-gray-20";
+                     border-gray-200 dark:border-gray-400 divide-x \
+                     divide-gray-20";
                   ];
                 a_id "build-repro-container";
               ]
@@ -248,7 +249,10 @@ module Make (M : Git_forge_intf.Forge) = struct
                 ~a:
                   [
                     a_class
-                      [ "flex items-center justify-between px-4 py-3 bg-white" ];
+                      [
+                        "flex items-center justify-between px-4 py-3 \
+                         bg-gray-50 dark:bg-gray-850";
+                      ];
                   ]
                 [
                   div
@@ -257,9 +261,9 @@ module Make (M : Git_forge_intf.Forge) = struct
                         Tyxml_helpers.at_click "stepsToRepro = !stepsToRepro";
                         a_class
                           [
-                            "text-gray-900 text-base font-medium border-b-none \
-                             border-gray-200 flex items-center space-x-3 \
-                             flex-1 cursor-pointer";
+                            "text-gray-900 dark:text-gray-200 text-base \
+                             font-medium border-b-none border-gray-200 flex \
+                             items-center space-x-3 flex-1 cursor-pointer";
                           ];
                       ]
                     [
@@ -345,8 +349,9 @@ module Make (M : Git_forge_intf.Forge) = struct
                       [
                         a_class
                           [
-                            "bg-gray-900 px-6 py-3 rounded-lg rounded-l-none \
-                             text-gray-300 w-full rounded-t-none";
+                            "fg-default bg-default px-6 py-3 rounded-lg \
+                             rounded-l-none text-gray-300 w-full \
+                             rounded-t-none";
                           ];
                       ]
                     [
@@ -583,7 +588,8 @@ module Make (M : Git_forge_intf.Forge) = struct
                   ]))
       in
       Printf.sprintf "%s%s"
-        (List.fold_left aux "<table id='steps-table'><tbody>" data)
+        (List.fold_left aux
+           "<table class='fg-default bg-default' id='steps-table'><tbody>" data)
         "</tbody></table>"
     in
     let open Lwt.Infix in

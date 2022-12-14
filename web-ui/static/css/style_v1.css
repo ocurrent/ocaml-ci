@@ -9,7 +9,7 @@ html {
 
 body {
   font-family: "Inter", sans-serif;
-  @apply bg-gray-50 text-gray-500;
+  @apply bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-100;
 }
 
 .container-fluid {
@@ -18,7 +18,7 @@ body {
 
 .input-text,
 .dropdown {
-  @apply border border-gray-300 rounded-lg h-11 w-36 focus:outline-none focus:border-gray-400;
+  @apply border border-gray-300 dark:border-gray-400 rounded-lg h-11 w-36 focus:outline-none focus:border-gray-400;
   box-shadow: 0px 1px 2px rgba(16, 24, 40, 0.05);
 
 }
@@ -28,11 +28,11 @@ body {
 }
 
 h1 {
-  @apply text-3xl font-medium text-gray-900;
+  @apply text-3xl font-medium text-gray-900 dark:text-gray-100;
 }
 
 .item-card {
-  @apply bg-white rounded-lg border border-gray-200 px-6 py-4;
+  @apply bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-400 px-6 py-4;
 }
 
 table {
@@ -45,16 +45,16 @@ table {
 .custom-table tr td {
   padding: 5px;
   min-height: 80px;
-  @apply md:px-6 md:py-4 border-b border-gray-200;
+  @apply md:px-6 md:py-4 border-b border-gray-200 dark:border-gray-400;
 }
 
 .custom-table tr th {
-  @apply bg-gray-50 border-t border-gray-200 text-gray-500 text-xs font-medium;
+  @apply bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-400 text-gray-500 dark:text-gray-200 text-xs font-medium;
   text-align: left;
 }
 
 .custom-table tr td {
-  background: #fff;
+  @apply bg-white dark:bg-gray-850;
 }
 
 /* top-left border-radius */
@@ -150,7 +150,7 @@ select {
 }
 
 .form-control input {
-  @apply border border-gray-300 h-11 pl-10 w-full pr-4 rounded-lg;
+  @apply bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-400 h-11 pl-10 w-full pr-4 rounded-lg dark:focus:bg-gray-850 dark:focus:outline-none dark:focus:border-gray-200;
 }
 
 .form-control svg {
@@ -158,11 +158,11 @@ select {
 }
 
 .table-row {
-  @apply px-6 py-3 bg-white flex justify-between items-start md:items-center;
+  @apply px-6 py-3 bg-white dark:bg-gray-850 flex justify-between items-start md:items-center;
 }
 
 .table-container {
-  @apply border border-gray-200 rounded-lg w-full divide-y divide-gray-200 overflow-hidden shadow-sm;
+  @apply border border-gray-200 dark:border-gray-400 rounded-lg w-full divide-y divide-gray-200 overflow-hidden shadow-sm;
 }
 
 .dropdown-menu {
@@ -218,11 +218,11 @@ select {
 }
 
 .code-line__number {
-  @apply bg-gray-200 px-1 md:px-6 w-14 text-gray-700 text-sm cursor-pointer select-none border-none;
+  @apply text-gray-900 dark:text-gray-100 bg-gray-200 dark:bg-gray-850 text-center px-1 md:px-6 w-14 text-gray-700 text-sm cursor-pointer select-none border-none;
 }
 
 .code-line__code {
-  @apply px-3 md:px-6 text-gray-800 whitespace-pre bg-transparent border-none text-sm;
+  @apply px-3 md:px-6 whitespace-pre bg-transparent border-none text-sm ;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   border-left: 1px solid transparent;
 }
@@ -273,7 +273,7 @@ select {
 }
 
 .link-hover:hover {
-  @apply text-blue-600;
+  @apply text-blue-600 dark:text-gray-500;
 }
 
 .text-stroke {
@@ -316,4 +316,10 @@ select {
 
 .flash-message--error .icon-button:hover {
   @apply bg-red-100;
+}
+
+/* LOGO */
+
+.svg-fill {
+    @apply fill-gray-900 dark:fill-gray-100;
 }

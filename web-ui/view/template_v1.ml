@@ -37,8 +37,8 @@ let header ~full =
       [
         a_class
           [
-            "h-20 flex items-center border-b border-gray-200 bg-white top-0 \
-             z-50";
+            "h-20 flex items-center border-b border-gray-200 \
+             dark:border-gray-700 bg-white dark:bg-gray-850 top-0 z-50";
           ];
       ]
     [
@@ -48,9 +48,10 @@ let header ~full =
           a
             ~a:[ a_href "/" ]
             [
-              img ~src:"/images/logo.svg" ~alt:"OCaml-CI"
-                ~a:[ a_width 116; a_height 32 ]
-                ();
+              (* img ~src:"/images/logo.svg" ~alt:"OCaml-CI" *)
+              (*   ~a:[ a_width 116; a_height 32 ] *)
+              (*   (); *)
+              Common.logo_unsafe;
             ];
           div
             ~a:[ a_class [ "flex items-center md:inline space-x-4" ] ]

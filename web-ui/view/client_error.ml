@@ -25,22 +25,14 @@ let header =
       [
         a_class
           [
-            "h-20 flex items-center border-b border-gray-200 bg-white sticky \
-             top-0 z-50";
+            "h-20 flex items-center border-b border-gray-200 \
+             dark:border-gray-700 bg-white dark:bg-gray-850 sticky top-0 z-50";
           ];
       ]
     [
       div
         ~a:[ a_class [ "container-fluid flex justify-between items-center" ] ]
-        [
-          a
-            ~a:[ a_href "/" ]
-            [
-              img ~src:"/images/logo.svg" ~alt:"OCaml-CI"
-                ~a:[ a_width 116; a_height 32 ]
-                ();
-            ];
-        ];
+        [ a ~a:[ a_href "/" ] [ Common.logo_unsafe ] ];
     ]
 
 let body ~code ~reason =
