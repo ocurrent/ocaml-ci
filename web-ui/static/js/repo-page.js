@@ -71,23 +71,23 @@ var body = null;
 const chartOptions = {
   maintainAspectRatio: false,
   legend: {
-    display: false
+    display: false,
   },
   tooltips: {
-    enabled: false
+    enabled: false,
   },
   elements: {
     point: {
-      radius: 0
-    }
+      radius: 0,
+    },
   },
   scales: {
     xAxes: [{
       gridLines: false,
       scaleLabel: false,
       ticks: {
-        display: false
-      }
+        display: false,
+      },
     }],
     yAxes: [{
       gridLines: false,
@@ -95,9 +95,9 @@ const chartOptions = {
       ticks: {
         display: false,
         suggestedMin: 0,
-        suggestedMax: 10
-      }
-    }]
+        suggestedMax: 10,
+      },
+    }],
   },
 };
 

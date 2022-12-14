@@ -119,17 +119,16 @@ module Make (M : Git_forge_intf.Forge) = struct
       | Some v -> Printf.sprintf "%f" v
     in
     let speed =
+      let fmt v symbol =
+        [
+          txt (Printf.sprintf "%.1f" v);
+          span ~a:[ a_class [ "text-sm pl-0.5" ] ] [ txt symbol ];
+        ]
+      in
       if Float.is_nan statistics.speed then [ txt "N/A" ]
-      else if statistics.speed > 60. then
-        [
-          txt (Printf.sprintf "%.1f" (statistics.speed /. 60.));
-          span ~a:[ a_class [ "text-sm pl-0.5" ] ] [ txt "min" ];
-        ]
-      else
-        [
-          txt (Printf.sprintf "%.1f" statistics.speed);
-          span ~a:[ a_class [ "text-sm pl-0.5" ] ] [ txt "sec" ];
-        ]
+      else if statistics.speed > 3600. then fmt (statistics.speed /. 3600.) "hr"
+      else if statistics.speed > 60. then fmt (statistics.speed /. 60.) "min"
+      else fmt statistics.speed "sec"
     in
     let reliability =
       if Float.is_nan statistics.reliability then [ txt "N/A" ]
@@ -262,16 +261,21 @@ module Make (M : Git_forge_intf.Forge) = struct
       | _ -> "\"rgba(226, 232, 240, 1)\","
     in
     let js_of_history fmt (name, data) =
-      assert (List.compare_length_with data 15 <= 0);
-      let data = List.map fmt data in
+      let data =
+        List.filteri (fun i _ -> i < 15) data
+        |> List.map fmt in
       [ "\""; name; "\":[" ] ++ data ++ [ "]," ]
+    in
+    (* The chart is left-to-right old-to-new, which is the opposite direction to the provided data *)
+    let rev_data =
+      List.map (fun (repo, history) -> (repo, List.rev history)) data
     in
     let chart_labels = List.init 15 (fun x -> Printf.sprintf "%d," (x + 1)) in
     let chart_data =
-      List.map (js_of_history commit_data) data |> List.flatten
+      List.map (js_of_history commit_data) rev_data |> List.flatten
     in
     let chart_colours =
-      List.map (js_of_history commit_colour) data |> List.flatten
+      List.map (js_of_history commit_colour) rev_data |> List.flatten
     in
     [ "var chart_labels = [" ]
     ++ chart_labels
