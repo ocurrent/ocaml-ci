@@ -63,6 +63,19 @@ let gitlab_routes gitlab =
           ~org:(Dream.param request "org")
           ~repo:(Dream.param request "repo")
           ~gref gitlab);
+    Dream.post "/gitlab/:org/:repo/commit/:hash/variant/:variant/cancel"
+      (fun request ->
+        Dream.form request >>= function
+        | `Ok _ ->
+            Controller.Gitlab.cancel_step
+              ~org:(Dream.param request "org")
+              ~repo:(Dream.param request "repo")
+              ~hash:(Dream.param request "hash")
+              ~variant:(Dream.param request "variant")
+              request gitlab
+        | _ ->
+            Dream.log "Form validation failed";
+            Dream.empty `Bad_Request);
     Dream.post "/gitlab/:org/:repo/commit/:hash/variant/:variant/rebuild"
       (fun request ->
         Dream.form request >>= function
@@ -182,6 +195,19 @@ let github_routes github =
           List.hd (Astring.String.cuts ~sep:"/-/" (Dream.target request))
         in
         Dream.redirect request target);
+    Dream.post "/github/:org/:repo/commit/:hash/variant/:variant/cancel"
+      (fun request ->
+        Dream.form request >>= function
+        | `Ok _ ->
+            Controller.Github.cancel_step
+              ~org:(Dream.param request "org")
+              ~repo:(Dream.param request "repo")
+              ~hash:(Dream.param request "hash")
+              ~variant:(Dream.param request "variant")
+              request github
+        | _ ->
+            Dream.log "Form validation failed";
+            Dream.empty `Bad_Request);
     Dream.post "/github/:org/:repo/commit/:hash/variant/:variant/rebuild"
       (fun request ->
         Dream.form request >>= function

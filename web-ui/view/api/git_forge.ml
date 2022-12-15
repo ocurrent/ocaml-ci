@@ -6,6 +6,7 @@ module type Api = sig
     step_info:Client.job_info option ->
     run_time:Run_time.run_time_info option ->
     can_rebuild:bool ->
+    can_cancel:bool ->
     Dream.response Lwt.t
 
   val list_steps :
@@ -36,10 +37,11 @@ module Make (M : M_Git_forge) = struct
   let step_route_prefix ~org ~repo ~hash =
     Fmt.str "/%s/%s/%s/commit/%s/variant" M.prefix org repo hash
 
-  let show_step ~step_info ~run_time ~can_rebuild =
+  let show_step ~step_info ~run_time ~can_rebuild ~can_cancel =
     Dream.json
     @@ Step.to_json
     @@ Step.from_status_info_run_time ~step_info ~run_time ~can_rebuild
+         ~can_cancel
 
   let list_steps ~org ~repo ~hash ~jobs ~build_status =
     let step_route_prefix = step_route_prefix ~org ~repo ~hash in

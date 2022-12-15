@@ -102,6 +102,23 @@ let form_for ~x_ref ~action ~csrf_token ~submit_button ~input_value =
           ();
       ])
 
+let form_cancel_step ~variant ~csrf_token ?(show = true) () =
+  let display_none = if show then "" else "display:none" in
+  let submit_button =
+    Tyxml.Html.(
+      button
+        [ txt "Cancel" ]
+        ~a:
+          [
+            a_id "cancel-step";
+            a_class [ "btn btn-primary" ];
+            a_style display_none;
+            Tyxml_helpers.at_click "$refs.cancelStepForm.submit()";
+          ])
+  in
+  form_for ~csrf_token ~x_ref:"cancelForm" ~action:(variant ^ "/cancel")
+    ~submit_button ~input_value:"Cancel"
+
 let form_rebuild_step ~variant ~csrf_token ?(show = true) () =
   let display_none = if show then "" else "display:none" in
   let submit_button =
@@ -116,7 +133,6 @@ let form_rebuild_step ~variant ~csrf_token ?(show = true) () =
             Tyxml_helpers.at_click "$refs.rebuildStepForm.submit()";
           ])
   in
-
   form_for ~csrf_token ~submit_button ~x_ref:"rebuildStepForm"
     ~action:(variant ^ "/rebuild") ~input_value:"Rebuild"
 

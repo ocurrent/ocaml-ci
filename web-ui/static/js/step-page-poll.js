@@ -47,6 +47,12 @@ function poll(api_path, timeout, interval) {
               .getElementById("rebuild-step")
               .style.removeProperty("display");
           }
+        if (data["can_cancel"]) {
+            document
+              .getElementById("cancel-step")
+              .style.removeProperty("display");
+          }
+
           console.log("Build has finished. Stop polling.");
         }
 

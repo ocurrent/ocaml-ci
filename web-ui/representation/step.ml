@@ -12,11 +12,12 @@ type t = {
   queued_for : string;
   ran_for : string;
   can_rebuild : bool;
+  can_cancel : bool;
   variant : string;
 }
 [@@deriving yojson]
 
-let from_status_info_run_time ~step_info ~run_time ~can_rebuild =
+let from_status_info_run_time ~step_info ~run_time ~can_rebuild ~can_cancel =
   {
     version;
     status =
@@ -36,6 +37,7 @@ let from_status_info_run_time ~step_info ~run_time ~can_rebuild =
     ran_for =
       Timestamps_durations.pp_duration (Option.map Run_time.ran_for run_time);
     can_rebuild;
+    can_cancel;
     variant =
       Option.fold ~none:""
         ~some:(fun i -> Fmt.str "%s" i.Client.variant)
@@ -58,5 +60,6 @@ let from_status_info ~step_info ~build_created_at =
     Option.map (Run_time.run_times_from_timestamps ~build_created_at) timestamps
   in
   from_status_info_run_time ~step_info ~run_time ~can_rebuild:false
+    ~can_cancel:false
 
 let to_json t = Yojson.Safe.to_string @@ to_yojson t
