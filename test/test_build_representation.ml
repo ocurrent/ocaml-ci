@@ -24,7 +24,7 @@ let test_simple () =
     }
   in
   let expected_1 =
-    {|{"version":"1.0","status":"passed","created_at":"Oct 19 20:13 +00:00","finished_at":"Oct 19 20:14 +00:00","queued_for":"42s","ran_for":"56s","can_rebuild":false,"variant":"analysis"}|}
+    {|{"version":"1.0","status":"passed","created_at":"Oct 19 20:13 +00:00","finished_at":"Oct 19 20:14 +00:00","queued_for":"42s","ran_for":"56s","can_rebuild":false,"can_cancel":false,"variant":"analysis"}|}
   in
   let step_info_2 : Client.job_info =
     {
@@ -36,7 +36,7 @@ let test_simple () =
     }
   in
   let expected_2 =
-    {|{"version":"1.0","status":"passed","created_at":"Oct 19 20:13 +00:00","finished_at":"Oct 19 20:15 +00:00","queued_for":"42s","ran_for":"1m06s","can_rebuild":false,"variant":"variant"}|}
+    {|{"version":"1.0","status":"passed","created_at":"Oct 19 20:13 +00:00","finished_at":"Oct 19 20:15 +00:00","queued_for":"42s","ran_for":"1m06s","can_rebuild":false,"can_cancel":false,"variant":"variant"}|}
   in
   let step_info_3 : Client.job_info =
     {
@@ -48,7 +48,7 @@ let test_simple () =
     }
   in
   let expected_3 =
-    {|{"version":"1.0","status":"failed: For reasons","created_at":"Oct 19 20:13 +00:00","finished_at":"Oct 19 20:15 +00:00","queued_for":"42s","ran_for":"1m56s","can_rebuild":false,"variant":"variant"}|}
+    {|{"version":"1.0","status":"failed: For reasons","created_at":"Oct 19 20:13 +00:00","finished_at":"Oct 19 20:15 +00:00","queued_for":"42s","ran_for":"1m56s","can_rebuild":false,"can_cancel":false,"variant":"variant"}|}
   in
   let jobs = [ step_info_1; step_info_2; step_info_3 ] in
   let build_status : Client.State.t = Failed "for reasons" in
