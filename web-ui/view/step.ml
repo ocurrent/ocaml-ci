@@ -533,7 +533,7 @@ module Make (M : Git_forge_intf.Forge) = struct
                   ~a:
                     [
                       Tyxml_helpers.x_show "logs";
-                      Tyxml_helpers.x_data "{stepsToRepro: true}";
+                      Tyxml_helpers.x_data "{stepsToRepro: false}";
                     ]
                   [ steps_to_reproduce_build; logs_container ];
               ];
