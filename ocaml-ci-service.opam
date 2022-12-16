@@ -16,6 +16,7 @@ depends: [
   "logs" {>= "0.7.0"}
   "fmt" {>= "0.8.9"}
   "cmdliner" {>= "1.1.0"}
+  "ansi" {>= "0.6.0"}
   "current_git"
   "current_github"
   "current_docker"
@@ -54,6 +55,3 @@ build: [
   ]
 ]
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
-pin-depends: [
-  ["ansi.dev" "git+https://github.com/ocurrent/ansi#6efb1a97495319e6ec1a46a1e7e31f8932f3918b"] # morecolors
-]
