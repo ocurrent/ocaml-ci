@@ -169,11 +169,10 @@ let platforms ~include_macos opam_version =
       let[@warning "-8"] (latest :: previous :: _) =
         List.rev OV.Releases.recent
       in
-      let ovs = [ latest ] in
+      let ovs = [ latest; previous ] in
       let macos_distros = if include_macos then macos_distros else [] in
       List.map make_release ovs
       @ macos_distros
-      @ [ make_release latest; make_release previous ]
 
 let fetch_platforms ~include_macos () =
   let open Ocaml_ci in
