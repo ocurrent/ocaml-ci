@@ -45,6 +45,7 @@
   (logs (>= 0.7.0))
   (fmt (>= 0.8.9))
   (cmdliner (>= 1.1.0))
+  (ansi (>= 0.6.0))
   current_git
   current_github
   current_docker
@@ -120,7 +121,7 @@
  (name ocaml-ci-web)
  (synopsis "Web-server frontend for ocaml-ci")
  (depends
-  (ansi (>= 0.5.0))
+  (ansi (>= 0.6.0))
   (capnp-rpc-unix (>= 1.2))
   (crunch (and (>= 3.2.0) :build))
   dream

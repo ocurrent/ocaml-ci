@@ -7,7 +7,7 @@ homepage: "https://github.com/ocurrent/ocaml-ci"
 bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
   "dune" {>= "3.3"}
-  "ansi" {>= "0.5.0"}
+  "ansi" {>= "0.6.0"}
   "capnp-rpc-unix" {>= "1.2"}
   "crunch" {>= "3.2.0" & build}
   "dream"
@@ -39,7 +39,6 @@ build: [
 ]
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
 pin-depends: [
-  ["ansi.dev" "git+https://github.com/ocurrent/ansi#6efb1a97495319e6ec1a46a1e7e31f8932f3918b"] # morecolors
   ["dream.dev" "git+https://github.com/novemberkilo/dream#4976439384c9da03300abdbc9ffb8528ac917982"]
   ["dream-httpaf.dev" "git+https://github.com/novemberkilo/dream#4976439384c9da03300abdbc9ffb8528ac917982"]
   ["dream-pure.dev" "git+https://github.com/novemberkilo/dream#4976439384c9da03300abdbc9ffb8528ac917982"]
