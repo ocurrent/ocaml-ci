@@ -171,8 +171,7 @@ let platforms ~include_macos opam_version =
       in
       let ovs = [ latest; previous ] in
       let macos_distros = if include_macos then macos_distros else [] in
-      List.map make_release ovs
-      @ macos_distros
+      List.map make_release ovs @ macos_distros
 
 let fetch_platforms ~include_macos () =
   let open Ocaml_ci in
