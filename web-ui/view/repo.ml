@@ -149,11 +149,12 @@ module Make (M : Git_forge_intf.Forge) = struct
           span ~a:[ a_class [ "text-sm pl-0.5" ] ] [ txt "/week" ];
         ]
     in
+    ignore repo_uri;
     tr
       ~a:
         [
           a_class [ "cursor-pointer" ];
-          a_onclick (Printf.sprintf "window.location='%s'" repo_uri);
+          (* a_onclick (Printf.sprintf "window.location='%s'" repo_uri); *)
           a_user_data "timestamp" last_updated_data;
         ]
       [
@@ -181,7 +182,7 @@ module Make (M : Git_forge_intf.Forge) = struct
               ];
           ];
         td
-          ~a:[ a_class [ "text-xs space-y-1 hidden lg:table-cell" ] ]
+          ~a:[ a_class [ "text-xs space-y-1 hidden md:table-cell" ] ]
           [
             div [ txt "master" ];
             div
@@ -227,7 +228,7 @@ module Make (M : Git_forge_intf.Forge) = struct
           [
             th [ div [ txt name ] ];
             th
-              ~a:[ a_class [ "hidden lg:table-cell" ] ]
+              ~a:[ a_class [ "hidden md:table-cell" ] ]
               [ txt "Speed over time" ];
             th ~a:[ a_class [ "hidden md:table-cell" ] ] [ txt "Speed" ];
             th ~a:[ a_class [ "hidden md:table-cell" ] ] [ txt "Reliability" ];
@@ -259,7 +260,7 @@ module Make (M : Git_forge_intf.Forge) = struct
       =
     String.(compare (lowercase_ascii n0) (lowercase_ascii n1))
 
-  let js_of_histories data =
+  let js_of_histories ~org data =
     let ( ++ ) a b = List.append a b in
     let commit_data { Client.Org.ran_for; _ } =
       Printf.sprintf "%s," (string_of_float (Option.value ~default:0. ran_for))
@@ -270,9 +271,20 @@ module Make (M : Git_forge_intf.Forge) = struct
       | Failed -> "\"rgba(217, 45, 32, 1)\","
       | _ -> "\"rgba(226, 232, 240, 1)\","
     in
-    let js_of_history fmt (name, data) =
+    let commit_link repo i { Client.Org.hash; _ } =
+      Printf.sprintf "%d:\"%s\","
+        (15 - i - 1)
+        (Url.commit_url M.prefix ~org ~repo ~hash)
+    in
+    let js_of_history_list fmt (name, data) =
       let data = List.filteri (fun i _ -> i < 15) data |> List.map fmt in
       [ "\""; name; "\":[" ] ++ data ++ [ "]," ]
+    in
+    let js_of_history_dict fmt (name, data) =
+      let data =
+        List.filteri (fun i _ -> i < 15) data |> List.mapi (fmt name)
+      in
+      [ "\""; name; "\":{" ] ++ data ++ [ "}," ]
     in
     (* The chart is left-to-right old-to-new, which is the opposite direction to the provided data *)
     let rev_data =
@@ -280,10 +292,13 @@ module Make (M : Git_forge_intf.Forge) = struct
     in
     let chart_labels = List.init 15 (fun x -> Printf.sprintf "%d," (x + 1)) in
     let chart_data =
-      List.map (js_of_history commit_data) rev_data |> List.flatten
+      List.map (js_of_history_list commit_data) rev_data |> List.flatten
     in
     let chart_colours =
-      List.map (js_of_history commit_colour) rev_data |> List.flatten
+      List.map (js_of_history_list commit_colour) rev_data |> List.flatten
+    in
+    let chart_links =
+      List.map (js_of_history_dict commit_link) data |> List.flatten
     in
     [ "var chart_labels = [" ]
     ++ chart_labels
@@ -291,6 +306,8 @@ module Make (M : Git_forge_intf.Forge) = struct
     ++ chart_data
     ++ [ "}\nvar chart_colours = {" ]
     ++ chart_colours
+    ++ [ "}\nvar chart_links = {" ]
+    ++ chart_links
     ++ [ "}\n" ]
     |> String.concat ""
 
@@ -457,10 +474,10 @@ module Make (M : Git_forge_intf.Forge) = struct
           ~a:
             [
               a_src
-                "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js";
+                "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.0.1/chart.umd.js";
             ]
           (txt "");
-        script (Unsafe.data (js_of_histories histories));
+        script (Unsafe.data (js_of_histories ~org histories));
         script ~a:[ a_src "/js/repo-page.js" ] (txt "");
         Common.breadcrumbs [ (M.prefix, M.prefix) ] org;
         title ~org;

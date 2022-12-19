@@ -68,15 +68,28 @@ var body = null;
 
 // Charts
 
+function clickHandler(evt, els, _chart) {
+  if (els.length == 0 || evt.type !== "click") {
+    return;
+  }
+  var i = els[0].index;
+  // id = chart_[repo]
+  var repo = evt.native.target.id.substring(6);
+  var commit_link = chart_links[repo][i];
+  window.location = commit_link;
+}
+
 const chartOptions = {
   maintainAspectRatio: false,
+  // onHover: clickHandler,
+  onClick: clickHandler,
   plugins: {
     legend: {
       display: false,
     },
-  },
-  tooltips: {
-    enabled: false,
+    tooltip: {
+      enabled: false,
+    }
   },
   elements: {
     point: {
