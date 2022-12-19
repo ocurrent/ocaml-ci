@@ -183,7 +183,7 @@ let links =
     ]
 
 let show =
-  let content = intro @ overview @ concepts_and_terms in
+  let content = intro @ overview @ concepts_and_terms @ Step_page.show in
   Template.instance
     [
       div
