@@ -431,7 +431,7 @@ module Make (M : Git_forge_intf.Forge) = struct
           div
             ~a:
               [
-                a_class [ "notification" ];
+                a_class [ "notification dark:bg-gray-850" ];
                 Tyxml_helpers.x_cloak;
                 Tyxml_helpers.x_show "linkCopied";
                 Tyxml_helpers.x_transition;
