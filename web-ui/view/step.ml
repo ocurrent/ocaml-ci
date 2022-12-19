@@ -597,7 +597,9 @@ module Make (M : Git_forge_intf.Forge) = struct
       in
       Printf.sprintf "%s%s"
         (List.fold_left aux
-           "<table class='flex steps-table fg-default bg-default'><tbody>" data)
+           "<table data-paste-markdown-skip class='flex steps-table fg-default \
+            bg-default'><tbody>"
+           data)
         "</tbody></table>"
     in
     let open Lwt.Infix in
