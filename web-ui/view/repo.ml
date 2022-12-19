@@ -149,12 +149,11 @@ module Make (M : Git_forge_intf.Forge) = struct
           span ~a:[ a_class [ "text-sm pl-0.5" ] ] [ txt "/week" ];
         ]
     in
-    ignore repo_uri;
     tr
       ~a:
         [
           a_class [ "cursor-pointer" ];
-          (* a_onclick (Printf.sprintf "window.location='%s'" repo_uri); *)
+          a_onclick (Printf.sprintf "window.location='%s'" repo_uri);
           a_user_data "timestamp" last_updated_data;
         ]
       [

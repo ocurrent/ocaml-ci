@@ -73,15 +73,16 @@ function clickHandler(evt, els, _chart) {
     return;
   }
   var i = els[0].index;
-  // id = chart_[repo]
+  // id = "chart_[repo]"
   var repo = evt.native.target.id.substring(6);
   var commit_link = chart_links[repo][i];
   window.location = commit_link;
+  // Prevents the main repo link from being followed
+  evt.preventDefault();
 }
 
 const chartOptions = {
   maintainAspectRatio: false,
-  // onHover: clickHandler,
   onClick: clickHandler,
   plugins: {
     legend: {
