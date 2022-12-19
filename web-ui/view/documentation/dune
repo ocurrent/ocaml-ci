@@ -1,0 +1,4 @@
+(library
+ (public_name ocaml-ci-web.view.documentation)
+ (name documentation_view)
+ (libraries ocaml-ci-web.view tyxml))
