@@ -38,7 +38,10 @@ let rows prefix orgs =
     let prefix = prefix
   end) in
   let compare s0 s1 =
-    String.(compare (lowercase_ascii s0) (lowercase_ascii s1))
+    String.(
+      compare
+        (lowercase_ascii s0.Client.CI.name)
+        (lowercase_ascii s1.Client.CI.name))
   in
   let orgs = List.sort compare orgs in
   List.fold_left (fun l org -> List.append l [ row ~org ]) [] orgs

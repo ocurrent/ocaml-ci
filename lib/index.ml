@@ -234,6 +234,10 @@ let set_active_repos ~owner x =
 let get_active_repos ~owner =
   Owner_map.find_opt owner !active_repos |> Option.value ~default:Repo_set.empty
 
+let get_active_owners_with_repo_count () =
+  Owner_map.bindings !active_repos
+  |> List.map (fun (name, repos) -> (name, Repo_set.cardinal repos))
+
 module Repo_map = Map.Make (Repo_id)
 module Ref_map = Map.Make (String)
 

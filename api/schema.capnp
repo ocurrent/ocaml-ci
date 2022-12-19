@@ -116,6 +116,11 @@ struct RepoHistory {
   history @1 :List(RefInfo);
 }
 
+struct OrgInfo {
+  name        @0 :Text;
+  numberRepos @1 :Int16;
+}
+
 interface Org {
   repo         @0 (name :Text) -> (repo :Repo);
 
@@ -130,6 +135,9 @@ interface CI {
 
   orgs         @1 () -> (orgs :List(Text));
   # Get the list of organisations for this CI capability.
+
+  orgsDetailed       @2 () -> (orgs :List(OrgInfo));
+  # Get a list of organisations and related information for this CI capability.
 }
 
 interface Log {
