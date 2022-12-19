@@ -28,7 +28,7 @@ document.addEventListener('alpine:init', () => {
 
         highlightLine(e) {
             if (e) {
-              const currentLine = e.target.parentNode.id;
+              const currentLine = e.target.id;
               const currentID = parseInt(currentLine.substring(1, currentLine.length));
               this.manualSelection = true;
               this.positionCopyButton(e);

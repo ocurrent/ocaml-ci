@@ -573,6 +573,7 @@ module Make (M : Git_forge_intf.Forge) = struct
           in
           last_line_blank := log_line = "";
           line_number := !line_number + 1;
+          let line_number_id = Printf.sprintf "L%d" !line_number in
           Printf.sprintf "%s\n%s" l
             (Fmt.str "%a" (pp_elt ())
                (tr
@@ -584,15 +585,15 @@ module Make (M : Git_forge_intf.Forge) = struct
                          startingLine && parseInt($el.id.substring(1, \
                          $el.id.length)) <= endingLine ? 'highlight' : ''";
                       Tyxml_helpers.at_click "highlightLine";
-                      a_id (Printf.sprintf "L%d" !line_number);
+                      a_id line_number_id;
                     ]
                   [
                     td
-                      ~a:[ a_class [ "code-line__number" ] ]
+                      ~a:[ a_class [ "code-line__number" ]; a_id line_number_id; ]
                       [ txt (Printf.sprintf "%d" !line_number) ];
                     td
-                      ~a:[ a_class [ code_line_class ] ]
-                      [ pre [ Unsafe.data log_line ] ];
+                      ~a:[ a_class [ code_line_class ]; a_id line_number_id; ]
+                      [ pre ~a:[ a_id line_number_id; ] [ Unsafe.data log_line ] ];
                   ]))
       in
       Printf.sprintf "%s%s"
