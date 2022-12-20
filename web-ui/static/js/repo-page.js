@@ -170,6 +170,10 @@ const chartOptions = {
       radius: 0,
     },
   },
+  interaction: {
+    intersect: false,
+    mode: "index",
+  },
   scales: {
     x: {
       grid: {
