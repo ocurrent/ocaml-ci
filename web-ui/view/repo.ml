@@ -125,7 +125,8 @@ module Make (M : Git_forge_intf.Forge) = struct
           span ~a:[ a_class [ "text-sm pl-0.5" ] ] [ txt symbol ];
         ]
       in
-      if Float.is_nan statistics.speed then [ txt "N/A" ]
+      if Float.is_nan statistics.speed || statistics.speed == 0. then
+        [ txt "N/A" ]
       else if statistics.speed >= 3600. then
         fmt (statistics.speed /. 3600.) "hr"
       else if statistics.speed >= 60. then fmt (statistics.speed /. 60.) "min"
@@ -341,11 +342,12 @@ module Make (M : Git_forge_intf.Forge) = struct
         float_of_int n_ts /. n_weeks
 
   let repo_statistics history =
-    let n = List.length history in
     let sum_speed =
       List.fold_left
-        (fun acc { Client.Org.ran_for; _ } ->
-          acc +. Option.value ~default:0. ran_for)
+        (fun acc { Client.Org.ran_for; Client.Org.status; _ } ->
+          match status with
+          | Passed | Failed -> acc +. Option.value ~default:0. ran_for
+          | _ -> acc)
         0. history
     in
     let n_succeeded, n_finished =
@@ -357,7 +359,7 @@ module Make (M : Git_forge_intf.Forge) = struct
           | _ -> (n_succeeded, n_finished))
         (0, 0) history
     in
-    let speed = sum_speed /. float_of_int n in
+    let speed = sum_speed /. float_of_int n_finished in
     let reliability = float_of_int n_succeeded /. float_of_int n_finished in
     let build_frequency_per_week = build_frequency_per_week history in
     { speed; reliability; build_frequency_per_week }
