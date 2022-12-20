@@ -1,5 +1,4 @@
 // Search
-
 function title_comparator(a, b) {
   var title_a =
     a
@@ -89,11 +88,8 @@ function tooltipHandler(context) {
     tooltipEl.id = 'chartjs-tooltip';
     tooltipEl.innerHTML = '<div class=\"border \
       border-gray-200 dark:border-gray-400 border-t-0 \
-      rounded-lg w-full min-w-0 \
-      bg-white dark:bg-gray-850 \
-      px-3 py-1 \
-      shadow-sm \
-      \"></div>';
+      rounded-lg w-full min-w-0 bg-white dark:bg-gray-850 \
+      px-3 py-1 shadow-sm \"></div>';
     document.body.appendChild(tooltipEl);
   }
 
