@@ -109,7 +109,7 @@ module Make (M : Forge_prefix) = struct
                     ~a:[ a_class [ "hidden xl:inline" ] ]
                     [ txt (git_forge_url name) ];
                   div
-                    ~a:[ a_class [ "flex items-center space-x-2" ] ]
+                    ~a:[ a_class [ "hidden md:flex items-center space-x-2" ] ]
                     [ repo_symbol; div [ txt repository_count ] ];
                 ];
             ];
