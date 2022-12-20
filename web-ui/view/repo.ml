@@ -180,7 +180,7 @@ module Make (M : Git_forge_intf.Forge) = struct
               ];
           ];
         td
-          ~a:[ a_class [ "text-xs space-y-1 hidden md:table-cell" ] ]
+          ~a:[ a_class [ "text-xs space-y-1 hidden lg:table-cell" ] ]
           [
             div [ txt "master" ];
             div
@@ -240,7 +240,7 @@ module Make (M : Git_forge_intf.Forge) = struct
           [
             th [ div [ txt name ] ];
             th
-              ~a:[ a_class [ "hidden md:table-cell" ] ]
+              ~a:[ a_class [ "hidden lg:table-cell" ] ]
               [ txt "Speed over time" ];
             th ~a:[ a_class [ "hidden md:table-cell" ] ] [ txt "Speed" ];
             th ~a:[ a_class [ "hidden md:table-cell" ] ] [ txt "Reliability" ];
@@ -281,7 +281,7 @@ module Make (M : Git_forge_intf.Forge) = struct
       match status with
       | Passed -> "\"rgba(18, 183, 106, 1)\","
       | Failed -> "\"rgba(217, 45, 32, 1)\","
-      | _ -> "\"rgba(226, 232, 240, 1)\","
+      | _ -> "\"rgba(255, 250, 231, 1)\","
     in
     let commit_link repo i { Client.Org.hash; _ } =
       Printf.sprintf "%d:\"%s\"," (15 - i)
@@ -337,7 +337,8 @@ module Make (M : Git_forge_intf.Forge) = struct
         let to_week f = float_of_int Duration.(to_day @@ of_f f) /. 7. in
         let now = Unix.gettimeofday () in
         let earliest = List.fold_left Float.min Float.max_float ts in
-        to_week (now -. earliest) /. float_of_int n_ts
+        let n_weeks = Float.max (to_week (now -. earliest)) 1.0 in
+        float_of_int n_ts /. n_weeks
 
   let repo_statistics history =
     let n = List.length history in

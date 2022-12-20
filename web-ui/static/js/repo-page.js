@@ -113,13 +113,13 @@ function tooltipHandler(context) {
   }
 
   function textOfSpeed(speed) {
-    const s = parseFloat(speed);
+    const s = parseFloat(speed.replace(',', ''));
     if (s >= 3600.0) {
-      return (s / 3600.0) + '<span class="pl-0.5">hr</span>'
+      return (s / 3600.0).toFixed(1) + '<span class="pl-0.5">hr</span>';
     } else if (s >= 60.0) {
-      return (s / 60.0) + '<span class="pl-0.5">min</span>'
+      return (s / 60.0).toFixed(1) + '<span class="pl-0.5">min</span>';
     }
-    return s + '<span class="pl-0.5">sec</span>'
+    return s.toFixed(1) + '<span class="pl-0.5">sec</span>';
   }
 
   // Set Text
@@ -133,7 +133,7 @@ function tooltipHandler(context) {
 
     let innerHtml = '<div class="font-medium text-sm bg-gray-50 dark:bg-gray-900">' + short_hash + '</div>'
 
-    const speed = bodyLines[0];
+    const speed = bodyLines[0][0];
     innerHtml += '<div class="text-xs py-1">' + textOfSpeed(speed) + '</div>'
 
     tooltipEl.firstChild.innerHTML = innerHtml;
@@ -221,7 +221,7 @@ function charts_init() {
       var padding = Array.from({
           length: (15 - colours.length)
         },
-        (_v, _i) => "rgba(226, 232, 240, 1)");
+        (_v, _i) => "rgba(255, 250, 231, 1)");
       colours = padding.concat(colours);
     }
     var ctx = document.getElementById("chart_" + repo).getContext("2d");
