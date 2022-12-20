@@ -75,8 +75,85 @@ function clickHandler(evt, els, _chart) {
   var i = els[0].index;
   // id = "chart_[repo]"
   var repo = evt.native.target.id.substring(6);
-  var commit_link = chart_links[repo][i];
+  var commit_link = chart_links[repo][i + 1];
   window.location = commit_link;
+}
+
+function tooltipHandler(context) {
+  // Tooltip Element
+  let tooltipEl = document.getElementById('chartjs-tooltip');
+
+  // Create element on first render
+  if (!tooltipEl) {
+    tooltipEl = document.createElement('div');
+    tooltipEl.id = 'chartjs-tooltip';
+    tooltipEl.innerHTML = '<div class=\"border \
+      border-gray-200 dark:border-gray-400 border-t-0 \
+      rounded-lg w-full min-w-0 \
+      bg-white dark:bg-gray-850 \
+      px-3 py-1 \
+      shadow-sm \
+      \"></div>';
+    document.body.appendChild(tooltipEl);
+  }
+
+  // Hide if no tooltip
+  const tooltipModel = context.tooltip;
+  if (tooltipModel.opacity === 0) {
+    tooltipEl.style.opacity = 0;
+    return;
+  }
+
+  // Set caret Position
+  tooltipEl.classList.remove('above', 'below', 'no-transform');
+  if (tooltipModel.yAlign) {
+    tooltipEl.classList.add(tooltipModel.yAlign);
+  } else {
+    tooltipEl.classList.add('no-transform');
+  }
+
+  function getBody(bodyItem) {
+    return bodyItem.lines;
+  }
+
+  function textOfSpeed(speed) {
+    const s = parseFloat(speed);
+    if (s >= 3600.0) {
+      return (s / 3600.0) + '<span class="pl-0.5">hr</span>'
+    } else if (s >= 60.0) {
+      return (s / 60.0) + '<span class="pl-0.5">min</span>'
+    }
+    return s + '<span class="pl-0.5">sec</span>'
+  }
+
+  // Set Text
+  if (tooltipModel.body) {
+    const titleLines = tooltipModel.title || [];
+    const bodyLines = tooltipModel.body.map(getBody);
+    const repo = context.chart.canvas.id.substring(6);
+
+    const commit_hash = chart_links[repo][parseInt(titleLines[0])].split("/")[5];
+    const short_hash = commit_hash.substring(0, 6);
+
+    let innerHtml = '<div class="font-medium text-sm bg-gray-50 dark:bg-gray-900">' + short_hash + '</div>'
+
+    const speed = bodyLines[0];
+    innerHtml += '<div class="text-xs py-1">' + textOfSpeed(speed) + '</div>'
+
+    tooltipEl.firstChild.innerHTML = innerHtml;
+  }
+
+  const position = context.chart.canvas.getBoundingClientRect();
+  const bodyFont = Chart.helpers.toFont(tooltipModel.options.bodyFont);
+
+  // Display, position, and set styles for font
+  tooltipEl.style.opacity = 1;
+  tooltipEl.style.position = 'absolute';
+  tooltipEl.style.left = position.left + window.pageXOffset + tooltipModel.caretX + 'px';
+  tooltipEl.style.top = position.top + window.pageYOffset + tooltipModel.caretY + 'px';
+  tooltipEl.style.font = bodyFont.string;
+  tooltipEl.style.padding = tooltipModel.padding + 'px ' + tooltipModel.padding + 'px';
+  tooltipEl.style.pointerEvents = 'none';
 }
 
 const chartOptions = {
@@ -87,8 +164,10 @@ const chartOptions = {
       display: false,
     },
     tooltip: {
+      // Disable the on-canvas tooltip
       enabled: false,
-    }
+      external: tooltipHandler,
+    },
   },
   elements: {
     point: {

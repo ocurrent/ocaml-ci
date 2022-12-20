@@ -153,30 +153,30 @@ module Make (M : Git_forge_intf.Forge) = struct
       ~a:[ a_user_data "timestamp" last_updated_data ]
       [
         td
-          ~a:[ a_class [ "flex items-center space-x-3" ] ]
+          ~a:
+            [
+              a_class [ "flex items-center space-x-3 cursor-pointer" ];
+              a_onclick (Printf.sprintf "window.location='%s'" repo_uri);
+            ]
           [
-            a
-              ~a:[ a_class [ "flex items-center space-x-3" ]; a_href repo_uri ]
+            Common.status_icon_build status;
+            div
+              ~a:[ a_class [ "text-sm space-y-1" ] ]
               [
-                Common.status_icon_build status;
                 div
-                  ~a:[ a_class [ "text-sm space-y-1" ] ]
-                  [
-                    div
-                      ~a:
+                  ~a:
+                    [
+                      a_class
                         [
-                          a_class
-                            [
-                              "repo-title text-gray-900 dark:text-gray-200 \
-                               text-sm font-medium";
-                            ];
-                        ]
-                      [ txt repo_title ];
-                    info;
-                    div
-                      ~a:[ a_class [ "text-gray-500 dark:text-gray-400" ] ]
-                      [ div [ txt description ] ];
-                  ];
+                          "repo-title text-gray-900 dark:text-gray-200 text-sm \
+                           font-medium";
+                        ];
+                    ]
+                  [ txt repo_title ];
+                info;
+                div
+                  ~a:[ a_class [ "text-gray-500 dark:text-gray-400" ] ]
+                  [ div [ txt description ] ];
               ];
           ];
         td
@@ -204,52 +204,31 @@ module Make (M : Git_forge_intf.Forge) = struct
               ];
           ];
         td
-          ~a:[ a_class [ "hidden md:table-cell" ] ]
+          ~a:
+            [
+              a_class [ "hidden md:table-cell cursor-pointer" ];
+              a_onclick (Printf.sprintf "window.location='%s'" repo_uri);
+            ]
+          [ div ~a:[ a_class [ "text-2xl gray-700" ] ] speed ];
+        td
+          ~a:[ a_class [ "hidden md:table-cell cursor-pointer" ] ]
+          [ div ~a:[ a_class [ "text-2xl gray-700" ] ] reliability ];
+        td
+          ~a:
+            [
+              a_class [ "hidden md:table-cell cursor-pointer" ];
+              a_onclick (Printf.sprintf "window.location='%s'" repo_uri);
+            ]
           [
-            a
-              ~a:
-                [
-                  (* a_class [ "flex items-center space-x-3 w-full h-full block" ]; *)
-                  a_href repo_uri;
-                ]
-              [ div ~a:[ a_class [ "text-2xl gray-700" ] ] speed ];
+            div ~a:[ a_class [ "text-2xl gray-700" ] ] build_frequency_per_week;
           ];
         td
-          ~a:[ a_class [ "hidden md:table-cell" ] ]
-          [
-            a
-              ~a:
-                [
-                  (* a_class [ "flex items-center space-x-3 w-full h-full block" ]; *)
-                  a_href repo_uri;
-                ]
-              [ div ~a:[ a_class [ "text-2xl gray-700" ] ] reliability ];
-          ];
-        td
-          ~a:[ a_class [ "hidden md:table-cell" ] ]
-          [
-            a
-              ~a:
-                [
-                  (* a_class [ "flex items-center space-x-3 w-full h-full block" ]; *)
-                  a_href repo_uri;
-                ]
-              [
-                div
-                  ~a:[ a_class [ "text-2xl gray-700" ] ]
-                  build_frequency_per_week;
-              ];
-          ];
-        td
-          [
-            a
-              ~a:
-                [
-                  (* a_class [ "flex items-center space-x-3 object-fill" ]; *)
-                  a_href repo_uri;
-                ]
-              [ Common.right_arrow_head ];
-          ];
+          ~a:
+            [
+              a_class [ "cursor-pointer" ];
+              a_onclick (Printf.sprintf "window.location='%s'" repo_uri);
+            ]
+          [ Common.right_arrow_head ];
       ]
 
   let repo_url org repo = Printf.sprintf "/%s/%s/%s" M.prefix org repo
@@ -305,8 +284,7 @@ module Make (M : Git_forge_intf.Forge) = struct
       | _ -> "\"rgba(226, 232, 240, 1)\","
     in
     let commit_link repo i { Client.Org.hash; _ } =
-      Printf.sprintf "%d:\"%s\","
-        (15 - i - 1)
+      Printf.sprintf "%d:\"%s\"," (15 - i)
         (Url.commit_url M.prefix ~org ~repo ~hash)
     in
     let js_of_history_list fmt (name, data) =
