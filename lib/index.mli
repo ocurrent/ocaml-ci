@@ -38,6 +38,8 @@ val get_active_repos : owner:string -> Repo_set.t
 (** [get_active_repos ~owner] is the last value passed to [set_active_repos] for
     [owner], or [empty] if not known yet. *)
 
+val get_active_owners_with_repo_count : unit -> (string * int) list
+
 module Ref_map : Map.S with type key = string
 
 type ref_info = { hash : string; message : string; name : string }

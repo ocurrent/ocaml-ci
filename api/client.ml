@@ -47,6 +47,7 @@ type job_info = {
 
 module CI = struct
   type t = Raw.Client.CI.t Capability.t
+  type org_info = { name : string; number_repos : int }
 
   let org t owner =
     let open Raw.Client.CI.Org in
@@ -59,6 +60,18 @@ module CI = struct
     let request = Capability.Request.create_no_args () in
     Capability.call_for_value t method_id request
     |> Lwt_result.map Results.orgs_get_list
+
+  let orgs_detailed t =
+    let open Raw.Client.CI.OrgsDetailed in
+    let request = Capability.Request.create_no_args () in
+    Capability.call_for_value t method_id request
+    |> Lwt_result.map @@ fun result ->
+       let open Raw.Reader.OrgInfo in
+       Results.orgs_get_list result
+       |> List.map (fun slot ->
+              let name = name_get slot in
+              let number_repos = number_repos_get slot in
+              { name; number_repos })
 end
 
 module Org = struct

@@ -467,4 +467,18 @@ let make_ci ~engine =
          let owners = Index.get_active_owners () |> Index.Owner_set.elements in
          Results.orgs_set_list results owners |> ignore;
          Service.return response
+
+       method orgs_detailed_impl _params release_param_caps =
+         let open CI.OrgsDetailed in
+         release_param_caps ();
+         let response, results = Service.Response.create Results.init_pointer in
+         let orgs = Index.get_active_owners_with_repo_count () in
+         let arr = Results.orgs_init results (List.length orgs) in
+         orgs
+         |> List.iteri (fun i (name, repo_count) ->
+                let open Raw.Builder.OrgInfo in
+                let slot = Capnp.Array.get arr i in
+                name_set slot name;
+                number_repos_set_exn slot repo_count);
+         Service.return response
      end

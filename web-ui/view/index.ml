@@ -38,7 +38,10 @@ let rows prefix orgs =
     let prefix = prefix
   end) in
   let compare s0 s1 =
-    String.(compare (lowercase_ascii s0) (lowercase_ascii s1))
+    String.(
+      compare
+        (lowercase_ascii s0.Client.CI.name)
+        (lowercase_ascii s1.Client.CI.name))
   in
   let orgs = List.sort compare orgs in
   List.fold_left (fun l org -> List.append l [ row ~org ]) [] orgs
@@ -83,10 +86,10 @@ let list_orgs prefix orgs =
             ];
         ];
       div
-        ~a:[ a_class [ "mt-8" ] ]
+        ~a:[ a_class [ "mt-8 md:columns-2" ] ]
         [
           div
-            ~a:[ a_id "table"; a_class [ "flex flex-col space-y-6" ] ]
+            ~a:[ a_id "table"; a_class [ "flex flex-col space-y-6 pt-5" ] ]
             (rows prefix orgs);
         ];
     ]
@@ -96,6 +99,7 @@ let list_all_orgs ~github_orgs ~gitlab_orgs =
   let github_org_rows = rows "github" github_orgs in
   let gitlab_org_rows = rows "gitlab" gitlab_orgs in
   let org_rows = github_org_rows @ gitlab_org_rows in
+
   Template_v1.instance
     [
       Tyxml.Html.script ~a:[ a_src "/js/index-page-org-search.js" ] (txt "");
@@ -168,10 +172,10 @@ let list_all_orgs ~github_orgs ~gitlab_orgs =
             ];
         ];
       div
-        ~a:[ a_class [ "mt-8" ] ]
+        ~a:[ a_class [ "mt-8 md:columns-2" ] ]
         [
           div
-            ~a:[ a_id "table"; a_class [ "flex flex-col space-y-6" ] ]
+            ~a:[ a_id "table"; a_class [ "flex flex-col space-y-6 pt-5" ] ]
             org_rows;
         ];
     ]
