@@ -75,7 +75,7 @@ function clickHandler(evt, els, _chart) {
   // id = "chart_[repo]"
   var repo = evt.native.target.id.substring(6);
   var commit_link = chart_links[repo][i + 1];
-  window.location = commit_link;
+  window.location = (commit_link === undefined ? "#" : commit_link);
 }
 
 function tooltipHandler(context) {

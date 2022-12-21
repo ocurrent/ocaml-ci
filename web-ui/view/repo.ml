@@ -212,7 +212,11 @@ module Make (M : Git_forge_intf.Forge) = struct
             ]
           [ div ~a:[ a_class [ "text-2xl gray-700" ] ] speed ];
         td
-          ~a:[ a_class [ "hidden md:table-cell cursor-pointer" ] ]
+          ~a:
+            [
+              a_class [ "hidden md:table-cell cursor-pointer" ];
+              a_onclick (Printf.sprintf "window.location='%s'" repo_uri);
+            ]
           [ div ~a:[ a_class [ "text-2xl gray-700" ] ] reliability ];
         td
           ~a:
