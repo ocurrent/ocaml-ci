@@ -89,7 +89,7 @@ let list_orgs prefix orgs =
         ~a:[ a_class [ "mt-8 md:columns-2" ] ]
         [
           div
-            ~a:[ a_id "table"; a_class [ "flex flex-col space-y-6 pt-5" ] ]
+            ~a:[ a_id "table"; a_class [ "flex-col space-y-6" ] ]
             (rows prefix orgs);
         ];
     ]
@@ -173,9 +173,5 @@ let list_all_orgs ~github_orgs ~gitlab_orgs =
         ];
       div
         ~a:[ a_class [ "mt-8 md:columns-2" ] ]
-        [
-          div
-            ~a:[ a_id "table"; a_class [ "flex flex-col space-y-6 pt-5" ] ]
-            org_rows;
-        ];
+        [ div ~a:[ a_id "table"; a_class [ "flex-col space-y-6" ] ] org_rows ];
     ]
