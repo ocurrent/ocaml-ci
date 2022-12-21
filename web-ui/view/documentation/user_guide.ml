@@ -10,7 +10,7 @@ let intro =
         txt
           "This is a Work In Progress. Thank you for your patience as we \
            update it with detailed documentation covering each of the pages of \
-           Ocaml-ci.";
+           Ocaml-CI.";
       ];
   ]
 
@@ -58,7 +58,7 @@ let overview =
         li
           [
             txt
-              "First, it retreives the list of organisations that have \
+              "First, it retrieves the list of organisations that have \
                installed it.";
           ];
         li
