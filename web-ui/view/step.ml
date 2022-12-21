@@ -590,12 +590,21 @@ module Make (M : Git_forge_intf.Forge) = struct
                   [
                     td
                       ~a:
-                        [ a_class [ "code-line__number" ]; a_id line_number_id ]
+                        [
+                          a_class [ "code-line__number" ];
+                          a_user_data "line-number" line_number_id;
+                        ]
                       [ txt (Printf.sprintf "%d" !line_number) ];
                     td
-                      ~a:[ a_class [ code_line_class ]; a_id line_number_id ]
+                      ~a:
+                        [
+                          a_class [ code_line_class ];
+                          a_user_data "line-number" line_number_id;
+                        ]
                       [
-                        pre ~a:[ a_id line_number_id ] [ Unsafe.data log_line ];
+                        pre
+                          ~a:[ a_user_data "line-number" line_number_id ]
+                          [ Unsafe.data log_line ];
                       ];
                   ]))
       in
