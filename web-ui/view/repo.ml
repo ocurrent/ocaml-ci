@@ -386,13 +386,7 @@ module Make (M : Git_forge_intf.Forge) = struct
     in
     Template_v1.instance
       [
-        script
-          ~a:
-            [
-              a_src
-                "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.0.1/chart.umd.js";
-            ]
-          (txt "");
+        script ~a:[ a_src "/js/chart.js" ] (txt "");
         script (Unsafe.data (js_of_histories ~org histories));
         script ~a:[ a_src "/js/repo-page.js" ] (txt "");
         Common.breadcrumbs [ (M.prefix, M.prefix) ] org;
