@@ -125,9 +125,11 @@ module Make (M : Git_forge_intf.Forge) = struct
           span ~a:[ a_class [ "text-sm pl-0.5" ] ] [ txt symbol ];
         ]
       in
-      if Float.is_nan statistics.speed then [ txt "N/A" ]
-      else if statistics.speed > 3600. then fmt (statistics.speed /. 3600.) "hr"
-      else if statistics.speed > 60. then fmt (statistics.speed /. 60.) "min"
+      if Float.is_nan statistics.speed || statistics.speed == 0. then
+        [ txt "N/A" ]
+      else if statistics.speed >= 3600. then
+        fmt (statistics.speed /. 3600.) "hr"
+      else if statistics.speed >= 60. then fmt (statistics.speed /. 60.) "min"
       else fmt statistics.speed "sec"
     in
     let reliability =
@@ -149,15 +151,14 @@ module Make (M : Git_forge_intf.Forge) = struct
         ]
     in
     tr
-      ~a:
-        [
-          a_class [ "cursor-pointer" ];
-          a_onclick (Printf.sprintf "window.location='%s'" repo_uri);
-          a_user_data "timestamp" last_updated_data;
-        ]
+      ~a:[ a_user_data "timestamp" last_updated_data ]
       [
         td
-          ~a:[ a_class [ "flex items-center space-x-3" ] ]
+          ~a:
+            [
+              a_class [ "flex items-center space-x-3 cursor-pointer" ];
+              a_onclick (Printf.sprintf "window.location='%s'" repo_uri);
+            ]
           [
             Common.status_icon_build status;
             div
@@ -180,7 +181,7 @@ module Make (M : Git_forge_intf.Forge) = struct
               ];
           ];
         td
-          ~a:[ a_class [ "text-xs space-y-1" ] ]
+          ~a:[ a_class [ "text-xs space-y-1 hidden lg:table-cell" ] ]
           [
             div [ txt "master" ];
             div
@@ -190,7 +191,7 @@ module Make (M : Git_forge_intf.Forge) = struct
                   ~a:[ a_class [ "overflow-hidden" ] ]
                   [
                     div
-                      ~a:[ a_class [ "bottom-0 inset-x-0" ] ]
+                      ~a:[ a_class [ "bottom-0 inset-x-0 relative" ] ]
                       [
                         canvas
                           ~a:
@@ -203,13 +204,36 @@ module Make (M : Git_forge_intf.Forge) = struct
                   ];
               ];
           ];
-        td [ div ~a:[ a_class [ "text-2xl gray-700" ] ] speed ];
-        td [ div ~a:[ a_class [ "text-2xl gray-700" ] ] reliability ];
         td
+          ~a:
+            [
+              a_class [ "hidden md:table-cell cursor-pointer" ];
+              a_onclick (Printf.sprintf "window.location='%s'" repo_uri);
+            ]
+          [ div ~a:[ a_class [ "text-2xl gray-700" ] ] speed ];
+        td
+          ~a:
+            [
+              a_class [ "hidden md:table-cell cursor-pointer" ];
+              a_onclick (Printf.sprintf "window.location='%s'" repo_uri);
+            ]
+          [ div ~a:[ a_class [ "text-2xl gray-700" ] ] reliability ];
+        td
+          ~a:
+            [
+              a_class [ "hidden md:table-cell cursor-pointer" ];
+              a_onclick (Printf.sprintf "window.location='%s'" repo_uri);
+            ]
           [
             div ~a:[ a_class [ "text-2xl gray-700" ] ] build_frequency_per_week;
           ];
-        td [ Common.right_arrow_head ];
+        td
+          ~a:
+            [
+              a_class [ "cursor-pointer" ];
+              a_onclick (Printf.sprintf "window.location='%s'" repo_uri);
+            ]
+          [ Common.right_arrow_head ];
       ]
 
   let repo_url org repo = Printf.sprintf "/%s/%s/%s" M.prefix org repo
@@ -220,10 +244,14 @@ module Make (M : Git_forge_intf.Forge) = struct
         tr
           [
             th [ div [ txt name ] ];
-            th [ txt "Speed over time" ];
-            th [ txt "Speed" ];
-            th [ txt "Reliability" ];
-            th [ txt "Build frequency" ];
+            th
+              ~a:[ a_class [ "hidden lg:table-cell" ] ]
+              [ txt "Speed over time" ];
+            th ~a:[ a_class [ "hidden md:table-cell" ] ] [ txt "Speed" ];
+            th ~a:[ a_class [ "hidden md:table-cell" ] ] [ txt "Reliability" ];
+            th
+              ~a:[ a_class [ "hidden md:table-cell" ] ]
+              [ txt "Build frequency" ];
             th [];
           ];
       ]
@@ -249,7 +277,7 @@ module Make (M : Git_forge_intf.Forge) = struct
       =
     String.(compare (lowercase_ascii n0) (lowercase_ascii n1))
 
-  let js_of_histories data =
+  let js_of_histories ~org data =
     let ( ++ ) a b = List.append a b in
     let commit_data { Client.Org.ran_for; _ } =
       Printf.sprintf "%s," (string_of_float (Option.value ~default:0. ran_for))
@@ -258,11 +286,21 @@ module Make (M : Git_forge_intf.Forge) = struct
       match status with
       | Passed -> "\"rgba(18, 183, 106, 1)\","
       | Failed -> "\"rgba(217, 45, 32, 1)\","
-      | _ -> "\"rgba(226, 232, 240, 1)\","
+      | _ -> "\"rgba(255, 250, 231, 1)\","
     in
-    let js_of_history fmt (name, data) =
+    let commit_link repo i { Client.Org.hash; _ } =
+      Printf.sprintf "%d:\"%s\"," (15 - i)
+        (Url.commit_url M.prefix ~org ~repo ~hash)
+    in
+    let js_of_history_list fmt (name, data) =
       let data = List.filteri (fun i _ -> i < 15) data |> List.map fmt in
       [ "\""; name; "\":[" ] ++ data ++ [ "]," ]
+    in
+    let js_of_history_dict fmt (name, data) =
+      let data =
+        List.filteri (fun i _ -> i < 15) data |> List.mapi (fmt name)
+      in
+      [ "\""; name; "\":{" ] ++ data ++ [ "}," ]
     in
     (* The chart is left-to-right old-to-new, which is the opposite direction to the provided data *)
     let rev_data =
@@ -270,10 +308,13 @@ module Make (M : Git_forge_intf.Forge) = struct
     in
     let chart_labels = List.init 15 (fun x -> Printf.sprintf "%d," (x + 1)) in
     let chart_data =
-      List.map (js_of_history commit_data) rev_data |> List.flatten
+      List.map (js_of_history_list commit_data) rev_data |> List.flatten
     in
     let chart_colours =
-      List.map (js_of_history commit_colour) rev_data |> List.flatten
+      List.map (js_of_history_list commit_colour) rev_data |> List.flatten
+    in
+    let chart_links =
+      List.map (js_of_history_dict commit_link) data |> List.flatten
     in
     [ "var chart_labels = [" ]
     ++ chart_labels
@@ -281,6 +322,8 @@ module Make (M : Git_forge_intf.Forge) = struct
     ++ chart_data
     ++ [ "}\nvar chart_colours = {" ]
     ++ chart_colours
+    ++ [ "}\nvar chart_links = {" ]
+    ++ chart_links
     ++ [ "}\n" ]
     |> String.concat ""
 
@@ -299,14 +342,16 @@ module Make (M : Git_forge_intf.Forge) = struct
         let to_week f = float_of_int Duration.(to_day @@ of_f f) /. 7. in
         let now = Unix.gettimeofday () in
         let earliest = List.fold_left Float.min Float.max_float ts in
-        to_week (now -. earliest) /. float_of_int n_ts
+        let n_weeks = Float.max (to_week (now -. earliest)) 1.0 in
+        float_of_int n_ts /. n_weeks
 
   let repo_statistics history =
-    let n = List.length history in
     let sum_speed =
       List.fold_left
-        (fun acc { Client.Org.ran_for; _ } ->
-          acc +. Option.value ~default:0. ran_for)
+        (fun acc { Client.Org.ran_for; Client.Org.status; _ } ->
+          match status with
+          | Passed | Failed -> acc +. Option.value ~default:0. ran_for
+          | _ -> acc)
         0. history
     in
     let n_succeeded, n_finished =
@@ -318,114 +363,12 @@ module Make (M : Git_forge_intf.Forge) = struct
           | _ -> (n_succeeded, n_finished))
         (0, 0) history
     in
-    let speed = sum_speed /. float_of_int n in
+    let speed = sum_speed /. float_of_int n_finished in
     let reliability = float_of_int n_succeeded /. float_of_int n_finished in
     let build_frequency_per_week = build_frequency_per_week history in
     { speed; reliability; build_frequency_per_week }
 
-  let list ~org ~repos =
-    let tabulate hd rows =
-      Tyxml.Html.(
-        div
-          ~a:[ a_class [ "mt-8" ] ]
-          [
-            table
-              ~a:
-                [
-                  a_class
-                    [
-                      "custom-table table-auto border border-gray-200 \
-                       border-t-0 rounded-lg w-full min-w-0";
-                    ];
-                  a_id "table";
-                ]
-              ~thead:hd rows;
-          ])
-    in
-    let table_head name =
-      thead
-        [ tr [ th [ div [ txt name ] ]; th []; th []; th []; th []; th [] ] ]
-    in
-    let row ~repo_title ~short_hash ~last_updated ~status ~description ~repo_uri
-        =
-      let info =
-        let hash = span ~a:[ a_class [ "font-medium" ] ] [ txt short_hash ] in
-        match last_updated with
-        | None -> div [ hash ]
-        | Some _ ->
-            div
-              [
-                hash;
-                txt
-                  (Printf.sprintf " on %s"
-                     (Timestamps_durations.pp_timestamp last_updated));
-              ]
-      in
-      (* Defaulting infinity means sorting by recent places them at the bottom of the page *)
-      let last_updated_data =
-        match last_updated with
-        | None -> "Infinity"
-        | Some v -> Printf.sprintf "%f" v
-      in
-      tr
-        ~a:
-          [
-            a_class [ "cursor-pointer" ];
-            a_onclick (Printf.sprintf "window.location='%s'" repo_uri);
-            a_user_data "timestamp" last_updated_data;
-          ]
-        [
-          td
-            ~a:[ a_class [ "flex items-center space-x-3" ] ]
-            [
-              Common.status_icon_build status;
-              div
-                ~a:[ a_class [ "text-sm space-y-1" ] ]
-                [
-                  div
-                    ~a:
-                      [
-                        a_class
-                          [
-                            "repo-title text-gray-900 dark:text-gray-200 \
-                             text-sm font-medium";
-                          ];
-                      ]
-                    [ txt repo_title ];
-                  info;
-                  div
-                    ~a:[ a_class [ "text-grey-500 dark:text-gray-400" ] ]
-                    [ div [ txt description ] ];
-                ];
-            ];
-          td ~a:[ a_class [ "text-xs space-y-1" ] ] [];
-          td [];
-          td [];
-          td [];
-          td [ Common.right_arrow_head ];
-        ]
-    in
-    let table_head =
-      table_head (Printf.sprintf "Repositories (%d)" (List.length repos))
-    in
-    let table =
-      let f { Client.Org.name; main_status; main_hash; main_last_updated } =
-        row ~repo_title:name
-          ~short_hash:(Common.short_hash main_hash)
-          ~last_updated:main_last_updated ~status:main_status ~description:""
-          ~repo_uri:(repo_url org name)
-      in
-      List.map f (List.sort repo_name_compare repos)
-    in
-    Template_v1.instance
-      [
-        Tyxml.Html.script ~a:[ a_src "/js/repo-page.js" ] (txt "");
-        Common.breadcrumbs [ (M.prefix, M.prefix) ] org;
-        title ~org;
-        tabulate table_head table;
-      ]
-
-  let list_new ~org ~repos ~histories =
+  let list ~org ~repos ~histories =
     let table_head =
       table_head (Printf.sprintf "Repositories (%d)" (List.length repos))
     in
@@ -443,14 +386,8 @@ module Make (M : Git_forge_intf.Forge) = struct
     in
     Template_v1.instance
       [
-        script
-          ~a:
-            [
-              a_src
-                "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js";
-            ]
-          (txt "");
-        script (Unsafe.data (js_of_histories histories));
+        script ~a:[ a_src "/js/chart.js" ] (txt "");
+        script (Unsafe.data (js_of_histories ~org histories));
         script ~a:[ a_src "/js/repo-page.js" ] (txt "");
         Common.breadcrumbs [ (M.prefix, M.prefix) ] org;
         title ~org;
