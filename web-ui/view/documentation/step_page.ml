@@ -2,7 +2,7 @@ open Tyxml.Html
 
 let show =
   [
-    div ~a:[ a_id "step-page" ] [ h2 [ txt "Step page walkthrough" ] ];
+    div ~a:[ a_id "step-page" ] [ h2 [ txt "Step Page Walkthrough" ] ];
     p
       [
         txt
@@ -23,14 +23,14 @@ let show =
         li
           [
             txt
-              "The status of the build is indicated as a green tick for \
-               Passed, a red cross for Failed, a yellow circle for Running and \
+              "The build status is indicated as a green tick for \
+               Passed, a red cross for Failed, a yellow circle for Running, and \
                a grey circle for Unknown";
           ];
         li
           [
             txt
-              "The title describes the step - e.g. \
+              "The title describes the step - e.g., \
                platform-x-with-compiler-version-y-with-opam-version-z or \
                linting a project";
           ];
@@ -49,13 +49,13 @@ let show =
         li
           [
             txt
-              "The specific commit that was built. This is hyperlinked to the \
+              "The specific commit that was built is hyperlinked to the \
                commit on the relevant git-forge.";
           ];
         li
           [
             txt
-              "The run time of the step appears on the right of the top matter \
+              "The time it took to run the step appears on the right of the top matter \
                and refers to the total time that the step ran for.";
           ];
       ];
@@ -64,10 +64,10 @@ let show =
       [
         txt
           "Logs are generated during the build process. To refer to a specific \
-           portion of the logs, click on the first line of interest and \
-           holding the Shift key, click on the last line of interest. This \
-           will result in a block of lines being highlighted. To copy a URL to \
-           the step page that will highlight exactly these lines, click on the \
+           portion of the logs, click on the first line of interest, \
+           hold the Shift key, and click on the last line of interest. This \
+           will result in a block of lines being highlighted. To copy a step page’s URL \
+            that highlights exactly these lines, click on the \
            button that appears in the bottom left of the highlighted block.";
       ];
     img
@@ -78,7 +78,7 @@ let show =
     p
       [
         txt
-          "When a step is running it can be cancelled by clicking on the \
+          "When a step is running, it can be cancelled by clicking on the \
            Cancel button.";
       ];
     img
