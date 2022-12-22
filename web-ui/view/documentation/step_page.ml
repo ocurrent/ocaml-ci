@@ -2,7 +2,7 @@ open Tyxml.Html
 
 let show =
   [
-    div ~a:[ a_id "step-page" ] [ h2 [ txt "Step Page Walkthrough" ] ];
+    div ~a:[ a_id "step-page" ] [ h2 [ txt "The Step Page" ] ];
     p
       [
         txt
@@ -23,9 +23,9 @@ let show =
         li
           [
             txt
-              "The build status is indicated as a green tick for \
-               Passed, a red cross for Failed, a yellow circle for Running, and \
-               a grey circle for Unknown";
+              "The build status is indicated as a green tick for Passed, a red \
+               cross for Failed, a yellow circle for Running, and a grey \
+               circle for Unknown";
           ];
         li
           [
@@ -49,14 +49,14 @@ let show =
         li
           [
             txt
-              "The specific commit that was built is hyperlinked to the \
-               commit on the relevant git-forge.";
+              "The specific commit that was built is hyperlinked to the commit \
+               on the relevant git-forge.";
           ];
         li
           [
             txt
-              "The time it took to run the step appears on the right of the top matter \
-               and refers to the total time that the step ran for.";
+              "The time it took to run the step appears on the right of the \
+               top matter and refers to the total time that the step ran for.";
           ];
       ];
     div [ h3 [ txt "The logs" ] ];
@@ -64,11 +64,11 @@ let show =
       [
         txt
           "Logs are generated during the build process. To refer to a specific \
-           portion of the logs, click on the first line of interest, \
-           hold the Shift key, and click on the last line of interest. This \
-           will result in a block of lines being highlighted. To copy a step page’s URL \
-            that highlights exactly these lines, click on the \
-           button that appears in the bottom left of the highlighted block.";
+           portion of the logs, click on the first line of interest, hold the \
+           Shift key, and click on the last line of interest. This will result \
+           in a block of lines being highlighted. To copy a step page’s URL \
+           that highlights exactly these lines, click on the button that \
+           appears in the bottom left of the highlighted block.";
       ];
     img
       ~a:[ a_class [ "border border-solid" ] ]

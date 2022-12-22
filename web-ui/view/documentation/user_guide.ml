@@ -16,14 +16,24 @@ let intro =
 
 let overview =
   [
-    div ~a:[ a_id "overview" ] [ h2 [ txt "Overview" ] ];
+    div ~a:[ a_id "overview" ] [ h2 [ txt "Welcome to OCaml-CI" ] ];
     p
       [
         txt
-          "OCaml-CI is a continuous integration (CI) tool for OCaml projects. \
-           This development practice encourages developers to regularly \
-           integrate code into a shared repository. Commits are verified by an \
-           automated build, allowing teams to detect and fix problems early.";
+          "OCaml-CI is a Continuous Integration tool for OCaml projects. It \
+           helps the development process by automatically testing code against \
+           several versions of the OCaml compiler and various operating \
+           systems.";
+      ];
+    p
+      [
+        txt
+          "Continuous Integration (CI) is an automated testing process used to \
+           monitor changes to a central repository of code. A CI performs a \
+           series of automated steps (or jobs), e.g., building, testing, and \
+           deploying code. Developers can confidently and regularly integrate \
+           code into the central repository, relying on the CI system's\n\
+          \           automated build to detect and fix problems early.";
       ];
     p
       [
@@ -36,12 +46,6 @@ let overview =
            builds fast. It takes the information in the project's opam files \
            to automatically test against multiple OCaml versions and OS \
            platforms.";
-      ];
-    p
-      [
-        txt
-          "Simply put, OCaml-CI just tells you if a project is compatible with \
-           OCaml 5 or not.";
       ];
     p
       [
@@ -180,10 +184,25 @@ let links =
       a
         ~a:[ a_href "#concepts"; a_class [ "pl-6 text-sm link-hover" ] ]
         [ txt "Concepts & Terms" ];
+      a
+        ~a:[ a_href "#index-page"; a_class [ "pl-6 text-sm link-hover" ] ]
+        [ txt "Index Page" ];
+      a
+        ~a:[ a_href "#step-page"; a_class [ "pl-6 text-sm link-hover" ] ]
+        [ txt "Step Page" ];
     ]
 
 let show =
-  let content = intro @ overview @ concepts_and_terms @ Step_page.show in
+  let content =
+    intro
+    @ overview
+    @ concepts_and_terms
+    @ Index_page.show
+    @ Repo_page.show
+    @ Build_page.show
+    @ History_page.show
+    @ Step_page.show
+  in
   Template.instance
     [
       div
