@@ -4,7 +4,7 @@
   (target main.css)
   (deps
    (:config %{workspace_root}/tailwind.config.js)
-   (:input %{workspace_root}/web-ui/static/css/style_v1.css)
+   (:input %{workspace_root}/web-ui/static/css/style.css)
    (source_tree %{workspace_root}/web-ui/view))
   (action
    (chdir

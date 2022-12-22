@@ -1,7 +1,6 @@
 module Client = Ocaml_ci_api.Client
 
 let ( >>!= ) = Git_forge.( >>!= )
-let render = View.Index.render
 
 let list_orgs prefix ci =
   let open Lwt.Infix in

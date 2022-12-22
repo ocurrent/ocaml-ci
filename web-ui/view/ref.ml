@@ -220,5 +220,5 @@ module Make (M : Git_forge_intf.Forge) = struct
     |> (fun content ->
          if n_prs = 0 then content
          else content @ [ Common.tabulate_div pr_table ])
-    |> Template_v1.instance
+    |> Template.instance
 end
