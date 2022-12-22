@@ -1,5 +1,5 @@
 open Tyxml.Html
-module Template = View.Template_v1
+module Template = View.Template
 module Tyxml_helpers = View.Tyxml_helpers
 
 let intro =
@@ -124,26 +124,10 @@ let concepts_and_terms =
       ];
     p
       [
-        strong [ txt "Build" ];
+        strong [ txt "Git forge" ];
         txt
-          " : A collection of steps that correspond to the complete set of \
-           actions taken by OCaml-CI when it is run against a project. When \
-           you start with the build status of a PR, and click on the build \
-           status or OCaml-CI links (e.g., in GitHub actions), you arrive at a \
-           build page.";
-      ];
-    p
-      [
-        strong [ txt "Organisation" ];
-        txt
-          " : An organisation that owns projects that they want to build. This \
-           typically corresponds to an account on GitHub or GitLab for \
-           example.";
-      ];
-    p
-      [
-        strong [ txt "Pipeline" ];
-        txt " : An automated series of actions (steps) necessary for a build.";
+          " : A service that hosts git repositories. Currently GitHub and \
+           GitLab are supported.";
       ];
     p
       [
@@ -152,16 +136,38 @@ let concepts_and_terms =
       ];
     p
       [
+        strong [ txt "Organisation" ];
+        txt
+          " : An organisation that owns projects that they want to build. This \
+           typically corresponds to an account on a Git forge.";
+      ];
+    p
+      [
         strong [ txt "Repository" ];
         txt " : The Git repository that houses the project.";
+      ];
+    p
+      [
+        strong [ txt "Build" ];
+        txt
+          " : A collection of steps that correspond to the complete set of \
+           actions taken by OCaml-CI when it is run against a project. The \
+           build status of a branch or pull request usually corresponds to the \
+           outcome of the build of the latest commit of that branch or pull \
+           request.";
+      ];
+    p
+      [
+        strong [ txt "Pipeline" ];
+        txt " : An automated series of actions (steps) necessary for a build.";
       ];
     p
       [
         strong [ txt "Ref" ];
         txt
           " : Git branches that exist within the repository. There is thus the \
-           concept of a default `ref` (typically main or master) and those \
-           that correspond to pull requests or merge requests.";
+           concept of a default ref (typically main or master) and those that \
+           correspond to pull requests or merge requests.";
       ];
     p
       [
@@ -169,7 +175,30 @@ let concepts_and_terms =
         txt
           " : A step or a job is a unit of work. For example, building a \
            project on platform-x-with-compiler-version-y-with-opam-version-z \
-           or linting a project via OCamlFormat.";
+           or linting a project via OCamlFormat. The first step of a build is \
+           the";
+        em [ txt " analysis step " ];
+        txt "which plans the rest of the steps of the build.";
+      ];
+    p
+      [
+        strong [ txt "Running time" ];
+        txt
+          " : The running time of a step is the duration for which a step \
+           runs. That is, the time elapsed between the point where it starts \
+           running and the point where it stops. There are two notions of this \
+           concept for a build.";
+      ];
+    p
+      [
+        txt "The ";
+        strong [ em [ txt "total build run time" ] ];
+        txt " is the sum of the running times of the steps of the build. The ";
+        strong [ em [ txt "build run time" ] ];
+        txt
+          " is the sum of the time taken by the analysis step and that of the \
+           longest running step of the build. It represents the 'wall clock' \
+           time of the build";
       ];
   ]
 
@@ -188,8 +217,20 @@ let links =
         ~a:[ a_href "#index-page"; a_class [ "pl-6 text-sm link-hover" ] ]
         [ txt "Index Page" ];
       a
+        ~a:[ a_href "#repos-page"; a_class [ "pl-6 text-sm link-hover" ] ]
+        [ txt "Repositories Page" ];
+      a
+        ~a:[ a_href "#refs-page"; a_class [ "pl-6 text-sm link-hover" ] ]
+        [ txt "Refs Page" ];
+      a
+        ~a:[ a_href "#build-page"; a_class [ "pl-6 text-sm link-hover" ] ]
+        [ txt "Build Page" ];
+      a
         ~a:[ a_href "#step-page"; a_class [ "pl-6 text-sm link-hover" ] ]
         [ txt "Step Page" ];
+      a
+        ~a:[ a_href "#history-page"; a_class [ "pl-6 text-sm link-hover" ] ]
+        [ txt "History Page" ];
     ]
 
 let show =
@@ -199,9 +240,10 @@ let show =
     @ concepts_and_terms
     @ Index_page.show
     @ Repo_page.show
+    @ Refs_page.show
     @ Build_page.show
-    @ History_page.show
     @ Step_page.show
+    @ History_page.show
   in
   Template.instance
     [

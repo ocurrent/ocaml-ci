@@ -1,5 +1,5 @@
 open Tyxml.Html
-module Template = View.Template_v1
+module Template = View.Template
 module Tyxml_helpers = View.Tyxml_helpers
 
 let show =

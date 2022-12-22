@@ -2,7 +2,7 @@ open Tyxml.Html
 
 let show =
   [
-    div ~a:[ a_id "step-page" ] [ h2 [ txt "The Step Page" ] ];
+    h2 ~a:[ a_id "step-page" ] [ txt "The Step Page" ];
     p
       [
         txt
@@ -16,7 +16,7 @@ let show =
     img
       ~a:[ a_class [ "border border-solid" ] ]
       ~src:"/images/step-page-overview.png" ~alt:"step-page-overview" ();
-    div [ h3 [ txt "Salient information regarding the step" ] ];
+    h3 [ txt "Salient information regarding the step" ];
     p [ txt "The step page has the following key pieces of information:" ];
     ol
       [
@@ -50,7 +50,7 @@ let show =
           [
             txt
               "The specific commit that was built is hyperlinked to the commit \
-               on the relevant git-forge.";
+               on the relevant git forge.";
           ];
         li
           [
@@ -59,14 +59,14 @@ let show =
                top matter and refers to the total time that the step ran for.";
           ];
       ];
-    div [ h3 [ txt "The logs" ] ];
+    h3 [ txt "The logs" ];
     p
       [
         txt
           "Logs are generated during the build process. To refer to a specific \
            portion of the logs, click on the first line of interest, hold the \
            Shift key, and click on the last line of interest. This will result \
-           in a block of lines being highlighted. To copy a step page’s URL \
+           in a block of lines being highlighted. To copy a step page's URL \
            that highlights exactly these lines, click on the button that \
            appears in the bottom left of the highlighted block.";
       ];
@@ -74,7 +74,25 @@ let show =
       ~a:[ a_class [ "border border-solid" ] ]
       ~src:"/images/step-page-logs-highlighted.png"
       ~alt:"step-page-logs-highlighted" ();
-    div [ h3 [ txt "Rebuilding and cancelling a step" ] ];
+    h3 [ txt "Steps to reproduce" ];
+    p
+      [
+        txt
+          "When the logs have finished streaming, the section of the logs that \
+           contain\n\
+          \          code for reproducing the build are extracted to a section \
+           above the logs.\n\
+          \          This section is closed by default but can be opened by \
+           clicking on 'Steps to Reproduce.'\n\
+          \          The code in this section can be copied to the clipboard \
+           by clicking on the 'Copy code' button and executed as a shell \
+           script.";
+      ];
+    img
+      ~a:[ a_class [ "border border-solid" ] ]
+      ~src:"/images/step-page-steps-to-reproduce.png"
+      ~alt:"step-page-steps-to-reproduce" ();
+    h3 [ txt "Rebuilding and cancelling a step" ];
     p
       [
         txt

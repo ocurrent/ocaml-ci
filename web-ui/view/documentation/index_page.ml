@@ -17,8 +17,10 @@ let show =
       [
         txt
           "The index page of OCaml-CI lists all organisations that OCaml-CI \
-           knows about, across both git forges, GitHub and GitLab. The logo of \
-           the git forge is used to indicate the source of the organisation.";
+           knows about, across both GitHub and GitLab. The logo of the git \
+           forge is used to indicate the source of the organisation. Note that \
+           if no repositories are registered with OCaml-CI the organisation \
+           will not be listed.";
       ];
     img
       ~a:[ a_class [ "border border-solid" ] ]
@@ -26,8 +28,8 @@ let show =
     p
       [
         txt
-          "A filter is provided to select between GitHub or GitLab. Search \
-           functionality is available to locate the organisation of interest.";
+          "A filter is provided to select between GitHub or GitLab. Search is \
+           also available.";
       ];
     img
       ~a:[ a_class [ "border border-solid" ] ]
