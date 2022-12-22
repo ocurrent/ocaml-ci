@@ -1,75 +1,325 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@import url('./typography.css');
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  margin: 0;
-  padding: 0;
+  font-family: "Inter", sans-serif;
+  @apply bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-100;
 }
 
-nav {
-  margin: 0;
-  padding: 0.1em;
-  display: block;
-  background: black;
-  color: #ddd;
+.container-fluid {
+  @apply max-w-7xl w-full mx-auto px-4 md:px-6 xl:px-0;
 }
 
-nav ul {
-  list-style-type: none;
-  margin: 0;
-  padding: 0;
+.input-text,
+.dropdown {
+  @apply border border-gray-300 dark:border-gray-400 rounded-lg h-11 w-36 focus:outline-none focus:border-gray-400;
+  box-shadow: 0px 1px 2px rgba(16, 24, 40, 0.05);
+
 }
 
-nav li {
-  display: inline;
+.input-text-wide {
+  @apply w-80;
 }
 
-nav li:hover {
-  background: yellow;
+h1 {
+  @apply text-3xl font-medium text-gray-900 dark:text-gray-100;
 }
 
-nav a {
-  color: #ddd;
-  text-decoration: none;
-  padding-left: 0.5em;
-  padding-right: 0.5em;
+.item-card {
+  @apply bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-400 px-6 py-4;
 }
 
-nav a:hover {
-  color: black;
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 350px;
 }
 
-div#main {
-  margin: 0.5em;
+.custom-table tr th,
+.custom-table tr td {
+  padding: 5px;
+  min-height: 80px;
+  @apply md:px-6 md:py-4 border-b border-gray-200 dark:border-gray-400;
 }
 
-div#main object {
+.custom-table tr th {
+  @apply bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-400 text-gray-500 dark:text-gray-200 text-xs font-medium;
+  text-align: left;
+}
+
+.custom-table tr td {
+  @apply bg-white dark:bg-gray-850;
+}
+
+/* top-left border-radius */
+.custom-table tr:first-child th:first-child {
+  border-top-left-radius: 6px;
+}
+
+/* top-right border-radius */
+.custom-table tr:first-child th:last-child {
+  border-top-right-radius: 6px;
+}
+
+/* bottom-left border-radius */
+.custom-table tr:last-child td:first-child {
+  border-bottom-left-radius: 6px;
+}
+
+/* bottom-right border-radius */
+.custom-table tr:last-child td:last-child {
+  border-bottom-right-radius: 6px;
+}
+
+.icon-status {
+  min-width: 2rem;
+  @apply h-8 w-8 rounded-2xl flex items-center justify-center
+}
+
+.icon-status--active {
+  @apply bg-warning-50;
+}
+
+.icon-status--success {
+  @apply bg-green-50;
+}
+
+.icon-status--error {
+  @apply bg-red-50;
+}
+
+.icon-status--info {
+  @apply bg-blue-50;
+}
+
+.icon-status--default {
+  @apply bg-gray-50;
+}
+
+.icon-status svg {
+  @apply h-4 w-4;
+}
+
+.icon-status--default div {
+  @apply h-2 w-2 bg-gray-400 rounded-full;
+}
+
+.icon-status--active div {
+  @apply h-2 w-2 rounded-full bg-warning-500;
+}
+
+select {
+  color-adjust: exact;
+  /* background-image: url( "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 200'%3E%3Cpath d='M10 10h123v123H10z'/%3E%3C/svg%3E" ); */
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+}
+
+
+.btn {
+ @apply flex items-center space-x-3 font-medium text-base py-2 px-4 rounded-lg transition-colors h-11;
+}
+
+.btn-sm {
+  @apply space-x-1 text-sm h-9 px-3;
+}
+
+.btn-xs {
+  @apply space-x-1 text-xs h-5 px-2;
+}
+
+.btn-default {
+  @apply text-gray-500 hover:bg-gray-100;
+}
+
+.btn-secondary {
+  @apply bg-blue-100 text-blue-600 hover:bg-blue-200;
+}
+
+.btn-primary {
+  @apply bg-blue-500 hover:bg-blue-600 text-white;
+}
+
+.form-control input {
+  @apply bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-400 h-11 pl-10 w-full pr-4 rounded-lg dark:focus:bg-gray-850 dark:focus:outline-none dark:focus:border-gray-200;
+}
+
+.form-control svg {
+  @apply h-5 w-5 ml-3 mt-3 absolute z-0 pointer-events-none;
+}
+
+.table-row {
+  @apply px-6 py-3 bg-white dark:bg-gray-850 flex justify-between items-start md:items-center;
+}
+
+.table-container {
+  @apply border border-gray-200 dark:border-gray-400 rounded-lg w-full divide-y divide-gray-200 overflow-hidden shadow-sm;
+}
+
+.dropdown-menu {
+  @apply shadow-lg bg-white border border-gray-200 py-1 absolute min-w-full right-0 font-medium text-gray-500 z-20;
+}
+
+.dropdown-menu button {
+  @apply py-1.5 px-4 text-left hover:bg-gray-100 w-full whitespace-nowrap;
+}
+
+.badge {
+  @apply h-5 rounded-3xl font-medium text-xs flex items-center justify-center;
+  min-width: 24px;
+}
+
+.badge-gray {
+  @apply bg-gray-100 text-gray-700;
+}
+
+.icon-button {
+  @apply hover:bg-gray-100 transition-colors h-8 w-8 flex items-center justify-center rounded;
+}
+
+.tooltip {
+  @apply h-8 rounded-lg bg-blue-500 text-white inline-flex absolute items-center px-2 text-sm font-medium cursor-pointer;
+}
+
+.tooltip-arrow {
+  clip: rect(0px, 18px, 18px, -4px);
+  @apply absolute left-0 w-full bottom-0;
+  left: 50%;
+  margin-left: -7px;
+}
+
+.tooltip-arrow:after {
+  content: "";
+  @apply bg-blue-500;
+  width: 14px;
+  height: 14px;
+  transform: rotate(45deg) translate(-6px, -6px);
+  position: absolute;
+}
+
+
+.code-line:first-child .code-line__number,
+.code-line:first-child .code-line__code {
+  @apply pt-3;
+}
+
+.code-line:last-child .code-line__number,
+.code-line:last-child .code-line__code {
+  @apply pb-3;
+}
+
+.code-line__number {
+  @apply text-gray-900 dark:text-gray-100 bg-gray-200 dark:bg-gray-850 text-center px-1 md:px-6 w-14 text-gray-700 text-sm cursor-pointer select-none border-none;
+}
+
+.code-line__code {
+  @apply px-3 md:px-6 whitespace-pre bg-transparent border-none text-sm ;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  border-left: 1px solid transparent;
+}
+
+.code-line.highlight {
+
+}
+
+.code-line.highlight .code-line__code {
+  background-color: rgb(168, 198, 246);
+  border-left: 1px solid rgba(0, 105, 204, 0.64);
+}
+
+.copy-link-btn {
+  @apply bg-white absolute -left-3 top-0 rounded w-7 h-7 flex items-center justify-center border border-gray-300 hover:text-blue-500;
+}
+
+.sidebar-link {
+  @apply w-full text-left pl-4 py-2 rounded font-semibold relative;
+}
+
+.sidebar-link:before {
+  content: '';
+  @apply bg-no-repeat w-3 h-3 absolute left-0 top-4;
+  background-image: url('../images/caret.svg');
+}
+
+.sidebar-link.active:before {
+  transform: rotate(90deg);
+  left: -6px;
+}
+
+.sidebar-submenu {
+  @apply pb-6 flex-col flex;
+}
+
+
+.sidebar-submenu a {
+  @apply pl-10 py-2;
+}
+
+.sidebar-submenu a:hover, .sidebar-submenu a.active, .sidebar-link:hover {
+  @apply text-blue-600;
+}
+
+.prose {
   max-width: 100%;
 }
 
-table.table {
-  border: 1px solid black;
-  padding: 0;
+.link-hover:hover {
+  @apply text-blue-600 dark:text-gray-500;
 }
 
-table.table th {
-  background: #888;
-  color: white;
-  padding: 0.1em;
+.text-stroke {
+  font-size: 180px;
+  font-weight: bold;
+  line-height: 1;
+  -webkit-text-stroke: 2px #444;
+  -webkit-text-fill-color: white;
 }
 
-form {
-  padding: 0.2em;
+[x-cloak] { display: none !important; }
+
+/* Flash messages and notifications */
+
+.notification {
+  @apply bg-white fixed bottom-6 right-6 flex items-center text-sm font-medium rounded-lg shadow-lg p-4 justify-between;
+  z-index: 9999;
+  min-width: 300px;
 }
 
-pre { margin-bottom: 2em }
-
-ol.breadcrumbs {
-  list-style: none;
-  padding: 0;
+.flash-message {
+  @apply bg-green-50 border border-green-200 text-green-600 flex items-center text-sm font-medium rounded-lg py-3 px-3 justify-between;
 }
 
-ol.breadcrumbs li {
-  display: inline;
+.flash-message.flash-message--error {
+  @apply bg-red-50 border-red-200 text-red-600;
 }
 
-ol.breadcrumbs li+li:before {
-  content: "\00a0›\00a0";
+.flash-message.flash-message--info {
+  @apply bg-blue-50 border-blue-200 text-blue-600;
+}
+
+.flash-message .icon-button:hover {
+  @apply bg-green-100;
+}
+
+.flash-message--info .icon-button:hover {
+  @apply bg-blue-100;
+}
+
+.flash-message--error .icon-button:hover {
+  @apply bg-red-100;
+}
+
+/* LOGO */
+
+.svg-fill {
+    @apply fill-gray-900 dark:fill-gray-100;
 }

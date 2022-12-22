@@ -1,7 +1,7 @@
 open Tyxml.Html
 
 let getting_started =
-  Template_v1.instance
+  Template.instance
     [
       div
         ~a:[ a_class [ "flex flex-col md:grid md:grid-cols-6" ] ]
@@ -111,7 +111,7 @@ let getting_started =
     ]
 
 let user_guide =
-  Template_v1.instance
+  Template.instance
     [
       div
         ~a:

@@ -97,11 +97,7 @@ let timestamps_of_job job_id : timestamps option =
       (* No db entry for the job. Check Current.Job.jobs map *)
       match timestamp_from_job_map with
       | Some started_at -> Some (Running { queued_at = started_at; started_at })
-      | None ->
-          Log.info (fun f ->
-              f "[Info] - Timestamp lookup: No entry found for job_id: %s"
-                job_id);
-          None)
+      | None -> None)
   | x ->
       List.iter
         (fun y ->

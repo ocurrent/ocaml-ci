@@ -163,7 +163,7 @@ module Make (M : Git_forge_intf.Forge) = struct
             (tref, Printf.sprintf "commit/%s" commit);
           ]
     in
-    Template_v1.instance
+    Template.instance
       [
         Common.breadcrumbs breadcrumbs "Build History";
         top_matter ~org ~repo ~gref ~tref;

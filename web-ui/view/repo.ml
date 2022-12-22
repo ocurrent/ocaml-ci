@@ -286,7 +286,7 @@ module Make (M : Git_forge_intf.Forge) = struct
       match status with
       | Passed -> "\"rgba(18, 183, 106, 1)\","
       | Failed -> "\"rgba(217, 45, 32, 1)\","
-      | _ -> "\"rgba(255, 250, 231, 1)\","
+      | _ -> "\"rgba(128, 128, 128, 1)\","
     in
     let commit_link repo i { Client.Org.hash; _ } =
       Printf.sprintf "%d:\"%s\"," (15 - i)
@@ -384,7 +384,7 @@ module Make (M : Git_forge_intf.Forge) = struct
       in
       List.map f (List.sort repo_name_compare repos)
     in
-    Template_v1.instance
+    Template.instance
       [
         script ~a:[ a_src "/js/chart.js" ] (txt "");
         script (Unsafe.data (js_of_histories ~org histories));

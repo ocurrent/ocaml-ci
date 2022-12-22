@@ -187,7 +187,7 @@ module Make (M : Git_forge_intf.Forge) = struct
             ])
         [ steps_table_div ] jobs
     in
-    Template_v1.instance
+    Template.instance
       [
         Tyxml.Html.script ~a:[ a_src "/js/build-page-poll.js" ] (txt "");
         Common.breadcrumbs
@@ -201,14 +201,12 @@ module Make (M : Git_forge_intf.Forge) = struct
   let show ~org ~repo ~refs ~hash ~variant ~job ~status ~csrf_token ~timestamps
       ~build_created_at ~step_created_at ~step_finished_at ~can_rebuild
       ~can_cancel ?(flash_messages = []) (data, next) =
-    ignore can_cancel;
-
-    (* FIXME: Implement cancel step *)
+    let show_rebuild = (not can_cancel) && can_rebuild in
     let header, footer =
       let buttons =
         [
           Common.form_cancel_step ~variant ~csrf_token ~show:can_cancel ();
-          Common.form_rebuild_step ~variant ~csrf_token ~show:can_rebuild ();
+          Common.form_rebuild_step ~variant ~csrf_token ~show:show_rebuild ();
         ]
       in
       let branch =
@@ -500,7 +498,7 @@ module Make (M : Git_forge_intf.Forge) = struct
             ])
       in
       let body =
-        Template_v1.instance ~full:true
+        Template.instance ~full:true
           [
             Tyxml.Html.script ~a:[ a_src "/js/log-highlight.js" ] (txt "");
             Tyxml.Html.script ~a:[ a_src "/js/step-page-poll.js" ] (txt "");
