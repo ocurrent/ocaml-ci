@@ -172,11 +172,11 @@ let get_job_ids_with_variant t ~owner ~name ~hash =
      | Sqlite3.Data.[ TEXT variant; TEXT id ] -> (variant, Some id)
      | row -> Fmt.failwith "get_job_ids: invalid row %a" Db.dump_row row
 
+let some_of_nullable_float =
+  let open Sqlite3.Data in
+  function FLOAT v -> Some v | NULL -> None | _ -> raise Not_found
+
 let get_build_history ~owner ~name ~gref =
-  let some_of_nullable_float =
-    let open Sqlite3.Data in
-    function FLOAT v -> Some v | NULL -> None | _ -> raise Not_found
-  in
   let f = function
     | Sqlite3.Data.
         [
@@ -213,9 +213,28 @@ let get_latest_build_number t ~owner ~name ~hash =
       Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash ]
     |> List.map @@ function
        | Sqlite3.Data.[ INT build_number; _; _; _; _; _; _ ] -> build_number
-       | row -> Fmt.failwith "get_job_summary: invalid row %a" Db.dump_row row
+       | row ->
+           Fmt.failwith "get_latest_build_number: invalid row %a" Db.dump_row
+             row
   in
   match build_numbers with [] -> 0 | x :: _ -> Int64.to_int x
+
+let get_status_by_commit ~owner ~name ~hash =
+  let statuses =
+    let t = Lazy.force db in
+    Db.query t.get_build_summary_by_commit
+      Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash ]
+    |> List.map @@ function
+       | Sqlite3.Data.[ _; INT status; started_at; _; ran_for; _; _ ] ->
+           ( status,
+             some_of_nullable_float started_at,
+             some_of_nullable_float ran_for )
+       | row ->
+           Fmt.failwith "get_status_by_commit: invalid row %a" Db.dump_row row
+  in
+  match statuses with
+  | [] -> (-1, None, None)
+  | (x, s, r) :: _ -> (Int64.to_int x, s, r)
 
 module Owner_set = Set.Make (String)
 
@@ -385,9 +404,33 @@ module Commit_cache = struct
       ran_for
 
   let find ~owner ~name ~hash =
-    let default = { s = `Not_started; started_at = None; ran_for = None } in
-    Commit_map.find_opt { owner; repo = name; hash } !state
-    |> Option.value ~default
+    let cache_result =
+      Commit_map.find_opt { owner; repo = name; hash } !state
+    in
+    match cache_result with
+    | Some result -> result
+    | None -> (
+        (* Cache miss - fall back to the db *)
+        let status, started_at, ran_for =
+          get_status_by_commit ~owner ~name ~hash
+        in
+        match int_to_status status with
+        | Ok status ->
+            (* FIXME: We don't know the gref here so we can't use the add method. So, we're not
+               updating the Aggregate ref_state. What to do? *)
+            state :=
+              Commit_map.add
+                { owner; repo = name; hash }
+                { s = status; started_at; ran_for }
+                !state;
+            { s = status; started_at; ran_for }
+        | Error a ->
+            Log.err (fun f ->
+                f
+                  "Failed to get status of commit %s for owner %s repo %s. \
+                   Error: %s"
+                  hash owner name a);
+            raise Not_found)
 
   let commit_state_from_build_summary ~hash ~build_number ~status ~started_at
       ~total_ran_for ~ran_for ~total_queued_for =

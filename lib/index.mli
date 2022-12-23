@@ -116,6 +116,7 @@ module Commit_cache : sig
     unit
 
   val find : owner:string -> name:string -> hash:string -> commit_state
+  (* Find the entry from the cache, falling back to the database if not found. *)
 
   val commit_state_from_build_summary :
     hash:string ->
