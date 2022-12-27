@@ -1,2 +1,2 @@
-let getting_started = View.Documentation.getting_started
-let user_guide = View.Documentation.user_guide
+let getting_started = Documentation_view.Getting_started.show
+let user_guide = Documentation_view.User_guide.show
