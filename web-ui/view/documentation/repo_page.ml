@@ -6,9 +6,9 @@ let show =
     p
       [
         txt
-          "Along with a listing of the known repositories of an organisation, \
-           this page shows an overview and some key metrics of the default \
-           branch of each repository.";
+          "Along with a listing of an organisation's known repositories, \
+           this page shows an overview and some key metrics of each repository's default \
+           branch.";
       ];
     img
       ~a:[ a_class [ "border border-solid" ] ]
@@ -40,7 +40,7 @@ let show =
           "The chart visualises the last 15 builds that have run on the \
            default branch. The height of each bar reflects the build's running \
            time, and its status is represented by its colour. The tooltip on \
-           hover provides more information about the build and clicking on a \
+           hover provides more information about the build, and clicking on a \
            bar will take you to the corresponding build page.";
       ];
     img
@@ -50,8 +50,8 @@ let show =
     p
       [
         txt
-          "The average running time of all completed builds of the default \
-           branch. (See the documentation of the Build Page for a precise \
+          "The average running time of all the default branch's completed builds. \
+           (See the documentation of the Build Page for a precise \
            definition of running time).";
       ];
     img
@@ -67,5 +67,5 @@ let show =
     img
       ~a:[ a_class [ "border border-solid" ] ]
       ~src:"/images/repo-page-frequency.png" ~alt:"repo-frequency" ();
-    p [ txt "To see all the git branches of the repository, click on the row." ];
+    p [ txt "To see all the Git branches of the repository, click on the row." ];
   ]
