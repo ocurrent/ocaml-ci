@@ -9,8 +9,7 @@ let intro =
       [
         txt
           "This is a Work In Progress. Thank you for your patience as we \
-           update it with detailed documentation covering each of the pages of \
-           OCaml-CI.";
+           update it with detailed documentation covering each of the OCaml-CI pages.";
       ];
   ]
 
@@ -98,12 +97,12 @@ let overview =
         code [ txt "*.opam" ];
         txt " files together.";
       ];
-    p [ txt "For example, given a project with the following opam files" ];
+    p [ txt "For example, given a project with the following opam files:" ];
     pre [ code [ txt "\n bondi.opam\n bondi-lwt.opam\n bondi-async.opam\n " ] ];
     p
       [
         txt
-          "OCaml-CI will run an opam solve for all of the dependencies in the \
+          "OCaml-CI will run an opam solve for all of the dependencies in these \
            three opam files. So, if you depend on OCaml 5 in ";
         code [ txt "bondi-lwt.opam," ];
         txt
@@ -126,7 +125,7 @@ let concepts_and_terms =
       [
         strong [ txt "Git forge" ];
         txt
-          " : A service that hosts git repositories. Currently GitHub and \
+          " : A service that hosts Git repositories. Currently GitHub and \
            GitLab are supported.";
       ];
     p
@@ -193,7 +192,7 @@ let concepts_and_terms =
       [
         txt "The ";
         strong [ em [ txt "total build run time" ] ];
-        txt " is the sum of the running times of the steps of the build. The ";
+        txt " is the sum of the running times of the build's steps. The ";
         strong [ em [ txt "build run time" ] ];
         txt
           " is the sum of the time taken by the analysis step and that of the \
