@@ -6,10 +6,10 @@ let show =
     p
       [
         txt
-          "The refs page (of a repository) shows all git branches of that \
-           repository that have been built on OCaml-CI. Each row corresponds \
+          "The refs page (of a repository) shows all the repository's Git branches \
+           built on OCaml-CI. Each row corresponds \
            to a ref, showing information about its latest build. Refs are \
-           separated into three groups - the default branch of the repository, \
+           separated into three groups: the default branch of the repository, \
            branches that do not correspond to pull or merge requests, and \
            branches that do.";
       ];
