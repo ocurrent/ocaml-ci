@@ -9,11 +9,11 @@ let show =
           "The build page is typically the most important page of a CI. It \
            shows the results of\n\
           \          running the CI on a commit and thus helps determine the \
-           health of the repository following the additional changes \
-           introduced by the commit. It shows the overall status, as well as \
+           repository's health following the additional changes \
+           introduced by the commit. It shows the overall status as well as \
            an overview of the steps that constitute the build. When examining \
-           a commit on a GitHub or GitLab, clicking on the build status of the \
-           commit will bring you to this page.";
+           a commit on a GitHub or GitLab, clicking on the commit's build status \
+           will bring you to this page.";
       ];
     img
       ~a:[ a_class [ "border border-solid" ] ]
@@ -23,7 +23,7 @@ let show =
       [
         li [ txt "The status of the build" ];
         li [ txt "The commit that the build corresponds to" ];
-        li [ txt "The date and time that the build was created at" ];
+        li [ txt "The date and time that the build was created" ];
         li [ txt "The total build run time" ];
         li [ txt "The branch (or branches) that the commit belongs to" ];
         li [ txt "The 'wall clock' run time of the build" ];
@@ -36,8 +36,8 @@ let show =
       [
         txt
           "The total build run time is the sum of the running times of the \
-           steps of the build. It is a measure of the resources engaged during \
-           the execution of the build. It does not take any parallelism into \
+           build's steps. It measures the resources engaged during \
+           the execution of the build, but it does not take any parallelism into \
            account.";
       ];
     img
@@ -54,10 +54,10 @@ let show =
     p
       [
         txt
-          "The running time of a build is defined to be the sum of the time \
+          "A build's running time is defined to be the sum of the time \
            taken by the analysis step and that of the longest running step of \
            the build. It represents the 'wall clock' or elapsed time of the \
-           build and is different from the 'total build run time' in that it \
+           build and is different from the 'total build run time,' as it \
            represents the time taken if all steps ran in parallel.";
       ];
     img
@@ -69,7 +69,7 @@ let show =
       [
         txt
           "The 'Cancel' button allows the cancellation of a build that is \
-           running, or that has not yet started.";
+           running or that has not yet started.";
       ];
     img
       ~a:[ a_class [ "border border-solid" ] ]
@@ -95,9 +95,9 @@ let show =
       [
         txt
           "The table of steps shown on the build page provides summary \
-           information of each step of the build. Each row of the table \
-           corresponds to a step - it shows the name of the step, its build \
-           status, the date and time that it was created, the time spent in an \
+           information of each build step. Each table row \
+           corresponds to a step; it shows the name of the step, its build \
+           status, the date and time created, the time spent in an \
            enqueued state, and its running time.";
       ];
     img
