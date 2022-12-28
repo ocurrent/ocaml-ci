@@ -17,9 +17,9 @@ let show =
       [
         txt
           "The index page of OCaml-CI lists all organisations that OCaml-CI \
-           knows about, across both GitHub and GitLab. The logo of the git \
+           knows about, across both GitHub and GitLab. The logo of the Git \
            forge is used to indicate the source of the organisation. Note that \
-           if no repositories are registered with OCaml-CI the organisation \
+           if no repositories are registered with OCaml-CI, the organisation \
            will not be listed.";
       ];
     img
