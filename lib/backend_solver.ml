@@ -3,8 +3,8 @@ open Lwt.Infix
 let ( >>!= ) = Lwt_result.bind
 
 type t =
-  [ `Remote of Current_ocluster.Connection.t
-  | `Local of Ocaml_ci_api.Solver.t Lwt.t ]
+  | Remote of Current_ocluster.Connection.t
+  | Local of Ocaml_ci_api.Solver.t Lwt.t
 
 let switch = Current.Switch.create ~label:"solver-remote" ()
 let config = Current.Config.v ()
@@ -34,15 +34,15 @@ let remote_solve con job request =
   Capnp_rpc_lwt.Capability.with_ref build_job
     (Current_ocluster.Connection.run_job ~job)
 
-let local ?solver_dir () : t =
-  `Local
+let local ?solver_dir () =
+  Local
     (Lwt.return (Solver_worker.spawn_local ?solver_dir ~internal_workers:20 ()))
 
 let solve t job request ~log =
   match t with
-  | `Local ci ->
+  | Local ci ->
       ci >>= fun solver -> Ocaml_ci_api.Solver.solve solver request ~log
-  | `Remote con -> (
+  | Remote con -> (
       remote_solve con job request >>!= fun response ->
       match
         Ocaml_ci_api.Worker.Solve_response.of_yojson
@@ -57,9 +57,9 @@ let create ?solver_dir uri =
   | Some ur ->
       let vat = Capnp_rpc_unix.client_only_vat () in
       let sr = Capnp_rpc_unix.Vat.import_exn vat ur in
-      `Remote (Current_ocluster.Connection.create sr)
+      Remote (Current_ocluster.Connection.create sr)
 
 let local_ci t : Ocaml_ci_api.Solver.t Lwt.t =
   match t with
-  | `Local ci -> ci
-  | `Remote _ -> Fmt.failwith "Not a local solver"
+  | Local ci -> ci
+  | Remote _ -> Fmt.failwith "Not a local solver"
