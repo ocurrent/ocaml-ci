@@ -18,7 +18,7 @@ let spawn_local ?solver_dir () : Ocaml_ci_api.Solver.t =
     | None -> Fpath.to_string (Current.state_dir "solver")
     | Some x -> x
   in
-  let cmd = ("", [| "ocaml-ci-solver"; "--sockpath"; name |]) in
+  let cmd = ("", [| "solver-service"; "--sockpath"; name |]) in
   let _child =
     Lwt_process.open_process_none ~cwd:solver_dir ~stdin:`Close cmd
   in

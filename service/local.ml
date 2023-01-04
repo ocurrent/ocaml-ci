@@ -5,9 +5,9 @@ let setup_log default_level =
   Unix.putenv "PROGRESS_NO_TRUNC" "1";
   Prometheus_unix.Logging.init ?default_level ()
 
-let main () config mode repo : ('a, [ `Msg of string ]) result =
+let main () config mode repo solve_uri : ('a, [ `Msg of string ]) result =
   let open Ocaml_ci_service in
-  let solver = Ocaml_ci.Solver_pool.spawn_local () in
+  let solver = Ocaml_ci.Backend_solver.create solve_uri in
   let repo = Current_git.Local.v (Fpath.v repo) in
   let engine =
     Current.Engine.create ~config (Pipeline.local_test ~solver repo)
@@ -34,6 +34,16 @@ let repo =
   @@ Arg.info ~doc:"The directory containing the .git subdirectory." ~docv:"DIR"
        []
 
+let submission_solver_service =
+  Arg.value
+  @@ Arg.opt Arg.(some Capnp_rpc_unix.sturdy_uri) None
+  @@ Arg.info
+       ~doc:
+         "The submission-solve.cap file for a scheduler service which handles \
+          a solver-worker."
+       ~docv:"FILE"
+       [ "submission-solver-service" ]
+
 let cmd =
   let doc = "Test ocaml-ci on a local Git clone" in
   let info =
@@ -46,6 +56,7 @@ let cmd =
         $ setup_log
         $ Current.Config.cmdliner
         $ Current_web.cmdliner
-        $ repo))
+        $ repo
+        $ submission_solver_service))
 
 let () = exit @@ Cmd.eval cmd

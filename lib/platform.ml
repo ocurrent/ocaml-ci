@@ -140,7 +140,9 @@ module Query = struct
   let run No_context job { Key.docker_context; variant }
       { Value.image; host_image } =
     Current.Job.start job ~level:Current.Level.Mostly_harmless >>= fun () ->
-    let prep_image = "ocurrent/ocaml-ci:" ^ Variant.docker_tag variant in
+    let prep_image =
+      Fmt.str "ocurrent/ocaml-ci:%s" (Variant.docker_tag variant)
+    in
     prepare_image ~job ~docker_context ~tag:prep_image variant host_image
     >>!= fun host_image ->
     let cmd = get_ocaml_package ~docker_context host_image in

@@ -6,7 +6,6 @@
   alcotest-lwt
   ppx_deriving_yojson.runtime
   ocaml-ci-client-lib
-  ocaml-ci-web.representation
   timedesc-tzlocal.utc
   logs.fmt)
  (preprocess
@@ -17,11 +16,15 @@
  (package ocaml-ci-service)
  (deps
   (source_tree migrations)
-  (package ocaml-ci-solver))
+  (package solver-service))
  (action
   (run ./test_lwt.exe -e)))
 
 (rule
  (alias runtest)
+ (package ocaml-ci-service)
+ (deps
+  (source_tree migrations)
+  (package solver-service))
  (action
   (run ./test.exe)))

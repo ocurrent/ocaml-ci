@@ -125,9 +125,10 @@ module Gitlab = struct
 end
 
 let main () config mode app capnp_public_address capnp_listen_address
-    gitlab_auth submission_uri migrations : ('a, [ `Msg of string ]) result =
+    gitlab_auth submission_uri solver_uri migrations :
+    ('a, [ `Msg of string ]) result =
   Lwt_main.run
-    (let solver = Ocaml_ci.Solver_pool.spawn_local () in
+    (let solver = Ocaml_ci.Backend_solver.create solver_uri in
      run_capnp capnp_public_address capnp_listen_address
      >>= fun (vat, rpc_engine_resolver) ->
      let ocluster =
@@ -204,6 +205,17 @@ let migrations =
             the migration step is ignored."
          [ "migration-path" ])
 
+let submission_solver_service =
+  Arg.value
+  @@ Arg.opt Arg.(some Capnp_rpc_unix.sturdy_uri) None
+  @@ Arg.info
+       ~doc:
+         "The submission-solve.cap file for a scheduler service which handles \
+          a solver-worker. The cap file could be the same as \
+          $(b,--submission-service)."
+       ~docv:"FILE"
+       [ "submission-solver-service" ]
+
 let cmd =
   let doc = "Build OCaml projects on GitLab" in
   let info = Cmd.info "ocaml-ci-gitlab" ~doc in
@@ -219,6 +231,7 @@ let cmd =
         $ capnp_listen_address
         $ Current_gitlab.Auth.cmdliner
         $ submission_service
+        $ submission_solver_service
         $ migrations))
 
 let () = exit @@ Cmd.eval cmd

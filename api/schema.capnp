@@ -139,11 +139,3 @@ interface CI {
   orgsDetailed       @2 () -> (orgs :List(OrgInfo));
   # Get a list of organisations and related information for this CI capability.
 }
-
-interface Log {
-  write @0 (msg :Text);
-}
-
-interface Solver {
-  solve @0 (request :Text, log :Log) -> (response :Text);
-}
