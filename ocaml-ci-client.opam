@@ -4,9 +4,10 @@ synopsis: "Command-line client for ocaml-ci"
 maintainer: ["talex5@gmail.com"]
 authors: ["talex5@gmail.com"]
 homepage: "https://github.com/ocurrent/ocaml-ci"
+doc: "https://ci.ocamllabs.io/documentation"
 bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
-  "dune" {>= "3.3"}
+  "dune" {>= "3.6"}
   "ocaml" {>= "4.13"}
   "logs" {>= "0.7.0"}
   "fmt" {>= "0.8.9"}

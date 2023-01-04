@@ -1,9 +1,12 @@
-(lang dune 3.3)
-(name ocaml-ci-api)
+(lang dune 3.6)
+(name ocaml-ci)
+
 (generate_opam_files true)
 (source (github ocurrent/ocaml-ci))
 (authors "talex5@gmail.com")
 (maintainers "talex5@gmail.com")
+(documentation "https://ci.ocamllabs.io/documentation")
+
 (package
  (name ocaml-ci-api)
  (synopsis "Cap'n Proto API for ocaml-ci")
@@ -14,6 +17,7 @@
   capnp-rpc-lwt
   ppx_deriving
   ppx_deriving_yojson))
+  
 (package
  (name ocaml-ci)
  (synopsis "Core ocaml-ci")
@@ -31,6 +35,7 @@
    current_ocluster
    ocluster-api
    obuilder-spec))
+   
 (package
  (name ocaml-ci-service)
  (synopsis "Test OCaml projects on GitHub")
@@ -64,6 +69,7 @@
   (ocaml-version (>= 3.0.0))
   (alcotest (and (>= 1.0.0) :with-test))
   (alcotest-lwt (and (>= 1.0.1) :with-test))))
+  
 (package
  (name ocaml-ci-gitlab)
  (synopsis "Test OCaml projects on GitLab")
@@ -84,6 +90,7 @@
   ocaml-ci-service
   (ocaml (>= 4.13))
   (logs (>= 0.7.0))))
+  
 (package
  (name ocaml-ci-client)
  (synopsis "Command-line client for ocaml-ci")
@@ -96,6 +103,7 @@
   ocaml-ci-api
   dockerfile
   (timedesc (>= 0.9.0))))
+  
 (package
  (name ocaml-ci-web)
  (synopsis "Web-server frontend for ocaml-ci")
@@ -113,14 +121,13 @@
   (prometheus-app (>= 1.2))
   tyxml
   tailwindcss
-  (timedesc (>= 0.9.0)))
-)
+  (timedesc (>= 0.9.0))))
+
 (package
-(name ocaml-ci-client-lib)
-(synopsis "Lib for clients")
-(depends
+ (name ocaml-ci-client-lib)
+ (synopsis "Lib for clients")
+ (depends
   (ocaml (>= 4.13))
   (logs (>= 0.7.0))
   current_rpc
-  current
-))
+  current))

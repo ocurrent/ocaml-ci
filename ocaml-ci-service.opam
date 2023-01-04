@@ -4,9 +4,10 @@ synopsis: "Test OCaml projects on GitHub"
 maintainer: ["talex5@gmail.com"]
 authors: ["talex5@gmail.com"]
 homepage: "https://github.com/ocurrent/ocaml-ci"
+doc: "https://ci.ocamllabs.io/documentation"
 bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
-  "dune" {>= "3.3"}
+  "dune" {>= "3.6"}
   "prometheus-app" {>= "1.2"}
   "ppx_sexp_conv" {>= "v0.14.1"}
   "ppx_deriving_yojson" {>= "3.6.1"}
