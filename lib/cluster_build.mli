@@ -9,6 +9,7 @@ val config :
 
 val v :
   t ->
+  ?on_cancel:(string -> unit) ->
   platforms:Platform.t list Current.t ->
   repo:Repo_id.t Current.t ->
   spec:Spec.t Current.t ->
@@ -19,4 +20,5 @@ val v :
     platform. [~repo] is the ID of the repository-under-test on a Git Forge
     (e.g. GitHub or GitLab).
 
+    @param on_cancel The callback function to call if the job is cancelled.
     @param repo The ID of the repository-under-test on GitHub. *)
