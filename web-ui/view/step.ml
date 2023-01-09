@@ -609,7 +609,7 @@ module Make (M : Git_forge_intf.Forge) = struct
       Printf.sprintf "%s%s"
         (List.fold_left aux
            "<table data-paste-markdown-skip class='flex steps-table fg-default \
-            bg-default'><tbody>"
+            bg-default'><tbody class=\"bg-default\">"
            data)
         "</tbody></table>"
     in
