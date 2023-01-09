@@ -78,6 +78,12 @@ module Op = struct
       variant deps
 
   let run t job { Key.pool; commit; label = _; repo } spec =
+    Current.Job.on_cancel job (fun reason ->
+        Logs.debug (fun l ->
+            l "Calling the cluster on_cancel callback with reason: %s" reason);
+        if reason <> "Job complete" then t.on_cancel reason;
+        Lwt.return_unit)
+    >>= fun () ->
     let { Value.base; variant; ty } = spec in
     let build_spec = Build.make_build_spec ~base ~repo ~variant ~ty in
     Current.Job.write job
@@ -103,10 +109,6 @@ module Op = struct
     Current.Job.start_with ~pool:build_pool job ?timeout:t.timeout
       ~level:Current.Level.Average
     >>= fun build_job ->
-    Current.Job.on_cancel job (fun reason ->
-        if reason <> "Job complete" then t.on_cancel reason;
-        Lwt.return_unit)
-    >>= fun () ->
     Capability.with_ref build_job (Current_ocluster.Connection.run_job ~job)
     >>!= fun (_ : string) -> Lwt_result.return ()
 
