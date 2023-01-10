@@ -11,7 +11,7 @@ function extractStepsToReproduce() {
 
   const br = document.createElement("br");
   const reproDiv = document.getElementById("build-repro");
-  const rows = [...tables].map((t) => Array.from(t.rows)).flat(1);
+  const rows = [...tables].map((t) => Array.from(t.children)).flat(1);
 
   document.getElementById("build-repro-container").style.removeProperty('display');
 
