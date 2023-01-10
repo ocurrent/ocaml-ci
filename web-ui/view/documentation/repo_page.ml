@@ -6,9 +6,9 @@ let show =
     p
       [
         txt
-          "Along with a listing of an organisation's known repositories, \
-           this page shows an overview and some key metrics of each repository's default \
-           branch.";
+          "Along with a listing of an organisation's known repositories, this \
+           page shows an overview and some key metrics of each repository's \
+           default branch.";
       ];
     img
       ~a:[ a_class [ "border border-solid" ] ]
@@ -50,8 +50,8 @@ let show =
     p
       [
         txt
-          "The average running time of all the default branch's completed builds. \
-           (See the documentation of the Build Page for a precise \
+          "The average running time of all the default branch's completed \
+           builds. (See the documentation of the Build Page for a precise \
            definition of running time).";
       ];
     img

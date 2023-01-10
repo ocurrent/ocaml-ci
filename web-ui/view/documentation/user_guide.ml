@@ -9,7 +9,8 @@ let intro =
       [
         txt
           "This is a Work In Progress. Thank you for your patience as we \
-           update it with detailed documentation covering each of the OCaml-CI pages.";
+           update it with detailed documentation covering each of the OCaml-CI \
+           pages.";
       ];
   ]
 
@@ -102,8 +103,8 @@ let overview =
     p
       [
         txt
-          "OCaml-CI will run an opam solve for all of the dependencies in these \
-           three opam files. So, if you depend on OCaml 5 in ";
+          "OCaml-CI will run an opam solve for all of the dependencies in \
+           these three opam files. So, if you depend on OCaml 5 in ";
         code [ txt "bondi-lwt.opam," ];
         txt
           " then a build will only happen on that version of OCaml, even if \

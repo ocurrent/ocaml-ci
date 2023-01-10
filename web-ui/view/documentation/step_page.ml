@@ -66,9 +66,9 @@ let show =
           "Logs are generated during the build process. To refer to a specific \
            portion of the logs, click on the first line of interest, hold the \
            Shift key, and click on the last line of interest. This will result \
-           in highlighting a block of lines. To copy a step page's URL \
-           that highlights exactly these lines, click on the button that \
-           appears in the bottom left of the highlighted block.";
+           in highlighting a block of lines. To copy a step page's URL that \
+           highlights exactly these lines, click on the button that appears in \
+           the bottom left of the highlighted block.";
       ];
     img
       ~a:[ a_class [ "border border-solid" ] ]
@@ -82,8 +82,8 @@ let show =
            contain\n\
           \          code for reproducing the build are extracted to a section \
            above the logs.\n\
-          \          This section is closed by default, but it can be opened by \
-           clicking on 'Steps to Reproduce.'\n\
+          \          This section is closed by default, but it can be opened \
+           by clicking on 'Steps to Reproduce.'\n\
           \          The code in this section can be copied to the clipboard \
            by clicking on the 'Copy code' button and executed as a shell \
            script.";

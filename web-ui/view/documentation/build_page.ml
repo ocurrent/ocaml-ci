@@ -9,11 +9,11 @@ let show =
           "The build page is typically the most important page of a CI. It \
            shows the results of\n\
           \          running the CI on a commit and thus helps determine the \
-           repository's health following the additional changes \
-           introduced by the commit. It shows the overall status as well as \
-           an overview of the steps that constitute the build. When examining \
-           a commit on a GitHub or GitLab, clicking on the commit's build status \
-           will bring you to this page.";
+           repository's health following the additional changes introduced by \
+           the commit. It shows the overall status as well as an overview of \
+           the steps that constitute the build. When examining a commit on a \
+           GitHub or GitLab, clicking on the commit's build status will bring \
+           you to this page.";
       ];
     img
       ~a:[ a_class [ "border border-solid" ] ]
@@ -36,8 +36,8 @@ let show =
       [
         txt
           "The total build run time is the sum of the running times of the \
-           build's steps. It measures the resources engaged during \
-           the execution of the build, but it does not take any parallelism into \
+           build's steps. It measures the resources engaged during the \
+           execution of the build, but it does not take any parallelism into \
            account.";
       ];
     img
@@ -54,11 +54,11 @@ let show =
     p
       [
         txt
-          "A build's running time is defined to be the sum of the time \
-           taken by the analysis step and that of the longest running step of \
-           the build. It represents the 'wall clock' or elapsed time of the \
-           build and is different from the 'total build run time,' as it \
-           represents the time taken if all steps ran in parallel.";
+          "A build's running time is defined to be the sum of the time taken \
+           by the analysis step and that of the longest running step of the \
+           build. It represents the 'wall clock' or elapsed time of the build \
+           and is different from the 'total build run time,' as it represents \
+           the time taken if all steps ran in parallel.";
       ];
     img
       ~a:[ a_class [ "border border-solid" ] ]
@@ -95,10 +95,10 @@ let show =
       [
         txt
           "The table of steps shown on the build page provides summary \
-           information of each build step. Each table row \
-           corresponds to a step; it shows the name of the step, its build \
-           status, the date and time created, the time spent in an \
-           enqueued state, and its running time.";
+           information of each build step. Each table row corresponds to a \
+           step; it shows the name of the step, its build status, the date and \
+           time created, the time spent in an enqueued state, and its running \
+           time.";
       ];
     img
       ~a:[ a_class [ "border border-solid" ] ]
