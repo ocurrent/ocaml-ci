@@ -11,7 +11,7 @@ let show =
           \          running the CI on a commit and thus helps determine the \
            repository's health following the additional changes introduced by \
            the commit. It shows the overall status as well as an overview of \
-           the steps that constitute the build. When examining a commit on a \
+           the steps that constitute the build. When examining a commit on \
            GitHub or GitLab, clicking on the commit's build status will bring \
            you to this page.";
       ];
