@@ -63,7 +63,7 @@ let show =
                         "Select only the repositories you want tested \
                          (starting with no more than three please). If you \
                          select ";
-                      strong [ txt "All Repositories" ];
+                      strong [ txt "All Repositories," ];
                       txt " we won't be able to build anything!";
                       img ~src:"/images/github-apps-3.png"
                         ~alt:"Click Configure" ();
@@ -80,7 +80,7 @@ let show =
                   txt
                     ". You will need to be approved before it will start \
                      building anything. This is done by adding yourself to a \
-                     list by submitting a PR (e.g. ";
+                     list by submitting a PR (e.g., ";
                   a
                     ~a:
                       [ a_href "https://github.com/ocurrent/ocaml-ci/pull/346" ]
@@ -91,7 +91,7 @@ let show =
                 [
                   li
                     [
-                      txt "Github documentation on how to install ";
+                      txt "GitHub documentation on how to install ";
                       a
                         ~a:
                           [
