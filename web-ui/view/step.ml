@@ -420,8 +420,23 @@ module Make (M : Git_forge_intf.Forge) = struct
                       ]);
                 ];
               div
-                ~a:[ a_class [ "table-overflow overflow-auto rounded-lg" ] ]
-                [ txt "@@@" ];
+                ~a:
+                  [
+                    a_class
+                      [
+                        "table-overflow overflow-auto rounded-lg fg-default \
+                         bg-default";
+                      ];
+                  ]
+                [
+                  pre
+                    ~a:
+                      [
+                        a_class
+                          [ "flex code steps-table fg-default bg-default" ];
+                      ]
+                    [ txt "@@@" ];
+                ];
             ])
       in
       let link_copied_notification =
@@ -551,6 +566,7 @@ module Make (M : Git_forge_intf.Forge) = struct
     let line_number = ref 0 in
     let last_line_blank = ref false in
     let tabulate data : string =
+      (* let first_idx, last_idx = (0, List.length data - 1) in *)
       let aux log_line =
         if !last_line_blank && log_line = "" then
           (* Squash consecutive new lines *)
