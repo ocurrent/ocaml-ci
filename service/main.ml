@@ -78,7 +78,7 @@ let run_capnp capnp_public_address capnp_listen_address =
       Lwt.fail_invalid_arg
         "Public address for Cap'n Proto RPC can't be set without setting a \
          capnp-listen-address to listen on."
-  | _ ->
+  | Some _, Some _ | None, Some _ ->
       let listen_address =
         match capnp_listen_address with
         | Some listen_address -> listen_address

@@ -13,7 +13,7 @@
   gitlab-unix
   prometheus-app.unix
   cmdliner)
- (modules pipeline))
+ (modules pipeline gitlab))
 
 (executables
  (names main local)
