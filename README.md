@@ -40,7 +40,7 @@ Note: you need to clone with `--recursive` because this project uses submodules
 If you forget, `git submodule update --init` will fetch them.
 
 To test the CI on a local Git clone, you need to first install the
-dependencies, and then use `dune exec` as shown below:
+dependencies and then use `dune exec` as shown below:
 
 ```sh
 opam update
