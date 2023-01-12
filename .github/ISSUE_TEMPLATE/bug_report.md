@@ -9,7 +9,7 @@ assignees: ''
 
 ## Context
 
-<!-- A clear and concise description of what the bug is. -->
+<!-- A description of what the bug is. -->
 
 ## Step(s) to reproduce
 
