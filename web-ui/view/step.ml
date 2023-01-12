@@ -620,14 +620,32 @@ module Make (M : Git_forge_intf.Forge) = struct
       in
       List.filter_map aux data |> String.concat "\n"
     in
+    let collapse_carriage_returns log_line =
+      let rec last = function
+        | [] -> raise (Failure "Trying to take log_line from empty list (BUG)")
+        | s :: [] -> s
+        | _ :: l -> last l
+      in
+      match log_line with
+      | "" -> ""
+      | log_line ->
+          Dream.log "%S" log_line;
+          let split = Astring.String.cuts ~sep:"\r" log_line in
+          if List.length split > 1 then List.iter (Dream.log "%S") split;
+          last split
+    in
+    let process_logs data =
+      data
+      |> Astring.String.cuts ~sep:"\n"
+      |> List.map (fun l -> l |> collapse_carriage_returns |> Ansi.process ansi)
+      |> tabulate
+    in
     let open Lwt.Infix in
     Dream.stream
       ~headers:[ ("Content-type", "text/html; charset=utf-8") ]
       (fun response_stream ->
         Dream.write response_stream header >>= fun () ->
-        let data' =
-          data |> Ansi.process ansi |> Astring.String.cuts ~sep:"\n" |> tabulate
-        in
+        let data' = data |> process_logs in
         Dream.write response_stream data' >>= fun () ->
         let rec loop next =
           Current_rpc.Job.log job ~start:next >>= function
@@ -636,12 +654,7 @@ module Make (M : Git_forge_intf.Forge) = struct
               Dream.close response_stream
           | Ok (data, next) ->
               Dream.log "Fetching logs";
-              let data' =
-                data
-                |> Ansi.process ansi
-                |> Astring.String.cuts ~sep:"\n"
-                |> tabulate
-              in
+              let data' = data |> process_logs in
               Dream.write response_stream data' >>= fun () ->
               Dream.flush response_stream >>= fun () -> loop next
           | Error (`Capnp ex) ->
