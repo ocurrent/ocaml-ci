@@ -44,7 +44,7 @@ dependencies and then use `dune exec` as shown below:
 
 ```sh
 opam update
-opam install -t .
+opam install . --deps-only --with-test --yes
 dune exec -- ocaml-ci-local /path/to/project
 ```
 
