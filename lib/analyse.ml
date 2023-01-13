@@ -43,7 +43,8 @@ module Analysis = struct
     ocamlformat_selection : Selection.t option;
     ocamlformat_source : Analyse_ocamlformat.source option;
     selections :
-      [ `Opam_build of Selection.t list
+      [ `Opam_build of
+        [ `Default of Selection.t list ] * [ `Lower_bound of Selection.t list ]
       | `Opam_monorepo of Opam_monorepo.config list ];
   }
   [@@deriving yojson]
@@ -137,8 +138,8 @@ module Analysis = struct
 
   (** Call the solver with a request containing these packages. When it returns
       a list, it is nonempty. *)
-  let solve ~root_pkgs ~pinned_pkgs ~platforms ~opam_repository_commit ~job
-      ~solver =
+  let solve ~root_pkgs ~pinned_pkgs ~platforms ~opam_repository_commit
+      ~lower_bound ~job ~solver =
     let platforms =
       List.map
         (fun (variant, vars) -> (Variant.to_string variant, vars))
@@ -154,6 +155,7 @@ module Analysis = struct
         root_pkgs;
         pinned_pkgs;
         platforms;
+        lower_bound;
       }
     in
     Capnp_rpc_lwt.Capability.with_ref (job_log job) @@ fun log ->
@@ -260,7 +262,8 @@ module Analysis = struct
                else None)
     in
     let find_opam_repo_commit =
-      find_opam_repo_commit_for_ocamlformat ~solve ~platforms
+      find_opam_repo_commit_for_ocamlformat ~solve:(solve ~lower_bound:false)
+        ~platforms
     in
     Analyse_ocamlformat.get_ocamlformat_source job ~opam_files ~root:dir
       ~find_opam_repo_commit
@@ -271,10 +274,20 @@ module Analysis = struct
     else
       (match ty with
       | `Opam_monorepo builds ->
-          lwt_result_list_mapm builds ~f:(fun info ->
-              Opam_monorepo.selection ~info ~solve ~platforms)
-          |> Lwt_result.map (fun l -> `Opam_monorepo l)
-      | `Ocaml_repo -> opam_selections ~solve ~job ~platforms ~opam_files dir)
+          let build ~lower_bound =
+            lwt_result_list_mapm builds ~f:(fun info ->
+                Opam_monorepo.selection ~info ~solve:(solve ~lower_bound)
+                  ~platforms)
+          in
+          build ~lower_bound:false |> Lwt_result.map (fun l -> `Opam_monorepo l)
+      | `Ocaml_repo ->
+          let build ~lower_bound =
+            opam_selections ~solve:(solve ~lower_bound) ~job ~platforms
+              ~opam_files dir
+          in
+          Lwt_result.both (build ~lower_bound:false) (build ~lower_bound:true)
+          |> Lwt_result.map (fun (`Opam_build l, `Opam_build l') ->
+                 `Opam_build (`Default l, `Lower_bound l')))
       >>!= fun selections ->
       let r =
         { opam_files; ocamlformat_selection; ocamlformat_source; selections }

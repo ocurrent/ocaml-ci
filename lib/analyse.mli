@@ -9,7 +9,8 @@ module Analysis : sig
 
   val selections :
     t ->
-    [ `Opam_build of Selection.t list
+    [ `Opam_build of
+      [ `Default of Selection.t list ] * [ `Lower_bound of Selection.t list ]
     | `Opam_monorepo of Opam_monorepo.config list ]
 
   val of_dir :

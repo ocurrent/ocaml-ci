@@ -43,7 +43,8 @@ module Analysis = struct
   let selections (t : t) =
     match selections t with
     | `Opam_monorepo _ -> []
-    | `Opam_build s -> List.map selection s
+    | `Opam_build (`Default s, _) ->
+        List.map selection s (* TODO: Add testing of lower_bound analysis *)
 
   (* Make the [t] type concrete from the observable fields for easier testing *)
   type t = {
