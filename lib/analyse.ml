@@ -339,9 +339,7 @@ module Examine_cache = Current_cache.Generic (Examine)
 
 let examine ~solver ~platforms ~opam_repository_commit src =
   Current.component "Analyse"
-  |> let> src = src
-     and> opam_repository_commit = opam_repository_commit
-     and> platforms = platforms in
+  |> let> src and> opam_repository_commit and> platforms in
      let platforms =
        platforms
        |> List.map (fun { Platform.variant; vars; _ } -> (variant, vars))

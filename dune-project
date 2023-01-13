@@ -75,7 +75,7 @@
  (synopsis "Test OCaml projects on GitLab")
  (description "Test OCaml projects on GitLab")
  (depends
-  (ocaml (>= 4.08.0))
+  (ocaml (>= 4.13))
   (alcotest :with-test)
   (odoc :with-doc)
   current

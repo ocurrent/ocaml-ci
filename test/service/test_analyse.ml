@@ -55,7 +55,7 @@ module Analysis = struct
   [@@deriving eq, yojson]
 
   let of_dir ~switch ~job ~platforms ~solver_dir ~opam_repository_commit d =
-    let solver = Ocaml_ci.Backend_solver.create ~solver_dir None in
+    let solver = Ocaml_ci.Backend_solver.v ~solver_dir None in
     Lwt_switch.add_hook (Some switch) (fun () ->
         Ocaml_ci.Backend_solver.local_ci solver >>= fun solver ->
         Capnp_rpc_lwt.Capability.dec_ref solver;

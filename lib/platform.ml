@@ -192,7 +192,7 @@ module QC = Current_cache.Generic (Query)
 
 let query builder ~variant ~host_image image =
   Current.component "opam-vars"
-  |> let> host_image = host_image and> image = image in
+  |> let> host_image and> image in
      let image = Raw.Image.hash image in
      let host_image = Raw.Image.hash host_image in
      let docker_context = builder.Builder.docker_context in

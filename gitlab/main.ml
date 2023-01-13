@@ -106,10 +106,10 @@ let run_capnp capnp_public_address capnp_listen_address =
 
 let main () config mode app capnp_public_address capnp_listen_address
     gitlab_auth submission_uri solver_uri migrations :
-      ('a, [ `Msg of string ]) result =
+    ('a, [ `Msg of string ]) result =
   let open Ocaml_ci_gitlab in
   Lwt_main.run
-    (let solver = Ocaml_ci.Backend_solver.create solver_uri in
+    (let solver = Ocaml_ci.Backend_solver.v solver_uri in
      run_capnp capnp_public_address capnp_listen_address
      >>= fun (vat, rpc_engine_resolver) ->
      let ocluster =

@@ -1,4 +1,4 @@
-(** Generate obuilder spec for building opam packages with opam-monorepo. *)
+(** Generate obuilder specs for building opam packages with opam-monorepo. *)
 
 type info
 

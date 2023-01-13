@@ -1,7 +1,3 @@
-(* Check whether a variant is considered experimental.
-   If it is experimental we allow those builds to fail without
-   failing the overall build for a commit.
- *)
 let experimental_variant variant =
   Astring.String.is_prefix ~affix:"macos-homebrew" variant
 
@@ -36,7 +32,8 @@ let summarise results =
          | _, (Ok `Checked, _) ->
              (ok, pending, err, skip) (* Don't count lint checks *)
          | _, (Ok `Built, _) -> (ok + 1, pending, err, skip)
-         | l, (Error (`Msg m), _) when Astring.String.is_prefix ~affix:"[SKIP]" m ->
+         | l, (Error (`Msg m), _)
+           when Astring.String.is_prefix ~affix:"[SKIP]" m ->
              (ok, pending, err, (m, l) :: skip)
          | l, (Error (`Msg _), _) when experimental_variant l ->
              (ok + 1, pending, err, skip)
@@ -61,7 +58,8 @@ let get_job_id x =
   let+ md = Current.Analysis.metadata x in
   match md with Some { Current.Metadata.job_id; _ } -> job_id | None -> None
 
-let build_with_docker ?ocluster ~(repo : Repo_id.t Current.t) ~analysis ~platforms source =
+let build_with_docker ?ocluster ~(repo : Repo_id.t Current.t) ~analysis
+    ~platforms source =
   Current.with_context analysis @@ fun () ->
   let specs =
     let+ analysis = Current.state ~hidden:true analysis in

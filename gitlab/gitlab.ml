@@ -2,9 +2,9 @@
 let has_role user = function
   | `Viewer | `Monitor -> true
   | `Builder | `Admin -> (
-    match Option.map Current_web.User.id user with
-    | Some "gitlab:tmcgilchrist" -> true
-    | Some _ | None -> false)
+      match Option.map Current_web.User.id user with
+      | Some "gitlab:tmcgilchrist" -> true
+      | Some _ | None -> false)
 
 let webhook_route ~webhook_secret =
   Routes.(

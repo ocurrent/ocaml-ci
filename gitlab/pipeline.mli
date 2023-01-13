@@ -15,5 +15,5 @@ val v :
   migrations:string option ->
   unit ->
   unit Current.t
-(** The main ocaml-ci pipeline for testing GitLab hosted repositories. 
-    If [migration] is [Some path], it automatically executes the migrations.*)
+(** The main ocaml-ci pipeline for testing GitLab hosted repositories. If
+    [migration] is [Some path], it automatically executes the migrations.*)

@@ -1,4 +1,4 @@
-(** Active BuildKit experimental syntax. *)
+(** Activate BuildKit experimental syntax. *)
 
 val add : Ocaml_version.arch -> string
 (** [add arch] will activate BuildKit experimental syntax with a hash that will

@@ -42,23 +42,22 @@ let solve t job request ~log =
   match t with
   | Local ci ->
       ci >>= fun solver -> Ocaml_ci_api.Solver.solve solver request ~log
-  | Remote con -> begin
+  | Remote con -> (
       remote_solve con job request >>!= fun response ->
       match
         Ocaml_ci_api.Worker.Solve_response.of_yojson
           (Yojson.Safe.from_string response)
       with
       | Ok x -> Lwt.return x
-      | Error ex -> failwith ex
-    end
+      | Error ex -> failwith ex)
 
-let create ?solver_dir uri =
+let v ?solver_dir uri =
   match uri with
   | None -> local ?solver_dir ()
   | Some ur ->
-     let vat = Capnp_rpc_unix.client_only_vat () in
-     let sr = Capnp_rpc_unix.Vat.import_exn vat ur in
-     Remote (Current_ocluster.Connection.create sr)
+      let vat = Capnp_rpc_unix.client_only_vat () in
+      let sr = Capnp_rpc_unix.Vat.import_exn vat ur in
+      Remote (Current_ocluster.Connection.create sr)
 
 let local_ci t : Ocaml_ci_api.Solver.t Lwt.t =
   match t with Local ci -> ci | Remote _ -> Fmt.failwith "Not a local solver"

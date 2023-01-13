@@ -1,7 +1,7 @@
 (** Variants of builds to perform.
 
-    A build variant covers the OCaml version, opam version, hardware [arch] and operating system distribution.
- *)
+    A build variant covers the OCaml version, opam version, hardware [arch] and
+    operating system distribution. *)
 
 type t [@@deriving eq, ord, yojson]
 
@@ -18,6 +18,7 @@ val ocaml_version : t -> Ocaml_version.t
 val with_ocaml_version : Ocaml_version.t -> t -> t
 val opam_version : t -> Opam_version.t
 val id : t -> string
+
 val docker_tag : t -> string
 (** Print [t] as a docker tag. *)
 

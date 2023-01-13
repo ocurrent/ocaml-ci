@@ -1,8 +1,6 @@
 open Current.Syntax
 open Ocaml_ci
-
 open Pipeline
-
 module Git = Current_git
 module Gitlab = Current_gitlab
 module Docker = Current_docker.Default
@@ -18,7 +16,6 @@ module Metrics = struct
     Gauge.v_label ~label_name:"account" ~help ~namespace ~subsystem
       "repositories_total"
 end
-
 
 let platforms = Ocaml_ci_service.Conf.fetch_platforms ~include_macos:true ()
 let program_name = "ocaml-ci"
@@ -123,8 +120,7 @@ let set_active_installations (accounts : Installation.t list Current.t) =
   accounts
 
 let set_active_repos ~installation repos =
-  let+ repos 
-  and+ installation in
+  let+ repos and+ installation in
   repos
   |> List.fold_left
        (fun acc r -> Index.Repo_set.add r.Gitlab.Repo_id.name acc)
@@ -135,8 +131,7 @@ let set_active_repos ~installation repos =
     (float_of_int (List.length repos));
   repos
 
-let gref_from_commit x =
-  Git.Commit_id.gref @@ Gitlab.Api.Commit.id x
+let gref_from_commit x = Git.Commit_id.gref @@ Gitlab.Api.Commit.id x
 
 let ref_name c =
   match (Gitlab.Api.Commit.branch_name c, Gitlab.Api.Commit.mr_name c) with
@@ -166,7 +161,7 @@ let repositories (installation : Installation.t Current.t) =
   let+ installation in
   List.filter
     (fun repo -> repo.Gitlab.Repo_id.owner == installation.name)
-    gitlab_repos 
+    gitlab_repos
 
 let gitlab_status_of_state head result =
   let+ head and+ result in
@@ -185,10 +180,14 @@ let gitlab_status_of_state head result =
       Gitlab.Api.Status.v ~url `Failure ~description:m ~name:program_name
 
 let local_test ~solver repo () =
-  let platforms = Ocaml_ci_service.Conf.fetch_platforms ~include_macos:false ()
-  and src = Git.Local.head_commit repo in
+  let platforms =
+    Ocaml_ci_service.Conf.fetch_platforms ~include_macos:false ()
+  in
+  let src = Git.Local.head_commit repo in
   let repo = Current.return { Repo_id.owner = "local"; name = "test" }
-  and analysis = Analyse.examine ~solver ~platforms ~opam_repository_commit src in
+  and analysis =
+    Analyse.examine ~solver ~platforms ~opam_repository_commit src
+  in
   Current.component "summarise"
   |> let> results = build_with_docker ~repo ~analysis ~platforms src in
      let result = summarise results in
@@ -210,14 +209,17 @@ let v ?ocluster ~app ~solver ~migrations () =
   |> set_active_installations
   |> Current.list_iter ~collapse_key:"org" (module Installation)
      @@ fun installation ->
-     repositories installation 
-     |> set_active_repos ~installation 
+     repositories installation
+     |> set_active_repos ~installation
      |> Current.list_iter ~collapse_key:"repo" (module Gitlab.Repo_id)
         @@ fun repo ->
         let* repo_id = repo in
         let default = Gitlab.Api.head_commit app repo_id in
-        let refs = 
-          let refs = Gitlab.Api.ci_refs app ~staleness:Ocaml_ci_service.Conf.max_staleness repo_id in
+        let refs =
+          let refs =
+            Gitlab.Api.ci_refs app
+              ~staleness:Ocaml_ci_service.Conf.max_staleness repo_id
+          in
           set_active_refs ~repo ~default refs
         in
         refs
@@ -227,7 +229,15 @@ let v ?ocluster ~app ~solver ~migrations () =
              Analyse.examine ~solver ~platforms ~opam_repository_commit src
            in
            let builds =
-             let repo = Current.map (fun repo -> { Repo_id.owner = repo.Gitlab.Repo_id.owner; name = repo.name }) repo in
+             let repo =
+               Current.map
+                 (fun repo ->
+                   {
+                     Repo_id.owner = repo.Gitlab.Repo_id.owner;
+                     name = repo.name;
+                   })
+                 repo
+             in
              build_with_docker ?ocluster ~repo ~analysis ~platforms src
            in
            let summary = Current.map summarise builds in
@@ -239,11 +249,11 @@ let v ?ocluster ~app ~solver ~migrations () =
              | Error (`Msg _) -> `Failed
            in
            let index =
-             let+ commit = head 
-             and+ builds 
-             and+ status in
+             let+ commit = head and+ builds and+ status in
              let gref = Git.Commit_id.gref @@ Gitlab.Api.Commit.id commit in
-             let repo = Gitlab.Api.Commit.repo_id commit |> fun repo -> { Ocaml_ci.Repo_id.owner = repo.owner; name = repo.name }
+             let repo =
+               Gitlab.Api.Commit.repo_id commit |> fun repo ->
+               { Ocaml_ci.Repo_id.owner = repo.owner; name = repo.name }
              in
              let hash = Gitlab.Api.Commit.hash commit in
              let jobs =

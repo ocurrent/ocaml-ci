@@ -5,8 +5,7 @@
     - A map from active Git references to the Git commit at their heads.
     - A map from project builds ([owner * name * hash)] triples) to statuses.
     - A (persisted) map from each Git commit hash to its last known OCurrent job
-      ID. 
- *)
+      ID. *)
 
 type job_state =
   [ `Not_started | `Active | `Failed of string | `Passed | `Aborted ]

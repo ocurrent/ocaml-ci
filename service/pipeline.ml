@@ -1,7 +1,6 @@
 open Current.Syntax
 open Ocaml_ci
 open Pipeline
-
 module Git = Current_git
 module Github = Current_github
 module Docker = Current_docker.Default
@@ -109,8 +108,6 @@ let set_active_refs ~repo refs default_ref =
   Index.set_active_refs ~repo refs (ref_from_commit default);
   xs
 
-
-
 let local_test ~solver repo () =
   let platforms = Conf.fetch_platforms ~include_macos:false () in
   let src = Git.Local.head_commit repo in
@@ -120,10 +117,7 @@ let local_test ~solver repo () =
   in
   Current.component "summarise"
   |> let> results = build_with_docker ~repo ~analysis ~platforms src in
-     let result =
-       results
-       |> summarise
-     in
+     let result = results |> summarise in
      Current_incr.const (result, None)
 
 let v ?ocluster ~app ~solver ~migrations () =
@@ -138,8 +132,8 @@ let v ?ocluster ~app ~solver ~migrations () =
   Current.with_context migrations @@ fun () ->
   Current.with_context opam_repository_commit @@ fun () ->
   Current.with_context platforms @@ fun () ->
-  Github.App.installations app 
-  |> set_active_installations 
+  Github.App.installations app
+  |> set_active_installations
   |> Current.list_iter ~collapse_key:"org" (module Github.Installation)
      @@ fun installation ->
      Github.Installation.repositories installation
@@ -160,8 +154,13 @@ let v ?ocluster ~app ~solver ~migrations () =
              Analyse.examine ~solver ~platforms ~opam_repository_commit src
            in
            let builds =
-             let repo = Current.map (fun x -> Github.Api.Repo.id x
-                                              |> fun repo -> { Repo_id.owner = repo.owner; name = repo.name }) repo in
+             let repo =
+               Current.map
+                 (fun x ->
+                   Github.Api.Repo.id x |> fun repo ->
+                   { Repo_id.owner = repo.owner; name = repo.name })
+                 repo
+             in
              build_with_docker ?ocluster ~repo ~analysis ~platforms src
            in
            let summary = Current.map summarise builds in
@@ -173,13 +172,11 @@ let v ?ocluster ~app ~solver ~migrations () =
              | Error (`Msg _) -> `Failed
            in
            let index =
-             let+ commit = head 
-             and+ builds 
-             and+ status in
+             let+ commit = head and+ builds and+ status in
              let gref = ref_from_commit commit in
-             let repo = 
-               Current_github.Api.Commit.repo_id commit
-               |> fun repo -> { Repo_id.owner = repo.owner; name = repo.name }
+             let repo =
+               Current_github.Api.Commit.repo_id commit |> fun repo ->
+               { Repo_id.owner = repo.owner; name = repo.name }
              in
              let hash = Current_github.Api.Commit.hash commit in
              let jobs =
@@ -189,5 +186,6 @@ let v ?ocluster ~app ~solver ~migrations () =
            and set_github_status =
              builds
              |> github_status_of_state ~head summary
-             |> Github.Api.CheckRun.set_status head "ocaml-ci" in
+             |> Github.Api.CheckRun.set_status head "ocaml-ci"
+           in
            Current.all [ index; set_github_status ]

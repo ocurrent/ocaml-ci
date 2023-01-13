@@ -7,7 +7,7 @@ let setup_log default_level =
 
 let main () config mode repo solve_uri : ('a, [ `Msg of string ]) result =
   let open Ocaml_ci_service in
-  let solver = Ocaml_ci.Backend_solver.create solve_uri in
+  let solver = Ocaml_ci.Backend_solver.v solve_uri in
   let repo = Current_git.Local.v (Fpath.v repo) in
   let engine =
     Current.Engine.create ~config (Pipeline.local_test ~solver repo)

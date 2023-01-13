@@ -15,6 +15,6 @@ val v :
   migrations:string option ->
   unit ->
   unit Current.t
-(** The main ocaml-ci pipeline for testing GitHub hosted repositories. Tests everything configured for GitHub
-    application [app]. If [migration] is [Some path], it will automatically
-    executes the migrations. *)
+(** The main ocaml-ci pipeline for testing GitHub hosted repositories. Tests
+    everything configured for GitHub application [app]. If [migration] is
+    [Some path], it automatically executes the migrations. *)
