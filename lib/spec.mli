@@ -1,3 +1,5 @@
+(** Specifications for different kinds of builds. *)
+
 type ty =
   [ `Opam of [ `Build | `Lint of [ `Doc | `Opam ] ] * Selection.t * string list
   | `Opam_fmt of Selection.t * Analyse_ocamlformat.source option

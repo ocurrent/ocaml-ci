@@ -6,7 +6,7 @@ let temp_file_name prefix suffix =
   let rnd = Random.(State.bits (get_state ())) land 0xFFFFFF in
   Filename.concat temp_dir (Printf.sprintf "%s%06x%s" prefix rnd suffix)
 
-let spawn_local ?solver_dir () : Ocaml_ci_api.Solver.t =
+let spawn_local ?solver_dir () =
   let name = temp_file_name "ocaml-ci-solver-" ".sock" in
   Logs.info (fun f -> f "Setting up ocaml-ci-solver %s…" name);
   let listener = Unix.socket ~cloexec:true PF_UNIX SOCK_STREAM 0 in

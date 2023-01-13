@@ -1,3 +1,5 @@
+(** Detect the required version of ocamlformat used in a source repository. *)
+
 type source =
   | Opam of { version : string; opam_repo_commit : string }
       (** Should install OCamlformat from Opam. *)
@@ -6,6 +8,7 @@ type source =
 [@@deriving yojson, eq, ord]
 
 val pp_source : source Fmt.t
+(** Pretty print [source]. *)
 
 val get_ocamlformat_source :
   Current.Job.t ->

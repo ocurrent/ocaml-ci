@@ -1,3 +1,4 @@
+(** Execute a build on the cluster. *)
 type t
 
 val config :
@@ -14,6 +15,6 @@ val v :
   ([> `Built | `Checked ] Current_term.Output.t * Current.job_id option)
   Current.t
 (** Build and test all the opam packages in a given build context on the given
-    platform.
+    platform. [~repo] is the ID of the repository-under-test on a Git Forge (e.g. GitHub or GitLab).
 
     @param repo The ID of the repository-under-test on GitHub. *)

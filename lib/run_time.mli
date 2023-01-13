@@ -1,3 +1,5 @@
+(** Runtime calculations for builds. *)
+
 val src : Logs.src
 
 module Log : Logs.LOG
