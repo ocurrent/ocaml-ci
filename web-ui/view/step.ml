@@ -420,8 +420,23 @@ module Make (M : Git_forge_intf.Forge) = struct
                       ]);
                 ];
               div
-                ~a:[ a_class [ "table-overflow overflow-auto rounded-lg" ] ]
-                [ txt "@@@" ];
+                ~a:
+                  [
+                    a_class
+                      [
+                        "table-overflow overflow-auto rounded-lg fg-default \
+                         bg-default";
+                      ];
+                  ]
+                [
+                  pre
+                    ~a:
+                      [
+                        a_class
+                          [ "flex code steps-table fg-default bg-default" ];
+                      ]
+                    [ txt "@@@" ];
+                ];
             ])
       in
       let link_copied_notification =
@@ -551,10 +566,10 @@ module Make (M : Git_forge_intf.Forge) = struct
     let line_number = ref 0 in
     let last_line_blank = ref false in
     let tabulate data : string =
-      let aux (l : string) log_line =
+      let aux log_line =
         if !last_line_blank && log_line = "" then
           (* Squash consecutive new lines *)
-          l
+          None
         else
           let is_start_of_steps_to_reproduce =
             Astring.String.is_infix ~affix:"To reproduce locally:" log_line
@@ -563,64 +578,69 @@ module Make (M : Git_forge_intf.Forge) = struct
             Astring.String.is_infix ~affix:"END-REPRO-BLOCK" log_line
           in
           let code_line_class =
-            if is_start_of_steps_to_reproduce then
-              "code-line__code repro-block-start"
-            else if is_end_of_steps_to_reproduce then
-              "code-line__code repro-block-end"
-            else "code-line__code"
+            if is_start_of_steps_to_reproduce then "repro-block-start"
+            else if is_end_of_steps_to_reproduce then "repro-block-end"
+            else ""
           in
           last_line_blank := log_line = "";
           line_number := !line_number + 1;
           let line_number_id = Printf.sprintf "L%d" !line_number in
-          Printf.sprintf "%s\n%s" l
-            (Fmt.str "%a" (pp_elt ())
-               (tr
-                  ~a:
-                    [
-                      a_class [ "code-line" ];
-                      Tyxml_helpers.colon_class
-                        "parseInt($el.id.substring(1, $el.id.length)) >= \
-                         startingLine && parseInt($el.id.substring(1, \
-                         $el.id.length)) <= endingLine ? 'highlight' : ''";
-                      Tyxml_helpers.at_click "highlightLine";
-                      a_id line_number_id;
-                    ]
-                  [
-                    td
-                      ~a:
-                        [
-                          a_class [ "code-line__number" ];
-                          a_user_data "line-number" line_number_id;
-                        ]
-                      [ txt (Printf.sprintf "%d" !line_number) ];
-                    td
-                      ~a:
-                        [
-                          a_class [ code_line_class ];
-                          a_user_data "line-number" line_number_id;
-                        ]
-                      [
-                        pre
-                          ~a:[ a_user_data "line-number" line_number_id ]
-                          [ Unsafe.data log_line ];
-                      ];
-                  ]))
+          let line =
+            Fmt.str "%a" (pp_elt ())
+              (span
+                 ~a:
+                   [
+                     a_class [ "tr" ];
+                     Tyxml_helpers.colon_class
+                       "parseInt($el.id.substring(1, $el.id.length)) >= \
+                        startingLine && parseInt($el.id.substring(1, \
+                        $el.id.length)) <= endingLine ? 'highlight' : ''";
+                     Tyxml_helpers.at_click "highlightLine";
+                     a_id line_number_id;
+                   ]
+                 [
+                   span
+                     ~a:
+                       [
+                         a_class [ "th" ];
+                         a_user_data "line-number" line_number_id;
+                       ]
+                     [];
+                   code
+                     ~a:
+                       [
+                         a_class [ code_line_class ];
+                         a_user_data "line-number" line_number_id;
+                       ]
+                     [ Unsafe.data log_line ];
+                 ])
+          in
+          Some line
       in
-      Printf.sprintf "%s%s"
-        (List.fold_left aux
-           "<table data-paste-markdown-skip class='flex steps-table fg-default \
-            bg-default'><tbody class=\"bg-default\">"
-           data)
-        "</tbody></table>"
+      List.filter_map aux data |> String.concat "\n"
+    in
+    let collapse_carriage_returns log_line =
+      let rec last = function
+        | [] -> raise (Failure "Trying to take log_line from empty list (BUG)")
+        | [ s ] -> s
+        | _ :: l -> last l
+      in
+      match log_line with
+      | "" -> ""
+      | log_line -> Astring.String.cuts ~sep:"\r" log_line |> last
+    in
+    let process_logs data =
+      data
+      |> Astring.String.cuts ~sep:"\n"
+      |> List.map (fun l -> collapse_carriage_returns l |> Ansi.process ansi)
+      |> tabulate
     in
     let open Lwt.Infix in
     Dream.stream
       ~headers:[ ("Content-type", "text/html; charset=utf-8") ]
       (fun response_stream ->
         Dream.write response_stream header >>= fun () ->
-        let data' =
-          data |> Ansi.process ansi |> Astring.String.cuts ~sep:"\n" |> tabulate
-        in
+        let data' = process_logs data in
         Dream.write response_stream data' >>= fun () ->
         let rec loop next =
           Current_rpc.Job.log job ~start:next >>= function
@@ -629,12 +649,7 @@ module Make (M : Git_forge_intf.Forge) = struct
               Dream.close response_stream
           | Ok (data, next) ->
               Dream.log "Fetching logs";
-              let data' =
-                data
-                |> Ansi.process ansi
-                |> Astring.String.cuts ~sep:"\n"
-                |> tabulate
-              in
+              let data' = process_logs data in
               Dream.write response_stream data' >>= fun () ->
               Dream.flush response_stream >>= fun () -> loop next
           | Error (`Capnp ex) ->

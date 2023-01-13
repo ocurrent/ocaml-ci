@@ -36,7 +36,6 @@ document.addEventListener('alpine:init', () => {
               if (!this.startingLine) {
                   this.startingLine = currentID;
                   this.endingLine = currentID;
-                  console.log(this.startingLine);
               }
 
               if (this.startingLine) {
@@ -68,7 +67,6 @@ document.addEventListener('alpine:init', () => {
 
               if (this.startingLine) {
                 setTimeout(() => {
-                  console.log(this.startingLine);
                   document.getElementById(`L${this.startingLine}`).scrollIntoView();
                 }, 500)
               }

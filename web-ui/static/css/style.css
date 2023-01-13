@@ -206,38 +206,47 @@ select {
   position: absolute;
 }
 
-
-.code-line:first-child .code-line__number,
-.code-line:first-child .code-line__code {
-  @apply pt-3;
+pre.code {
+  @apply table table-fixed w-full whitespace-pre-wrap border-l border-solid border-transparent text-sm;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
-.code-line:last-child .code-line__number,
-.code-line:last-child .code-line__code {
-  @apply pb-3;
+pre.code span.tr {
+  display: table-row;
+  counter-increment: linenum;
 }
 
-.code-line__number {
-  @apply text-gray-900 dark:text-gray-100 bg-gray-200 dark:bg-gray-850 text-center px-1 md:px-6 w-14 text-gray-700 text-sm cursor-pointer select-none border-none;
+pre.code span.th { /* used for line numbers */
+  @apply table-cell select-none;
+  width: 4em;
 }
 
-.code-line__code {
-  @apply px-3 md:px-6 whitespace-pre bg-transparent border-none text-sm ;
+pre.code span.th::before {
+  content: counter(linenum);
+  @apply block text-center text-gray-900 dark:text-gray-100 bg-gray-200 dark:bg-gray-850 px-1 w-14 text-gray-700 text-sm cursor-pointer select-none border-none;
+}
+
+pre.code code {
+  @apply table-cell px-3 md:px-6 whitespace-pre bg-transparent border-none text-sm ;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   border-left: 1px solid transparent;
 }
 
-.code-line.highlight {
-
-}
-
-.code-line.highlight .code-line__code {
+pre.code span.highlight code {
   background-color: rgb(168, 198, 246);
   border-left: 1px solid rgba(0, 105, 204, 0.64);
 }
 
+pre.code span.tr:first-child span.th {
+  @apply pt-3 bg-gray-200 dark:bg-gray-850;
+}
+
+pre.code span.tr:last-child span.th {
+  @apply pb-3 bg-gray-200 dark:bg-gray-850;
+}
+
 .copy-link-btn {
-  @apply bg-white absolute -left-3 top-0 rounded w-7 h-7 flex items-center justify-center border border-gray-300 hover:text-blue-500;
+  @apply bg-white dark:bg-gray-800 absolute -left-3 top-0 rounded w-7 h-7 flex items-center justify-center border border-gray-300 hover:text-blue-500;
 }
 
 .sidebar-link {
