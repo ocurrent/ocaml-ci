@@ -566,7 +566,6 @@ module Make (M : Git_forge_intf.Forge) = struct
     let line_number = ref 0 in
     let last_line_blank = ref false in
     let tabulate data : string =
-      (* let first_idx, last_idx = (0, List.length data - 1) in *)
       let aux log_line =
         if !last_line_blank && log_line = "" then
           (* Squash consecutive new lines *)
@@ -623,21 +622,17 @@ module Make (M : Git_forge_intf.Forge) = struct
     let collapse_carriage_returns log_line =
       let rec last = function
         | [] -> raise (Failure "Trying to take log_line from empty list (BUG)")
-        | s :: [] -> s
+        | [ s ] -> s
         | _ :: l -> last l
       in
       match log_line with
       | "" -> ""
-      | log_line ->
-          Dream.log "%S" log_line;
-          let split = Astring.String.cuts ~sep:"\r" log_line in
-          if List.length split > 1 then List.iter (Dream.log "%S") split;
-          last split
+      | log_line -> Astring.String.cuts ~sep:"\r" log_line |> last
     in
     let process_logs data =
       data
       |> Astring.String.cuts ~sep:"\n"
-      |> List.map (fun l -> l |> collapse_carriage_returns |> Ansi.process ansi)
+      |> List.map (fun l -> collapse_carriage_returns l |> Ansi.process ansi)
       |> tabulate
     in
     let open Lwt.Infix in
@@ -645,7 +640,7 @@ module Make (M : Git_forge_intf.Forge) = struct
       ~headers:[ ("Content-type", "text/html; charset=utf-8") ]
       (fun response_stream ->
         Dream.write response_stream header >>= fun () ->
-        let data' = data |> process_logs in
+        let data' = process_logs data in
         Dream.write response_stream data' >>= fun () ->
         let rec loop next =
           Current_rpc.Job.log job ~start:next >>= function
@@ -654,7 +649,7 @@ module Make (M : Git_forge_intf.Forge) = struct
               Dream.close response_stream
           | Ok (data, next) ->
               Dream.log "Fetching logs";
-              let data' = data |> process_logs in
+              let data' = process_logs data in
               Dream.write response_stream data' >>= fun () ->
               Dream.flush response_stream >>= fun () -> loop next
           | Error (`Capnp ex) ->
