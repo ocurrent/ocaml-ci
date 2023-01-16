@@ -68,7 +68,7 @@ let title_card ~status ~card_title ~hash_link ~ref_links ~first_created_at
               [
                 heading;
                 div
-                  ~a:[ a_class [ "text-gray-500" ] ]
+                  ~a:[ a_class [ "text-gray-500 dark:text-gray-300" ] ]
                   [
                     div
                       ~a:
