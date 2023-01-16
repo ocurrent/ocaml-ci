@@ -228,6 +228,22 @@ module Analysis = struct
     let selection = List.hd selections in
     (selection.Selection.commit, selection)
 
+  let get_lower_bound_platforms platforms =
+    List.filter
+      (fun (v, _) -> String.equal (Variant.distro v) "debian-11")
+      platforms
+    |> List.fold_left
+         (fun v v' ->
+           if
+             Ocaml_version.compare
+               (Variant.ocaml_version (fst v))
+               (Variant.ocaml_version (fst v'))
+             >= 0
+           then v'
+           else v)
+         (List.hd platforms)
+    |> fun v -> [ v ]
+
   let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
     let solve = solve ~opam_repository_commit ~job ~solver in
     let ty = type_of_dir dir in
@@ -274,14 +290,16 @@ module Analysis = struct
     else
       (match ty with
       | `Opam_monorepo builds ->
-          let build ~lower_bound =
-            lwt_result_list_mapm builds ~f:(fun info ->
-                Opam_monorepo.selection ~info ~solve:(solve ~lower_bound)
-                  ~platforms)
-          in
-          build ~lower_bound:false |> Lwt_result.map (fun l -> `Opam_monorepo l)
+          lwt_result_list_mapm builds ~f:(fun info ->
+              Opam_monorepo.selection ~info ~solve:(solve ~lower_bound:false)
+                ~platforms)
+          |> Lwt_result.map (fun l -> `Opam_monorepo l)
       | `Ocaml_repo ->
           let build ~lower_bound =
+            let platforms =
+              if lower_bound then get_lower_bound_platforms platforms
+              else platforms
+            in
             opam_selections ~solve:(solve ~lower_bound) ~job ~platforms
               ~opam_files dir
           in

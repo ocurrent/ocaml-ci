@@ -16,5 +16,5 @@
 	branch = master
 [submodule "solver-service"]
 	path = solver-service
-	url = https://github.com/ocurrent/solver-service.git
-	branch = solver-ci
+	url = https://github.com/benmandrew/solver-service.git
+	branch = lower-bound
