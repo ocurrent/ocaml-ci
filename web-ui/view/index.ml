@@ -140,5 +140,5 @@ let list_all_orgs ~github_orgs ~gitlab_orgs =
         ];
       div
         ~a:[ a_class [ "mt-8 md:columns-2" ] ]
-        [ div ~a:[ a_id "table"; a_class [ "flex-col space-y-6" ] ] org_rows ];
+        [ div ~a:[ a_id "table"; a_class [ "flex-col" ] ] org_rows ];
     ]
