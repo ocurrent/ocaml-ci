@@ -43,9 +43,8 @@ table {
 
 .custom-table tr th,
 .custom-table tr td {
-  padding: 5px;
   min-height: 80px;
-  @apply md:px-6 md:py-4 border-b border-gray-200 dark:border-gray-400;
+  @apply px-6 py-4 border-b border-gray-200 dark:border-gray-400;
 }
 
 .custom-table tr th {
