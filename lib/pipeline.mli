@@ -20,6 +20,7 @@ val get_job_id : 'a Current.t -> string option Current.t
 
 val build_with_docker :
   ?ocluster:Cluster_build.t ->
+  ?on_cancel:(string -> unit) ->
   repo:Repo_id.t Current.t ->
   analysis:Analyse.Analysis.t Current.t ->
   platforms:Platform.t list Current.t ->
@@ -31,4 +32,6 @@ val build_with_docker :
 
     The builds created will depend on the [platforms] available and the solver
     [analysis] for those platforms. Optionally the builds can be peformed
-    locally in docker or on an OCluster instance. *)
+    locally in docker or on an OCluster instance.
+
+    [on_cancel] is only called when [ocluster] is [Some cluster]. *)

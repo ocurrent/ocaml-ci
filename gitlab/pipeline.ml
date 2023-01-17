@@ -228,6 +228,20 @@ let v ?ocluster ~app ~solver ~migrations () =
            let analysis =
              Analyse.examine ~solver ~platforms ~opam_repository_commit src
            in
+           let* on_cancel =
+             match ocluster with
+             | None -> Current.return None
+             | Some _ ->
+                 let+ commit = head in
+                 let gref = Git.Commit_id.gref @@ Gitlab.Api.Commit.id commit in
+                 let repo = Gitlab.Api.Commit.repo_id commit in
+                 let repo =
+                   { Ocaml_ci.Repo_id.owner = repo.owner; name = repo.name }
+                 in
+                 let hash = Gitlab.Api.Commit.hash commit in
+                 Some
+                   (fun _ -> Index.record_summary_on_cancel ~repo ~gref ~hash)
+           in
            let builds =
              let repo =
                Current.map
@@ -238,7 +252,8 @@ let v ?ocluster ~app ~solver ~migrations () =
                    })
                  repo
              in
-             build_with_docker ?ocluster ~repo ~analysis ~platforms src
+             build_with_docker ?ocluster ?on_cancel ~repo ~analysis ~platforms
+               src
            in
            let summary = Current.map summarise builds in
            let status =
