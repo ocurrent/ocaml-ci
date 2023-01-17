@@ -1,5 +1,6 @@
 open Current.Syntax
 open Ocaml_ci
+open Pipeline
 module Git = Current_git
 module Gitlab = Current_gitlab
 module Docker = Current_docker.Default
@@ -25,13 +26,7 @@ let url ~owner ~name ~hash =
     (Printf.sprintf "https://ci.ocamllabs.io/gitlab/%s/%s/commit/%s" owner name
        hash)
 
-(* Check whether a variant is considered experimental.
-   If it is experimental we allow those builds to fail without
-   failing the overall build for a commit.
-*)
-let experimental_variant variant =
-  Astring.String.is_prefix ~affix:"macos-homebrew" variant
-
+(* Watch the opam-repository for changes. *)
 let opam_repository_commit =
   let module Github = Current_github in
   let repo = { Github.Repo_id.owner = "ocaml"; name = "opam-repository" } in
@@ -116,7 +111,7 @@ let gitlab_installations =
   |> List.sort_uniq Installation.compare
 
 let set_active_installations (accounts : Installation.t list Current.t) =
-  let+ accounts = accounts in
+  let+ accounts in
   accounts
   |> List.fold_left
        (fun acc i -> Index.Owner_set.add i.Installation.name acc)
@@ -124,9 +119,8 @@ let set_active_installations (accounts : Installation.t list Current.t) =
   |> Index.set_active_owners;
   accounts
 
-let set_active_repos ~(installation : Installation.t Current.t)
-    (repos : Gitlab.Repo_id.t list Current.t) =
-  let+ repos = repos and+ installation = installation in
+let set_active_repos ~installation repos =
+  let+ repos and+ installation in
   repos
   |> List.fold_left
        (fun acc r -> Index.Repo_set.add r.Gitlab.Repo_id.name acc)
@@ -137,165 +131,40 @@ let set_active_repos ~(installation : Installation.t Current.t)
     (float_of_int (List.length repos));
   repos
 
-let gref_from_commit (x : Gitlab.Api.Commit.t) : string =
-  Git.Commit_id.gref @@ Gitlab.Api.Commit.id x
+let gref_from_commit x = Git.Commit_id.gref @@ Gitlab.Api.Commit.id x
 
 let ref_name c =
   match (Gitlab.Api.Commit.branch_name c, Gitlab.Api.Commit.mr_name c) with
   | Some name, None | None, Some name -> name
   | _ -> failwith "Commit is neither a branch nor a MR"
 
-let set_active_refs ~(repo : Gitlab.Repo_id.t Current.t) ~default xs =
-  let+ repo = repo and+ xs = xs and+ default = default in
-  let repo' = { Repo_id.owner = repo.owner; name = repo.name } in
+let set_active_refs ~(repo : Gitlab.Repo_id.t Current.t) ~default commits =
+  let+ repo and+ commits and+ default in
+  let repo = { Repo_id.owner = repo.owner; name = repo.name } in
   let refs =
-    xs
+    commits
     |> List.fold_left
-         (fun acc x ->
-           let commit = Gitlab.Api.Commit.id x in
-           let gref = Git.Commit_id.gref commit in
-           let hash = Git.Commit_id.hash commit in
-           let name = ref_name x in
-           let message = Gitlab.Api.Commit.message x in
+         (fun acc commit ->
+           let commit_id = Gitlab.Api.Commit.id commit in
+           let gref = Git.Commit_id.gref commit_id in
+           let hash = Git.Commit_id.hash commit_id in
+           let name = ref_name commit in
+           let message = Gitlab.Api.Commit.message commit in
            Index.Ref_map.add gref { Index.hash; message; name } acc)
          Index.Ref_map.empty
   in
   let default_gref = gref_from_commit default in
-  Index.set_active_refs ~repo:repo' refs default_gref;
-  xs
+  Index.set_active_refs ~repo refs default_gref;
+  commits
 
-let get_job_id x =
-  let+ md = Current.Analysis.metadata x in
-  match md with Some { Current.Metadata.job_id; _ } -> job_id | None -> None
-
-let build_with_docker ?ocluster ~repo ~analysis ~platforms source =
-  let repo' =
-    Current.map
-      (fun r ->
-        { Repo_id.owner = r.Gitlab.Repo_id.owner; Repo_id.name = r.name })
-      repo
-  in
-  Current.with_context analysis @@ fun () ->
-  let specs =
-    let+ analysis = Current.state ~hidden:true analysis in
-    match analysis with
-    | Error _ ->
-        (* If we don't have the analysis yet, just use the empty list. *)
-        []
-    | Ok analysis -> (
-        match Analyse.Analysis.selections analysis with
-        | `Opam_monorepo builds ->
-            let lint_selection =
-              Opam_monorepo.selection_of_config (List.hd builds)
-            in
-            Spec.opam ~label:"(lint-fmt)" ~selection:lint_selection ~analysis
-              (`Lint `Fmt)
-            :: Spec.opam_monorepo builds
-        | `Opam_build selections ->
-            let lint_selection = List.hd selections in
-            let lint_ocamlformat =
-              match Analyse.Analysis.ocamlformat_selection analysis with
-              | None -> lint_selection
-              | Some selection -> selection
-            in
-            let builds =
-              selections
-              |> Selection.filter_duplicate_opam_versions
-              |> List.map (fun selection ->
-                     let label =
-                       Variant.to_string selection.Selection.variant
-                     in
-                     Spec.opam ~label ~selection ~analysis `Build)
-            and lint =
-              [
-                Spec.opam ~label:"(lint-fmt)" ~selection:lint_ocamlformat
-                  ~analysis (`Lint `Fmt);
-                Spec.opam ~label:"(lint-doc)" ~selection:lint_selection
-                  ~analysis (`Lint `Doc);
-                Spec.opam ~label:"(lint-opam)" ~selection:lint_selection
-                  ~analysis (`Lint `Opam);
-              ]
-            in
-            lint @ builds)
-  in
-  let builds =
-    specs
-    |> Current.list_map
-         (module Spec)
-         (fun spec ->
-           let+ result =
-             match ocluster with
-             | None -> Build.v ~platforms ~repo:repo' ~spec source
-             | Some ocluster ->
-                 let src = Current.map Git.Commit.id source in
-                 Cluster_build.v ocluster ~platforms ~repo:repo' ~spec src
-           and+ spec = spec in
-           (Spec.label spec, result))
-  in
-  let+ builds = builds
-  and+ analysis_result =
-    Current.state ~hidden:true (Current.map (fun _ -> `Checked) analysis)
-  and+ analysis_id = get_job_id analysis in
-  builds @ [ ("(analysis)", (analysis_result, analysis_id)) ]
-
-let list_errors ~ok errs =
-  let groups =
-    (* Group by error message *)
-    List.sort compare errs
-    |> List.fold_left
-         (fun acc (msg, l) ->
-           match acc with
-           | (m2, ls) :: acc' when m2 = msg -> (m2, l :: ls) :: acc'
-           | _ -> (msg, [ l ]) :: acc)
-         []
-  in
-  Error
-    (`Msg
-      (match groups with
-      | [] -> "No builds at all!"
-      | [ (msg, _) ] when ok = 0 ->
-          msg (* Everything failed with the same error *)
-      | [ (msg, ls) ] ->
-          Fmt.str "%a failed: %s" Fmt.(list ~sep:(any ", ") string) ls msg
-      | _ ->
-          (* Multiple error messages; just list everything that failed. *)
-          let pp_label f (_, l) = Fmt.string f l in
-          Fmt.str "%a failed" Fmt.(list ~sep:(any ", ") pp_label) errs))
-
-let summarise results =
-  results
-  |> List.fold_left
-       (fun (ok, pending, err, skip) -> function
-         | _, Ok `Checked ->
-             (ok, pending, err, skip) (* Don't count lint checks *)
-         | _, Ok `Built -> (ok + 1, pending, err, skip)
-         | l, Error (`Msg m) when Astring.String.is_prefix ~affix:"[SKIP]" m ->
-             (ok, pending, err, (m, l) :: skip)
-         | l, Error (`Msg _m) when experimental_variant l ->
-             (ok + 1, pending, err, skip)
-             (* Don't fail the commit if an experimental build failed. *)
-         | l, Error (`Msg m) -> (ok, pending, (m, l) :: err, skip)
-         | _, Error (`Active _) -> (ok, pending + 1, err, skip))
-       (0, 0, [], [])
-  |> fun (ok, pending, err, skip) ->
-  if pending > 0 then Error (`Active `Running)
-  else
-    match (ok, err, skip) with
-    | 0, [], skip ->
-        list_errors ~ok:0
-          skip (* Everything was skipped - treat skips as errors *)
-    | _, [], _ -> Ok () (* No errors and at least one success *)
-    | ok, err, _ -> list_errors ~ok err (* Some errors found - report *)
-
-let repositories (installation : Installation.t Current.t) :
-    Gitlab.Repo_id.t list Current.t =
-  let+ installation = installation in
+let repositories (installation : Installation.t Current.t) =
+  let+ installation in
   List.filter
-    (fun repo -> repo.Gitlab.Repo_id.owner == installation.Installation.name)
+    (fun repo -> repo.Gitlab.Repo_id.owner == installation.name)
     gitlab_repos
 
 let gitlab_status_of_state head result =
-  let+ head = head and+ result = result in
+  let+ head and+ result in
   let { Gitlab.Repo_id.owner; name; project_id = _ } =
     Gitlab.Api.Commit.repo_id head
   in
@@ -315,19 +184,13 @@ let local_test ~solver repo () =
     Ocaml_ci_service.Conf.fetch_platforms ~include_macos:false ()
   in
   let src = Git.Local.head_commit repo in
-  let repo =
-    Current.return
-      { Gitlab.Repo_id.owner = "local"; name = "test"; project_id = 0 }
+  let repo = Current.return { Repo_id.owner = "local"; name = "test" }
   and analysis =
     Analyse.examine ~solver ~platforms ~opam_repository_commit src
   in
   Current.component "summarise"
   |> let> results = build_with_docker ~repo ~analysis ~platforms src in
-     let result =
-       results
-       |> List.map (fun (variant, (build, _job)) -> (variant, build))
-       |> summarise
-     in
+     let result = summarise results in
      Current_incr.const (result, None)
 
 let v ?ocluster ~app ~solver ~migrations () =
@@ -346,16 +209,18 @@ let v ?ocluster ~app ~solver ~migrations () =
   |> set_active_installations
   |> Current.list_iter ~collapse_key:"org" (module Installation)
      @@ fun installation ->
-     let repos = repositories installation |> set_active_repos ~installation in
-     repos
+     repositories installation
+     |> set_active_repos ~installation
      |> Current.list_iter ~collapse_key:"repo" (module Gitlab.Repo_id)
         @@ fun repo ->
         let* repo_id = repo in
         let default = Gitlab.Api.head_commit app repo_id in
         let refs =
-          Gitlab.Api.ci_refs app ~staleness:Ocaml_ci_service.Conf.max_staleness
-            repo_id
-          |> set_active_refs ~repo ~default
+          let refs =
+            Gitlab.Api.ci_refs app
+              ~staleness:Ocaml_ci_service.Conf.max_staleness repo_id
+          in
+          set_active_refs ~repo ~default refs
         in
         refs
         |> Current.list_iter (module Gitlab.Api.Commit) @@ fun head ->
@@ -364,34 +229,37 @@ let v ?ocluster ~app ~solver ~migrations () =
              Analyse.examine ~solver ~platforms ~opam_repository_commit src
            in
            let builds =
+             let repo =
+               Current.map
+                 (fun repo ->
+                   {
+                     Repo_id.owner = repo.Gitlab.Repo_id.owner;
+                     name = repo.name;
+                   })
+                 repo
+             in
              build_with_docker ?ocluster ~repo ~analysis ~platforms src
            in
-           let summary =
-             builds
-             |> Current.map
-                  (List.map (fun (variant, (build, _job)) -> (variant, build)))
-             |> Current.map summarise
-           in
+           let summary = Current.map summarise builds in
            let status =
-             let+ summary = summary in
+             let+ summary in
              match summary with
              | Ok () -> `Passed
              | Error (`Active `Running) -> `Pending
              | Error (`Msg _) -> `Failed
            in
            let index =
-             let+ commit = head and+ builds = builds and+ status = status in
+             let+ commit = head and+ builds and+ status in
              let gref = Git.Commit_id.gref @@ Gitlab.Api.Commit.id commit in
-             let repo = Gitlab.Api.Commit.repo_id commit in
-             let repo' =
+             let repo =
+               Gitlab.Api.Commit.repo_id commit |> fun repo ->
                { Ocaml_ci.Repo_id.owner = repo.owner; name = repo.name }
              in
              let hash = Gitlab.Api.Commit.hash commit in
              let jobs =
-               builds
-               |> List.map (fun (variant, (_, job_id)) -> (variant, job_id))
+               List.map (fun (variant, (_, job_id)) -> (variant, job_id)) builds
              in
-             Index.record ~repo:repo' ~hash ~status ~gref jobs
+             Index.record ~repo ~hash ~status ~gref jobs
            and set_gitlab_status =
              gitlab_status_of_state head summary
              |> Gitlab.Api.Commit.set_status head "ocaml-ci"

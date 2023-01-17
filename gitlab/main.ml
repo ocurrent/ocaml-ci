@@ -104,31 +104,12 @@ let run_capnp capnp_public_address capnp_listen_address =
           f "Wrote capability reference to %S" Conf.Capnp.cap_file);
       Lwt.return (vat, Some rpc_engine_resolver)
 
-module Gitlab = struct
-  (* Access control policy. *)
-  let has_role user = function
-    | `Viewer | `Monitor -> true
-    | `Builder | `Admin -> (
-        match Option.map Current_web.User.id user with
-        | Some "gitlab:tmcgilchrist" -> true
-        | Some _ | None -> false)
-
-  let webhook_route ~webhook_secret =
-    Routes.(
-      (s "webhooks" / s "gitlab" /? nil)
-      @--> Current_gitlab.webhook ~webhook_secret)
-
-  let login_route gitlab_auth =
-    Routes.((s "login" /? nil) @--> Current_gitlab.Auth.login gitlab_auth)
-
-  let authn auth = Option.map Current_gitlab.Auth.make_login_uri auth
-end
-
 let main () config mode app capnp_public_address capnp_listen_address
     gitlab_auth submission_uri solver_uri migrations :
     ('a, [ `Msg of string ]) result =
+  let open Ocaml_ci_gitlab in
   Lwt_main.run
-    (let solver = Ocaml_ci.Backend_solver.create solver_uri in
+    (let solver = Ocaml_ci.Backend_solver.v solver_uri in
      run_capnp capnp_public_address capnp_listen_address
      >>= fun (vat, rpc_engine_resolver) ->
      let ocluster =
@@ -136,7 +117,7 @@ let main () config mode app capnp_public_address capnp_listen_address
      in
      let engine =
        Current.Engine.create ~config
-         (Ocaml_ci_gitlab.Pipeline.v ?ocluster ~app ~solver ~migrations)
+         (Pipeline.v ?ocluster ~app ~solver ~migrations)
      in
      rpc_engine_resolver
      |> Option.iter (fun r ->

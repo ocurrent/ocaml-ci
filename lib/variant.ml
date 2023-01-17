@@ -1,5 +1,6 @@
 module Ocaml_version = struct
   include Ocaml_version
+  (* Extend Ocaml_version with json support. *)
 
   let arch_to_yojson arch = `String (string_of_arch arch)
 

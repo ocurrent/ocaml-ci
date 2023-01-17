@@ -51,7 +51,7 @@ let solve t job request ~log =
       | Ok x -> Lwt.return x
       | Error ex -> failwith ex)
 
-let create ?solver_dir uri =
+let v ?solver_dir uri =
   match uri with
   | None -> local ?solver_dir ()
   | Some ur ->

@@ -1,3 +1,5 @@
+(** Pipeline configuration. *)
+
 let ci_profile =
   match Sys.getenv_opt "CI_PROFILE" with
   | Some "production" -> `Production

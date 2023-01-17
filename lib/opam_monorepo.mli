@@ -1,3 +1,5 @@
+(** Generate obuilder specs for building opam packages with opam-monorepo. *)
+
 type info
 
 val detect : dir:Fpath.t -> info list option
@@ -26,4 +28,4 @@ val spec :
   config:config ->
   variant:Variant.t ->
   Obuilder_spec.t
-(** Describe build steps *)
+(** Describe build steps for an opam-monorepo project. *)

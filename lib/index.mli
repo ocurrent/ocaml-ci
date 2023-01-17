@@ -1,3 +1,5 @@
+(** Persisted build indexes. *)
+
 (** The index is:
 
     - A map from active Git references to the Git commit at their heads.

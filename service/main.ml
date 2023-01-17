@@ -78,7 +78,7 @@ let run_capnp capnp_public_address capnp_listen_address =
       Lwt.fail_invalid_arg
         "Public address for Cap'n Proto RPC can't be set without setting a \
          capnp-listen-address to listen on."
-  | _ ->
+  | Some _, Some _ | None, Some _ ->
       let listen_address =
         match capnp_listen_address with
         | Some listen_address -> listen_address
@@ -110,7 +110,7 @@ let main () config mode app capnp_public_address capnp_listen_address
     github_auth submission_uri solve_uri migrations :
     ('a, [ `Msg of string ]) result =
   Lwt_main.run
-    (let solver = Ocaml_ci.Backend_solver.create solve_uri in
+    (let solver = Ocaml_ci.Backend_solver.v solve_uri in
      run_capnp capnp_public_address capnp_listen_address
      >>= fun (vat, rpc_engine_resolver) ->
      let ocluster =

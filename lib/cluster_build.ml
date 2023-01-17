@@ -122,9 +122,9 @@ let config ?timeout sr =
 let build t ~platforms ~spec ~repo commit =
   Current.component "cluster build"
   |> let> { Spec.variant; ty; label } = spec
-     and> commit = commit
-     and> platforms = platforms
-     and> repo = repo in
+     and> commit
+     and> platforms
+     and> repo in
      match
        List.find_opt
          (fun p -> Variant.equal p.Platform.variant variant)
@@ -150,7 +150,7 @@ let v t ~platforms ~repo ~spec source =
   let build = build t ~platforms ~spec ~repo source in
   let+ state = Current.state ~hidden:true build
   and+ job_id = get_job_id build
-  and+ spec = spec in
+  and+ spec in
   let result =
     state
     |> Result.map @@ fun () ->

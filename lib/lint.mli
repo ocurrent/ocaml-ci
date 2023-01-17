@@ -1,3 +1,5 @@
+(** Various linting obuilder specs. *)
+
 val fmt_spec :
   base:string ->
   ocamlformat_source:Analyse_ocamlformat.source option ->
