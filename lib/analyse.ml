@@ -2,7 +2,11 @@ open Lwt.Infix
 open Current.Syntax
 module Worker = Ocaml_ci_api.Worker
 
+(* This pool ensures we don't overload the Forge API. *)
 let pool = Current.Pool.create ~label:"analyse" 20
+
+(* This pool ensures we don't overload the solver service by opening to many connections. *)
+let pool_service = Current.Pool.create ~label:"solver" 140
 
 let is_empty_file x =
   match Unix.lstat x with
@@ -326,7 +330,8 @@ module Examine = struct
   let id = "ci-analyse"
 
   let run solver job src { Value.opam_repository_commit; platforms } =
-    Current.Job.start job ~level:Current.Level.Harmless >>= fun () ->
+    Current.Job.start job ~pool:pool_service ~level:Current.Level.Harmless
+    >>= fun () ->
     Current_git.with_checkout ~job ~pool src @@ fun src ->
     Analysis.of_dir ~solver ~platforms ~opam_repository_commit ~job src
 
