@@ -347,7 +347,7 @@ module Make (M : Git_forge_intf.Forge) = struct
                     Tyxml_helpers.x_ref "container1";
                     Tyxml_helpers.x_bind_style
                       "stepsToRepro == 1 ? 'max-height: ' + \
-                       $refs.container1.scrollHeight + 'px' : ''";
+                       ($refs.container1.scrollHeight + 20) + 'px' : ''";
                   ]
                 [
                   div
