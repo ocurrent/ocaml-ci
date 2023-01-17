@@ -228,21 +228,33 @@ module Analysis = struct
     let selection = List.hd selections in
     (selection.Selection.commit, selection)
 
-  let get_lower_bound_platforms platforms =
+  let filter_lower_bound_distros platforms =
+    (* [distro] is a subtype of [t] but the type checker needs some help for polymorphic variants *)
+    let t_of_distro x = Dockerfile_opam.Distro.((x : distro :> t)) in
+    let latest_debian =
+      Dockerfile_opam.Distro.(
+        tag_of_distro @@ t_of_distro @@ resolve_alias (`Debian `Stable))
+    in
     List.filter
-      (fun (v, _) -> String.equal (Variant.distro v) "debian-11")
+      (fun (v, _) -> String.equal (Variant.distro v) latest_debian)
       platforms
-    |> List.fold_left
-         (fun v v' ->
-           if
-             Ocaml_version.compare
-               (Variant.ocaml_version (fst v))
-               (Variant.ocaml_version (fst v'))
-             >= 0
-           then v'
-           else v)
-         (List.hd platforms)
-    |> fun v -> [ v ]
+
+  let filter_lower_bound_selections = function
+    | `Opam_build s -> (
+        match s with
+        | [] -> []
+        | hd :: _ as selections ->
+            List.fold_left
+              (fun (v : Selection.t) (v' : Selection.t) ->
+                if
+                  Ocaml_version.compare
+                    (Variant.ocaml_version v.variant)
+                    (Variant.ocaml_version v'.variant)
+                  >= 0
+                then v'
+                else v)
+              hd selections
+            |> fun s -> [ s ])
 
   let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
     let solve = solve ~opam_repository_commit ~job ~solver in
@@ -297,11 +309,21 @@ module Analysis = struct
       | `Ocaml_repo ->
           let build ~lower_bound =
             let platforms =
-              if lower_bound then get_lower_bound_platforms platforms
+              if lower_bound then filter_lower_bound_distros platforms
               else platforms
             in
-            opam_selections ~solve:(solve ~lower_bound) ~job ~platforms
-              ~opam_files dir
+            let selections =
+              opam_selections ~solve:(solve ~lower_bound) ~job ~platforms
+                ~opam_files dir
+            in
+            if lower_bound then
+              Lwt.map
+                (fun s ->
+                  Result.map
+                    (fun s -> `Opam_build (filter_lower_bound_selections s))
+                    s)
+                selections
+            else selections
           in
           Lwt_result.both (build ~lower_bound:false) (build ~lower_bound:true)
           |> Lwt_result.map (fun (`Opam_build l, `Opam_build l') ->

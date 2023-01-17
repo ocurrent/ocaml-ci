@@ -20,4 +20,5 @@
   current_ocluster
   ocluster-api
   solver-worker
-  obuilder-spec))
+  obuilder-spec
+  dockerfile-opam))
