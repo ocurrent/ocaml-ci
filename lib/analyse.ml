@@ -2,7 +2,7 @@ open Lwt.Infix
 open Current.Syntax
 module Worker = Ocaml_ci_api.Worker
 
-let pool = Current.Pool.create ~label:"analyse" 2
+let pool = Current.Pool.create ~label:"analyse" 20
 
 let is_empty_file x =
   match Unix.lstat x with
@@ -326,8 +326,8 @@ module Examine = struct
   let id = "ci-analyse"
 
   let run solver job src { Value.opam_repository_commit; platforms } =
-    Current.Job.start job ~pool ~level:Current.Level.Harmless >>= fun () ->
-    Current_git.with_checkout ~job src @@ fun src ->
+    Current.Job.start job ~level:Current.Level.Harmless >>= fun () ->
+    Current_git.with_checkout ~job ~pool src @@ fun src ->
     Analysis.of_dir ~solver ~platforms ~opam_repository_commit ~job src
 
   let pp f _ = Fmt.string f "Analyse"
