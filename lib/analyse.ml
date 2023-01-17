@@ -43,7 +43,8 @@ module Analysis = struct
     ocamlformat_selection : Selection.t option;
     ocamlformat_source : Analyse_ocamlformat.source option;
     selections :
-      [ `Opam_build of Selection.t list
+      [ `Opam_build of
+        [ `Default of Selection.t list ] * [ `Lower_bound of Selection.t list ]
       | `Opam_monorepo of Opam_monorepo.config list ];
   }
   [@@deriving yojson]
@@ -137,8 +138,8 @@ module Analysis = struct
 
   (** Call the solver with a request containing these packages. When it returns
       a list, it is nonempty. *)
-  let solve ~root_pkgs ~pinned_pkgs ~platforms ~opam_repository_commit ~job
-      ~solver =
+  let solve ~root_pkgs ~pinned_pkgs ~platforms ~opam_repository_commit
+      ~lower_bound ~job ~solver =
     let platforms =
       List.map
         (fun (variant, vars) -> (Variant.to_string variant, vars))
@@ -154,6 +155,7 @@ module Analysis = struct
         root_pkgs;
         pinned_pkgs;
         platforms;
+        lower_bound;
       }
     in
     Capnp_rpc_lwt.Capability.with_ref (job_log job) @@ fun log ->
@@ -226,6 +228,34 @@ module Analysis = struct
     let selection = List.hd selections in
     (selection.Selection.commit, selection)
 
+  let filter_lower_bound_distros platforms =
+    (* [distro] is a subtype of [t] but the type checker needs some help for polymorphic variants *)
+    let t_of_distro x = Dockerfile_opam.Distro.((x : distro :> t)) in
+    let latest_debian =
+      Dockerfile_opam.Distro.(
+        tag_of_distro @@ t_of_distro @@ resolve_alias (`Debian `Stable))
+    in
+    List.filter
+      (fun (v, _) -> String.equal (Variant.distro v) latest_debian)
+      platforms
+
+  let filter_lower_bound_selections = function
+    | `Opam_build s -> (
+        match s with
+        | [] -> []
+        | hd :: _ as selections ->
+            List.fold_left
+              (fun (v : Selection.t) (v' : Selection.t) ->
+                if
+                  Ocaml_version.compare
+                    (Variant.ocaml_version v.variant)
+                    (Variant.ocaml_version v'.variant)
+                  >= 0
+                then v'
+                else v)
+              hd selections
+            |> fun s -> [ s ])
+
   let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
     let solve = solve ~opam_repository_commit ~job ~solver in
     let ty = type_of_dir dir in
@@ -260,7 +290,8 @@ module Analysis = struct
                else None)
     in
     let find_opam_repo_commit =
-      find_opam_repo_commit_for_ocamlformat ~solve ~platforms
+      find_opam_repo_commit_for_ocamlformat ~solve:(solve ~lower_bound:false)
+        ~platforms
     in
     Analyse_ocamlformat.get_ocamlformat_source job ~opam_files ~root:dir
       ~find_opam_repo_commit
@@ -272,9 +303,31 @@ module Analysis = struct
       (match ty with
       | `Opam_monorepo builds ->
           lwt_result_list_mapm builds ~f:(fun info ->
-              Opam_monorepo.selection ~info ~solve ~platforms)
+              Opam_monorepo.selection ~info ~solve:(solve ~lower_bound:false)
+                ~platforms)
           |> Lwt_result.map (fun l -> `Opam_monorepo l)
-      | `Ocaml_repo -> opam_selections ~solve ~job ~platforms ~opam_files dir)
+      | `Ocaml_repo ->
+          let build ~lower_bound =
+            let platforms =
+              if lower_bound then filter_lower_bound_distros platforms
+              else platforms
+            in
+            let selections =
+              opam_selections ~solve:(solve ~lower_bound) ~job ~platforms
+                ~opam_files dir
+            in
+            if lower_bound then
+              Lwt.map
+                (fun s ->
+                  Result.map
+                    (fun s -> `Opam_build (filter_lower_bound_selections s))
+                    s)
+                selections
+            else selections
+          in
+          Lwt_result.both (build ~lower_bound:false) (build ~lower_bound:true)
+          |> Lwt_result.map (fun (`Opam_build l, `Opam_build l') ->
+                 `Opam_build (`Default l, `Lower_bound l')))
       >>!= fun selections ->
       let r =
         { opam_files; ocamlformat_selection; ocamlformat_source; selections }

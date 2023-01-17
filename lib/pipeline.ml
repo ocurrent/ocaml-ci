@@ -1,5 +1,7 @@
 let experimental_variant variant =
-  Astring.String.is_prefix ~affix:"macos-homebrew" variant
+  Astring.String.(
+    is_prefix ~affix:"macos-homebrew" variant
+    || is_prefix ~affix:"(lint-lower-bounds)" variant)
 
 let list_errors ~ok errs =
   let groups =
@@ -76,19 +78,20 @@ let build_with_docker ?ocluster ~(repo : Repo_id.t Current.t) ~analysis
             Spec.opam ~label:"(lint-fmt)" ~selection:lint_selection ~analysis
               (`Lint `Fmt)
             :: Spec.opam_monorepo builds
-        | `Opam_build selections ->
+        | `Opam_build (`Default selections, `Lower_bound lower_bound_selections)
+          ->
             let lint_selection = List.hd selections in
             let lint_ocamlformat =
               match Analyse.Analysis.ocamlformat_selection analysis with
               | None -> lint_selection
               | Some selection -> selection
             in
-            let builds =
-              selections
-              |> Selection.filter_duplicate_opam_versions
+            let builds ~is_lower_bound s =
+              Selection.filter_duplicate_opam_versions s
               |> List.map (fun selection ->
                      let label =
-                       Variant.to_string selection.Selection.variant
+                       if is_lower_bound then "(lint-lower-bounds)"
+                       else Variant.to_string selection.Selection.variant
                      in
                      Spec.opam ~label ~selection ~analysis `Build)
             and lint =
@@ -101,7 +104,9 @@ let build_with_docker ?ocluster ~(repo : Repo_id.t Current.t) ~analysis
                   ~analysis (`Lint `Opam);
               ]
             in
-            lint @ builds)
+            lint
+            @ builds ~is_lower_bound:false selections
+            @ builds ~is_lower_bound:true lower_bound_selections)
   in
   let builds =
     specs
