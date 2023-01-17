@@ -23,54 +23,57 @@ document.addEventListener('alpine:init', () => {
         },
 
         positionCopyButton(e) {
-            this.$refs.copyLinkBtn.style.top = `${e.layerY-15}px`;
+          this.$refs.copyLinkBtn.style.top = `${e.layerY-15}px`;
         },
 
         highlightLine(e) {
-            if (e) {
-              const currentLine = e.target.dataset.lineNumber;
-              const currentID = parseInt(currentLine.substring(1, currentLine.length));
-              this.manualSelection = true;
-              this.positionCopyButton(e);
+          if (e) {
+            var currentLine = e.target.dataset.lineNumber;
+            if (currentLine == undefined) {
+              currentLine = e.target.parentNode.dataset.lineNumber;
+            }
+            const currentID = parseInt(currentLine.substring(1, currentLine.length));
+            this.manualSelection = true;
+            this.positionCopyButton(e);
 
-              if (!this.startingLine) {
+            if (!this.startingLine) {
+              this.startingLine = currentID;
+              this.endingLine = currentID;
+            }
+
+            if (this.startingLine) {
+              if (e.shiftKey) {
+                if (currentID > this.startingLine) {
+                  this.endingLine = currentID;
+                } else if (currentID < this.startingLine) {
+                  this.endingLine = this.startingLine;
+                  this.startingLine = currentID;
+                } else {
                   this.startingLine = currentID;
                   this.endingLine = currentID;
-              }
-
-              if (this.startingLine) {
-                  if (e.shiftKey) {
-                      if (currentID > this.startingLine) {
-                          this.endingLine = currentID;
-                      } else if (currentID < this.startingLine) {
-                          this.endingLine = this.startingLine;
-                          this.startingLine = currentID;
-                      } else {
-                          this.startingLine = currentID;
-                          this.endingLine = currentID;
-                      }
-                  } else {
-                      this.startingLine = currentID;
-                      this.endingLine = currentID;
-                      this.linkCopied = false;
-                  }
-              }
-            } else {
-              const index = this.url.indexOf("#")+2;
-
-              if (index >= 0) {
-                const lines = this.url.substring(index, this.url.length);
-                const lineNumbers = lines.split("-");
-                this.startingLine = parseInt(lineNumbers[0]);
-                this.endingLine = parseInt(lineNumbers[1]);
-              }
-
-              if (this.startingLine) {
-                setTimeout(() => {
-                  document.getElementById(`L${this.startingLine}`).scrollIntoView();
-                }, 500)
+                }
+              } else {
+                this.startingLine = currentID;
+                this.endingLine = currentID;
+                this.linkCopied = false;
               }
             }
+          } else {
+            const index = this.url.indexOf("#")+2;
+
+            if (index >= 0) {
+              const lines = this.url.substring(index, this.url.length);
+              const lineNumbers = lines.split("-");
+              this.startingLine = parseInt(lineNumbers[0]);
+              this.endingLine = parseInt(lineNumbers[1]);
+            }
+
+            if (this.startingLine) {
+              setTimeout(() => {
+                document.getElementById(`L${this.startingLine}`).scrollIntoView();
+              }, 500)
+            }
+          }
         }
     }))
 })

@@ -19,7 +19,9 @@ function extractStepsToReproduce() {
     // Remove line-number, whitespace and possible newlines from the row
     const newContent = document.createTextNode(rows[i].innerText.replace(/\s*\n?/, ''));
     reproDiv.appendChild(newContent);
-    reproDiv.appendChild(br.cloneNode());
+    if (i > startIndex) {
+      reproDiv.appendChild(br.cloneNode());
+    }
   }
 }
 
