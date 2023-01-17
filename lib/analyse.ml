@@ -5,7 +5,7 @@ module Worker = Ocaml_ci_api.Worker
 (* This pool ensures we don't overload the Forge API. *)
 let pool = Current.Pool.create ~label:"analyse" 20
 
-(* This pool ensures we don't overload the solver service by opening to many connections. *)
+(* This pool ensures we don't overload the solver service by opening too many connections. *)
 let pool_service = Current.Pool.create ~label:"solver" 140
 
 let is_empty_file x =
