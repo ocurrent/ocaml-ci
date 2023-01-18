@@ -347,7 +347,7 @@ module Make (M : Git_forge_intf.Forge) = struct
                     Tyxml_helpers.x_ref "container1";
                     Tyxml_helpers.x_bind_style
                       "stepsToRepro == 1 ? 'max-height: ' + \
-                       $refs.container1.scrollHeight + 'px' : ''";
+                       ($refs.container1.scrollHeight + 20) + 'px' : ''";
                   ]
                 [
                   div
@@ -439,14 +439,14 @@ module Make (M : Git_forge_intf.Forge) = struct
                 ];
             ])
       in
-      let link_copied_notification =
+      let notification ~variable ~text =
         Tyxml.Html.(
           div
             ~a:
               [
                 a_class [ "notification dark:bg-gray-850" ];
                 Tyxml_helpers.x_cloak;
-                Tyxml_helpers.x_show "linkCopied";
+                Tyxml_helpers.x_show variable;
                 Tyxml_helpers.x_transition;
               ]
             [
@@ -480,13 +480,13 @@ module Make (M : Git_forge_intf.Forge) = struct
                               [];
                           ]);
                     ];
-                  div [ txt "Link copied" ];
+                  div [ txt text ];
                 ];
               Tyxml.Html.button
                 ~a:
                   [
                     a_class [ "icon-button" ];
-                    Tyxml_helpers.at_click "linkCopied=false";
+                    Tyxml_helpers.at_click (Printf.sprintf "%s=false" variable);
                   ]
                 [
                   Tyxml.Svg.(
@@ -539,7 +539,8 @@ module Make (M : Git_forge_intf.Forge) = struct
                      manualSelection: false}";
                 ]
               [
-                link_copied_notification;
+                notification ~variable:"linkCopied" ~text:"Link Copied";
+                notification ~variable:"codeCopied" ~text:"Code Copied";
                 div
                   ~a:
                     [
