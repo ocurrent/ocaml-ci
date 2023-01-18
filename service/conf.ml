@@ -116,7 +116,7 @@ let pool_of_arch = function
   | `Ppc64le -> "linux-ppc64"
   | `Riscv64 -> "linux-riscv64"
 
-let disabled_arches = []
+let disabled_arches = [ `Riscv64 (* Unsufficient capacity in the pool *) ]
 
 (* Arches supported by [distro] but unsupported by [DD.master_distro]. *)
 let supplementary_arches ov master_distro distro =
