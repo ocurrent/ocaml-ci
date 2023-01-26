@@ -37,7 +37,7 @@ let summarise results =
          | l, (Error (`Msg m), _)
            when Astring.String.is_prefix ~affix:"[SKIP]" m ->
              (ok, pending, err, (m, l) :: skip)
-         | l, (Error (`Msg _), _) when experimental_variant l ->
+         | l, (Error (`Msg _ | `Active _), _) when experimental_variant l ->
              (ok + 1, pending, err, skip)
          (* Don't fail the commit if an experimental build failed. *)
          | l, (Error (`Msg m), _) -> (ok, pending, (m, l) :: err, skip)
