@@ -232,8 +232,7 @@ pre.code code {
 }
 
 pre.code span.highlight code {
-  background-color: rgb(168, 198, 246);
-  border-left: 1px solid rgba(0, 105, 204, 0.64);
+  @apply bg-sky-200 dark:bg-sky-900
 }
 
 pre.code span.tr:first-child span.th {
