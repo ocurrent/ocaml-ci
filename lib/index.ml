@@ -442,7 +442,7 @@ module Commit_cache = struct
     { s; started_at; ran_for }
 end
 
-let _record_build_summary t ~owner ~name ~hash ~gref ~status ~commit_message
+let record_build_summary t ~owner ~name ~hash ~gref ~status ~commit_message
     ~(variants_timestamps : (string * Run_time.timestamps option) list) =
   let ts = List.filter_map snd variants_timestamps in
   let first_queued_at = Run_time.first_step_queued_at ts in
@@ -476,6 +476,91 @@ let _record_build_summary t ~owner ~name ~hash ~gref ~status ~commit_message
         ]
   in
   v (status_to_int status)
+
+let record_empty_summary t ~repo ~gref ~hash =
+  let { Repo_id.owner; name } = repo in
+  let message = get_commit_message ~repo ~hash in
+  let status = `Not_started in
+  Commit_cache.add ~owner ~name ~hash ~gref status None None;
+  let started_at = 0. in
+  let total_ran_for = 0. in
+  let ran_for = 0. in
+  let created_at = Unix.gettimeofday () in
+  let build_number = 1 in
+  Db.exec t.record_job_summary
+    Sqlite3.Data.
+      [
+        TEXT owner;
+        TEXT name;
+        TEXT hash;
+        TEXT gref;
+        INT (Int64.of_int build_number);
+        INT (status_to_int status |> Int64.of_int);
+        FLOAT started_at;
+        FLOAT total_ran_for;
+        FLOAT ran_for;
+        FLOAT created_at;
+        TEXT message;
+      ]
+
+let record_summary_on_cancel ~repo ~gref ~hash =
+  let t = Lazy.force db in
+  let { Repo_id.owner; name } = repo in
+  let last =
+    Db.query t.get_build_summary_by_commit
+      Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash ]
+    |> List.map @@ function
+       | Sqlite3.Data.
+           [
+             INT build_number;
+             INT status;
+             FLOAT started_at;
+             FLOAT total_ran_for;
+             FLOAT ran_for;
+             _;
+             TEXT message;
+           ] ->
+           ( Int64.to_int build_number,
+             Int64.to_int status,
+             started_at,
+             total_ran_for,
+             ran_for,
+             message )
+       | row ->
+           Fmt.failwith "record_summary_on_cancel: invalid row %a" Db.dump_row
+             row
+  in
+  match last with
+  | [] -> record_empty_summary t ~repo ~gref ~hash
+  | xs -> (
+      let build_number, status, started_at, total_ran_for, ran_for, message =
+        List.hd xs
+      in
+      let created_at = Unix.gettimeofday () in
+      match int_to_status status with
+      | Ok `Passed -> ()
+      | Ok _ ->
+          Db.exec t.record_job_summary
+            Sqlite3.Data.
+              [
+                TEXT owner;
+                TEXT name;
+                TEXT hash;
+                TEXT gref;
+                INT (Int64.of_int (build_number + 1));
+                INT (status_to_int `Failed |> Int64.of_int);
+                FLOAT started_at;
+                FLOAT total_ran_for;
+                FLOAT ran_for;
+                FLOAT created_at;
+                TEXT message;
+              ]
+      | Error a ->
+          Log.err (fun f ->
+              f
+                "record_summary_on_cancel: Failed to get status of commit %s \
+                 for owner %s repo %s. Error: %s"
+                hash owner name a))
 
 let record ~repo ~hash ~status ~gref jobs =
   let { Repo_id.owner; name } = repo in
@@ -544,7 +629,7 @@ let record ~repo ~hash ~status ~gref jobs =
       jobs
   in
   let commit_message = get_commit_message ~repo ~hash in
-  _record_build_summary t ~owner ~name ~hash ~gref ~variants_timestamps ~status
+  record_build_summary t ~owner ~name ~hash ~gref ~variants_timestamps ~status
     ~commit_message
 
 let get_full_hash ~owner ~name short_hash =

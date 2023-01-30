@@ -142,6 +142,13 @@ val record :
     at [jobs]. It also updates a Commit_cache with aggregated build data. If the
     build has finished, it also writes an entry to the build_summary table. *)
 
+val record_summary_on_cancel :
+  repo:Repo_id.t -> gref:string -> hash:string -> unit
+(** [record_summary_on_cancel ~repo ~gref ~hash] store a pending state within
+    the database. It MUST be set before any build run to make surethe invariant
+    that a data is into the database is preserved when calling
+    [record_on_cancel]. *)
+
 val get_jobs :
   owner:string ->
   name:string ->

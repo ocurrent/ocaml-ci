@@ -14,6 +14,7 @@ let ( >>!= ) = Lwt_result.bind
 type t = {
   connection : Current_ocluster.Connection.t;
   timeout : Duration.t option;
+  on_cancel : string -> unit;
 }
 
 module Op = struct
@@ -77,6 +78,12 @@ module Op = struct
       variant deps
 
   let run t job { Key.pool; commit; label = _; repo } spec =
+    Current.Job.on_cancel job (fun reason ->
+        Logs.debug (fun l ->
+            l "Calling the cluster on_cancel callback with reason: %s" reason);
+        if reason <> "Job complete" then t.on_cancel reason;
+        Lwt.return_unit)
+    >>= fun () ->
     let { Value.base; variant; ty } = spec in
     let build_spec = Build.make_build_spec ~base ~repo ~variant ~ty in
     Current.Job.write job
@@ -117,7 +124,7 @@ module BC = Current_cache.Generic (Op)
 
 let config ?timeout sr =
   let connection = Current_ocluster.Connection.create sr in
-  { connection; timeout }
+  { connection; timeout; on_cancel = ignore }
 
 let build t ~platforms ~spec ~repo commit =
   Current.component "cluster build"
@@ -146,7 +153,8 @@ let get_job_id x =
   let+ md = Current.Analysis.metadata x in
   match md with Some { Current.Metadata.job_id; _ } -> job_id | None -> None
 
-let v t ~platforms ~repo ~spec source =
+let v t ?(on_cancel = ignore) ~platforms ~repo ~spec source =
+  let t = { t with on_cancel } in
   let build = build t ~platforms ~spec ~repo source in
   let+ state = Current.state ~hidden:true build
   and+ job_id = get_job_id build

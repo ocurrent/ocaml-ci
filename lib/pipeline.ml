@@ -60,8 +60,8 @@ let get_job_id x =
   let+ md = Current.Analysis.metadata x in
   match md with Some { Current.Metadata.job_id; _ } -> job_id | None -> None
 
-let build_with_docker ?ocluster ~(repo : Repo_id.t Current.t) ~analysis
-    ~platforms source =
+let build_with_docker ?ocluster ?on_cancel ~(repo : Repo_id.t Current.t)
+    ~analysis ~platforms source =
   Current.with_context analysis @@ fun () ->
   let specs =
     let+ analysis = Current.state ~hidden:true analysis in
@@ -118,7 +118,7 @@ let build_with_docker ?ocluster ~(repo : Repo_id.t Current.t) ~analysis
              | None -> Build.v ~platforms ~repo ~spec source
              | Some ocluster ->
                  let src = Current.map Git.Commit.id source in
-                 Cluster_build.v ocluster ~platforms ~repo ~spec src
+                 Cluster_build.v ocluster ?on_cancel ~platforms ~repo ~spec src
            and+ spec in
            (Spec.label spec, result))
   in
