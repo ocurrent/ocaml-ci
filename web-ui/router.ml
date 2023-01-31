@@ -122,6 +122,19 @@ let gitlab_routes gitlab =
         | _ ->
             Dream.log "Form validation failed";
             Dream.empty `Bad_Request);
+    Dream.get "/api/gitlab/:org/:repo/commit/:hash/variant/:variant"
+      (fun request ->
+        Api_controller.Gitlab.show_step
+          ~org:(Dream.param request "org")
+          ~repo:(Dream.param request "repo")
+          ~hash:(Dream.param request "hash")
+          ~variant:(Dream.param request "variant")
+          gitlab);
+    Dream.get "/api/gitlab/:org/:repo/commit/:hash" (fun request ->
+        let org = Dream.param request "org" in
+        let repo = Dream.param request "repo" in
+        let hash = Dream.param request "hash" in
+        Api_controller.Gitlab.list_steps ~org ~repo ~hash gitlab);
   ]
 
 let github_routes github =
