@@ -53,12 +53,8 @@ let list_orgs prefix orgs =
             ];
         ];
       div
-        ~a:[ a_class [ "flex mb-4" ] ]
-        [
-          div
-            ~a:[ a_id "table"; a_class [ "flex-col space-y-6" ] ]
-            (rows prefix orgs);
-        ];
+        ~a:[ a_id "table"; a_class [ "mt-8 grid gap-x-4 md:grid-cols-2" ] ]
+        (rows prefix orgs);
     ]
 
 (** TODO: this function can be factorized with the one above. *)
