@@ -39,7 +39,7 @@ let list_orgs prefix orgs =
                 [ txt "Here are the organisations registered with us" ];
             ];
           div
-            ~a:[ a_class [ "form-control relative max-w-80" ] ]
+            ~a:[ a_class [ "form-control max-w-80" ] ]
             [
               Common.search;
               input
@@ -53,12 +53,8 @@ let list_orgs prefix orgs =
             ];
         ];
       div
-        ~a:[ a_class [ "flex mb-4" ] ]
-        [
-          div
-            ~a:[ a_id "table"; a_class [ "flex-col space-y-6" ] ]
-            (rows prefix orgs);
-        ];
+        ~a:[ a_id "table"; a_class [ "mt-8 grid gap-x-4 md:grid-cols-2" ] ]
+        (rows prefix orgs);
     ]
 
 (** TODO: this function can be factorized with the one above. *)
@@ -102,7 +98,7 @@ let list_all_orgs ~github_orgs ~gitlab_orgs =
               ]
             [
               div
-                ~a:[ a_class [ "form-control relative max-w-80 pb-6 md:pb-0" ] ]
+                ~a:[ a_class [ "form-control max-w-80 pb-6 md:pb-0" ] ]
                 [
                   Common.search;
                   input

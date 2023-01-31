@@ -2,11 +2,18 @@ open Lwt.Infix
 
 (* ocaml-crunch is used to generate the module Static.
    See also https://github.com/aantron/dream/tree/master/example/w-one-binary *)
-let loader root path _request =
+let loader ?(caching = false) root path _request =
   Dream.log "In loader. root: %s path: %s" root path;
   match Static.read (Filename.concat root path) with
   | None -> Dream.empty `Not_Found
-  | Some asset -> Dream.respond asset
+  | Some asset ->
+      let headers =
+        if caching then
+          (* Kept in cache for a month. The ocaml-ci changes are regular so we don't keep it too long. . *)
+          [ ("Cache-Control", "max-age=2419200") ]
+        else []
+      in
+      Dream.respond ~headers asset
 
 (* All routes relating to GitLab hosted projects. *)
 let gitlab_routes gitlab =
@@ -122,6 +129,19 @@ let gitlab_routes gitlab =
         | _ ->
             Dream.log "Form validation failed";
             Dream.empty `Bad_Request);
+    Dream.get "/api/gitlab/:org/:repo/commit/:hash/variant/:variant"
+      (fun request ->
+        Api_controller.Gitlab.show_step
+          ~org:(Dream.param request "org")
+          ~repo:(Dream.param request "repo")
+          ~hash:(Dream.param request "hash")
+          ~variant:(Dream.param request "variant")
+          gitlab);
+    Dream.get "/api/gitlab/:org/:repo/commit/:hash" (fun request ->
+        let org = Dream.param request "org" in
+        let repo = Dream.param request "repo" in
+        let hash = Dream.param request "hash" in
+        Api_controller.Gitlab.list_steps ~org ~repo ~hash gitlab);
   ]
 
 let github_routes github =
@@ -278,7 +298,8 @@ let create ~github ~gitlab =
        Dream.get "/css/**" @@ Dream.static ~loader "/css";
        Dream.get "/images/**" @@ Dream.static ~loader "/images";
        Dream.get "/js/**" @@ Dream.static ~loader "/js";
-       Dream.get "/fonts/**" @@ Dream.static ~loader "/fonts";
+       Dream.get "/fonts/**"
+       @@ Dream.static ~loader:(loader ~caching:true) "/fonts";
        Dream.get "/profile-pictures/**" @@ Dream.static "profile-pictures";
        Dream.get "/" (fun _ ->
            match (github, gitlab) with
