@@ -380,7 +380,8 @@ module Examine = struct
   let id = "ci-analyse"
 
   let run solver job src { Value.opam_repository_commit; platforms } =
-    Current.Job.start_with ~pool:solver_pool job ~level:Current.Level.Harmless >>= fun () ->
+    Current.Job.start_with ~pool:solver_pool job ~level:Current.Level.Harmless
+    >>= fun () ->
     Current_git.with_checkout ~job ~pool src @@ fun src ->
     Analysis.of_dir ~solver ~platforms ~opam_repository_commit ~job src
 
