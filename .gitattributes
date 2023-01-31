@@ -1,0 +1,3 @@
+# alpine.js is minified JavaScript; the linguist-generated attribute suppresses
+# changes being displayed by default in pull requests.
+/web-ui/static/js/alpine.js text eol=lf -diff linguist-generated
