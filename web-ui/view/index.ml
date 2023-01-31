@@ -39,7 +39,7 @@ let list_orgs prefix orgs =
                 [ txt "Here are the organisations registered with us" ];
             ];
           div
-            ~a:[ a_class [ "form-control relative max-w-80" ] ]
+            ~a:[ a_class [ "form-control max-w-80" ] ]
             [
               Common.search;
               input
@@ -98,7 +98,7 @@ let list_all_orgs ~github_orgs ~gitlab_orgs =
               ]
             [
               div
-                ~a:[ a_class [ "form-control relative max-w-80 pb-6 md:pb-0" ] ]
+                ~a:[ a_class [ "form-control max-w-80 pb-6 md:pb-0" ] ]
                 [
                   Common.search;
                   input

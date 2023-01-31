@@ -19,9 +19,13 @@ let head =
         ();
       script ~a:[ a_defer (); a_src "/js/alpine-clipboard.js" ] (txt "");
       script ~a:[ a_defer (); a_src "/js/alpine.js" ] (txt "");
-      link ~rel:[ `Stylesheet ] ~href:"/fonts/inter.css" ();
-      link ~rel:[ `Stylesheet ] ~href:"/css/main.css" ();
-      link ~rel:[ `Stylesheet ] ~href:"/css/ansi.css" ();
+      link
+        ~a:[ a_media [ `All ] ]
+        ~rel:[ `Stylesheet ] ~href:"/fonts/inter.css" ();
+      link
+        ~a:[ a_media [ `Screen ] ]
+        ~rel:[ `Stylesheet ] ~href:"/css/main.css" ();
+      link ~a:[ a_media [ `All ] ] ~rel:[ `Stylesheet ] ~href:"/css/ansi.css" ();
     ]
 
 let header ~full =
