@@ -153,15 +153,6 @@ module Make (M : Git_forge_intf.Forge) = struct
         ~total_run_time:(Timestamps_durations.pp_duration (Some total_run_time))
         ~buttons
     in
-    let steps_table_div =
-      div
-        ~a:
-          [
-            a_class [ "bg-gray-50 px-6 py-3 text-gray-500 text-xs font-medium" ];
-          ]
-          (* TODO: We need to start with no stage separation - introduce Analysis/Checks and Build steps later *)
-        [ txt "Build" ]
-    in
     let steps_table =
       List.fold_left
         (fun l j ->
@@ -185,7 +176,7 @@ module Make (M : Git_forge_intf.Forge) = struct
               Build.step_row ~step_title:j.variant ~created_at ~queued_for
                 ~ran_for ~status:j.outcome ~step_uri;
             ])
-        [ steps_table_div ] jobs
+        [] jobs
     in
     Template.instance
       [
