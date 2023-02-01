@@ -236,7 +236,7 @@ let v ?ocluster ~app ~solver ~migrations () =
                  let gref = Git.Commit_id.gref @@ Gitlab.Api.Commit.id commit in
                  let repo = Gitlab.Api.Commit.repo_id commit in
                  let repo =
-                   { Ocaml_ci.Repo_id.owner = repo.owner; name = repo.name }
+                   { Repo_id.owner = repo.owner; name = repo.name }
                  in
                  let hash = Gitlab.Api.Commit.hash commit in
                  Some
@@ -268,7 +268,7 @@ let v ?ocluster ~app ~solver ~migrations () =
              let gref = Git.Commit_id.gref @@ Gitlab.Api.Commit.id commit in
              let repo =
                Gitlab.Api.Commit.repo_id commit |> fun repo ->
-               { Ocaml_ci.Repo_id.owner = repo.owner; name = repo.name }
+               { Repo_id.owner = repo.owner; name = repo.name }
              in
              let hash = Gitlab.Api.Commit.hash commit in
              let jobs =

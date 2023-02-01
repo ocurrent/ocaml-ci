@@ -161,7 +161,7 @@ let v ?ocluster ~app ~solver ~migrations () =
                  let gref = ref_from_commit commit in
                  let repo = Current_github.Api.Commit.repo_id commit in
                  let repo =
-                   { Ocaml_ci.Repo_id.owner = repo.owner; name = repo.name }
+                   { Repo_id.owner = repo.owner; name = repo.name }
                  in
                  let hash = Current_github.Api.Commit.hash commit in
                  Some
