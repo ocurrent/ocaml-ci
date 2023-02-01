@@ -16,7 +16,7 @@ module Metrics = struct
   type stats = { ok : int; failed : int; active : int }
 
   let count_repo ~owner name (acc : stats) =
-    let repo = { Ocaml_ci.Repo_id.owner; name } in
+    let repo = { Repo_id.owner; name } in
     match
       Index.Ref_map.find_opt "refs/heads/master" (Index.get_active_refs repo)
     with
@@ -110,7 +110,7 @@ let main () config mode app capnp_public_address capnp_listen_address
     github_auth submission_uri solve_uri migrations :
     ('a, [ `Msg of string ]) result =
   Lwt_main.run
-    (let solver = Ocaml_ci.Backend_solver.v solve_uri in
+    (let solver = Backend_solver.v solve_uri in
      run_capnp capnp_public_address capnp_listen_address
      >>= fun (vat, rpc_engine_resolver) ->
      let ocluster =
