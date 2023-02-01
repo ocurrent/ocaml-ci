@@ -190,14 +190,13 @@ module Analysis = struct
         y :: ys
 
   let opam_dep_file packages =
-    let lines =
-      [ {|opam-version: "2.0"|}; {|depends: [|} ]
-      @ List.map
-          (fun (pkg, ver) -> Printf.sprintf {|  "%s" %s|} pkg ver)
-          packages
-      @ [ {|]|} ]
-    in
-    lines |> List.map (fun s -> s ^ "\n") |> String.concat ""
+    {|opam-version: "2.0"|}
+    :: {|depends: [|}
+    :: List.map
+         (fun (pkg, ver) -> Printf.sprintf {|  "%s" %s|} pkg ver)
+         packages
+    @ [ "]\n" ]
+    |> String.concat "\n"
 
   let exactly v = Printf.sprintf {|{ = "%s" }|} v
   let solver_cache = Hashtbl.create 128
@@ -240,22 +239,21 @@ module Analysis = struct
       (fun (v, _) -> String.equal (Variant.distro v) latest_debian)
       platforms
 
-  let filter_lower_bound_selections = function
-    | `Opam_build s -> (
-        match s with
-        | [] -> []
-        | hd :: _ as selections ->
-            List.fold_left
-              (fun (v : Selection.t) (v' : Selection.t) ->
-                if
-                  Ocaml_version.compare
-                    (Variant.ocaml_version v.variant)
-                    (Variant.ocaml_version v'.variant)
-                  >= 0
-                then v'
-                else v)
-              hd selections
-            |> fun s -> [ s ])
+  let filter_lower_bound_selections (`Opam_build s) =
+    match s with
+    | [] -> []
+    | hd :: _ as selections ->
+        List.fold_left
+          (fun (v : Selection.t) (v' : Selection.t) ->
+            if
+              Ocaml_version.compare
+                (Variant.ocaml_version v.variant)
+                (Variant.ocaml_version v'.variant)
+              >= 0
+            then v'
+            else v)
+          hd selections
+        |> fun s -> [ s ]
 
   let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
     let solve = solve ~opam_repository_commit ~job ~solver in
