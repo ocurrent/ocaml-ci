@@ -91,6 +91,16 @@ let gitlab_repos : Gitlab.Repo_id.t list =
       project_id = 31956063;
     };
     {
+      Gitlab.Repo_id.owner = "nomadic-labs";
+      Gitlab.Repo_id.name = "seqes";
+      project_id = 41118330;
+    };
+    {
+      Gitlab.Repo_id.owner = "nomadic-labs";
+      Gitlab.Repo_id.name = "tezt";
+      project_id = 41852995;
+    };
+    {
       Gitlab.Repo_id.owner = "maiste";
       Gitlab.Repo_id.name = "ocaml-ci-experiment";
       project_id = 40839423;
