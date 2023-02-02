@@ -46,7 +46,7 @@ let search_bar_options = function
 let list_orgs ~orgs =
   let org_rows =
     let generate (prefix, _, orgs) = rows prefix orgs in
-    List.map generate orgs |> List.flatten
+    List.concat_map generate orgs
   in
   Template.instance
     [
