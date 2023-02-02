@@ -13,56 +13,41 @@ let rows prefix orgs =
   let orgs = List.sort compare orgs in
   List.fold_left (fun l org -> List.append l [ row ~org ]) [] orgs
 
-let list_orgs prefix orgs =
-  Template.instance
-    [
-      Tyxml.Html.script ~a:[ a_src "/js/index-page-org-search.js" ] (txt "");
-      div
-        ~a:
+let search_bar_options = function
+  | [] | [ _ ] -> []
+  | orgs ->
+      let build_option =
+        option ~a:[ a_value "all" ] (txt "all")
+        :: List.map
+             (fun (prefix, name, _) -> option ~a:[ a_value prefix ] (txt name))
+             orgs
+      in
+      [
+        div
+          ~a:[ a_class [ "relative" ] ]
           [
-            a_class [ "flex flex-col md:flex-row justify-between items-center" ];
-          ]
-        [
-          div
-            ~a:
-              [
-                a_class
-                  [
-                    "flex flex-col space-y-1 items-center md:items-start py-8 \
-                     md:py-0";
-                  ];
-              ]
-            [
-              h1 [ txt "Welcome to OCaml-CI" ];
-              div
-                ~a:[ a_class [ "text-gray-500" ] ]
-                [ txt "Here are the organisations registered with us" ];
-            ];
-          div
-            ~a:[ a_class [ "form-control max-w-80" ] ]
-            [
-              Common.search;
-              input
-                ~a:
-                  [
-                    a_input_type `Text;
-                    a_placeholder "Search for an organisation";
-                    a_oninput "search(this.value)";
-                  ]
-                ();
-            ];
-        ];
-      div
-        ~a:[ a_id "table"; a_class [ "mt-8 grid gap-x-4 md:grid-cols-2" ] ]
-        (rows prefix orgs);
-    ]
+            select
+              ~a:
+                [
+                  a_class
+                    [
+                      "input-control relative input-text text-gray-500 \
+                       dark:text-gray-300 bg-gray-100 dark:bg-gray-850 \
+                       items-center justify-between flex px-3 py-2 \
+                       appearance-none";
+                    ];
+                  a_name "Languages";
+                  a_onchange "filter(this.value)";
+                ]
+              build_option;
+          ];
+      ]
 
-(** TODO: this function can be factorized with the one above. *)
-let list_all_orgs ~github_orgs ~gitlab_orgs =
-  let github_org_rows = rows "github" github_orgs in
-  let gitlab_org_rows = rows "gitlab" gitlab_orgs in
-  let org_rows = github_org_rows @ gitlab_org_rows in
-
+let list_orgs ~orgs =
+  let org_rows =
+    let generate (prefix, _, orgs) = rows prefix orgs in
+    List.map generate orgs |> List.flatten
+  in
   Template.instance
     [
       Tyxml.Html.script ~a:[ a_src "/js/index-page-org-search.js" ] (txt "");
@@ -96,43 +81,22 @@ let list_all_orgs ~github_orgs ~gitlab_orgs =
                      space-x-3";
                   ];
               ]
-            [
-              div
-                ~a:[ a_class [ "form-control max-w-80 pb-6 md:pb-0" ] ]
-                [
-                  Common.search;
-                  input
-                    ~a:
-                      [
-                        a_input_type `Text;
-                        a_placeholder "Search for an organisation";
-                        a_oninput "search(this.value)";
-                      ]
-                    ();
-                ];
-              div
-                ~a:[ a_class [ "relative" ] ]
-                [
-                  select
-                    ~a:
-                      [
-                        a_class
-                          [
-                            "input-control relative input-text text-gray-500 \
-                             dark:text-gray-300 bg-gray-100 dark:bg-gray-850 \
-                             items-center justify-between flex px-3 py-2 \
-                             appearance-none";
-                          ];
-                        a_name "Languages";
-                        a_onchange "filter(this.value)";
-                      ]
-                    [
-                      option ~a:[ a_value "all" ] (txt "All");
-                      option ~a:[ a_value "gitlab" ] (txt "Gitlab");
-                      option ~a:[ a_value "github" ] (txt "GitHub");
-                    ];
-                ];
-            ];
+            ([
+               div
+                 ~a:[ a_class [ "form-control max-w-80 pb-6 md:pb-0" ] ]
+                 [
+                   Common.search;
+                   input
+                     ~a:
+                       [
+                         a_input_type `Text;
+                         a_placeholder "Search for an organisation";
+                         a_oninput "search(this.value)";
+                       ]
+                     ();
+                 ];
+             ]
+            @ search_bar_options orgs);
         ];
       div
         ~a:[ a_id "table"; a_class [ "mt-8 grid gap-x-4 md:grid-cols-2" ] ]
