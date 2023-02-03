@@ -17,7 +17,7 @@ let search_bar_options = function
   | [] | [ _ ] -> []
   | orgs ->
       let build_option =
-        option ~a:[ a_value "all" ] (txt "all")
+        option ~a:[ a_value "all" ] (txt "All")
         :: List.map
              (fun (prefix, name, _) -> option ~a:[ a_value prefix ] (txt name))
              orgs
