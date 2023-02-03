@@ -255,7 +255,11 @@ module Analysis = struct
         |> fun s -> [ s ]
 
   let of_dir ~solver ~job ~platforms ~opam_repository_commit root =
+    let cancelled = Atomic.make None in
     let fold_on_opam_files () =
+      let module M = struct
+        exception Exit of string
+      end in
       let module S = Astring.String.Set in
       let opam_files full_path =
         let path = Option.get (Fpath.rem_prefix root full_path) in
@@ -285,14 +289,22 @@ module Analysis = struct
             Fmt.error_msg "%a is not a prefix of %a" Fpath.pp root Fpath.pp path
       in
       let add_opam_files path acc =
+        Option.iter (fun s -> raise_notrace (M.Exit s)) (Atomic.get cancelled);
         match opam_files path with
         | Some path -> S.add (Fpath.to_string path) acc
         | None -> acc
       in
-      Bos.OS.Path.fold ~elements:(`Sat is_opam_ext) ~traverse:(`Sat traverse)
-        add_opam_files S.empty [ root ]
+      (try
+         Bos.OS.Path.fold ~elements:(`Sat is_opam_ext) ~traverse:(`Sat traverse)
+           add_opam_files S.empty [ root ]
+       with M.Exit reason ->
+         Fmt.error_msg "Cancelling opam file lookup (%s)" reason)
       |> Result.map S.elements
     in
+    Current.Job.on_cancel job (fun reason ->
+        Atomic.set cancelled (Some reason);
+        Lwt.return_unit)
+    >>= fun () ->
     Lwt_preemptive.detach fold_on_opam_files () >>!= fun opam_files ->
     let solve = solve ~opam_repository_commit ~job ~solver in
     let find_opam_repo_commit =
