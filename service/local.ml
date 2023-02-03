@@ -1,9 +1,11 @@
 (* Utility program for testing the CI pipeline on a local repository. *)
 
-let setup_log default_level =
+let setup_log style_renderer default_level =
   if not Sys.win32 then Unix.putenv "DOCKER_BUILDKIT" "1";
   Unix.putenv "PROGRESS_NO_TRUNC" "1";
-  Prometheus_unix.Logging.init ?default_level ()
+  Prometheus_unix.Logging.init ?default_level ();
+  Fmt_tty.setup_std_outputs ?style_renderer ();
+  ()
 
 let main () config mode repo solve_uri : ('a, [ `Msg of string ]) result =
   let open Ocaml_ci_service in
@@ -26,7 +28,8 @@ open Cmdliner
 
 let setup_log =
   let docs = Manpage.s_common_options in
-  Term.(const setup_log $ Logs_cli.level ~docs ())
+  Term.(
+    const setup_log $ Fmt_cli.style_renderer ~docs () $ Logs_cli.level ~docs ())
 
 let repo =
   Arg.required
