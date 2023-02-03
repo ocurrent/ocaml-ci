@@ -80,7 +80,9 @@ let rec get_root_opam_packages = function
 let download_cache = "opam-archives"
 
 let install_project_deps ~opam_version ~opam_files ~selection =
-  let { Selection.packages; commit; variant; only_packages } = selection in
+  let { Selection.packages; commit; variant; compatible_root_pkgs } =
+    selection
+  in
   let prefix =
     match Variant.os variant with `macOS -> "~/local" | `linux -> "/usr"
   in
@@ -91,9 +93,6 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   let root_pkgs = get_root_opam_packages groups in
   let non_root_pkgs =
     packages |> List.filter (fun pkg -> not (List.mem pkg root_pkgs))
-  in
-  let compatible_root_pkgs =
-    if only_packages = [] then root_pkgs else only_packages
   in
   let open Obuilder_spec in
   let cache =
@@ -176,31 +175,53 @@ let install_project_deps ~opam_version ~opam_files ~selection =
 
 let spec ~base ~opam_version ~opam_files ~selection =
   let open Obuilder_spec in
+  let { Selection.variant; compatible_root_pkgs; _ } = selection in
   let to_name x = OpamPackage.of_string x |> OpamPackage.name_to_string in
   let home_dir =
     match Variant.os selection.Selection.variant with
     | `macOS -> "./src"
     | `linux -> "/src"
   in
-  let only_packages =
-    match selection.Selection.only_packages with
-    | [] -> ""
-    | pkgs -> " --only-packages=" ^ String.concat "," (List.map to_name pkgs)
+  let compatible_root_pkgs =
+    String.concat "," (List.map to_name compatible_root_pkgs)
   in
+  let compatible_root_pkgs_cmd = " --only-packages=" ^ compatible_root_pkgs in
+  let distro = Variant.distro variant in
   let run_build =
     match Variant.os selection.Selection.variant with
     | `macOS ->
         run
-          "cd ./src && opam exec -- dune build%s @install @check @runtest && \
-           rm -rf _build"
-          only_packages
+          {|cd ./src && opam exec -- dune build%s @install @check @runtest;
+res=$?;
+test "$res" != 1 && exit "$res";
+ret=1;
+for pkg in %s; do
+  if opam show -f x-ci-accept-failures: "$pkg" | grep -qF "\"%s\""; then
+    echo -e "The package \033[1m$pkg\033[0m failed, but has been disabled for CI on \033[1m%s\033[0m using the \033[1mx-ci-accept-failures\033[0m field in its opam file.";
+    ret=0;
+  fi;
+done;
+exit "$ret";
+&& rm -rf _build|}
+          compatible_root_pkgs_cmd compatible_root_pkgs distro distro
     | `linux ->
         run
-          "opam exec -- dune build%s @install @check @runtest && rm -rf _build"
-          only_packages
+          {|opam exec -- dune build%s @install @check @runtest;
+res=$?;
+test "$res" != 1 && exit "$res";
+ret=1;
+for pkg in %s; do
+  if opam show -f x-ci-accept-failures: "$pkg" | grep -qF "\"%s\""; then
+    echo -e "The package \033[1m$pkg\033[0m failed, but has been disabled for CI on \033[1m%s\033[0m using the \033[1mx-ci-accept-failures\033[0m field in its opam file.";
+    ret=0;
+  fi;
+done;
+exit "$ret";
+&& rm -rf _build|}
+          compatible_root_pkgs_cmd compatible_root_pkgs distro distro
   in
   stage ~from:base
-    (comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant)
+    (comment "%s" (Fmt.str "%a" Variant.pp variant)
      :: user_unix ~uid:1000 ~gid:1000
      :: install_project_deps ~opam_version ~opam_files ~selection
     @ [ copy [ "." ] ~dst:home_dir; run_build ])

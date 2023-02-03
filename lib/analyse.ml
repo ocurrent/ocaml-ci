@@ -174,9 +174,7 @@ module Analysis = struct
           else Some pkg_version
         in
         match List.filter_map has_no_platform root_pkgs with
-        | [] ->
-            let root_pkgs = List.map fst root_pkgs in
-            Ok (List.map (Selection.of_worker ~root_pkgs) x)
+        | [] -> Ok (List.map Selection.of_worker x)
         | missing_pkgs ->
             Fmt.error_msg "No solution found for %a on any supported platform"
               Fmt.(list ~sep:comma Dump.string)

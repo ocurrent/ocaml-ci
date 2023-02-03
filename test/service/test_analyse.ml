@@ -25,7 +25,7 @@ module Analysis = struct
 
   type selection = {
     ocaml_version : string;
-    only_packages : string list; [@default []]
+    compatible_root_pkgs : string list;
   }
   [@@deriving yojson, eq]
 
@@ -38,7 +38,7 @@ module Analysis = struct
     let ocaml_version =
       Ocaml_version.to_string (Ocaml_ci.Variant.ocaml_version t.variant)
     in
-    { ocaml_version; only_packages = t.only_packages }
+    { ocaml_version; compatible_root_pkgs = t.compatible_root_pkgs }
 
   let selections (t : t) =
     match selections t with
@@ -192,8 +192,8 @@ let test_simple =
         selection_type = "opam";
         selections =
           [
-            { ocaml_version = "4.10"; only_packages = [] };
-            { ocaml_version = "4.09"; only_packages = [] };
+            { ocaml_version = "4.10"; compatible_root_pkgs = [ "example.dev" ] };
+            { ocaml_version = "4.09"; compatible_root_pkgs = [ "example.dev" ] };
           ];
         ocamlformat_source_type = Some (Opam { version = "0.12" });
       }
@@ -226,8 +226,16 @@ let test_multiple_opam =
         selection_type = "opam";
         selections =
           [
-            { ocaml_version = "4.10"; only_packages = [] };
-            { ocaml_version = "4.09"; only_packages = [] };
+            {
+              ocaml_version = "4.10";
+              compatible_root_pkgs =
+                [ "example.dev"; "example-foo.dev"; "example-bar.dev" ];
+            };
+            {
+              ocaml_version = "4.09";
+              compatible_root_pkgs =
+                [ "example.dev"; "example-foo.dev"; "example-bar.dev" ];
+            };
           ];
         ocamlformat_source_type = None;
       }
@@ -252,8 +260,11 @@ let test_filter_packages =
         selection_type = "opam";
         selections =
           [
-            { ocaml_version = "4.10"; only_packages = [] };
-            { ocaml_version = "4.09"; only_packages = [ "example.dev" ] };
+            {
+              ocaml_version = "4.10";
+              compatible_root_pkgs = [ "example.dev"; "example-new.dev" ];
+            };
+            { ocaml_version = "4.09"; compatible_root_pkgs = [ "example.dev" ] };
           ];
         ocamlformat_source_type = None;
       }
@@ -315,7 +326,10 @@ let test_opam_monorepo_no_version =
       {
         opam_files = [ "example.opam" ];
         selection_type = "opam";
-        selections = [ { ocaml_version = "4.10"; only_packages = [] } ];
+        selections =
+          [
+            { ocaml_version = "4.10"; compatible_root_pkgs = [ "example.dev" ] };
+          ];
         ocamlformat_source_type = None;
       }
   in
@@ -334,8 +348,14 @@ let test_ocamlformat_self =
         selection_type = "opam";
         selections =
           [
-            { ocaml_version = "4.10"; only_packages = [] };
-            { ocaml_version = "4.09"; only_packages = [] };
+            {
+              ocaml_version = "4.10";
+              compatible_root_pkgs = [ "ocamlformat.dev" ];
+            };
+            {
+              ocaml_version = "4.09";
+              compatible_root_pkgs = [ "ocamlformat.dev" ];
+            };
           ];
         ocamlformat_source_type = Some (Vendored { path = "." });
       }
