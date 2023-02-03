@@ -6,11 +6,10 @@ let pool = Current.Pool.create ~label:"analyse" 20
 let solver_pool = Current.Pool.create ~label:"temporary-bottleneck" 2
 
 let is_empty_file x =
-  match Unix.lstat x with
+  match Unix.lstat (Fpath.to_string x) with
   | Unix.{ st_kind = S_REG; st_size = 0; _ } -> true
   | _ -> false
 
-let is_toplevel path = not (String.contains path '/')
 let ( >>!= ) = Lwt_result.bind
 
 let read_file ~max_len path =
@@ -255,51 +254,59 @@ module Analysis = struct
           hd selections
         |> fun s -> [ s ]
 
-  let of_dir ~solver ~job ~platforms ~opam_repository_commit dir =
-    let solve = solve ~opam_repository_commit ~job ~solver in
-    let ty = type_of_dir dir in
-    let find = if Sys.win32 then {|C:\cygwin64\bin\find.exe|} else "find" in
-    let cmd = ("", [| find; "."; "-maxdepth"; "3"; "-name"; "*.opam" |]) in
-    Current.Process.check_output ~cwd:dir ~cancellable:true ~job cmd
-    >>!= fun output ->
-    let opam_files =
-      String.split_on_char '\n' output
-      |> List.sort String.compare
-      |> List.filter_map (function
-           | "" -> None
-           | path ->
-               let path =
-                 if Astring.String.is_prefix ~affix:"./" path then
-                   Astring.String.with_range ~first:2 path
-                 else path
-               in
-               let consider_opam_file path =
-                 match Fpath.v path |> Fpath.segs with
-                 | [ _file ] -> true
-                 | segs when List.exists is_test_dir segs ->
-                     Current.Job.log job "Ignoring test directory %S" path;
-                     false
-                 | _ -> true
-               in
-               let full_path = Filename.concat (Fpath.to_string dir) path in
-               if is_empty_file full_path then (
-                 Current.Job.log job "WARNING: ignoring empty opam file %S" path;
-                 None)
-               else if consider_opam_file path then Some path
-               else None)
+  let of_dir ~solver ~job ~platforms ~opam_repository_commit root =
+    let fold_on_opam_files () =
+      let module S = Astring.String.Set in
+      let opam_files full_path =
+        let path = Option.get (Fpath.rem_prefix root full_path) in
+        let consider_opam_file =
+          match Fpath.segs path with
+          | [] | [ _ ] -> true
+          | segs ->
+              if List.exists is_test_dir segs then (
+                Current.Job.log job "Ignoring test directory %a" Fpath.pp path;
+                false)
+              else true
+        in
+        if is_empty_file full_path then (
+          Current.Job.log job "WARNING: ignoring empty opam file %a" Fpath.pp
+            path;
+          None)
+        else if consider_opam_file then Some path
+        else None
+      in
+      let is_opam_ext path = Ok (Fpath.has_ext "opam" path) in
+      let traverse path =
+        match Fpath.rem_prefix root path with
+        (* maxdepth=3 *)
+        | Some suffix -> Ok (List.compare_length_with (Fpath.segs suffix) 3 <= 0)
+        | None when Fpath.equal root path -> Ok true
+        | None ->
+            Fmt.error_msg "%a is not a prefix of %a" Fpath.pp root Fpath.pp path
+      in
+      let add_opam_files path acc =
+        match opam_files path with
+        | Some path -> S.add (Fpath.to_string path) acc
+        | None -> acc
+      in
+      Bos.OS.Path.fold ~elements:(`Sat is_opam_ext) ~traverse:(`Sat traverse)
+        add_opam_files S.empty [ root ]
+      |> Result.map S.elements
     in
+    Lwt_preemptive.detach fold_on_opam_files () >>!= fun opam_files ->
+    let solve = solve ~opam_repository_commit ~job ~solver in
     let find_opam_repo_commit =
       find_opam_repo_commit_for_ocamlformat ~solve:(solve ~lower_bound:false)
         ~platforms
     in
-    Analyse_ocamlformat.get_ocamlformat_source job ~opam_files ~root:dir
+    Analyse_ocamlformat.get_ocamlformat_source job ~opam_files ~root
       ~find_opam_repo_commit
     >>!= fun (ocamlformat_source, ocamlformat_selection) ->
     if opam_files = [] then Lwt_result.fail (`Msg "No opam files found!")
-    else if List.filter is_toplevel opam_files = [] then
+    else if List.filter Fpath.is_seg opam_files = [] then
       Lwt_result.fail (`Msg "No top-level opam files found!")
     else
-      (match ty with
+      (match type_of_dir root with
       | `Opam_monorepo builds ->
           lwt_result_list_mapm builds ~f:(fun info ->
               Opam_monorepo.selection ~info ~solve:(solve ~lower_bound:false)
@@ -313,7 +320,7 @@ module Analysis = struct
             in
             let selections =
               opam_selections ~solve:(solve ~lower_bound) ~job ~platforms
-                ~opam_files dir
+                ~opam_files root
             in
             if lower_bound then
               Lwt.map

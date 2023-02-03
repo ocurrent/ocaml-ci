@@ -12,6 +12,7 @@
   omigrate
   omigrate.sqlite3
   str
+  bos
   capnp-rpc-unix
   current.cache
   ppx_deriving_yojson.runtime
