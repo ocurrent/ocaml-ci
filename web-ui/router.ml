@@ -306,10 +306,16 @@ let create ~github ~gitlab =
            | None, None ->
                Dream.log "No backend available";
                Dream.empty `Internal_Server_Error
-           | Some github, None -> Controller.Index.list_orgs "github" github
-           | None, Some gitlab -> Controller.Index.list_orgs "gitlab" gitlab
+           | Some github, None ->
+               let orgs = [ ("github", "GitHub", github) ] in
+               Controller.Index.list_orgs ~orgs
+           | None, Some gitlab ->
+               Controller.Index.list_orgs ~orgs:[ ("gitlab", "GitLab", gitlab) ]
            | Some github, Some gitlab ->
-               Controller.Index.list_all_orgs ~github ~gitlab);
+               let orgs =
+                 [ ("github", "GitHub", github); ("gitlab", "GitLab", gitlab) ]
+               in
+               Controller.Index.list_orgs ~orgs);
        Dream.get "/getting-started" (fun _ ->
            Dream.html @@ Controller.Documentation.getting_started);
        Dream.get "/documentation" (fun _ ->
