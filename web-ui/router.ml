@@ -32,7 +32,7 @@ struct
   let org =
     let url = Printf.sprintf "/%s/:org" F.prefix in
     Dream.get url (fun request ->
-        Controller.Gitlab.list_repos ~org:(Dream.param request "org") F.backend)
+        F.Controller.list_repos ~org:(Dream.param request "org") F.backend)
 
   let repo =
     let url = Printf.sprintf "/%s/:org/:repo" F.prefix in
@@ -91,7 +91,7 @@ struct
           let id = Dream.param request "number" |> int_of_string in
           `Request id
         in
-        Controller.Gitlab.list_history
+        F.Controller.list_history
           ~org:(Dream.param request "org")
           ~repo:(Dream.param request "repo")
           ~gref F.backend)
@@ -553,6 +553,25 @@ let documentation =
         Dream.html @@ Controller.Documentation.user_guide);
   ]
 
+let root ~gitlab ~github =
+  [
+    Dream.get "/" (fun _ ->
+        match (github, gitlab) with
+        | None, None ->
+            Dream.log "No backend available";
+            Dream.empty `Internal_Server_Error
+        | Some github, None ->
+            let orgs = [ ("github", "GitHub", github) ] in
+            Controller.Index.list_orgs ~orgs
+        | None, Some gitlab ->
+            Controller.Index.list_orgs ~orgs:[ ("gitlab", "GitLab", gitlab) ]
+        | Some github, Some gitlab ->
+            let orgs =
+              [ ("github", "GitHub", github); ("gitlab", "GitLab", gitlab) ]
+            in
+            Controller.Index.list_orgs ~orgs);
+  ]
+
 let create ~github ~gitlab =
   let gitlab_route =
     match gitlab with
@@ -578,15 +597,17 @@ let create ~github ~gitlab =
           let request = "pull"
           let backend = github
 
-          (* Extra routes are here to keep legacy compatibility *)
+          (* Extra routes are here to keep legacy compatibility. *)
           let extra_routes =
             [
               Dream.get "/badge/:org/:repo/:branch" (fun request ->
-                  Controller.Badges.handle
-                    ~org:(Dream.param request "org")
-                    ~repo:(Dream.param request "repo")
-                    ~branch:(Dream.param request "branch")
-                    github);
+                  let target =
+                    Printf.sprintf "/badge/github/%s/%s/%s"
+                      (Dream.param request "org")
+                      (Dream.param request "repo")
+                      (Dream.param request "branch")
+                  in
+                  Dream.redirect request target);
               Dream.get "/github/:org/:repo/commit/:hash/-/**" (fun request ->
                   let target =
                     List.hd
@@ -608,24 +629,4 @@ let create ~github ~gitlab =
         Github.routes ()
   in
   Dream.router
-    ([
-       Dream.get "/" (fun _ ->
-           match (github, gitlab) with
-           | None, None ->
-               Dream.log "No backend available";
-               Dream.empty `Internal_Server_Error
-           | Some github, None ->
-               let orgs = [ ("github", "GitHub", github) ] in
-               Controller.Index.list_orgs ~orgs
-           | None, Some gitlab ->
-               Controller.Index.list_orgs ~orgs:[ ("gitlab", "GitLab", gitlab) ]
-           | Some github, Some gitlab ->
-               let orgs =
-                 [ ("github", "GitHub", github); ("gitlab", "GitLab", gitlab) ]
-               in
-               Controller.Index.list_orgs ~orgs);
-     ]
-    @ static
-    @ documentation
-    @ gitlab_route
-    @ github_route)
+    (root ~gitlab ~github @ static @ documentation @ gitlab_route @ github_route)
