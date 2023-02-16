@@ -268,61 +268,59 @@ let root ~gitlab ~github =
             Controller.Index.list_orgs ~orgs);
   ]
 
+let build_gitlab_route gitlab =
+  let module Gitlab = Route (struct
+    let prefix = "gitlab"
+    let request = "merge-request"
+    let backend = gitlab
+    let extra_routes = []
+
+    module Api = Api_controller.Gitlab
+    module Controller = Controller.Gitlab
+  end) in
+  Gitlab.routes ()
+
+let build_github_route github =
+  let module Github = Route (struct
+    let prefix = "github"
+    let request = "pull"
+    let backend = github
+
+    (* Extra routes are here to keep legacy compatibility. *)
+    let extra_routes =
+      [
+        Dream.get "/badge/:org/:repo/:branch" (fun request ->
+            let target =
+              Printf.sprintf "/badge/github/%s/%s/%s"
+                (Dream.param request "org")
+                (Dream.param request "repo")
+                (Dream.param request "branch")
+            in
+            Dream.redirect request target);
+        Dream.get "/github/:org/:repo/commit/:hash/-/**" (fun request ->
+            let target =
+              List.hd (Astring.String.cuts ~sep:"/-/" (Dream.target request))
+            in
+            Dream.redirect request target);
+        Dream.get "/github/:org/:repo/commit/:hash/variant/:variant/-/**"
+          (fun request ->
+            let target =
+              List.hd (Astring.String.cuts ~sep:"/-/" (Dream.target request))
+            in
+            Dream.redirect request target);
+      ]
+
+    module Api = Api_controller.Github
+    module Controller = Controller.Github
+  end) in
+  Github.routes ()
+
 let create ~github ~gitlab =
   let gitlab_route =
-    match gitlab with
-    | None -> []
-    | Some gitlab ->
-        let module Gitlab = Route (struct
-          let prefix = "gitlab"
-          let request = "merge-request"
-          let backend = gitlab
-          let extra_routes = []
-
-          module Api = Api_controller.Gitlab
-          module Controller = Controller.Gitlab
-        end) in
-        Gitlab.routes ()
+    match gitlab with None -> [] | Some gitlab -> build_gitlab_route gitlab
   in
   let github_route =
-    match github with
-    | None -> []
-    | Some github ->
-        let module Github = Route (struct
-          let prefix = "github"
-          let request = "pull"
-          let backend = github
-
-          (* Extra routes are here to keep legacy compatibility. *)
-          let extra_routes =
-            [
-              Dream.get "/badge/:org/:repo/:branch" (fun request ->
-                  let target =
-                    Printf.sprintf "/badge/github/%s/%s/%s"
-                      (Dream.param request "org")
-                      (Dream.param request "repo")
-                      (Dream.param request "branch")
-                  in
-                  Dream.redirect request target);
-              Dream.get "/github/:org/:repo/commit/:hash/-/**" (fun request ->
-                  let target =
-                    List.hd
-                      (Astring.String.cuts ~sep:"/-/" (Dream.target request))
-                  in
-                  Dream.redirect request target);
-              Dream.get "/github/:org/:repo/commit/:hash/variant/:variant/-/**"
-                (fun request ->
-                  let target =
-                    List.hd
-                      (Astring.String.cuts ~sep:"/-/" (Dream.target request))
-                  in
-                  Dream.redirect request target);
-            ]
-
-          module Api = Api_controller.Github
-          module Controller = Controller.Github
-        end) in
-        Github.routes ()
+    match github with None -> [] | Some github -> build_github_route github
   in
   Dream.router
     (root ~gitlab ~github @ static @ documentation @ gitlab_route @ github_route)
