@@ -182,7 +182,7 @@ module Make (M : Git_forge_intf.Forge) = struct
       [
         Tyxml.Html.script ~a:[ a_src "/js/build-page-poll.js" ] (txt "");
         Common.breadcrumbs
-          [ (M.prefix, M.prefix); (org, org); (repo, repo) ]
+          [ ("Organisations", M.prefix); (org, org); (repo, repo) ]
           (Printf.sprintf "%s" (Common.short_hash hash));
         title_card;
         Common.flash_messages flash_messages;
@@ -510,7 +510,7 @@ module Make (M : Git_forge_intf.Forge) = struct
             Tyxml.Html.script ~a:[ a_src "/js/step-page-poll.js" ] (txt "");
             Common.breadcrumbs
               [
-                (M.prefix, M.prefix);
+                ("Organisations", M.prefix);
                 (org, org);
                 (repo, repo);
                 ( Printf.sprintf "%s (%s)" (Common.short_hash hash) branch,

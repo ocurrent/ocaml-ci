@@ -157,7 +157,7 @@ module Make (M : Git_forge_intf.Forge) = struct
       | None -> [ (M.prefix, M.prefix); (org, org); (repo, repo) ]
       | Some commit ->
           [
-            (M.prefix, M.prefix);
+            ("Organisations", M.prefix);
             (org, org);
             (repo, repo);
             (tref, Printf.sprintf "commit/%s" commit);
