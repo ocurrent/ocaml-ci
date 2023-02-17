@@ -389,7 +389,7 @@ module Make (M : Git_forge_intf.Forge) = struct
         script ~a:[ a_src "/js/chart.js" ] (txt "");
         script (Unsafe.data (js_of_histories ~org histories));
         script ~a:[ a_src "/js/repo-page.js" ] (txt "");
-        Common.breadcrumbs [ (M.prefix, M.prefix) ] org;
+        Common.breadcrumbs [ ("Organisations", M.prefix) ] org;
         title ~org;
         tabulate table_head table;
       ]

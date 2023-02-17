@@ -210,7 +210,7 @@ module Make (M : Git_forge_intf.Forge) = struct
     in
 
     [
-      Common.breadcrumbs [ (M.prefix, M.prefix); (org, org) ] repo;
+      Common.breadcrumbs [ ("Organisations", M.prefix); (org, org) ] repo;
       top_matter;
       Common.tabulate_div default_table;
     ]
