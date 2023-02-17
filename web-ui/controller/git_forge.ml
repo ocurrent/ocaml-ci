@@ -82,7 +82,7 @@ let ( >>!= ) x f =
       Dream.empty `Internal_Server_Error
   | Ok y -> f y
 
-module Make (View : View) = struct
+module Make (View : View) : Controller = struct
   open Lwt.Infix
   module Client = Ocaml_ci_api.Client
   module Capability = Capnp_rpc_lwt.Capability

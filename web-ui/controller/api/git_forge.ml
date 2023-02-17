@@ -17,7 +17,7 @@ module type Api_controller = sig
     Dream.response Lwt.t
 end
 
-module Make (Api : Api) = struct
+module Make (Api : Api) : Api_controller = struct
   open Lwt.Infix
   module Client = Ocaml_ci_api.Client
   module Capability = Capnp_rpc_lwt.Capability
