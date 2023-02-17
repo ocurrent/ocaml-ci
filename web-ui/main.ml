@@ -1,5 +1,17 @@
 module Backend = Controller.Backend
 
+module Middleware = struct
+  let no_trailing_slash next_handler request =
+    let target = "///" ^ Dream.target request in
+    let path, query = Dream.split_target target in
+    let path =
+      Dream.from_path path |> Dream.drop_trailing_slash |> Dream.to_path
+    in
+    let target = path ^ if query = "" then "" else "?" ^ query in
+    if Dream.target request = target then next_handler request
+    else Dream.redirect request target
+end
+
 let setup_logs default_level =
   Prometheus_unix.Logging.init ?default_level ();
   Dream.initialize_log ()
@@ -15,6 +27,7 @@ let main interface port github_pipeline_cap gitlab_pipeline_cap
          ~error_handler:
            (Dream.error_template View.Client_error.ocaml_ci_error_template)
        @@ Dream.logger
+       @@ Middleware.no_trailing_slash
        @@ Dream.memory_sessions
        @@ Dream.flash
        @@ Router.create ~github ~gitlab
