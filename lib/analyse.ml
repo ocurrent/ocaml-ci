@@ -3,7 +3,6 @@ open Current.Syntax
 module Worker = Ocaml_ci_api.Worker
 
 let pool = Current.Pool.create ~label:"analyse" 20
-let solver_pool = Current.Pool.create ~label:"temporary-bottleneck" 2
 
 let is_empty_file x =
   match Unix.lstat (Fpath.to_string x) with
@@ -397,8 +396,7 @@ module Examine = struct
   let id = "ci-analyse"
 
   let run solver job src { Value.opam_repository_commit; platforms } =
-    Current.Job.start_with ~pool:solver_pool job ~level:Current.Level.Harmless
-    >>= fun () ->
+    Current.Job.start job ~level:Current.Level.Harmless >>= fun () ->
     Current_git.with_checkout ~job ~pool src @@ fun src ->
     Analysis.of_dir ~solver ~platforms ~opam_repository_commit ~job src
 
