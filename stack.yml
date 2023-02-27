@@ -37,7 +37,6 @@ services:
       --confirm-auto-release 120
       --capnp-public-address=tcp:ci.ocamllabs.io:8102 --capnp-listen-address=tcp:0.0.0.0:9000
       --submission-service /run/secrets/ocaml-ci-submission.cap
-      --submission-solver-service /run/secrets/ocaml-ci-solver.cap
       --migration-path /migrations
       --verbosity info
       --github-account-allowlist 'talex5,ocurrent,ocaml,mirage,avsm,samoht,kit-ty-kate,tarides,aantron,ocamllabs,realworldocaml,NathanReb,0install,gpetiot,ocaml-ppx,CraigFe,pascutto,julow,ocaml-gospel,vbmithr,gs0510,magnuss,dune-universe,janestreet,emillon,capnproto,ocaml-opam,ocaml-dune,favonia,joelburget,jeffa5,bikallem,jonludlam,g2p,stedolan,ocsigen,dinosaure,hannesm,mirleft,roburio,misterda,ocaml-multicore,cdaringe,inhabitedtype,tmcgilchrist,ocaml-doc,grievejia,Leonidas-from-XIV,ocaml-community,verbosemode,tomjridge,thizanne,n-osborne,TheLortex,patricoferris,routineco,moby,djs55,hyunha,hyper-systems,coco33920,sanette,maiste,yomimono,c-cube,novemberkilo,joaosreis,mtelvers,ygrek,geocaml,panglesd,SimonJF,haesbaert,benmandrew,andrenth,backtracking,jmid,shindere,gildor478,mefyl,ElectreAAS,well-typed-lightbulbs,johnyob,lasamlai,zshipko,andreas,bobot'
@@ -69,7 +68,6 @@ services:
       --gitlab-token-file /run/secrets/ocaml-ci-gitlab-token
       --gitlab-webhook-secret-file /run/secrets/ocaml-ci-gitlab-webhook-secret
       --submission-service /run/secrets/ocaml-ci-submission.cap
-      --submission-solver-service /run/secrets/ocaml-ci-solver.cap
       --capnp-public-address=tcp:ci.ocamllabs.io:8202
       --capnp-listen-address=tcp:0.0.0.0:9000
       --migration-path /migrations
