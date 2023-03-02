@@ -12,7 +12,7 @@ val ul_timestamps :
 val of_step : Client.job_info option -> [> `Div | `Ul ] Tyxml_html.elt
 
 val show_step :
-  Run_time.timestamps option ->
+  Run_time.Timestamp.t option ->
   build_created_at:float option ->
   [> `Div | `Ul ] Tyxml_html.elt
 

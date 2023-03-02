@@ -36,37 +36,41 @@ let duration_pp ppf t =
 
 let cmp_floats v1 v2 = abs_float (v1 -. v2) < 0.0000001
 
-type timestamps =
-  | Queued of float
-  | Running of { queued_at : float; started_at : float }
-  | Finished of {
-      queued_at : float;
-      started_at : float option;
-      finished_at : float;
-    }
-[@@deriving show]
+module Timestamp = struct
+  type t =
+    | Queued of float
+    | Running of { queued_at : float; started_at : float }
+    | Finished of {
+        queued_at : float;
+        started_at : float option;
+        finished_at : float;
+      }
+  [@@deriving show]
+end
 
-type run_time_info =
-  | Cached
-    (* This indicates that the job never ran because cached results were used *)
-  | Queued_for of float (* elapsed time in seconds *)
-  | Running of { queued_for : float; ran_for : float }
-  | Finished of { queued_for : float; ran_for : float option }
-[@@deriving show]
+module TimeInfo = struct
+  type t =
+    | Cached
+      (* This indicates that the job never ran because cached results were used *)
+    | Queued_for of float (* elapsed time in seconds *)
+    | Running of { queued_for : float; ran_for : float }
+    | Finished of { queued_for : float; ran_for : float option }
+  [@@deriving show]
+end
 
-let queued_for = function
+let queued_for : TimeInfo.t -> float = function
   | Cached -> 0.
   | Queued_for v -> v
   | Running v -> v.queued_for
   | Finished v -> v.queued_for
 
-let ran_for = function
+let ran_for : TimeInfo.t -> float = function
   | Cached -> 0.
   | Queued_for _ -> 0.
   | Running v -> v.ran_for
   | Finished v -> Option.value ~default:0. v.ran_for
 
-let eq_timestamps (st1 : timestamps) (st2 : timestamps) =
+let eq_timestamps (st1 : Timestamp.t) (st2 : Timestamp.t) =
   match (st1, st2) with
   | Queued v1, Queued v2 -> cmp_floats v1 v2
   | Running v1, Running v2 ->
@@ -109,7 +113,7 @@ let eq_timestamps (st1 : timestamps) (st2 : timestamps) =
       false
 
 let run_times_from_timestamps ~build_created_at
-    ?(current_time = Unix.gettimeofday ()) (ts : timestamps) : run_time_info =
+    ?(current_time = Unix.gettimeofday ()) (ts : Timestamp.t) : TimeInfo.t =
   match ts with
   | Queued v -> Queued_for (current_time -. v)
   | Running { queued_at; started_at } ->
@@ -130,19 +134,21 @@ let run_times_from_timestamps ~build_created_at
       )
 
 let timestamps_from_job_info (ji : Client.job_info) :
-    (timestamps, string) result =
+    (Timestamp.t, string) result =
   match (ji.outcome : Client.State.t) with
   | NotStarted ->
       Option.fold ji.queued_at
         ~none:(Error "Queued_at is None - cannot construct timestamp.")
-        ~some:(fun v -> Ok (Queued v))
+        ~some:(fun v ->
+          let open Timestamp in
+          Ok (Queued v))
   | Active ->
       Option.fold ji.queued_at
         ~none:(Error "Queued_at is None - cannot construct timestamp.")
         ~some:(fun q ->
           Option.fold ji.started_at
             ~none:(Error "Started_at is None - cannot construct timestamp.")
-            ~some:(fun s : (timestamps, string) result ->
+            ~some:(fun s : (Timestamp.t, string) result ->
               Ok (Running { queued_at = q; started_at = s })))
   | Passed | Failed _ | Aborted ->
       Option.fold ji.queued_at
@@ -150,7 +156,7 @@ let timestamps_from_job_info (ji : Client.job_info) :
         ~some:(fun q ->
           Option.fold ji.finished_at
             ~none:(Error "Finished_at is None - cannot construct timestamp.")
-            ~some:(fun f : (timestamps, string) result ->
+            ~some:(fun f : (Timestamp.t, string) result ->
               Ok
                 (Finished
                    {
@@ -188,7 +194,7 @@ let build_created_at ~build =
   | [ h ] -> Ok h.queued_at
   | _ :: _ -> Error "Multiple analysis steps found"
 
-let total_time = function
+let total_time : TimeInfo.t -> float = function
   | Cached -> 0.
   | Queued_for v -> v
   | Running v -> v.queued_for +. v.ran_for

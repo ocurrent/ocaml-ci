@@ -7,16 +7,16 @@ let database = Alcotest.(list string)
 let cmp_floats v1 v2 = abs_float (v1 -. v2) < 0.0000001
 
 let timestamps =
-  let state f (st : Run_time.timestamps) =
-    Fmt.pf f "%a" Run_time.pp_timestamps st
+  let state f (st : Run_time.Timestamp.t) =
+    Fmt.pf f "%a" Run_time.Timestamp.pp st
   in
   Alcotest.testable (Fmt.Dump.list state) (List.equal Run_time.eq_timestamps)
 
 let run_time_info =
-  let state f (rt : Run_time.run_time_info) =
-    Fmt.pf f "%a" Run_time.pp_run_time_info rt
+  let state f (rt : Run_time.TimeInfo.t) =
+    Fmt.pf f "%a" Run_time.TimeInfo.pp rt
   in
-  let equal (rt1 : Run_time.run_time_info) (rt2 : Run_time.run_time_info) =
+  let equal (rt1 : Run_time.TimeInfo.t) (rt2 : Run_time.TimeInfo.t) =
     match (rt1, rt2) with
     | Cached, Cached -> true
     | Queued_for v1, Queued_for v2 -> cmp_floats v1 v2
@@ -39,8 +39,8 @@ let run_time_info =
 let test_info_from_timestamps_queued () =
   let build_created_at = 100. in
   let current_time = 120. in
-  let st : Run_time.timestamps = Queued 42. in
-  let expected = Run_time.Queued_for 78. in
+  let st : Run_time.Timestamp.t = Queued 42. in
+  let expected = Run_time.TimeInfo.Queued_for 78. in
   let result =
     Run_time.run_times_from_timestamps ~build_created_at ~current_time st
   in
@@ -50,10 +50,12 @@ let test_info_from_timestamps_queued () =
 let test_info_from_timestamps_running () =
   let build_created_at = 100. in
   let current_time = 120. in
-  let st : Run_time.timestamps =
+  let st : Run_time.Timestamp.t =
     Running { queued_at = 42.; started_at = 60. }
   in
-  let expected = Run_time.Running { queued_for = 18.; ran_for = 60. } in
+  let expected =
+    Run_time.TimeInfo.Running { queued_for = 18.; ran_for = 60. }
+  in
   let result =
     Run_time.run_times_from_timestamps ~build_created_at st ~current_time
   in
@@ -63,10 +65,12 @@ let test_info_from_timestamps_running () =
 let test_info_from_timestamps_cached () =
   let build_created_at = 100. in
   let current_time = 120. in
-  let st : Run_time.timestamps =
+  let st : Run_time.Timestamp.t =
     Finished { queued_at = 42.; started_at = Some 60.; finished_at = 82. }
   in
-  let expected = Run_time.Cached (* because finished < build_created_at *) in
+  let expected =
+    Run_time.TimeInfo.Cached (* because finished < build_created_at *)
+  in
   let result =
     Run_time.run_times_from_timestamps ~build_created_at ~current_time st
   in
@@ -76,10 +80,12 @@ let test_info_from_timestamps_cached () =
 let test_info_from_timestamps_finished () =
   let build_created_at = 100. in
   let current_time = 120. in
-  let st : Run_time.timestamps =
+  let st : Run_time.Timestamp.t =
     Finished { queued_at = 42.; started_at = Some 60.; finished_at = 182. }
   in
-  let expected = Run_time.Finished { queued_for = 18.; ran_for = Some 122. } in
+  let expected =
+    Run_time.TimeInfo.Finished { queued_for = 18.; ran_for = Some 122. }
+  in
   let result =
     Run_time.run_times_from_timestamps ~build_created_at ~current_time st
   in
@@ -89,10 +95,12 @@ let test_info_from_timestamps_finished () =
 let test_info_from_timestamps_never_ran () =
   let build_created_at = 100. in
   let current_time = 120. in
-  let st : Run_time.timestamps =
+  let st : Run_time.Timestamp.t =
     Finished { queued_at = 42.; started_at = None; finished_at = 182. }
   in
-  let expected = Run_time.Finished { queued_for = 140.; ran_for = None } in
+  let expected =
+    Run_time.TimeInfo.Finished { queued_for = 140.; ran_for = None }
+  in
   let result =
     Run_time.run_times_from_timestamps ~build_created_at st ~current_time
   in
@@ -109,7 +117,7 @@ let test_timestamps_from_job_info_queued =
       finished_at = None;
     }
   in
-  let expected : Run_time.timestamps = Queued 1234567. in
+  let expected : Run_time.Timestamp.t = Queued 1234567. in
   let result = Run_time.timestamps_from_job_info not_started_job in
   match result with
   | Error e -> Alcotest.fail e
@@ -127,7 +135,7 @@ let test_timestamps_from_job_info_running =
       finished_at = None;
     }
   in
-  let expected : Run_time.timestamps =
+  let expected : Run_time.Timestamp.t =
     Running { queued_at = 1234567.; started_at = 1234570. }
   in
   let result = Run_time.timestamps_from_job_info active_job in
@@ -147,7 +155,7 @@ let test_timestamps_from_job_info_finished =
       finished_at = Some 1234575.;
     }
   in
-  let expected : Run_time.timestamps =
+  let expected : Run_time.Timestamp.t =
     Finished
       {
         queued_at = 1234567.;
@@ -173,7 +181,7 @@ let test_timestamps_from_job_info_finished_with_errors =
         finished_at = Some 1234575.;
       }
     in
-    let expected : Run_time.timestamps =
+    let expected : Run_time.Timestamp.t =
       Finished
         { queued_at = 1234567.; started_at = None; finished_at = 1234575. }
     in
@@ -187,19 +195,19 @@ let test_timestamps_from_job_info_finished_with_errors =
   List.iter test [ Failed ""; Aborted ]
 
 let test_queued_for_cached =
-  let rt : Run_time.run_time_info = Cached in
+  let rt : Run_time.TimeInfo.t = Cached in
   let expected = 0. in
   let result = Run_time.queued_for rt in
   Alcotest.(check (float 0.001)) "queued_for Cached" expected result
 
 let test_queued_for_queued =
-  let rt : Run_time.run_time_info = Queued_for 42.2 in
+  let rt : Run_time.TimeInfo.t = Queued_for 42.2 in
   let expected = 42.2 in
   let result = Run_time.queued_for rt in
   Alcotest.(check (float 0.001)) "queued_for Queued" expected result
 
 let test_queued_for_running =
-  let rt : Run_time.run_time_info =
+  let rt : Run_time.TimeInfo.t =
     Running { queued_for = 42.2; ran_for = 24.4 }
   in
   let expected = 42.2 in
@@ -207,10 +215,10 @@ let test_queued_for_running =
   Alcotest.(check (float 0.001)) "queued_for Running" expected result
 
 let test_queued_for_finished =
-  let rt : Run_time.run_time_info =
+  let rt : Run_time.TimeInfo.t =
     Finished { queued_for = 42.2; ran_for = Some 24.4 }
   in
-  let rt' : Run_time.run_time_info =
+  let rt' : Run_time.TimeInfo.t =
     Finished { queued_for = 42.2; ran_for = None }
   in
   let expected = 42.2 in
@@ -220,19 +228,19 @@ let test_queued_for_finished =
   Alcotest.(check (float 0.001)) "queued_for Finished" expected result'
 
 let test_ran_for_cached =
-  let rt : Run_time.run_time_info = Cached in
+  let rt : Run_time.TimeInfo.t = Cached in
   let expected = 0. in
   let result = Run_time.queued_for rt in
   Alcotest.(check (float 0.001)) "ran_for Cached" expected result
 
 let test_ran_for_queued =
-  let rt : Run_time.run_time_info = Queued_for 42.2 in
+  let rt : Run_time.TimeInfo.t = Queued_for 42.2 in
   let expected = 0. in
   let result = Run_time.ran_for rt in
   Alcotest.(check (float 0.001)) "ran_for Queued" expected result
 
 let test_ran_for_running =
-  let rt : Run_time.run_time_info =
+  let rt : Run_time.TimeInfo.t =
     Running { queued_for = 42.2; ran_for = 24.4 }
   in
   let expected = 24.4 in
@@ -240,10 +248,10 @@ let test_ran_for_running =
   Alcotest.(check (float 0.001)) "ran_for Running" expected result
 
 let test_ran_for_finished =
-  let rt : Run_time.run_time_info =
+  let rt : Run_time.TimeInfo.t =
     Finished { queued_for = 42.2; ran_for = Some 24.4 }
   in
-  let rt' : Run_time.run_time_info =
+  let rt' : Run_time.TimeInfo.t =
     Finished { queued_for = 42.2; ran_for = None }
   in
   let expected = 24.4 in
@@ -254,19 +262,19 @@ let test_ran_for_finished =
   Alcotest.(check (float 0.001)) "ran_for Finished" expected' result'
 
 let test_total_time_cached =
-  let rt : Run_time.run_time_info = Cached in
+  let rt : Run_time.TimeInfo.t = Cached in
   let expected = 0. in
   let result = Run_time.queued_for rt in
   Alcotest.(check (float 0.001)) "total_time Cached" expected result
 
 let test_total_time_queued =
-  let rt : Run_time.run_time_info = Queued_for 42.2 in
+  let rt : Run_time.TimeInfo.t = Queued_for 42.2 in
   let expected = 42.2 in
   let result = Run_time.total_time rt in
   Alcotest.(check (float 0.001)) "total_time Queued" expected result
 
 let test_total_time_running =
-  let rt : Run_time.run_time_info =
+  let rt : Run_time.TimeInfo.t =
     Running { queued_for = 42.2; ran_for = 24.4 }
   in
   let expected = 66.6 in
@@ -274,10 +282,10 @@ let test_total_time_running =
   Alcotest.(check (float 0.001)) "ran_for Running" expected result
 
 let test_total_time_finished =
-  let rt : Run_time.run_time_info =
+  let rt : Run_time.TimeInfo.t =
     Finished { queued_for = 42.2; ran_for = Some 24.4 }
   in
-  let rt' : Run_time.run_time_info =
+  let rt' : Run_time.TimeInfo.t =
     Finished { queued_for = 42.2; ran_for = None }
   in
   let expected = 66.6 in

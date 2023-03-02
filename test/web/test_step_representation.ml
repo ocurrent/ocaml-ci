@@ -25,7 +25,7 @@ let test_simple () =
         finished_at = None;
       }
   in
-  let run_time_1 : Run_time.run_time_info option =
+  let run_time_1 : Run_time.TimeInfo.t option =
     Some (Running { queued_for = 42.2; ran_for = 0. })
   in
   let expected_1 =
@@ -41,7 +41,7 @@ let test_simple () =
         finished_at = Some 1666210500.;
       }
   in
-  let run_time_2 : Run_time.run_time_info option =
+  let run_time_2 : Run_time.TimeInfo.t option =
     Some (Finished { queued_for = 42.2; ran_for = Some 5.4 })
   in
   let expected_2 =
@@ -57,7 +57,7 @@ let test_simple () =
         finished_at = None;
       }
   in
-  let run_time_3 : Run_time.run_time_info option =
+  let run_time_3 : Run_time.TimeInfo.t option =
     Some (Finished { queued_for = 42.2; ran_for = Some 5.4 })
   in
   let expected_3 =

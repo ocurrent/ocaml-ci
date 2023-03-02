@@ -70,7 +70,7 @@ let _single_line_timestamps_durations ~queued_at ~queued_for ~ran_for =
            queued_at queued_for ran_for;
     ]
 
-let show_step (ts : Run_time.timestamps option) ~build_created_at =
+let show_step (ts : Run_time.Timestamp.t option) ~build_created_at =
   match (ts, build_created_at) with
   | None, _ | _, None -> div [ span [ txt @@ Fmt.str "-" ] ]
   | Some t, Some build_created_at -> (
