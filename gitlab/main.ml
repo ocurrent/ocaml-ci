@@ -45,7 +45,7 @@ module Conf = Ocaml_ci_service.Conf
 
 let setup_log default_level =
   Prometheus_unix.Logging.init ?default_level ();
-  Mirage_crypto_rng_unix.initialize ();
+  Mirage_crypto_rng_unix.initialize (module Mirage_crypto_rng.Fortuna);
   Prometheus.CollectorRegistry.(register_pre_collect default) Metrics.update;
   match Conf.ci_profile with
   | `Production -> Logs.info (fun f -> f "Using production configuration")
