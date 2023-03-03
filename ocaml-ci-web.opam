@@ -40,8 +40,8 @@ build: [
 ]
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
 pin-depends: [
-  ["dream.dev" "git+https://github.com/novemberkilo/dream#4976439384c9da03300abdbc9ffb8528ac917982"]
-  ["dream-httpaf.dev" "git+https://github.com/novemberkilo/dream#4976439384c9da03300abdbc9ffb8528ac917982"]
-  ["dream-pure.dev" "git+https://github.com/novemberkilo/dream#4976439384c9da03300abdbc9ffb8528ac917982"]
+  ["dream.dev" "git+https://github.com/aantron/dream#74efe19b8890fd5880a5b2e24c4cafcac8d1840c"]
+  ["dream-httpaf.dev" "git+https://github.com/aantron/dream#74efe19b8890fd5880a5b2e24c4cafcac8d1840c"]
+  ["dream-pure.dev" "git+https://github.com/aantron/dream#74efe19b8890fd5880a5b2e24c4cafcac8d1840c"]
   ["tailwindcss.dev" "git+https://github.com/tmattio/opam-tailwindcss#97ec16bb4933ec3eaf2cfd2b89e38dfbb3a9cf8e"]
 ]
