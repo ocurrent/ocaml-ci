@@ -14,10 +14,10 @@ let database = Alcotest.(list string)
 let cmp_floats v1 v2 = abs_float (v1 -. v2) < 0.0000001
 
 let timestamps =
-  let state f (st : Run_time.timestamps) =
-    Fmt.pf f "%a" Run_time.pp_timestamps st
+  let state f (st : Run_time.Timestamp.t) =
+    Fmt.pf f "%a" Run_time.Timestamp.pp st
   in
-  Alcotest.testable (Fmt.Dump.list state) (List.equal Run_time.eq_timestamps)
+  Alcotest.testable (Fmt.Dump.list state) (List.equal Run_time.Timestamp.eq)
 
 let test_running _switch () =
   let open Lwt.Syntax in
@@ -37,10 +37,10 @@ let test_running _switch () =
         VALUES ('test42', x'00', '%s', x'01', 1, x'02', '1970-01-01 00:00', \
         '1970-01-01 00:01', '1970-01-01 00:00', 0)"
        (Job.id job1));
-  let expected : Run_time.timestamps =
-    Run_time.Running { queued_at = 0.; started_at = 0.1 }
+  let expected : Run_time.Timestamp.t =
+    Running { queued_at = 0.; started_at = 0.1 }
   in
-  let result = Option.get (Run_time.timestamps_of_job @@ Job.id job1) in
+  let result = Option.get (Run_time.Timestamp.of_job_id_opt @@ Job.id job1) in
   Alcotest.(check timestamps) "Running" [ expected ] [ result ]
 
 let test_simple_run_times _switch () =
@@ -53,7 +53,7 @@ let test_simple_run_times _switch () =
      VALUES ('test42', x'00', 'job42', x'01', 1, x'02', '2019-11-01 09:00', \
      '2019-11-01 09:05', '2019-11-01 10:04', 0)";
   (* 2019-11-01 09:00:00 is 1572598800 seconds from epoch *)
-  let expected : Run_time.timestamps =
+  let expected : Run_time.Timestamp.t =
     Finished
       {
         queued_at = 1572598800.;
@@ -61,7 +61,7 @@ let test_simple_run_times _switch () =
         finished_at = 1572602640.;
       }
   in
-  let result = Option.get (Run_time.timestamps_of_job "job42") in
+  let result = Option.get (Run_time.Timestamp.of_job_id_opt "job42") in
   Alcotest.(check timestamps) "Finished" [ expected ] [ result ];
 
   Current.Db.exec_literal db
@@ -69,8 +69,8 @@ let test_simple_run_times _switch () =
      build) \n\
      VALUES ('test43', x'00', 'job43', x'01', 1, x'02', '2019-11-01 09:00', \
      '2019-11-01 10:04', 0)";
-  let expected = Run_time.Queued 1572598800. in
-  let result = Option.get (Run_time.timestamps_of_job "job43") in
+  let expected = Run_time.Timestamp.Queued 1572598800. in
+  let result = Option.get (Run_time.Timestamp.of_job_id_opt "job43") in
   Alcotest.(check timestamps) "Queued" [ expected ] [ result ]
 
 let tests =

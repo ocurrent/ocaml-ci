@@ -153,7 +153,7 @@ val get_jobs :
   owner:string ->
   name:string ->
   string ->
-  (string * job_state * Run_time.timestamps option) list
+  (string * job_state * Run_time.Timestamp.t option) list
 (** [get_jobs ~owner ~name commit] is the last known set of OCurrent jobs for
     hash [commit] in repository [owner/name]. *)
 

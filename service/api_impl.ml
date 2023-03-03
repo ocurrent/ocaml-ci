@@ -22,12 +22,13 @@ let make_commit ~engine ~owner ~name hash =
            let slot = Capnp.Array.get arr i in
            variant_set slot variant;
            let queued_at, started_at, finished_at =
-             match ts with
-             | None -> (None, None, None)
-             | Some (Run_time.Queued v) -> (Some v, None, None)
-             | Some (Running v) -> (Some v.queued_at, Some v.started_at, None)
-             | Some (Finished v) ->
-                 (Some v.queued_at, v.started_at, Some v.finished_at)
+             Run_time.Timestamp.(
+               match ts with
+               | None -> (None, None, None)
+               | Some (Queued v) -> (Some v, None, None)
+               | Some (Running v) -> (Some v.queued_at, Some v.started_at, None)
+               | Some (Finished v) ->
+                   (Some v.queued_at, v.started_at, Some v.finished_at))
            in
            let queued_at_t = queued_at_init slot in
            let module S = QueuedAt in

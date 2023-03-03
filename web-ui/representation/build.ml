@@ -1,5 +1,5 @@
 module Timestamps_durations = View.Timestamps_durations
-module Run_time = Ocaml_ci_client_lib.Run_time
+module Run_time = Ocaml_ci.Run_time
 module Client = Ocaml_ci_api.Client
 
 let version = "1.0"
@@ -21,14 +21,14 @@ let to_json t = Yojson.Safe.to_string @@ to_yojson t
 
 let from_jobs_status ~jobs ~build_status ~build_created_at ~step_route_prefix =
   let first_step_queued_at =
-    match Run_time.first_step_queued_at jobs with
+    match Run_time.Job.first_step_queued_at jobs with
     | Error e ->
         Dream.log "Error - %s" e;
         None
     | Ok v -> Some v
   in
-  let total_run_time = Run_time.total_of_run_times jobs in
-  let build_run_time = Run_time.build_run_time jobs in
+  let total_run_time = Run_time.Job.total_of_run_times jobs in
+  let build_run_time = Run_time.Job.build_run_time jobs in
   let can_cancel =
     let check job_info =
       match job_info.Client.outcome with

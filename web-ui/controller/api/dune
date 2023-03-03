@@ -9,7 +9,6 @@
   ppx_deriving_yojson.runtime
   capnp-rpc-unix
   ocaml-ci-web.controller
-  ocaml-ci-web.view.api
-  ocaml-ci-client-lib)
+  ocaml-ci-web.view.api)
  (preprocess
   (pps ppx_deriving_yojson)))

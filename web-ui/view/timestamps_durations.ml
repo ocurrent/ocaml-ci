@@ -1,5 +1,5 @@
 module Client = Ocaml_ci_api.Client
-module Run_time = Ocaml_ci_client_lib.Run_time
+module Run_time = Ocaml_ci.Run_time.TimeClient
 open Tyxml.Html
 
 let to_iso8601 (tt : float) =
@@ -39,8 +39,8 @@ let ul_timestamps_durations ~queued_at ~finished_at ~queued_for ~ran_for =
     if queued_for = 0. && ran_for = 0. then
       ("Queued for: - (Cached)", "Ran for: - (Cached)")
     else
-      ( Fmt.str "Queued for: %a" Run_time.duration_pp (Duration.of_f queued_for),
-        Fmt.str "Ran for: %a" Run_time.duration_pp (Duration.of_f ran_for) )
+      ( Fmt.str "Queued for: %a" Run_time.Duration.pp (Duration.of_f queued_for),
+        Fmt.str "Ran for: %a" Run_time.Duration.pp (Duration.of_f ran_for) )
   in
   let queued_at_msg = Option.fold ~none:"-" ~some:to_iso8601 queued_at in
   let finished_at_msg = Option.fold ~none:"-" ~some:to_iso8601 finished_at in
@@ -74,9 +74,9 @@ let show_step (ts : Run_time.Timestamp.t option) ~build_created_at =
   match (ts, build_created_at) with
   | None, _ | _, None -> div [ span [ txt @@ Fmt.str "-" ] ]
   | Some t, Some build_created_at -> (
-      let run_times = Run_time.run_times_from_timestamps ~build_created_at t in
-      let queued_for = Run_time.queued_for run_times in
-      let ran_for = Run_time.ran_for run_times in
+      let run_times = Run_time.TimeInfo.of_timestamp ~build_created_at t in
+      let queued_for = Run_time.TimeInfo.queued_for run_times in
+      let ran_for = Run_time.TimeInfo.ran_for run_times in
       match t with
       | Queued v ->
           ul_timestamps_durations ~queued_at:(Some v) ~finished_at:None
@@ -98,7 +98,7 @@ let show_build ~first_step_queued_at ~total_run_time =
       span
         [
           txt
-          @@ Fmt.str " :: Last build ran for: %a" Run_time.duration_pp
+          @@ Fmt.str " :: Last build ran for: %a" Run_time.Duration.pp
                (Duration.of_f total_run_time);
         ];
     ]
@@ -107,4 +107,4 @@ let pp_timestamp v = Option.fold ~none:"-" ~some:to_ts_string v
 
 let pp_duration =
   Option.fold ~none:"-" ~some:(fun v ->
-      Fmt.str "%a" Run_time.duration_pp (Duration.of_f v))
+      Fmt.str "%a" Run_time.Duration.pp (Duration.of_f v))

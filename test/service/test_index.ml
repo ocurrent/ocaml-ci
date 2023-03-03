@@ -3,11 +3,11 @@ module Ref_map = Index.Ref_map
 module Run_time = Ocaml_ci.Run_time
 
 let jobs =
-  let state f (variant, state, (ts : Run_time.timestamps option)) =
+  let state f (variant, state, (ts : Run_time.Timestamp.t option)) =
     let ts' =
       match ts with
       | None -> ""
-      | Some ts -> Fmt.str "%a" Run_time.pp_timestamps ts
+      | Some ts -> Fmt.str "%a" Run_time.Timestamp.pp ts
     in
     Fmt.pf f "%s:%a:%s" variant Index.pp_job_state state ts'
   in
@@ -15,7 +15,7 @@ let jobs =
     match (ts1, ts2) with
     | None, None -> v1 = v2 && s1 = s2
     | None, Some _ | Some _, None -> false
-    | Some ts1, Some ts2 -> v1 = v2 && s1 = s2 && Run_time.eq_timestamps ts1 ts2
+    | Some ts1, Some ts2 -> v1 = v2 && s1 = s2 && Run_time.Timestamp.eq ts1 ts2
   in
   Alcotest.testable (Fmt.Dump.list state) (List.equal equal)
 
@@ -68,8 +68,8 @@ let test_get_jobs _switch () =
      '2019-11-01 09:01', '2019-11-01 09:02', 0)";
   Index.record ~repo ~hash ~status:`Pending ~gref:"master"
     [ ("analysis", Some "job1"); ("alpine", None) ];
-  let job_1_ts : Run_time.timestamps =
-    Run_time.Finished
+  let job_1_ts : Run_time.Timestamp.t =
+    Run_time.Timestamp.Finished
       {
         queued_at = 1572598800.;
         started_at = Some 1572598860.;
@@ -89,8 +89,8 @@ let test_get_jobs _switch () =
      '2019-11-01 09:04', '2019-11-01 09:05', 0)";
   Index.record ~repo ~hash ~status:`Failed ~gref:"master"
     [ ("analysis", Some "job1"); ("alpine", Some "job2") ];
-  let job_2_ts : Run_time.timestamps =
-    Run_time.Finished
+  let job_2_ts : Run_time.Timestamp.t =
+    Run_time.Timestamp.Finished
       {
         queued_at = 1572598980.;
         started_at = Some 1572599040.;

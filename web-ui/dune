@@ -12,9 +12,8 @@
  (package ocaml-ci-web)
  (libraries
   ansi
-  dream
   logs.cli
   prometheus-app.unix
+  ocaml-ci
   ocaml-ci-web.controller
-  ocaml-ci-web.controller.api
-  ocaml-ci-client-lib))
+  ocaml-ci-web.controller.api))

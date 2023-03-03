@@ -1,5 +1,5 @@
 module Client = Ocaml_ci_api.Client
-module Run_time = Ocaml_ci_client_lib.Run_time
+module Run_time = Ocaml_ci.Run_time
 module Build_status = Build_status
 
 module type Forge_prefix = sig
