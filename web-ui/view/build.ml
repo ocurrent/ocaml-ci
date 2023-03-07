@@ -108,6 +108,11 @@ let title_card ~status ~card_title ~hash_link ~ref_links ~first_created_at
       ])
 
 let step_row ~step_title ~created_at ~queued_for ~ran_for ~status ~step_uri =
+  let cached = queued_for = "0s" && ran_for = "0s" in
+  let queued_for_txt =
+    if cached then "cached" else Fmt.str "%s in queue" queued_for
+  in
+  let ran_for_txt = if cached then "Cached" else Fmt.str "Ran for %s" ran_for in
   let step_row_id = step_title in
   let status_div_id = Fmt.str "%s-%s" step_title "status" in
   Tyxml.Html.(
@@ -139,7 +144,7 @@ let step_row ~step_title ~created_at ~queued_for ~ran_for ~status ~step_uri =
                   [
                     div [ txt @@ Fmt.str "Created at %s" created_at ];
                     div ~a:[ a_class [ "hidden md:inline" ] ] [ txt "-" ];
-                    div [ txt @@ Fmt.str "%s in queue" queued_for ];
+                    div [ txt queued_for_txt ];
                   ];
               ];
           ];
@@ -152,9 +157,7 @@ let step_row ~step_title ~created_at ~queued_for ~ran_for ~status ~step_uri =
                    items-center";
                 ];
             ]
-          [
-            div [ txt @@ Fmt.str "Ran for %s" ran_for ]; Common.right_arrow_head;
-          ];
+          [ div [ txt ran_for_txt ]; Common.right_arrow_head ];
       ])
 
 let tabulate_steps step_rows =
