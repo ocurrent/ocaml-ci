@@ -61,8 +61,8 @@ let clone ~job repo =
   Lwt_mutex.with_lock (repo_lock repo) @@ fun () ->
   let local_repo = Cmd.local_copy repo in
   (if Cmd.dir_exists local_repo then
-   Cmd.git_fetch ~cancellable:true ~job local_repo
-  else Cmd.git_clone ~cancellable:true ~job ~src:repo local_repo)
+     Cmd.git_fetch ~cancellable:true ~job local_repo
+   else Cmd.git_clone ~cancellable:true ~job ~src:repo local_repo)
   >>!= fun () -> Lwt_result.return local_repo
 
 let re_hash = Str.regexp "^[0-9A-Fa-f]+$"

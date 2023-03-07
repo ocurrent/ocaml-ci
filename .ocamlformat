@@ -1,4 +1,4 @@
-version = 0.24.1
+version = 0.25.1
 ocaml-version = 4.13.0
 profile = conventional
 break-infix = fit-or-vertical
