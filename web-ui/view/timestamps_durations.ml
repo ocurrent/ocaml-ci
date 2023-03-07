@@ -1,5 +1,5 @@
 module Client = Ocaml_ci_api.Client
-module Run_time = Ocaml_ci.Run_time.TimeClient
+module Run_time = Ocaml_ci.Run_time
 open Tyxml.Html
 
 let to_iso8601 (tt : float) =

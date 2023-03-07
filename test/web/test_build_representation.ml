@@ -1,7 +1,7 @@
 module Build = Representation.Build
 module Step = Representation.Step
 module Client = Ocaml_ci_api.Client
-module Run_time = Ocaml_ci_client_lib.Run_time
+module Run_time = Ocaml_ci.Run_time
 
 let test_to_json (jobs, build_status, build_created_at, expected) =
   let result =

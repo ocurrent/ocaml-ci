@@ -1,6 +1,6 @@
 module Step = Representation.Step
 module Client = Ocaml_ci_api.Client
-module Run_time = Ocaml_ci_client_lib.Run_time
+module Run_time = Ocaml_ci.Run_time
 
 let test_to_json (step_info, run_time, can_rebuild, can_cancel, expected) =
   let result =
