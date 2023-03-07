@@ -65,34 +65,15 @@ module Timestamp = struct
     | Running v1, Running v2 ->
         cmp_floats v1.queued_at v2.queued_at
         && cmp_floats v1.started_at v2.started_at
-    | ( Finished
-          {
-            queued_at = queued_at1;
-            started_at = None;
-            finished_at = finished_at1;
-          },
-        Finished
-          {
-            queued_at = queued_at2;
-            started_at = None;
-            finished_at = finished_at2;
-          } ) ->
-        cmp_floats queued_at1 queued_at2 && cmp_floats finished_at1 finished_at2
-    | ( Finished
-          {
-            queued_at = queued_at1;
-            started_at = Some started_at1;
-            finished_at = finished_at1;
-          },
-        Finished
-          {
-            queued_at = queued_at2;
-            started_at = Some started_at2;
-            finished_at = finished_at2;
-          } ) ->
-        cmp_floats queued_at1 queued_at2
-        && cmp_floats started_at1 started_at2
-        && cmp_floats finished_at1 finished_at2
+    | ( Finished ({ started_at = None; _ } as v1),
+        Finished ({ started_at = None; _ } as v2) ) ->
+        cmp_floats v1.queued_at v2.queued_at
+        && cmp_floats v1.finished_at v2.finished_at
+    | ( Finished ({ started_at = Some _; _ } as v1),
+        Finished ({ started_at = Some _; _ } as v2) ) ->
+        cmp_floats v1.queued_at v2.queued_at
+        && cmp_floats (Option.get v1.started_at) (Option.get v2.started_at)
+        && cmp_floats v1.finished_at v2.finished_at
     | Queued _, (Running _ | Finished _)
     | Running _, (Queued _ | Finished _)
     | ( Finished { started_at = None; _ },
@@ -152,25 +133,21 @@ module Timestamp = struct
     | Active ->
         Option.fold ji.queued_at
           ~none:(Error "Queued_at is None - cannot construct timestamp.")
-          ~some:(fun q ->
+          ~some:(fun queued_at ->
             Option.fold ji.started_at
               ~none:(Error "Started_at is None - cannot construct timestamp.")
-              ~some:(fun s : (t, string) result ->
-                Ok (Running { queued_at = q; started_at = s })))
+              ~some:(fun started_at : (t, string) result ->
+                Ok (Running { queued_at; started_at })))
     | Passed | Failed _ | Aborted ->
         Option.fold ji.queued_at
           ~none:(Error "Queued_at is None - cannot construct timestamp.")
-          ~some:(fun q ->
+          ~some:(fun queued_at ->
             Option.fold ji.finished_at
               ~none:(Error "Finished_at is None - cannot construct timestamp.")
-              ~some:(fun f : (t, string) result ->
+              ~some:(fun finished_at ->
                 Ok
                   (Finished
-                     {
-                       queued_at = q;
-                       started_at = ji.started_at;
-                       finished_at = f;
-                     })))
+                     { queued_at; started_at = ji.started_at; finished_at })))
     | Undefined _ -> Error "Outcome is Undefined - cannot construct timestamp."
 
   let queued_at = function
@@ -341,8 +318,7 @@ module Job = struct
              Result.to_option @@ Timestamp.of_job_info ji)
       |> List.map (fun ts ->
              TimeInfo.total @@ TimeInfo.of_timestamp ~build_created_at ts)
-      |> List.sort Float.compare
-      |> List.rev
+      |> List.sort (fun x y -> Float.compare x y |> Int.neg)
     in
     Option.value ~default:0. (List.nth_opt sorted_steps 0)
 
@@ -375,8 +351,8 @@ module Job = struct
     let no_queued_at_ts (ji : Client.job_info) = ji.queued_at = None in
     if List.for_all no_queued_at_ts jil then Error "Empty build"
     else
-      let minn accum (ji : Client.job_info) =
-        Option.fold ~none:accum ~some:(fun v -> min accum v) ji.queued_at
+      let min acc (ji : Client.job_info) =
+        Option.fold ~none:acc ~some:(fun v -> min acc v) ji.queued_at
       in
-      Ok (List.fold_left minn max_float jil)
+      Ok (List.fold_left min max_float jil)
 end
