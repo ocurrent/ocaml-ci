@@ -57,11 +57,6 @@ let gitlab_repos : Gitlab.Repo_id.t list =
     };
     {
       Gitlab.Repo_id.owner = "nomadic-labs";
-      Gitlab.Repo_id.name = "json-data-encoding";
-      project_id = 16489740;
-    };
-    {
-      Gitlab.Repo_id.owner = "nomadic-labs";
       Gitlab.Repo_id.name = "ringo";
       project_id = 15200071;
     };
