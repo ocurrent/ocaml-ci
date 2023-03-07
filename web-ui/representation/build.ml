@@ -1,4 +1,3 @@
-module Timestamps_durations = View.Timestamps_durations
 module Run_time = Ocaml_ci.Run_time
 module Client = Ocaml_ci_api.Client
 
@@ -55,9 +54,9 @@ let from_jobs_status ~jobs ~build_status ~build_created_at ~step_route_prefix =
   {
     version;
     status = Fmt.str "%a" Client.State.pp build_status;
-    first_created_at = Timestamps_durations.pp_timestamp first_step_queued_at;
-    total_ran_for = Timestamps_durations.pp_duration @@ Some total_run_time;
-    ran_for = Timestamps_durations.pp_duration @@ Some build_run_time;
+    first_created_at = Run_time.Duration.pp_readable_opt first_step_queued_at;
+    total_ran_for = Run_time.Duration.pp_opt @@ Some total_run_time;
+    ran_for = Run_time.Duration.pp_opt @@ Some build_run_time;
     can_cancel;
     can_rebuild;
     steps;

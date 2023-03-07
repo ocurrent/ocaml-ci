@@ -6,6 +6,8 @@ module Log : Logs.LOG
 
 module Duration : sig
   val pp : Format.formatter -> int64 -> unit
+  val pp_opt : float option -> string
+  val pp_readable_opt : float option -> string
 end
 
 module Timestamp : sig
@@ -83,13 +85,6 @@ module Job : sig
   (** Takes a list of job_info which is meant to be the steps in a build.
       Returns the queued_at timestamp of the analysis step or None if there is
       not exactly one analysis step in the list. *)
-
-  val max_of_step_run_times :
-    build_created_at:float -> Ocaml_ci_api.Client.job_info list -> float
-  (** Takes a list of steps and returns the maximum of the run-times of the
-      steps. This is done by calculating the run-times of the steps in the list,
-      sorting the resulting list of run-times, and returning the head of the
-      list (defaulting to 0) *)
 
   val total_of_run_times : Ocaml_ci_api.Client.job_info list -> float
   (** Takes a list of job_info which is meant to be the steps in a build.

@@ -33,6 +33,19 @@ module Duration = struct
       (* below one minute *)
       let sec = to_sec t in
       Fmt.pf ppf "%ds" sec
+
+  let pp_opt =
+    Option.fold ~none:"-" ~some:(fun v -> Fmt.str "%a" pp (Duration.of_f v))
+
+  let to_ts_string (tt : float) =
+    let ts = Timedesc.of_timestamp_float_s tt in
+    Timedesc.to_string
+      ~format:
+        "{mon:Xxx} {day:0X} {hour:0X}:{min:0X} \
+         {tzoff-sign}{tzoff-hour:0X}:{tzoff-min:0X}"
+    @@ Option.get ts
+
+  let pp_readable_opt v = Option.fold ~none:"-" ~some:to_ts_string v
 end
 
 module Timestamp = struct

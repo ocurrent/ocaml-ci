@@ -148,9 +148,9 @@ module Make (M : Git_forge_intf.Forge) = struct
         ~hash_link:(link_forge_commit ~org ~repo ~hash:(Common.short_hash hash))
         ~ref_links:(link_forge_refs ~org ~repo refs)
         ~first_created_at:
-          (Timestamps_durations.pp_timestamp first_step_queued_at)
-        ~ran_for:(Timestamps_durations.pp_duration (Some build_run_time))
-        ~total_run_time:(Timestamps_durations.pp_duration (Some total_run_time))
+          (Run_time.Duration.pp_readable_opt first_step_queued_at)
+        ~ran_for:(Run_time.Duration.pp_opt (Some build_run_time))
+        ~total_run_time:(Run_time.Duration.pp_opt (Some total_run_time))
         ~buttons
     in
     let steps_table =
@@ -163,14 +163,13 @@ module Make (M : Git_forge_intf.Forge) = struct
           let rt =
             Option.map (Run_time.TimeInfo.of_timestamp ~build_created_at) ts
           in
-          let created_at = Timestamps_durations.pp_timestamp j.queued_at in
+          let created_at = Run_time.Duration.pp_readable_opt j.queued_at in
           let queued_for =
-            Timestamps_durations.pp_duration
+            Run_time.Duration.pp_opt
               (Option.map Run_time.TimeInfo.queued_for rt)
           in
           let ran_for =
-            Timestamps_durations.pp_duration
-              (Option.map Run_time.TimeInfo.ran_for rt)
+            Run_time.Duration.pp_opt (Option.map Run_time.TimeInfo.ran_for rt)
           in
           let step_uri = Url.job_url M.prefix ~org ~repo ~hash j.variant in
           List.append l
@@ -217,13 +216,13 @@ module Make (M : Git_forge_intf.Forge) = struct
         title_card ~status ~card_title:variant
           ~hash_link:
             (link_forge_commit ~org ~repo ~hash:(Common.short_hash hash))
-          ~created_at:(Timestamps_durations.pp_timestamp step_created_at)
-          ~finished_at:(Timestamps_durations.pp_timestamp step_finished_at)
+          ~created_at:(Run_time.Duration.pp_readable_opt step_created_at)
+          ~finished_at:(Run_time.Duration.pp_readable_opt step_finished_at)
           ~queued_for:
-            (Timestamps_durations.pp_duration
+            (Run_time.Duration.pp_opt
                (Option.map Run_time.TimeInfo.queued_for run_time))
           ~ran_for:
-            (Timestamps_durations.pp_duration
+            (Run_time.Duration.pp_opt
                (Option.map Run_time.TimeInfo.ran_for run_time))
           ~buttons
       in

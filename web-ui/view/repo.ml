@@ -1,5 +1,6 @@
 open Tyxml.Html
 module Client = Git_forge_intf.Client
+module Run_time = Ocaml_ci.Run_time
 
 module Make (M : Git_forge_intf.Forge) = struct
   let profile_picture org =
@@ -109,7 +110,7 @@ module Make (M : Git_forge_intf.Forge) = struct
               hash;
               txt
                 (Printf.sprintf " on %s"
-                   (Timestamps_durations.pp_timestamp last_updated));
+                   (Run_time.Duration.pp_readable_opt last_updated));
             ]
     in
     (* Defaulting infinity means sorting by recent places them at the bottom of the page *)

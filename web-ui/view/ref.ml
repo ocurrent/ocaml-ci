@@ -1,5 +1,6 @@
-module Client = Ocaml_ci_api.Client
 open Tyxml.Html
+module Client = Ocaml_ci_api.Client
+module Duration = Ocaml_ci.Run_time.Duration
 
 module Make (M : Git_forge_intf.Forge) = struct
   type t = Branch of string | PR of { title : string; id : string }
@@ -33,7 +34,7 @@ module Make (M : Git_forge_intf.Forge) = struct
             div ~a:[ a_class [ "hidden md:inline" ] ] [ txt "-" ];
             div
               ~a:[ a_class [ "hidden md:inline" ] ]
-              [ txt (Timestamps_durations.pp_timestamp started_at) ];
+              [ txt (Duration.pp_readable_opt started_at) ];
           ]
     in
     let rhs =

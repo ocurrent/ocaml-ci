@@ -1,3 +1,5 @@
+module Run_time = Ocaml_ci.Run_time
+
 let short_hash = Astring.String.with_range ~len:6
 
 let rec intersperse ~sep = function
@@ -523,7 +525,7 @@ let duration (status : Build_status.t) t =
     | Pending -> "Running for"
     | Undefined _ -> "In queue for"
   in
-  Printf.sprintf "%s %s" text (Timestamps_durations.pp_duration t)
+  Printf.sprintf "%s %s" text (Run_time.Duration.pp_opt t)
 
 let build_history_button history_url =
   Tyxml.Html.(
