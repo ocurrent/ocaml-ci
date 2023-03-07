@@ -17,7 +17,7 @@
   capnp-rpc-lwt
   ppx_deriving
   ppx_deriving_yojson))
-  
+
 (package
  (name ocaml-ci)
  (synopsis "Core ocaml-ci")
@@ -30,12 +30,12 @@
    ocaml-ci-api
    capnp-rpc-unix
    ppx_deriving_yojson
-   (ocaml-version (>= 3.6.0))
+   (ocaml-version (>= 3.6.1))
    (opam-0install (>= 0.4.3))
    current_ocluster
    ocluster-api
    obuilder-spec))
-   
+
 (package
  (name ocaml-ci-service)
  (synopsis "Test OCaml projects on GitHub")
@@ -67,10 +67,10 @@
   (ocaml (>= 4.13))
   (conf-libev (<> :os "win32"))
   (dockerfile-opam (>= 7.0.0))
-  (ocaml-version (>= 3.6.0))
+  (ocaml-version (>= 3.6.1))
   (alcotest (and (>= 1.0.0) :with-test))
   (alcotest-lwt (and (>= 1.0.1) :with-test))))
-  
+
 (package
  (name ocaml-ci-gitlab)
  (synopsis "Test OCaml projects on GitLab")
@@ -91,7 +91,7 @@
   ocaml-ci-service
   (ocaml (>= 4.13))
   (logs (>= 0.7.0))))
-  
+
 (package
  (name ocaml-ci-client)
  (synopsis "Command-line client for ocaml-ci")
@@ -104,7 +104,7 @@
   ocaml-ci-api
   dockerfile
   (timedesc (>= 0.9.0))))
-  
+
 (package
  (name ocaml-ci-web)
  (synopsis "Web-server frontend for ocaml-ci")
