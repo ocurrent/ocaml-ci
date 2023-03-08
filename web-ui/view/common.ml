@@ -116,7 +116,8 @@ let form_cancel_step ~variant ~csrf_token ?(show = true) () =
             Tyxml_helpers.at_click "$refs.cancelStepForm.submit()";
           ])
   in
-  form_for ~csrf_token ~x_ref:"cancelForm" ~action:(variant ^ "/cancel")
+  form_for ~csrf_token ~x_ref:"cancelForm"
+    ~action:(Dream.to_percent_encoded variant ^ "/cancel")
     ~submit_button ~input_value:"Cancel"
 
 let form_rebuild_step ~variant ~csrf_token ?(show = true) () =
@@ -134,7 +135,8 @@ let form_rebuild_step ~variant ~csrf_token ?(show = true) () =
           ])
   in
   form_for ~csrf_token ~submit_button ~x_ref:"rebuildStepForm"
-    ~action:(variant ^ "/rebuild") ~input_value:"Rebuild"
+    ~action:(Dream.to_percent_encoded variant ^ "/rebuild")
+    ~input_value:"Rebuild"
 
 let form_rebuild_all ~hash ~csrf_token =
   let submit_button =
