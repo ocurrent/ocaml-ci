@@ -4,7 +4,6 @@
  (libraries
   ocaml-ci-api
   ocaml-ci-web.view
-  ocaml-ci-client-lib
   yojson
   ppx_deriving_yojson.runtime
   timedesc)

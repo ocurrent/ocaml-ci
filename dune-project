@@ -23,9 +23,10 @@
  (synopsis "Core ocaml-ci")
  (depends
   (ocaml (>= 4.13))
-   logs
+  (logs (>= 0.7.0))
    current
    current_docker
+   current_rpc
    (omigrate (>= 0.3.2))
    ocaml-ci-api
    capnp-rpc-unix
@@ -118,17 +119,7 @@
   (lwt (>= 5.6.1))
   (ocaml (>= 4.13))
   ocaml-ci-api
-  ocaml-ci-client-lib
   (prometheus-app (>= 1.2))
   tyxml
   tailwindcss
   (timedesc (>= 0.9.0))))
-
-(package
- (name ocaml-ci-client-lib)
- (synopsis "Lib for clients")
- (depends
-  (ocaml (>= 4.13))
-  (logs (>= 0.7.0))
-  current_rpc
-  current))
