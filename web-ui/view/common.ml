@@ -350,6 +350,67 @@ let gitlab_logo =
           [];
       ])
 
+let information_icon =
+  Tyxml.Svg.(
+    Tyxml.Html.svg
+      ~a:
+        [
+          a_class [ "w-3 h-3" ];
+          a_fill `CurrentColor;
+          a_viewBox (0., 0., 20., 20.);
+        ]
+      [
+        path
+          ~a:
+            [
+              Tyxml_helpers.a_svg_custom "fill-rule" "evenodd";
+              a_d
+                "M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 \
+                 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 \
+                 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 \
+                 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 \
+                 009.253 9H9z";
+              Tyxml_helpers.a_svg_custom "clip-rule" "evenodd";
+            ]
+          [];
+      ])
+
+(* https://www.kindacode.com/article/tailwind-css-how-to-create-tooltips/ *)
+let tooltip message content =
+  let down_arrow =
+    "after:content-[''] after:absolute after:left-1/2 after:top-[100%] \
+     after:-translate-x-1/2 after:border-8 after:border-x-transparent \
+     after:border-b-transparent after:border-t-gray-700"
+  in
+  Tyxml.Html.(
+    div ~a:[]
+      [
+        a
+          ~a:
+            [
+              a_class [ "group relative inline flex place-content-around" ];
+              a_role [ "tooltip" ];
+              a_aria "hidden" [];
+              a_href "#";
+            ]
+          [
+            span [ txt message ];
+            information_icon;
+            span
+              ~a:
+                [
+                  a_class
+                    [
+                      "absolute hidden group-hover:flex -left-5 -top-2 \
+                       -translate-y-full w-48 px-2 py-1 bg-gray-700 rounded-lg \
+                       text-center text-white text-sm";
+                      down_arrow;
+                    ];
+                ]
+              [ content ];
+          ];
+      ])
+
 let speed_over_time speeds =
   assert (List.compare_length_with speeds 15 <= 0);
   let max_speed = List.fold_left Float.max 0.0 speeds in
