@@ -117,7 +117,13 @@ let pool_of_arch = function
   | `Riscv64 -> "linux-riscv64"
 
 let platforms ~include_macos opam_version =
-  let v ?(arch = `X86_64) label distro ocaml_version =
+  let v ?(arch = `X86_64) ?ocaml_version label distro =
+    let ocaml_version =
+      match ocaml_version with
+      | None -> Ocaml_version.Until.arch arch
+      | Some ov -> ov
+    in
+    let ocaml_version = OV.with_just_major_and_minor ocaml_version in
     {
       arch;
       label;
@@ -135,16 +141,16 @@ let platforms ~include_macos opam_version =
     let tag = DD.tag_of_distro (distro :> DD.t) in
     let ov = OV.(Releases.latest |> with_just_major_and_minor) in
     if distro = master_distro then
-      v label tag (OV.with_variant ov (Some "flambda"))
+      v ~ocaml_version:(OV.with_variant ov (Some "flambda")) label tag
       :: List.map
-           (fun arch -> v ~arch label tag ov)
+           (fun arch -> v ~arch label tag)
            (DD.distro_arches ov (distro :> DD.t))
-    else [ v label tag ov ]
+    else [ v ~ocaml_version:ov label tag ]
   in
   let make_release ?arch ov =
     let distro = DD.tag_of_distro (master_distro :> DD.t) in
     let ov = OV.with_just_major_and_minor ov in
-    v ?arch (OV.to_string ov) distro ov
+    v ~ocaml_version:ov ?arch (OV.to_string ov) distro
   in
   match ci_profile with
   | `Production ->
@@ -153,7 +159,6 @@ let platforms ~include_macos opam_version =
         |> List.map make_distro
         |> List.flatten
       in
-
       let distros =
         if include_macos then macos_distros @ distros else distros
       in
@@ -166,7 +171,7 @@ let platforms ~include_macos opam_version =
         DD.tag_of_distro (`Windows (`Mingw, DD.win10_latest_image) :> DD.t)
       in
       let ov = OV.with_just_major_and_minor OV.Releases.latest in
-      [ v (OV.to_string ov) distro ov ]
+      [ v ~ocaml_version:ov (OV.to_string ov) distro ]
   | `Dev ->
       let[@warning "-8"] (latest :: previous :: _) =
         List.rev OV.Releases.recent
