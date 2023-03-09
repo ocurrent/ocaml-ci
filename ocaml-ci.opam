@@ -22,6 +22,7 @@ depends: [
   "current_ocluster"
   "ocluster-api"
   "obuilder-spec"
+  "solver-service"
   "odoc" {with-doc}
 ]
 build: [

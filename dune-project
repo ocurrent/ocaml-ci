@@ -35,7 +35,8 @@
    (opam-0install (>= 0.4.3))
    current_ocluster
    ocluster-api
-   obuilder-spec))
+   obuilder-spec
+   solver-service))
 
 (package
  (name ocaml-ci-service)
