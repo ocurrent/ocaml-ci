@@ -1,11 +1,10 @@
 (executables
  (names test)
  (libraries
-  ocaml_ci
   alcotest
   alcotest-lwt
   ppx_deriving_yojson.runtime
-  ocaml-ci-client-lib
+  ocaml_ci
   ocaml-ci-web.representation
   timedesc-tzlocal.utc
   logs.fmt)

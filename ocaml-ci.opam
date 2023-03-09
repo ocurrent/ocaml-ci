@@ -9,9 +9,10 @@ bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
   "dune" {>= "3.6"}
   "ocaml" {>= "4.13"}
-  "logs"
+  "logs" {>= "0.7.0"}
   "current"
   "current_docker"
+  "current_rpc"
   "omigrate" {>= "0.3.2"}
   "ocaml-ci-api"
   "capnp-rpc-unix"
@@ -21,6 +22,7 @@ depends: [
   "current_ocluster"
   "ocluster-api"
   "obuilder-spec"
+  "solver-service"
   "odoc" {with-doc}
 ]
 build: [

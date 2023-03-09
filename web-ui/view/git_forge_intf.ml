@@ -1,5 +1,5 @@
 module Client = Ocaml_ci_api.Client
-module Run_time = Ocaml_ci_client_lib.Run_time
+module Run_time = Ocaml_ci.Run_time
 module Build_status = Build_status
 
 module type Forge_prefix = sig
@@ -89,7 +89,7 @@ module type View = sig
     job:Current_rpc.Job.t ->
     status:Client.State.t ->
     csrf_token:string ->
-    timestamps:Run_time.timestamps option ->
+    timestamps:Run_time.Timestamp.t option ->
     build_created_at:float option ->
     step_created_at:float option ->
     step_finished_at:float option ->

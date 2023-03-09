@@ -1,6 +1,0 @@
-(library
- (name ocaml_ci_client_lib)
- (public_name ocaml-ci-client-lib)
- (preprocess
-  (pps ppx_deriving.std ppx_deriving_yojson))
- (libraries logs current.cache ocaml-ci-api str))

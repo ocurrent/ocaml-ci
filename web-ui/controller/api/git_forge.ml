@@ -21,7 +21,7 @@ module Make (Api : Api) : Api_controller = struct
   open Lwt.Infix
   module Client = Ocaml_ci_api.Client
   module Capability = Capnp_rpc_lwt.Capability
-  module Run_time = Ocaml_ci_client_lib.Run_time
+  module Run_time = Api.Run_time
 
   let ( >>!= ) = Controller.Git_forge.( >>!= )
 
@@ -40,7 +40,7 @@ module Make (Api : Api) : Api_controller = struct
     status >>!= fun status ->
     Capability.inc_ref job_cap;
     let build_created_at =
-      Run_time.build_created_at ~build:jobs
+      Run_time.Job.build_created_at ~build:jobs
       |> Result.to_option
       |> Option.join
       |> Option.value ~default:0.
@@ -49,7 +49,7 @@ module Make (Api : Api) : Api_controller = struct
       let filter (j : Client.job_info) = j.variant = variant in
       List.find_opt filter jobs
     in
-    let timestamps = Option.map Run_time.timestamps_from_job_info step_info in
+    let timestamps = Option.map Run_time.Timestamp.of_job_info step_info in
     let timestamps =
       match timestamps with
       | None ->
@@ -61,9 +61,7 @@ module Make (Api : Api) : Api_controller = struct
       | Some (Ok t) -> Some t
     in
     let run_time =
-      Option.map
-        (Run_time.run_times_from_timestamps ~build_created_at)
-        timestamps
+      Option.map (Run_time.TimeInfo.of_timestamp ~build_created_at) timestamps
     in
     Api.show_step ~step_info ~run_time ~can_rebuild:status.can_rebuild
       ~can_cancel:status.can_cancel

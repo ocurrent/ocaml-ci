@@ -1,7 +1,7 @@
 module type View = View.Git_forge.View
 
 module Client = Ocaml_ci_api.Client
-module Run_time = Ocaml_ci_client_lib.Run_time
+module Run_time = Ocaml_ci.Run_time
 
 module type Controller = sig
   val list_repos : org:string -> Backend.t -> Dream.server Dream.message Lwt.t
@@ -121,14 +121,14 @@ module Make (View : View) : Controller = struct
     let csrf_token = Dream.csrf_tag request in
     let flash_messages = Dream.flash_messages request in
     let first_step_queued_at =
-      match Run_time.first_step_queued_at jobs with
+      match Run_time.Job.first_step_queued_at jobs with
       | Error e ->
           Dream.log "Error - %s" e;
           None
       | Ok v -> Some v
     in
-    let total_run_time = Run_time.total_of_run_times jobs in
-    let build_run_time = Run_time.build_run_time jobs in
+    let total_run_time = Run_time.Job.total_of_run_times jobs in
+    let build_run_time = Run_time.Job.build_run_time jobs in
     Dream.respond
     @@ View.list_steps ~org ~repo ~message ~refs ~hash ~jobs ~csrf_token
          ~first_step_queued_at ~total_run_time ~build_run_time ~flash_messages
@@ -171,7 +171,9 @@ module Make (View : View) : Controller = struct
     let csrf_token = Dream.csrf_tag request in
     let flash_messages = Dream.flash_messages request in
     let build_created_at =
-      Option.join @@ Result.to_option @@ Run_time.build_created_at ~build:jobs
+      Option.join
+      @@ Result.to_option
+      @@ Run_time.Job.build_created_at ~build:jobs
     in
     let filter (j : Client.job_info) = j.variant = variant in
 
@@ -181,7 +183,7 @@ module Make (View : View) : Controller = struct
         Dream.empty `Not_Found
     | Some step_info ->
         let timestamps =
-          Result.to_option @@ Run_time.timestamps_from_job_info step_info
+          Result.to_option @@ Run_time.Timestamp.of_job_info step_info
         in
         let step_created_at = step_info.queued_at in
         let step_finished_at = step_info.finished_at in

@@ -1,5 +1,4 @@
-module Timestamps_durations = View.Timestamps_durations
-module Run_time = Ocaml_ci_client_lib.Run_time
+module Run_time = Ocaml_ci.Run_time
 module Client = Ocaml_ci_api.Client
 
 let version = "1.0"
@@ -26,16 +25,17 @@ let from_status_info_run_time ~step_info ~run_time ~can_rebuild ~can_cancel =
         step_info;
     created_at =
       Option.fold ~none:""
-        ~some:(fun i -> Timestamps_durations.pp_timestamp i.Client.queued_at)
+        ~some:(fun i -> Run_time.Duration.pp_readable_opt i.Client.queued_at)
         step_info;
     finished_at =
       Option.fold ~none:""
-        ~some:(fun i -> Timestamps_durations.pp_timestamp i.Client.finished_at)
+        ~some:(fun i -> Run_time.Duration.pp_readable_opt i.Client.finished_at)
         step_info;
     queued_for =
-      Timestamps_durations.pp_duration (Option.map Run_time.queued_for run_time);
+      Run_time.Duration.pp_opt
+        (Option.map Run_time.TimeInfo.queued_for run_time);
     ran_for =
-      Timestamps_durations.pp_duration (Option.map Run_time.ran_for run_time);
+      Run_time.Duration.pp_opt (Option.map Run_time.TimeInfo.ran_for run_time);
     can_rebuild;
     can_cancel;
     variant =
@@ -45,7 +45,7 @@ let from_status_info_run_time ~step_info ~run_time ~can_rebuild ~can_cancel =
   }
 
 let from_status_info ~step_info ~build_created_at =
-  let timestamps = Option.map Run_time.timestamps_from_job_info step_info in
+  let timestamps = Option.map Run_time.Timestamp.of_job_info step_info in
   let timestamps =
     match timestamps with
     | None ->
@@ -57,7 +57,7 @@ let from_status_info ~step_info ~build_created_at =
     | Some (Ok t) -> Some t
   in
   let run_time =
-    Option.map (Run_time.run_times_from_timestamps ~build_created_at) timestamps
+    Option.map (Run_time.TimeInfo.of_timestamp ~build_created_at) timestamps
   in
   from_status_info_run_time ~step_info ~run_time ~can_rebuild:false
     ~can_cancel:false

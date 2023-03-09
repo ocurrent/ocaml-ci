@@ -1,10 +1,10 @@
 module type Api = sig
   module Client = Ocaml_ci_api.Client
-  module Run_time = Ocaml_ci_client_lib.Run_time
+  module Run_time = Ocaml_ci.Run_time
 
   val show_step :
     step_info:Client.job_info option ->
-    run_time:Run_time.run_time_info option ->
+    run_time:Run_time.TimeInfo.t option ->
     can_rebuild:bool ->
     can_cancel:bool ->
     Dream.response Lwt.t
@@ -31,7 +31,7 @@ end
 module Make (M : M_Git_forge) = struct
   module Build = Representation.Build
   module Step = Representation.Step
-  module Run_time = Ocaml_ci_client_lib.Run_time
+  module Run_time = Ocaml_ci.Run_time
   module Client = Ocaml_ci_api.Client
 
   let step_route_prefix ~org ~repo ~hash =
@@ -46,7 +46,7 @@ module Make (M : M_Git_forge) = struct
   let list_steps ~org ~repo ~hash ~jobs ~build_status =
     let step_route_prefix = step_route_prefix ~org ~repo ~hash in
     let build_created_at =
-      Run_time.build_created_at ~build:jobs
+      Run_time.Job.build_created_at ~build:jobs
       |> Result.to_option
       |> Option.join
       |> Option.value ~default:0.

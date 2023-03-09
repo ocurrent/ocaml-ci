@@ -17,7 +17,6 @@ depends: [
   "lwt" {>= "5.6.1"}
   "ocaml" {>= "4.13"}
   "ocaml-ci-api"
-  "ocaml-ci-client-lib"
   "prometheus-app" {>= "1.2"}
   "tyxml"
   "tailwindcss"

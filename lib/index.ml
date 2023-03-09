@@ -443,20 +443,22 @@ module Commit_cache = struct
 end
 
 let record_build_summary t ~owner ~name ~hash ~gref ~status ~commit_message
-    ~(variants_timestamps : (string * Run_time.timestamps option) list) =
+    ~(variants_timestamps : (string * Run_time.Timestamp.t option) list) =
   let ts = List.filter_map snd variants_timestamps in
-  let first_queued_at = Run_time.first_step_queued_at ts in
-  let build_ran_for = Run_time.build_ran_for variants_timestamps in
+  let first_queued_at = Run_time.TimeList.first_step_queued_at ts in
+  let build_ran_for = Run_time.TimeList.build_ran_for variants_timestamps in
   Commit_cache.add ~owner ~name ~hash ~gref status
     (Result.to_option first_queued_at)
     (Some build_ran_for);
   let v status_int =
     let build_created_at =
-      Run_time.first_step_queued_at ts
+      Run_time.TimeList.first_step_queued_at ts
       |> Result.to_option
       |> Option.value ~default:0.
     in
-    let total_run_time = Run_time.total_of_run_times ~build_created_at ts in
+    let total_run_time =
+      Run_time.TimeList.total_of_run_times ~build_created_at ts
+    in
     let current_time = Unix.gettimeofday () in
     let build_number = 1 + get_latest_build_number t ~owner ~name ~hash in
     Db.exec t.record_job_summary
@@ -622,7 +624,7 @@ let record ~repo ~hash ~status ~gref jobs =
     List.map
       (fun (variant, job_id) ->
         let id =
-          Option.map (fun id -> Run_time.timestamps_of_job id) job_id
+          Option.map (fun id -> Run_time.Timestamp.of_job_id_opt id) job_id
           |> Option.join
         in
         (variant, id))
@@ -654,11 +656,11 @@ let get_jobs ~owner ~name hash =
            if Current.Job.lookup_running job_id = None then `Aborted
            else `Active
          in
-         let ts = Run_time.timestamps_of_job job_id in
+         let ts = Run_time.Timestamp.of_job_id_opt job_id in
          (variant, outcome, ts)
      | Sqlite3.Data.[ TEXT variant; TEXT job_id; INT ok; BLOB outcome ] ->
          let outcome = if ok = 1L then `Passed else `Failed outcome in
-         let ts = Run_time.timestamps_of_job job_id in
+         let ts = Run_time.Timestamp.of_job_id_opt job_id in
          (variant, outcome, ts)
      | Sqlite3.Data.[ TEXT variant; NULL; NULL; NULL ] ->
          (variant, `Not_started, None)
