@@ -18,7 +18,7 @@ ADD --chown=opam . .
 RUN opam config exec -- dune build ./_build/install/default/bin/ocaml-ci-web
 
 FROM debian:11
-RUN apt-get update && apt-get install libev4 curl jq dumb-init -y --no-install-recommends
+RUN apt-get update && apt-get install libev4 libsqlite3-dev curl jq dumb-init -y --no-install-recommends
 WORKDIR /
 ENTRYPOINT ["dumb-init", "/usr/local/bin/ocaml-ci-web"]
 
