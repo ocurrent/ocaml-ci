@@ -84,12 +84,10 @@ module Timestamp = struct
 
   let of_job_id_opt job_id =
     let timestamp_from_job_map =
-      match Current.Job.lookup_running job_id with
-      | Some job -> (
+      Option.bind (Current.Job.lookup_running job_id) (fun job ->
           match Lwt.state (Current.Job.start_time job) with
           | Lwt.Sleep | Lwt.Fail _ -> None
           | Lwt.Return t -> Some t)
-      | None -> None
     in
     let job_db_entry = Current_cache.Db.query ~job_prefix:job_id () in
     match job_db_entry with
@@ -98,10 +96,8 @@ module Timestamp = struct
         | Some started_at ->
             Some (Running { queued_at = ready; started_at })
             (* The job is running so we work off the start time in the Job map *)
-        | None -> (
-            match running with
-            | None -> Some (Queued ready)
-            | Some _ ->
+        | None ->
+            Option.fold running ~none:(Some (Queued ready)) ~some:(fun _ ->
                 Some
                   (Finished
                      {
@@ -109,12 +105,11 @@ module Timestamp = struct
                        started_at = running;
                        finished_at = finished;
                      })))
-    | [] -> (
-        (* No db entry for the job. Check Current.Job.jobs map *)
-        match timestamp_from_job_map with
-        | Some started_at ->
-            Some (Running { queued_at = started_at; started_at })
-        | None -> None)
+    | [] ->
+        ((* No db entry for the job. Check Current.Job.jobs map *)
+         Option.map (fun started_at ->
+             Running { queued_at = started_at; started_at }))
+          timestamp_from_job_map
     | x ->
         List.iter
           (fun y ->
@@ -219,40 +214,32 @@ module TimeList = struct
     match analysis_steps with
     | [] -> Error "No analysis step found"
     | [ h ] -> Ok (h, rest)
-    | _ :: _ -> Error "Multiple analysis steps found"
+    | _ -> Error "Multiple analysis steps found"
 
   let max_of_step_run_times ~build_created_at ts =
     let sorted_steps =
       ts
       |> List.map (fun ts ->
              TimeInfo.total @@ TimeInfo.of_timestamp ~build_created_at ts)
-      |> List.sort Float.compare
-      |> List.rev
+      |> List.sort (fun x y -> Float.compare x y |> Int.neg)
     in
     Option.value ~default:0. (List.nth_opt sorted_steps 0)
 
   let build_ran_for ts =
     let partitioned = Result.to_option @@ partition_build_steps ts in
     match partitioned with
-    | None -> 0.
-    | Some (analysis_step, rest) -> (
-        match analysis_step with
-        | None -> 0.
-        | Some analysis_step_timestamps ->
-            let build_created_at =
-              Timestamp.queued_at analysis_step_timestamps
-            in
-            let run_time_analysis_step =
-              TimeInfo.total
-              @@ TimeInfo.of_timestamp ~build_created_at
-                   analysis_step_timestamps
-            in
-            let rest = List.filter_map Fun.id rest in
-            let build_ran_for =
-              run_time_analysis_step
-              +. max_of_step_run_times ~build_created_at rest
-            in
-            build_ran_for)
+    | None | Some (None, _) -> 0.
+    | Some (Some analysis_step_timestamps, rest) ->
+        let build_created_at = Timestamp.queued_at analysis_step_timestamps in
+        let run_time_analysis_step =
+          TimeInfo.of_timestamp ~build_created_at analysis_step_timestamps
+          |> TimeInfo.total
+        in
+        let rest = List.filter_map Fun.id rest in
+        let build_ran_for =
+          run_time_analysis_step +. max_of_step_run_times ~build_created_at rest
+        in
+        build_ran_for
 
   let first_step_queued_at ts =
     (* for_all holds for the empty list as well as preventing transient
@@ -263,7 +250,7 @@ module TimeList = struct
     | _ ->
         Ok
           (List.fold_left
-             (fun accum v -> min accum (Timestamp.queued_at v))
+             (fun acc v -> min acc (Timestamp.queued_at v))
              max_float ts)
 
   let total_of_run_times ~build_created_at ts =
@@ -299,25 +286,33 @@ module Job = struct
     match filtered with
     | [] -> Error "No analysis step found"
     | [ h ] -> Ok h.queued_at
-    | _ :: _ -> Error "Multiple analysis steps found"
+    | _ -> Error "Multiple analysis steps found"
 
   let total_of_run_times (build : Client.job_info list) =
     let build_created_at =
       Option.value ~default:0.
         (Option.join @@ Result.to_option @@ build_created_at ~build)
     in
-    build
-    |> List.filter_map (fun ji -> Result.to_option @@ Timestamp.of_job_info ji)
-    |> List.map (TimeInfo.of_timestamp ~build_created_at)
+    let f job_info =
+      match Timestamp.of_job_info job_info with
+      | Error _ -> None
+      | Ok timestamp ->
+          TimeInfo.of_timestamp ~build_created_at timestamp |> Option.some
+    in
+    List.filter_map f build
     |> List.fold_left (fun subtotal rt -> subtotal +. TimeInfo.total rt) 0.
 
   let max_of_step_run_times ~build_created_at steps =
+    let f job_info =
+      match Timestamp.of_job_info job_info with
+      | Error _ -> None
+      | Ok timestamp ->
+          TimeInfo.of_timestamp ~build_created_at timestamp
+          |> TimeInfo.total
+          |> Option.some
+    in
     let sorted_steps =
-      steps
-      |> List.filter_map (fun ji ->
-             Result.to_option @@ Timestamp.of_job_info ji)
-      |> List.map (fun ts ->
-             TimeInfo.total @@ TimeInfo.of_timestamp ~build_created_at ts)
+      List.filter_map f steps
       |> List.sort (fun x y -> Float.compare x y |> Int.neg)
     in
     Option.value ~default:0. (List.nth_opt sorted_steps 0)
@@ -327,15 +322,12 @@ module Job = struct
     match partitioned with
     | None -> 0.
     | Some (analysis_step, rest) -> (
-        let build_created_at =
-          Option.value ~default:0. analysis_step.queued_at
-        in
-        let analysis_step_timestamps =
-          Result.to_option @@ Timestamp.of_job_info analysis_step
-        in
-        match analysis_step_timestamps with
-        | None -> 0.
-        | Some analysis_step_timestamps ->
+        match Timestamp.of_job_info analysis_step with
+        | Error _ -> 0.
+        | Ok analysis_step_timestamps ->
+            let build_created_at =
+              Option.value ~default:0. analysis_step.queued_at
+            in
             let run_time_analysis_step =
               TimeInfo.total
               @@ TimeInfo.of_timestamp ~build_created_at
