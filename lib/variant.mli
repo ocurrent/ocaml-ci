@@ -14,6 +14,7 @@ val v :
 
 val arch : t -> Ocaml_version.arch
 val distro : t -> string
+val distro' : t -> Obuilder_spec_opam.Distro.t option
 val ocaml_version : t -> Ocaml_version.t
 val with_ocaml_version : Ocaml_version.t -> t -> t
 val opam_version : t -> Opam_version.t
@@ -25,4 +26,4 @@ val docker_tag : t -> string
 val pp : t Fmt.t
 val to_string : t -> string
 val of_string : string -> t
-val os : t -> [> `linux | `macOS ]
+val os : t -> Obuilder_spec_opam.Distro.os_family

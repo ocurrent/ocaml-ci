@@ -79,111 +79,78 @@ let rec get_root_opam_packages = function
 
 let download_cache = "opam-archives"
 
+(* -          Obuilder_spec.Cache.v download_cache ~target:"~/.opam/download-cache";
+   +          Obuilder_spec.Cache.v download_cache
+   +            ~target:"/Users/mac1000/.opam/download-cache";
+   +          Obuilder_spec.Cache.v "homebrew"
+   +            ~target:"/Users/mac1000/Library/Caches/Homebrew"; *)
+
 let install_project_deps ~opam_version ~opam_files ~selection =
   let { Selection.packages; commit; variant; only_packages } = selection in
-  let prefix =
-    match Variant.os variant with `macOS -> "~/local" | `linux -> "/usr"
-  in
-  let ln =
-    match Variant.os variant with `macOS -> "ln" | `linux -> "sudo ln"
-  in
-  let groups = group_opam_files opam_files in
-  let root_pkgs = get_root_opam_packages groups in
-  let non_root_pkgs =
-    packages |> List.filter (fun pkg -> not (List.mem pkg root_pkgs))
-  in
-  let compatible_root_pkgs =
-    if only_packages = [] then root_pkgs else only_packages
-  in
-  let open Obuilder_spec in
-  let cache =
-    match Variant.os variant with
-    | `linux ->
-        [
-          Obuilder_spec.Cache.v download_cache
-            ~target:"/home/opam/.opam/download-cache";
-        ]
-    | `macOS ->
-        [
-          Obuilder_spec.Cache.v download_cache
-            ~target:"/Users/mac1000/.opam/download-cache";
-          Obuilder_spec.Cache.v "homebrew"
-            ~target:"/Users/mac1000/Library/Caches/Homebrew";
-        ]
-  in
-  let network = [ "host" ] in
-  let distro_extras =
-    if Astring.String.is_prefix ~affix:"fedora" (Variant.id variant) then
-      [ run ~network "sudo dnf install -y findutils" ] (* (we need xargs) *)
-    else []
-  in
-  let network = [ "host" ] in
-
-  let home_dir =
-    match Variant.os selection.Selection.variant with
-    | `macOS -> None
-    | `linux -> Some "/src"
-  in
-  let work_dir =
-    match Variant.os selection.Selection.variant with
-    | `macOS -> Some (Fpath.v "./src/")
-    | `linux -> None
-  in
-  (* XXX: don't overwrite default config? *)
-  let opamrc = "" in
-  let opam_version_str = Opam_version.to_string opam_version in
-  let compatible_root_pkgs = String.concat " " compatible_root_pkgs in
-  let non_root_pkgs = String.concat " " non_root_pkgs in
-  let opam_depext =
-    match opam_version with
-    | `V2_0 ->
-        run ~network ~cache "opam depext --update -y %s $DEPS"
-          compatible_root_pkgs
-    | `V2_1 ->
-        run ~network ~cache
-          "opam update --depexts && opam install --cli=2.1 --depext-only -y %s \
-           $DEPS"
-          compatible_root_pkgs
-  in
-  (if Variant.arch variant |> Ocaml_version.arch_is_32bit then
-     [ shell [ "/usr/bin/linux32"; "/bin/sh"; "-c" ] ]
-   else [])
-  @ [ env "CLICOLOR_FORCE" "1" ]
-  @ [ env "OPAMCOLOR" "always" ]
-  @ (match home_dir with
-    | Some home_dir -> [ Obuilder_spec.workdir home_dir ]
-    | None -> [])
-  @ distro_extras
-  @ [
-      run "%s -f %s/bin/opam-%s %s/bin/opam" ln prefix opam_version_str prefix;
-      run "opam init --reinit%s -ni" opamrc;
-    ]
-  @ (match home_dir with
-    | Some home_dir -> [ workdir home_dir; run "sudo chown opam /src" ]
-    | None -> [])
-  @ [
-      run ~network ~cache
-        "cd ~/opam-repository && (git cat-file -e %s || git fetch origin \
-         master) && git reset -q --hard %s && git log --no-decorate -n1 \
-         --oneline && opam update -u"
-        commit commit;
-    ]
-  @ pin_opam_files ~network ?work_dir groups
-  @ [
-      env "DEPS" non_root_pkgs;
-      env "CI" "true";
-      env "OCAMLCI" "true";
-      opam_depext;
-      run ~network ~cache "opam install $DEPS";
-    ]
+  match Variant.distro' variant with
+  | None -> None
+  | Some distro ->
+      let groups = group_opam_files opam_files in
+      let root_pkgs = get_root_opam_packages groups in
+      let compatible_root_pkgs =
+        if only_packages = [] then root_pkgs else only_packages
+      in
+      let non_root_pkgs =
+        List.filter (fun pkg -> not (List.mem pkg root_pkgs)) packages
+        |> String.concat " "
+      in
+      let network = [ "host" ] in
+      let cache = Obuilder_spec_opam.cache distro in
+      let distro_extras =
+        match distro with
+        | `Fedora _ ->
+            [ Obuilder_spec.run ~network "sudo dnf install -y findutils" ]
+            (* (we need xargs) *)
+        | _ -> []
+      in
+      let home_dir =
+        match Variant.os variant with
+        | `Macos | `Windows | `Cygwin -> None
+        | `Linux -> Some "/src"
+      in
+      let work_dir =
+        match Variant.os variant with
+        | `Macos | `Windows | `Cygwin -> Some (Fpath.v "./src/")
+        | `Linux -> None
+      in
+      let open Obuilder_spec in
+      Some
+        (Obuilder_spec_opam.set_personality (Variant.arch variant)
+        @ [ env "CLICOLOR_FORCE" "1" ]
+        @ [ env "OPAMCOLOR" "always" ]
+        @ (match home_dir with
+          | Some home_dir -> [ workdir home_dir ]
+          | None -> [])
+        @ distro_extras
+        @ Obuilder_spec_opam.opam_init opam_version distro
+        @ (match home_dir with
+          | Some home_dir -> [ workdir home_dir; run "sudo chown opam /src" ]
+          | None -> [])
+        @ [
+            run ~network ~cache
+              "cd ~/opam-repository && (git cat-file -e %s || git fetch origin \
+               master) && git reset -q --hard %s && git log --no-decorate -n1 \
+               --oneline && opam update -u"
+              commit commit;
+          ]
+        @ pin_opam_files ~network ?work_dir groups
+        @ [ env "DEPS" non_root_pkgs; env "CI" "true"; env "OCAMLCI" "true" ]
+        @ Obuilder_spec_opam.opam_depext ~network ~cache ~opam_version
+            compatible_root_pkgs
+        @ [ run ~network ~cache "opam install $DEPS" ])
 
 let spec ~base ~opam_version ~opam_files ~selection =
   let open Obuilder_spec in
   let to_name x = OpamPackage.of_string x |> OpamPackage.name_to_string in
   let home_dir =
     match Variant.os selection.Selection.variant with
-    | `macOS -> "./src"
-    | `linux -> "/src"
+    | `Macos | `Windows | `Cygwin -> "./src"
+    | `Linux -> "/src"
   in
   let only_packages =
     match selection.Selection.only_packages with
@@ -192,18 +159,21 @@ let spec ~base ~opam_version ~opam_files ~selection =
   in
   let run_build =
     match Variant.os selection.Selection.variant with
-    | `macOS ->
+    | `Linux | `Windows | `Cygwin ->
+        run
+          "opam exec -- dune build%s @install @check @runtest && rm -rf _build"
+          only_packages
+    | `Macos ->
         run
           "cd ./src && opam exec -- dune build%s @install @check @runtest && \
            rm -rf _build"
           only_packages
-    | `linux ->
-        run
-          "opam exec -- dune build%s @install @check @runtest && rm -rf _build"
-          only_packages
   in
-  stage ~from:base
-    (comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant)
-     :: user_unix ~uid:1000 ~gid:1000
-     :: install_project_deps ~opam_version ~opam_files ~selection
-    @ [ copy [ "." ] ~dst:home_dir; run_build ])
+  match install_project_deps ~opam_version ~opam_files ~selection with
+  | None -> raise Exit
+  | Some install_project_deps ->
+      stage ~from:base
+        (comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant)
+         :: user_unix ~uid:1000 ~gid:1000
+         :: install_project_deps
+        @ [ copy [ "." ] ~dst:home_dir; run_build ])

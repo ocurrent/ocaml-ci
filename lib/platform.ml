@@ -75,31 +75,20 @@ module Query = struct
 
   (* This is needed iff the opam used isn't the image default opam. *)
   let prepare_image ~job ~docker_context ~tag variant image =
-    let opam =
-      "opam-" ^ Opam_version.to_string (Variant.opam_version variant)
-    in
-    let prefix =
-      match Variant.os variant with `macOS -> "~/local" | `linux -> "/usr"
-    in
-    let ln =
-      match Variant.os variant with `macOS -> "ln" | `linux -> "sudo ln"
-    in
-    (* XXX: don't overwrite default config? *)
-    let opamrc = "" in
-    let spec =
-      let open Obuilder_spec in
-      stage ~from:image
-        [
-          run "%s -f %s/bin/%s %s/bin/opam" ln prefix opam prefix;
-          run "opam init --reinit%s -ni" opamrc;
-        ]
-      |> Docker.dockerfile_of_spec ~buildkit:true ~os:`Unix
-    in
-    let cmd =
-      Raw.Cmd.docker ~docker_context [ "build"; "--pull"; "-t"; tag; "-" ]
-    in
-    Current.Process.exec ~stdin:spec ~cancellable:false ~job cmd >>!= fun () ->
-    Lwt_result.ok (Lwt.return tag)
+    match Variant.distro' variant with
+    | None -> Lwt_result.fail (`Msg "")
+    | Some distro ->
+        let opam = Variant.opam_version variant in
+        let spec =
+          let open Obuilder_spec in
+          stage ~from:image (Obuilder_spec_opam.opam_init opam distro)
+          |> Docker.dockerfile_of_spec ~buildkit:true ~os:`Unix
+        in
+        let cmd =
+          Raw.Cmd.docker ~docker_context [ "build"; "--pull"; "-t"; tag; "-" ]
+        in
+        Current.Process.exec ~stdin:spec ~cancellable:false ~job cmd
+        >>!= fun () -> Lwt_result.ok (Lwt.return tag)
 
   let opam_template arch =
     let arch = Option.value ~default:"%{arch}%" arch in

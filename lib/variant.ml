@@ -1,3 +1,5 @@
+module D = Obuilder_spec_opam.Distro
+
 module Ocaml_version = struct
   include Ocaml_version
   (* Extend Ocaml_version with json support. *)
@@ -36,8 +38,8 @@ type t = {
 let macos_distributions = [ "macos-homebrew" ]
 
 let os { distro; _ } =
-  if List.exists (String.equal distro) macos_distributions then `macOS
-  else `linux
+  if List.exists (String.equal distro) macos_distributions then `Macos
+  else `Linux
 
 let v ~arch ~distro ~ocaml_version ~opam_version =
   (* Just check we understand all the variants first *)
@@ -47,6 +49,7 @@ let v ~arch ~distro ~ocaml_version ~opam_version =
 
 let arch { arch; _ } = arch
 let distro { distro; _ } = distro
+let distro' { distro; _ } = D.distro_of_tag distro
 let ocaml_version { ocaml_version; _ } = ocaml_version
 let with_ocaml_version ocaml_version t = { t with ocaml_version }
 let opam_version t = t.opam_version
