@@ -388,13 +388,17 @@ let tooltip message content =
         a
           ~a:
             [
-              a_class [ "group relative inline flex place-content-around" ];
+              a_class
+                [
+                  "group relative inline flex flex-nowrap items-center \
+                   space-x-2 place-content-around";
+                ];
               a_role [ "tooltip" ];
               a_aria "hidden" [];
               a_href "#";
             ]
           [
-            span [ txt message ];
+            span ~a:[ a_class [ "whitespace-nowrap" ] ] [ txt message ];
             information_icon;
             span
               ~a:
