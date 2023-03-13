@@ -150,7 +150,7 @@ module Make (M : Git_forge_intf.Forge) = struct
         ~first_created_at:
           (Run_time.Duration.pp_readable_opt first_step_queued_at)
         ~ran_for:(Run_time.Duration.pp_opt (Some build_run_time))
-        ~total_run_time:(Run_time.Duration.pp_opt (Some total_run_time))
+        ~_total_run_time:(Run_time.Duration.pp_opt (Some total_run_time))
         ~buttons
     in
     let steps_table =

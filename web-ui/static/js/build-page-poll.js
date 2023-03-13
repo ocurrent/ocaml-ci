@@ -49,8 +49,6 @@ function poll(api_path, timeout, interval) {
         build_created_at.textContent = data["first_created_at"];
         const build_ran_for = document.getElementById("build-ran-for");
         build_ran_for.textContent = data["ran_for"];
-        const build_total_run_time = document.getElementById("build-total-run-time")
-        build_total_run_time.textContent = "Total build run time " + data["total_ran_for"]
         const build_status = document.getElementById("build-status");
         build_status.innerHTML = icon_from(data["status"]);
 

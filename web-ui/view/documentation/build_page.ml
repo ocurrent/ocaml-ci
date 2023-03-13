@@ -24,26 +24,12 @@ let show =
         li [ txt "The status of the build" ];
         li [ txt "The commit that the build corresponds to" ];
         li [ txt "The date and time that the build was created" ];
-        li [ txt "The total build run time" ];
         li [ txt "The branch (or branches) that the commit belongs to" ];
         li [ txt "The 'wall clock' run time of the build" ];
       ];
     img
       ~a:[ a_class [ "border border-solid" ] ]
       ~src:"/images/build-page-top-matter.png" ~alt:"build-page-top-matter" ();
-    h3 [ txt "Total build run time" ];
-    p
-      [
-        txt
-          "The total build run time is the sum of the running times of the \
-           build's steps. It measures the resources engaged during the \
-           execution of the build, but it does not take any parallelism into \
-           account.";
-      ];
-    img
-      ~a:[ a_class [ "border border-solid" ] ]
-      ~src:"/images/build-page-total-run-time.png"
-      ~alt:"build-page-total-run-time" ();
     h3 [ txt "Build history button" ];
     p [ txt "To see the history of builds for the ref, click this button." ];
     img
@@ -56,9 +42,7 @@ let show =
         txt
           "A build's running time is defined to be the sum of the time taken \
            by the analysis step and that of the longest running step of the \
-           build. It represents the 'wall clock' or elapsed time of the build \
-           and is different from the 'total build run time,' as it represents \
-           the time taken if all steps ran in parallel.";
+           build. It represents the 'wall clock' or elapsed time of the build.";
       ];
     img
       ~a:[ a_class [ "border border-solid" ] ]

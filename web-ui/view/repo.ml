@@ -239,20 +239,31 @@ module Make (M : Git_forge_intf.Forge) = struct
 
   let repo_url org repo = Printf.sprintf "/%s/%s/%s" M.prefix org repo
 
+  let run_time_tooltip =
+    txt "The average running time of all the default branch's completed builds."
+
+  let reliability_tooltip =
+    txt "The percentage of builds of the default branch that passed."
+
+  let frequency_tooltip =
+    txt "The number of builds of the default branch per week."
+
   let table_head name =
     thead
       [
         tr
           [
-            th [ div [ txt name ] ];
-            th
-              ~a:[ a_class [ "hidden lg:table-cell" ] ]
-              [ txt "Speed over time" ];
-            th ~a:[ a_class [ "hidden md:table-cell" ] ] [ txt "Speed" ];
-            th ~a:[ a_class [ "hidden md:table-cell" ] ] [ txt "Reliability" ];
+            th [ txt name ];
+            th ~a:[ a_class [ "hidden lg:table-cell" ] ] [];
             th
               ~a:[ a_class [ "hidden md:table-cell" ] ]
-              [ txt "Build frequency" ];
+              [ Common.tooltip "Mean run time" run_time_tooltip ];
+            th
+              ~a:[ a_class [ "hidden md:table-cell" ] ]
+              [ Common.tooltip "Reliability" reliability_tooltip ];
+            th
+              ~a:[ a_class [ "hidden md:table-cell" ] ]
+              [ Common.tooltip "Build frequency" frequency_tooltip ];
             th [];
           ];
       ]

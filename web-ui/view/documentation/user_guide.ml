@@ -186,14 +186,11 @@ let concepts_and_terms =
         txt
           " : The running time of a step is the duration for which a step \
            runs. That is, the time elapsed between the point where it starts \
-           running and the point where it stops. There are two notions of this \
-           concept for a build.";
+           running and the point where it stops.";
       ];
     p
       [
         txt "The ";
-        strong [ em [ txt "total build run time" ] ];
-        txt " is the sum of the running times of the build's steps. The ";
         strong [ em [ txt "build run time" ] ];
         txt
           " is the sum of the time taken by the analysis step and that of the \
