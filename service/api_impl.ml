@@ -355,11 +355,20 @@ let make_org ~engine owner =
                 let repo_id = { Ocaml_ci.Repo_id.owner; name } in
                 let refs = Index.get_active_refs repo_id in
                 let repo = Index.Aggregate.get_repo_state ~repo:repo_id in
-                let default_ref =
+                let default_gref =
                   Index.get_default_gref { Ocaml_ci.Repo_id.owner; name }
                 in
+                let default_ref =
+                  let prefix = "refs/heads/" in
+                  let open Astring in
+                  if String.is_prefix ~affix:prefix default_gref then
+                    String.with_index_range ~first:(String.length prefix)
+                      default_gref
+                  else default_gref
+                in
+                default_ref_set slot default_ref;
                 let hash, status =
-                  match Index.Ref_map.find default_ref refs with
+                  match Index.Ref_map.find default_gref refs with
                   | { Index.hash; _ } ->
                       ( hash,
                         to_build_status
