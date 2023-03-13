@@ -65,6 +65,7 @@
   solver-service
   ocluster-api
   obuilder-spec
+  (astring (>= 0.8.5))
   (timedesc (>= 0.9.0))
   (ocaml (>= 4.13))
   (conf-libev (<> :os "win32"))

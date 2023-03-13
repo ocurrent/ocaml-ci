@@ -82,6 +82,7 @@ module Org = struct
     main_status : Build_status.t;
     main_hash : string;
     main_last_updated : float option;
+    default_ref : string;
   }
 
   type ref_info = {
@@ -109,6 +110,7 @@ module Org = struct
            |> List.map @@ fun repo ->
               let open Raw.Reader.RepoInfo in
               let name = name_get repo in
+              let default_ref = default_ref_get repo in
               let main_status = main_state_get repo in
               let main_hash = main_hash_get repo in
               let main_last_updated =
@@ -117,7 +119,7 @@ module Org = struct
                 | MainLastUpdated.None | MainLastUpdated.Undefined _ -> None
                 | MainLastUpdated.Ts v -> Some v
               in
-              { name; main_status; main_hash; main_last_updated })
+              { name; main_status; main_hash; main_last_updated; default_ref })
 
   let repo_histories t =
     let open Raw.Client.Org.RepoHistories in

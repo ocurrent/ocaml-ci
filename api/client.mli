@@ -101,6 +101,7 @@ module Org : sig
     main_status : Build_status.t;
     main_hash : string;
     main_last_updated : float option;
+    default_ref : string;
   }
 
   type ref_info = {

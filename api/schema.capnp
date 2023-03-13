@@ -108,6 +108,7 @@ struct RepoInfo {
     ts         @3 :Float64;
     none       @4 :Void;
   }
+  defaultRef   @5 :Text;
   # The status of the repository's main branch (notStarted if there isn't one)
 }
 

@@ -99,7 +99,7 @@ module Make (M : Git_forge_intf.Forge) = struct
   }
 
   let row ~repo_title ~short_hash ~last_updated ~status ~description ~repo_uri
-      ~statistics =
+      ~statistics ~default_ref =
     let info =
       let hash = span ~a:[ a_class [ "font-medium" ] ] [ txt short_hash ] in
       match last_updated with
@@ -184,7 +184,7 @@ module Make (M : Git_forge_intf.Forge) = struct
         td
           ~a:[ a_class [ "text-xs space-y-1 hidden lg:table-cell" ] ]
           [
-            div [ txt "master" ];
+            div [ txt default_ref ];
             div
               ~a:[ a_class [ "shadow-sm mb-4" ] ]
               [
@@ -385,7 +385,14 @@ module Make (M : Git_forge_intf.Forge) = struct
       table_head (Printf.sprintf "Repositories (%d)" (List.length repos))
     in
     let table =
-      let f { Client.Org.name; main_status; main_hash; main_last_updated } =
+      let f
+          {
+            Client.Org.name;
+            default_ref;
+            main_status;
+            main_hash;
+            main_last_updated;
+          } =
         let history =
           snd @@ List.find (fun (repo, _) -> String.equal name repo) histories
         in
@@ -393,6 +400,7 @@ module Make (M : Git_forge_intf.Forge) = struct
           ~short_hash:(Common.short_hash main_hash)
           ~last_updated:main_last_updated ~status:main_status ~description:""
           ~repo_uri:(repo_url org name) ~statistics:(repo_statistics history)
+          ~default_ref
       in
       List.map f (List.sort repo_name_compare repos)
     in
