@@ -405,7 +405,7 @@ let tooltip message content =
                 [
                   a_class
                     [
-                      "absolute hidden group-hover:flex -left-5 -top-2 \
+                      "absolute hidden group-hover:flex -top-2 \
                        -translate-y-full w-48 px-2 py-1 bg-gray-700 rounded-lg \
                        text-center text-white text-sm";
                       down_arrow;
