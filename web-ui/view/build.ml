@@ -1,5 +1,5 @@
 let title_card ~status ~card_title ~hash_link ~ref_links ~first_created_at
-    ~ran_for ~total_run_time ~buttons =
+    ~ran_for ~_total_run_time ~buttons =
   let heading =
     Tyxml.Html.(
       div
@@ -24,10 +24,6 @@ let title_card ~status ~card_title ~hash_link ~ref_links ~first_created_at
           div [ hash_link ];
           div ~a:[ a_class [ "hidden md:inline" ] ] [ txt "-" ];
           div ~a:[ a_id "build-created-at" ] [ txt first_created_at ];
-          div ~a:[ a_class [ "hidden md:inline" ] ] [ txt "-" ];
-          div
-            ~a:[ a_id "build-total-run-time" ]
-            [ txt @@ Fmt.str "Total build run time %s" total_run_time ];
         ]
     in
     List.fold_left
