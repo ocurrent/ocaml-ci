@@ -148,8 +148,8 @@ let db =
           ran_for, total_queued_for, message FROM ci_build_summary c1 WHERE \
           owner = ? AND name = ? AND gref = ? AND build_number = (SELECT \
           MAX(build_number) FROM ci_build_summary c2 WHERE c1.owner = c2.owner \
-          AND c1.name = c2.name AND c1.hash = c2.hash) ORDER BY created_at \
-          DESC"
+          AND c1.name = c2.name AND c1.hash = c2.hash AND c1.gref = c2.gref) \
+          ORDER BY created_at DESC"
      in
      {
        record_job;
