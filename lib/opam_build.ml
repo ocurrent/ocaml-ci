@@ -105,8 +105,10 @@ let install_project_deps ~opam_version ~opam_files ~selection =
         ]
     | `macOS ->
         [
-          Obuilder_spec.Cache.v download_cache ~target:"/Users/mac1000/.opam/download-cache";
-          Obuilder_spec.Cache.v "homebrew" ~target:"/Users/mac1000/Library/Caches/Homebrew";
+          Obuilder_spec.Cache.v download_cache
+            ~target:"/Users/mac1000/.opam/download-cache";
+          Obuilder_spec.Cache.v "homebrew"
+            ~target:"/Users/mac1000/Library/Caches/Homebrew";
         ]
   in
   let network = [ "host" ] in
