@@ -17,7 +17,3 @@
 [submodule "ocaml-gitlab"]
 	path = ocaml-gitlab
 	url = https://github.com/tmcgilchrist/ocaml-gitlab.git
-[submodule "ocaml-version"]
-	path = ocaml-version
-	url = https://github.com/benmandrew/ocaml-version.git
-	branch = arch-upper
