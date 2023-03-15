@@ -52,7 +52,9 @@ end
 module OV = Ocaml_version
 module DD = Dockerfile_opam.Distro
 
-let default_compiler = OV.(Releases.latest |> without_patch)
+let default_compilers =
+  OV.(List.map with_just_major_and_minor Releases.[ v4_14; latest ])
+
 let trunk_compiler = OV.(Sources.trunk |> without_patch)
 
 type platform = {
@@ -133,13 +135,15 @@ let platforms ~include_macos opam_version =
     let distro = DD.resolve_alias distro in
     let label = DD.latest_tag_of_distro (distro :> DD.t) in
     let tag = DD.tag_of_distro (distro :> DD.t) in
-    let ov = OV.(Releases.latest |> with_just_major_and_minor) in
-    if distro = master_distro then
-      v label tag (OV.with_variant ov (Some "flambda"))
-      :: List.map
-           (fun arch -> v ~arch label tag ov)
-           (DD.distro_arches ov (distro :> DD.t))
-    else [ v label tag ov ]
+    let f ov =
+      if distro = master_distro then
+        v label tag (OV.with_variant ov (Some "flambda"))
+        :: List.map
+             (fun arch -> v ~arch label tag ov)
+             (DD.distro_arches ov (distro :> DD.t))
+      else [ v label tag ov ]
+    in
+    List.fold_left (fun l ov -> f ov @ l) [] default_compilers
   in
   let make_release ?arch ov =
     let distro = DD.tag_of_distro (master_distro :> DD.t) in
@@ -153,7 +157,6 @@ let platforms ~include_macos opam_version =
         |> List.map make_distro
         |> List.flatten
       in
-
       let distros =
         if include_macos then macos_distros @ distros else distros
       in
