@@ -53,7 +53,7 @@ module OV = Ocaml_version
 module DD = Dockerfile_opam.Distro
 
 let default_compilers =
-  OV.(List.map with_just_major_and_minor Releases.[ v4_14; v5_0 ])
+  OV.(List.map with_just_major_and_minor Releases.[ v4_14; latest ])
 
 let trunk_compiler = OV.(Sources.trunk |> without_patch)
 
