@@ -42,5 +42,5 @@ pin-depends: [
   ["dream.dev" "git+https://github.com/aantron/dream#ff97ac7583cb939caeac35da1210bf18411cb9b9"]
   ["dream-httpaf.dev" "git+https://github.com/aantron/dream#ff97ac7583cb939caeac35da1210bf18411cb9b9"]
   ["dream-pure.dev" "git+https://github.com/aantron/dream#ff97ac7583cb939caeac35da1210bf18411cb9b9"]
-  ["tailwindcss.dev" "git+https://github.com/tmattio/opam-tailwindcss#97ec16bb4933ec3eaf2cfd2b89e38dfbb3a9cf8e"]
+  ["tailwindcss.dev" "git+https://github.com/tmattio/opam-tailwindcss#170065255079ad2c1f3adef78950d8dbd418fd48"]
 ]
