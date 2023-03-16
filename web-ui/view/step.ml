@@ -621,7 +621,7 @@ module Make (M : Git_forge_intf.Forge) = struct
       | log_line -> Astring.String.cuts ~sep:"\r" log_line |> last
     in
     let process_logs data =
-      data
+      Astring.String.(with_range ~len:(length data - 1)) data
       |> Astring.String.cuts ~sep:"\n"
       |> List.map (fun l -> collapse_carriage_returns l |> Ansi.process ansi)
       |> tabulate
