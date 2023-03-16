@@ -7,7 +7,7 @@ val install_project_deps :
   opam_version:Opam_version.t ->
   opam_files:string list ->
   selection:Selection.t ->
-  Obuilder_spec.op list option
+  Obuilder_spec.op list
 (** Create an obuilder operations spec that describe how to install project
     dependencies for [opam_files] using opam and dune. *)
 

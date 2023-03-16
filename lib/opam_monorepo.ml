@@ -186,22 +186,22 @@ let spec ~base ~repo ~config ~variant =
   let dune_project = "dune-project" in
   let open Obuilder_spec in
   stage ~from:base
-  @@ [ comment "%s" (Variant.to_string variant); user_unix ~uid:1000 ~gid:1000 ]
-  @ initialize_switch ~network switch_type
-  @ Opam_build.install_project_deps ~opam_version:`V2_1 ~opam_files:[]
-      ~selection
-  @ [
-      workdir "/src";
-      run "sudo chown opam /src";
-      copy [ dune_project; lock_file_path ] ~dst:"/src/";
-      run ~network ~cache:[ download_cache ]
-        "opam monorepo depext --yes --lock ./%s" lock_file_path;
-    ]
-  @ install_opam_provided_packages ~network ~cache:[ download_cache ]
-      ~lock_file_path ~lock_file_version
-  @ [
-      run ~network ~cache:[ download_cache ] "opam exec -- opam monorepo pull";
-      copy [ "." ] ~dst:"/src/";
-      run ~cache:[ dune_cache ] "opam exec -- dune build @install";
-      run ~cache:[ dune_cache ] "opam exec -- dune runtest";
-    ]
+    ([ comment "%s" (Variant.to_string variant); user_unix ~uid:1000 ~gid:1000 ]
+    @ initialize_switch ~network switch_type
+    @ Opam_build.install_project_deps ~opam_version:`V2_1 ~opam_files:[]
+        ~selection
+    @ [
+        workdir "/src";
+        run "sudo chown opam /src";
+        copy [ dune_project; lock_file_path ] ~dst:"/src/";
+        run ~network ~cache:[ download_cache ]
+          "opam monorepo depext --yes --lock ./%s" lock_file_path;
+      ]
+    @ install_opam_provided_packages ~network ~cache:[ download_cache ]
+        ~lock_file_path ~lock_file_version
+    @ [
+        run ~network ~cache:[ download_cache ] "opam exec -- opam monorepo pull";
+        copy [ "." ] ~dst:"/src/";
+        run ~cache:[ dune_cache ] "opam exec -- dune build @install";
+        run ~cache:[ dune_cache ] "opam exec -- dune runtest";
+      ])

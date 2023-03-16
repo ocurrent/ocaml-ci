@@ -88,7 +88,7 @@ let download_cache = "opam-archives"
 let install_project_deps ~opam_version ~opam_files ~selection =
   let { Selection.packages; commit; variant; only_packages } = selection in
   match Variant.distro' variant with
-  | None -> None
+  | None -> raise Exit
   | Some distro ->
       let groups = group_opam_files opam_files in
       let root_pkgs = get_root_opam_packages groups in
@@ -119,30 +119,29 @@ let install_project_deps ~opam_version ~opam_files ~selection =
         | `Linux -> None
       in
       let open Obuilder_spec in
-      Some
-        (Obuilder_spec_opam.set_personality (Variant.arch variant)
-        @ [ env "CLICOLOR_FORCE" "1" ]
-        @ [ env "OPAMCOLOR" "always" ]
-        @ (match home_dir with
-          | Some home_dir -> [ workdir home_dir ]
-          | None -> [])
-        @ distro_extras
-        @ Obuilder_spec_opam.opam_init opam_version distro
-        @ (match home_dir with
-          | Some home_dir -> [ workdir home_dir; run "sudo chown opam /src" ]
-          | None -> [])
-        @ [
-            run ~network ~cache
-              "cd ~/opam-repository && (git cat-file -e %s || git fetch origin \
-               master) && git reset -q --hard %s && git log --no-decorate -n1 \
-               --oneline && opam update -u"
-              commit commit;
-          ]
-        @ pin_opam_files ~network ?work_dir groups
-        @ [ env "DEPS" non_root_pkgs; env "CI" "true"; env "OCAMLCI" "true" ]
-        @ Obuilder_spec_opam.opam_depext ~network ~cache ~opam_version
-            compatible_root_pkgs
-        @ [ run ~network ~cache "opam install $DEPS" ])
+      Obuilder_spec_opam.set_personality (Variant.arch variant)
+      @ [ env "CLICOLOR_FORCE" "1" ]
+      @ [ env "OPAMCOLOR" "always" ]
+      @ (match home_dir with
+        | Some home_dir -> [ workdir home_dir ]
+        | None -> [])
+      @ distro_extras
+      @ Obuilder_spec_opam.opam_init opam_version distro
+      @ (match home_dir with
+        | Some home_dir -> [ workdir home_dir; run "sudo chown opam /src" ]
+        | None -> [])
+      @ [
+          run ~network ~cache
+            "cd ~/opam-repository && (git cat-file -e %s || git fetch origin \
+             master) && git reset -q --hard %s && git log --no-decorate -n1 \
+             --oneline && opam update -u"
+            commit commit;
+        ]
+      @ pin_opam_files ~network ?work_dir groups
+      @ [ env "DEPS" non_root_pkgs; env "CI" "true"; env "OCAMLCI" "true" ]
+      @ Obuilder_spec_opam.opam_depext ~network ~cache ~opam_version
+          compatible_root_pkgs
+      @ [ run ~network ~cache "opam install $DEPS" ]
 
 let spec ~base ~opam_version ~opam_files ~selection =
   let open Obuilder_spec in
@@ -169,11 +168,8 @@ let spec ~base ~opam_version ~opam_files ~selection =
            rm -rf _build"
           only_packages
   in
-  match install_project_deps ~opam_version ~opam_files ~selection with
-  | None -> raise Exit
-  | Some install_project_deps ->
-      stage ~from:base
-        (comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant)
-         :: user_unix ~uid:1000 ~gid:1000
-         :: install_project_deps
-        @ [ copy [ "." ] ~dst:home_dir; run_build ])
+  stage ~from:base
+    (comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant)
+     :: user_unix ~uid:1000 ~gid:1000
+     :: install_project_deps ~opam_version ~opam_files ~selection
+    @ [ copy [ "." ] ~dst:home_dir; run_build ])
