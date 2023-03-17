@@ -23,4 +23,8 @@
   solver-worker
   obuilder-spec
   dockerfile-opam
-  timedesc))
+  timedesc
+  cohttp-lwt-unix
+  tar
+  tar-unix
+  tar.gz))

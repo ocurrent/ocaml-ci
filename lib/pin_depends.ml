@@ -29,6 +29,12 @@ module Cmd = struct
     | _ -> false
     | exception Unix.Unix_error (Unix.ENOENT, _, _) -> false
 
+  let file_exists path =
+    match Unix.lstat (Fpath.to_string path) with
+    | { Unix.st_kind = S_REG; _ } -> true
+    | _ -> false
+    | exception Unix.Unix_error (Unix.ENOENT, _, _) -> false
+
   let git ~cancellable ~job ?cwd args =
     let args =
       match cwd with
@@ -79,12 +85,8 @@ let read_opam_file ~job ~repo ~hash pkg =
           @@ Fmt.error_msg "Can't find %s (or opam/%s): %s" opam_filename
                opam_filename msg)
 
-let get_opam ~job ~pkg url =
-  let { OpamUrl.transport; path = _; hash; backend } = url in
-  if backend <> `git then
-    Fmt.failwith "Only Git pin-depends are supported (got %S for %s)"
-      (OpamUrl.to_string url)
-      (OpamPackage.to_string pkg);
+let get_opam_git ~job ~pkg url =
+  let { OpamUrl.transport; path = _; hash; backend = _ } = url in
   if transport <> "https" then
     Fmt.failwith "Only 'git+https://' scheme is supported (got %S for %s)"
       transport
@@ -106,3 +108,130 @@ let get_opam ~job ~pkg url =
           clone ~job repo_url >>!= fun repo ->
           read_opam_file ~job ~repo ~hash pkg >>!= fun contents ->
           Lwt.return contents)
+
+module TgzLwtUnixWriter = struct
+  type out_channel = Lwt_unix.file_descr
+  type 'a t = 'a Lwt.t
+
+  let really_write = Tar_lwt_unix.really_write
+end
+
+module TgzLwtUnixReader = struct
+  type in_channel = Lwt_unix.file_descr
+  type 'a t = 'a Lwt.t
+
+  let really_read = Tar_lwt_unix.really_read
+
+  let skip ic len =
+    Lwt_unix.lseek ic len SEEK_CUR >>= fun skipped ->
+    if len <> skipped then Fmt.failwith "Error reading pin-depend archive file.";
+    Lwt.return_unit
+
+  let read ic cs =
+    let max = Cstruct.length cs in
+    let buf = Bytes.create max in
+    Lwt_unix.read ic buf 0 max >|= fun len ->
+    Cstruct.blit_from_bytes buf 0 cs 0 len;
+    len
+end
+
+module Tgz = Tar_gz.Make (Lwt) (TgzLwtUnixWriter) (TgzLwtUnixReader)
+
+let read_opam_file ~tarball ~prefix pkg =
+  let opam_filename = prefix ^ "/" ^ OpamPackage.name_to_string pkg ^ ".opam" in
+  let opam_filename' =
+    prefix ^ "/opam/" ^ OpamPackage.name_to_string pkg ^ ".opam"
+  in
+  let read tgz hdr =
+    let buf = Cstruct.create (hdr.Tar.Header.file_size |> Int64.to_int) in
+    Tgz.really_read tgz buf >|= fun () -> Cstruct.to_string buf
+  in
+  let rec find opam_file' tgz =
+    Lwt.catch
+      (fun () ->
+        Tgz.get_next_header tgz >>= fun hdr ->
+        if hdr.Tar.Header.file_name = opam_filename then
+          read tgz hdr >|= fun opam_file -> Some opam_file
+        else
+          (if hdr.Tar.Header.file_name = opam_filename' then
+             read tgz hdr >|= fun opam_file' -> Some opam_file'
+           else Lwt.return_none)
+          >>= fun opam_file' ->
+          let to_skip = Tar.Header.(Int64.to_int (to_sectors hdr) * length) in
+          Tgz.skip tgz to_skip >>= fun () -> find opam_file' tgz)
+      (function
+        | Tar.Header.End_of_stream -> Lwt.return opam_file'
+        | exn -> Lwt.fail exn)
+  in
+  Lwt_unix.openfile (Fpath.to_string tarball)
+    [ O_RDONLY; O_CLOEXEC; O_NONBLOCK ]
+    0
+  >>= fun fd ->
+  Lwt.finalize
+    (fun () ->
+      let tgz = Tgz.of_in_channel ~internal:(Cstruct.create 4096) fd in
+      find None tgz)
+    (fun () -> Lwt_unix.close fd)
+
+let fetch ~transport ~path ~tarball =
+  let open Cohttp in
+  let open Cohttp_lwt_unix in
+  Client.get (transport ^ "://" ^ path |> Uri.of_string) >>= fun (resp, _) ->
+  if resp |> Response.status |> Code.code_of_status <> 302 then
+    Fmt.failwith "Expected redirect response.";
+  let location =
+    resp |> Response.headers |> Fun.flip Header.get "Location" |> Option.get
+  in
+  Client.get (location |> Uri.of_string) >>= fun (resp, body) ->
+  if resp |> Response.status |> Code.code_of_status <> 200 then
+    Fmt.failwith "Failed to download the pin-depend: %a" Response.pp_hum resp;
+  Lwt_io.with_file ~mode:Lwt_io.Output (Fpath.to_string tarball) @@ fun ch ->
+  Lwt_stream.iter_s (Lwt_io.write ch) (Cohttp_lwt.Body.to_stream body)
+
+let get_opam_http ~job ~pkg url =
+  ignore job;
+  (* TODO: support cancellation *)
+  let { OpamUrl.transport; path; hash = _; backend = _ } = url in
+  match Astring.String.cuts ~sep:"/" path with
+  | [ "github.com"; _org; repo; "archive"; archive ] -> (
+      let hash, ext =
+        let hash, ext = Fpath.split_ext ~multi:true (Fpath.v archive) in
+        (Fpath.to_string hash, ext)
+      in
+      if not (Str.string_match re_hash hash 0) then
+        Fmt.failwith "Invalid commit hash %S for package %s" hash
+          (OpamPackage.to_string pkg);
+      if not (ext = ".tgz" || ext = ".tar.gz") then
+        Fmt.failwith "Only gzipped tar archives are supported (for %s)" archive;
+      let repo_url = OpamUrl.base_url url in
+      let tarball = Cmd.local_copy repo_url in
+
+      (if Cmd.file_exists tarball then Lwt.return_unit
+       else
+         Lwt.catch
+           (fun () -> fetch ~transport ~path ~tarball)
+           (fun exn ->
+             Lwt_unix.unlink (Fpath.to_string tarball) >>= fun () ->
+             Lwt.fail exn))
+      >>= fun () ->
+      read_opam_file ~tarball ~prefix:(repo ^ "-" ^ hash) pkg >>= function
+      | Some contents -> Lwt.return contents
+      | None ->
+          Fmt.failwith "Couldn't get opam file %a contents from %s for %s"
+            Fpath.pp tarball (OpamUrl.to_string url)
+            (OpamPackage.to_string pkg))
+  | _ ->
+      Fmt.failwith
+        "Only Git or GitHub https pin-depends are supported (got %S for %s)"
+        (OpamUrl.to_string url)
+        (OpamPackage.to_string pkg)
+
+let get_opam ~job ~pkg url =
+  match url.OpamUrl.backend with
+  | `git -> get_opam_git ~job ~pkg url
+  | `http -> get_opam_http ~job ~pkg url
+  | _ ->
+      Fmt.failwith
+        "Only Git or GitHub https pin-depends are supported (got %S for %s)"
+        (OpamUrl.to_string url)
+        (OpamPackage.to_string pkg)
