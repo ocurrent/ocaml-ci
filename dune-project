@@ -124,4 +124,8 @@
   (prometheus-app (>= 1.2))
   tyxml
   tailwindcss
-  (timedesc (>= 0.9.0))))
+  (timedesc (>= 0.9.0))
+  js_of_ocaml
+  js_of_ocaml-ppx
+  brr
+  ))

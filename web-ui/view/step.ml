@@ -193,460 +193,374 @@ module Make (M : Git_forge_intf.Forge) = struct
   let show ~org ~repo ~refs ~hash ~variant ~job ~status ~csrf_token ~timestamps
       ~build_created_at ~step_created_at ~step_finished_at ~can_rebuild
       ~can_cancel ?(flash_messages = []) (data, next) =
+    ignore job;
+    ignore data;
+    ignore next;
     let show_rebuild = (not can_cancel) && can_rebuild in
-    let header, footer =
-      let buttons =
-        [
-          Common.form_cancel_step ~variant ~csrf_token ~show:can_cancel ();
-          Common.form_rebuild_step ~variant ~csrf_token ~show:show_rebuild ();
-        ]
-      in
-      let branch =
-        if refs = [] then ""
-        else
-          match Astring.String.cuts ~sep:"/" (List.hd refs) with
-          | "refs" :: "heads" :: branch -> Astring.String.concat ~sep:"/" branch
-          | _ -> ""
-      in
-      let build_created_at = Option.value ~default:0. build_created_at in
-      let run_time =
-        Option.map (Run_time.TimeInfo.of_timestamp ~build_created_at) timestamps
-      in
-      let title_card =
-        title_card ~status ~card_title:variant
-          ~hash_link:
-            (link_forge_commit ~org ~repo ~hash:(Common.short_hash hash))
-          ~created_at:(Run_time.Duration.pp_readable_opt step_created_at)
-          ~finished_at:(Run_time.Duration.pp_readable_opt step_finished_at)
-          ~queued_for:
-            (Run_time.Duration.pp_opt
-               (Option.map Run_time.TimeInfo.queued_for run_time))
-          ~ran_for:
-            (Run_time.Duration.pp_opt
-               (Option.map Run_time.TimeInfo.ran_for run_time))
-          ~buttons
-      in
-      let steps_to_reproduce_build =
-        Tyxml.Html.(
-          div
-            ~a:
-              [
-                a_class
-                  [
-                    "shadow-sm rounded-lg overflow-hidden border \
-                     border-gray-200 dark:border-gray-400 divide-x \
-                     divide-gray-20";
-                  ];
-                a_style "display: none";
-                a_id "build-repro-container";
-              ]
+    (* let header, footer = *)
+    let buttons =
+      [
+        Common.form_cancel_step ~variant ~csrf_token ~show:can_cancel ();
+        Common.form_rebuild_step ~variant ~csrf_token ~show:show_rebuild ();
+      ]
+    in
+    let branch =
+      if refs = [] then ""
+      else
+        match Astring.String.cuts ~sep:"/" (List.hd refs) with
+        | "refs" :: "heads" :: branch -> Astring.String.concat ~sep:"/" branch
+        | _ -> ""
+    in
+    let build_created_at = Option.value ~default:0. build_created_at in
+    let run_time =
+      Option.map (Run_time.TimeInfo.of_timestamp ~build_created_at) timestamps
+    in
+    let title_card =
+      title_card ~status ~card_title:variant
+        ~hash_link:(link_forge_commit ~org ~repo ~hash:(Common.short_hash hash))
+        ~created_at:(Run_time.Duration.pp_readable_opt step_created_at)
+        ~finished_at:(Run_time.Duration.pp_readable_opt step_finished_at)
+        ~queued_for:
+          (Run_time.Duration.pp_opt
+             (Option.map Run_time.TimeInfo.queued_for run_time))
+        ~ran_for:
+          (Run_time.Duration.pp_opt
+             (Option.map Run_time.TimeInfo.ran_for run_time))
+        ~buttons
+    in
+    let steps_to_reproduce_build =
+      Tyxml.Html.(
+        div
+          ~a:
             [
-              div
-                ~a:
-                  [
-                    a_class
-                      [
-                        "flex items-center justify-between px-4 py-3 \
-                         bg-gray-50 dark:bg-gray-850";
-                      ];
-                  ]
+              a_class
                 [
-                  div
-                    ~a:
-                      [
-                        Tyxml_helpers.at_click "stepsToRepro = !stepsToRepro";
-                        a_class
-                          [
-                            "text-gray-900 dark:text-gray-200 text-base \
-                             font-medium border-b-none border-gray-200 flex \
-                             items-center space-x-3 flex-1 cursor-pointer";
-                          ];
-                      ]
-                    [
-                      Tyxml.Svg.(
-                        Tyxml.Html.svg
-                          ~a:
-                            [
-                              a_class [ "h-5 w-5 rotate-180" ];
-                              Tyxml_helpers.a_svg_custom ":class"
-                                "{ 'rotate-180': stepsToRepro == 1 }";
-                              a_fill `None;
-                              a_viewBox (0., 0., 24., 24.);
-                              a_stroke `CurrentColor;
-                              a_stroke_width (2., Some `Px);
-                            ]
-                          [
-                            path
-                              ~a:
-                                [
-                                  a_stroke_linecap `Round;
-                                  a_stroke_linejoin `Round;
-                                  a_d "M19 9l-7 7-7-7";
-                                ]
-                              [];
-                          ]);
-                      div [ txt "Steps to Reproduce" ];
-                    ];
-                  div
-                    [
-                      Tyxml.Html.button
-                        ~a:
-                          [
-                            a_class [ "btn btn-sm btn-default" ];
-                            Tyxml_helpers.at_click
-                              "codeCopied = true, \
-                               $clipboard($refs.reproCode.innerText)";
-                          ]
-                        [
-                          Tyxml.Svg.(
-                            Tyxml.Html.svg
-                              ~a:
-                                [
-                                  a_class [ "h-5 w-5" ];
-                                  a_fill `None;
-                                  a_viewBox (0., 0., 24., 24.);
-                                  a_stroke `CurrentColor;
-                                  a_stroke_width (2., Some `Px);
-                                ]
-                              [
-                                path
-                                  ~a:
-                                    [
-                                      a_stroke_linecap `Round;
-                                      a_stroke_linejoin `Round;
-                                      a_d
-                                        "M8 16H6a2 2 0 01-2-2V6a2 2 0 \
-                                         012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 \
-                                         002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 \
-                                         2v8a2 2 0 002 2z";
-                                    ]
-                                  [];
-                              ]);
-                          txt "Copy code";
-                        ];
-                    ];
+                  "shadow-sm rounded-lg overflow-hidden border border-gray-200 \
+                   dark:border-gray-400 divide-x divide-gray-20";
                 ];
-              div
-                ~a:
-                  [
-                    a_class
-                      [
-                        "flex relative overflow-hidden transition-all max-h-0 \
-                         duration-700";
-                      ];
-                    Tyxml_helpers.x_ref "container1";
-                    Tyxml_helpers.x_bind_style
-                      "stepsToRepro == 1 ? 'max-height: ' + \
-                       ($refs.container1.scrollHeight + 20) + 'px' : ''";
-                  ]
-                [
-                  div
-                    ~a:
-                      [
-                        a_class
-                          [
-                            "fg-default bg-default px-6 py-3 rounded-lg \
-                             rounded-l-none text-gray-300 w-full \
-                             rounded-t-none";
-                          ];
-                      ]
-                    [
-                      Tyxml.Html.code
-                        ~a:
-                          [
-                            a_id "build-repro";
-                            a_class [ "overflow-auto" ];
-                            Tyxml_helpers.x_ref "reproCode";
-                          ]
-                        [];
-                    ];
-                ];
-            ])
-      in
-      let logs_container =
-        Tyxml.Html.(
-          div
-            ~a:
-              [
-                a_class [ "mt-6 bg-gray-100 rounded-lg relative border" ];
-                Tyxml_helpers.x_data "codeLink";
-                Tyxml_helpers.x_init "highlightLine";
-              ]
-            [
-              Tyxml.Html.button
-                ~a:
-                  [
-                    a_class [ "copy-link-btn" ];
-                    Tyxml_helpers.at_click "copyCode";
-                    Tyxml_helpers.x_show "manualSelection";
-                    Tyxml_helpers.x_ref "copyLinkBtn";
-                    Tyxml_helpers.x_cloak;
-                  ]
-                [
-                  Tyxml.Svg.(
-                    Tyxml.Html.svg
-                      ~a:
-                        [
-                          a_class [ "w-4 h-4" ];
-                          a_fill `None;
-                          a_viewBox (0., 0., 24., 24.);
-                          a_stroke_width (2., Some `Px);
-                          a_stroke `CurrentColor;
-                        ]
-                      [
-                        path
-                          ~a:
-                            [
-                              a_stroke_linecap `Round;
-                              a_stroke_linejoin `Round;
-                              a_d
-                                "M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 \
-                                 4.5a4.5 4.5 0 \
-                                 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 \
-                                 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 \
-                                 001.242 7.244";
-                            ]
-                          [];
-                      ]);
-                ];
-              div
-                ~a:
-                  [
-                    a_class
-                      [
-                        "table-overflow overflow-auto rounded-lg fg-default \
-                         bg-default";
-                      ];
-                  ]
-                [
-                  pre
-                    ~a:
-                      [
-                        a_class
-                          [ "flex code steps-table fg-default bg-default" ];
-                      ]
-                    [ txt "@@@" ];
-                ];
-            ])
-      in
-      let notification ~variable ~text =
-        Tyxml.Html.(
-          div
-            ~a:
-              [
-                a_class [ "notification dark:bg-gray-850" ];
-                Tyxml_helpers.x_cloak;
-                Tyxml_helpers.x_show variable;
-                Tyxml_helpers.x_transition;
-              ]
-            [
-              div
-                ~a:[ a_class [ "flex items-center space-x-2" ] ]
-                [
-                  div
-                    ~a:[ a_class [ "icon-status icon-status--success" ] ]
-                    [
-                      Tyxml.Svg.(
-                        Tyxml.Html.svg
-                          ~a:
-                            [
-                              a_class [ "h-4 w-4" ];
-                              a_viewBox (0., 0., 20., 20.);
-                              a_fill (`Color ("#12B76A", None));
-                            ]
-                          [
-                            path
-                              ~a:
-                                [
-                                  Tyxml_helpers.a_svg_custom "fill-rule"
-                                    "evenodd";
-                                  Tyxml_helpers.a_svg_custom "clip-rule"
-                                    "evenodd";
-                                  a_d
-                                    "M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 \
-                                     01-1.414 0l-4-4a1 1 0 011.414-1.414L8 \
-                                     12.586l7.293-7.293a1 1 0 011.414 0z";
-                                ]
-                              [];
-                          ]);
-                    ];
-                  div [ txt text ];
-                ];
-              Tyxml.Html.button
-                ~a:
-                  [
-                    a_class [ "icon-button" ];
-                    Tyxml_helpers.at_click (Printf.sprintf "%s=false" variable);
-                  ]
-                [
-                  Tyxml.Svg.(
-                    Tyxml.Html.svg
-                      ~a:
-                        [
-                          a_fill `None;
-                          a_viewBox (0., 0., 24., 24.);
-                          a_stroke_width (2.5, Some `Px);
-                          a_stroke `CurrentColor;
-                          a_class [ "w-4 h-4" ];
-                        ]
-                      [
-                        path
-                          ~a:
-                            [
-                              a_stroke_linecap `Round;
-                              a_stroke_linejoin `Round;
-                              a_d "M4.5 19.5l15-15m-15 0l15 15";
-                            ]
-                          [];
-                      ]);
-                ];
-            ])
-      in
-      let body =
-        Template.instance ~full:true
+              a_style "display: none";
+              a_id "build-repro-container";
+            ]
           [
-            Tyxml.Html.script ~a:[ a_src "/js/log-highlight.js" ] (txt "");
-            Tyxml.Html.script ~a:[ a_src "/js/step-page-poll.js" ] (txt "");
-            Common.breadcrumbs
-              [
-                ("Organisations", M.prefix);
-                (org, org);
-                (repo, repo);
-                ( Printf.sprintf "%s (%s)" (Common.short_hash hash) branch,
-                  Printf.sprintf "commit/%s" hash );
-              ]
-              variant;
-            title_card;
-            Common.flash_messages flash_messages;
             div
               ~a:
                 [
-                  a_class [ "mt-8 flex flex-col" ];
-                  Tyxml_helpers.x_data
-                    "{ url: window.location.href, logs: true, artefacts: \
-                     false, codeCoverage: false, codeCopied: false, \
-                     linkCopied: false, startingLine: null, endingLine: null, \
-                     manualSelection: false}";
+                  a_class
+                    [
+                      "flex items-center justify-between px-4 py-3 bg-gray-50 \
+                       dark:bg-gray-850";
+                    ];
                 ]
               [
-                notification ~variable:"linkCopied" ~text:"Link Copied";
-                notification ~variable:"codeCopied" ~text:"Code Copied";
+                div
+                  ~a:
+                    [
+                      Tyxml_helpers.at_click "stepsToRepro = !stepsToRepro";
+                      a_class
+                        [
+                          "text-gray-900 dark:text-gray-200 text-base \
+                           font-medium border-b-none border-gray-200 flex \
+                           items-center space-x-3 flex-1 cursor-pointer";
+                        ];
+                    ]
+                  [
+                    Tyxml.Svg.(
+                      Tyxml.Html.svg
+                        ~a:
+                          [
+                            a_class [ "h-5 w-5 rotate-180" ];
+                            Tyxml_helpers.a_svg_custom ":class"
+                              "{ 'rotate-180': stepsToRepro == 1 }";
+                            a_fill `None;
+                            a_viewBox (0., 0., 24., 24.);
+                            a_stroke `CurrentColor;
+                            a_stroke_width (2., Some `Px);
+                          ]
+                        [
+                          path
+                            ~a:
+                              [
+                                a_stroke_linecap `Round;
+                                a_stroke_linejoin `Round;
+                                a_d "M19 9l-7 7-7-7";
+                              ]
+                            [];
+                        ]);
+                    div [ txt "Steps to Reproduce" ];
+                  ];
+                div
+                  [
+                    Tyxml.Html.button
+                      ~a:
+                        [
+                          a_class [ "btn btn-sm btn-default" ];
+                          Tyxml_helpers.at_click
+                            "codeCopied = true, \
+                             $clipboard($refs.reproCode.innerText)";
+                        ]
+                      [
+                        Tyxml.Svg.(
+                          Tyxml.Html.svg
+                            ~a:
+                              [
+                                a_class [ "h-5 w-5" ];
+                                a_fill `None;
+                                a_viewBox (0., 0., 24., 24.);
+                                a_stroke `CurrentColor;
+                                a_stroke_width (2., Some `Px);
+                              ]
+                            [
+                              path
+                                ~a:
+                                  [
+                                    a_stroke_linecap `Round;
+                                    a_stroke_linejoin `Round;
+                                    a_d
+                                      "M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 \
+                                       2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 \
+                                       0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z";
+                                  ]
+                                [];
+                            ]);
+                        txt "Copy code";
+                      ];
+                  ];
+              ];
+            div
+              ~a:
+                [
+                  a_class
+                    [
+                      "flex relative overflow-hidden transition-all max-h-0 \
+                       duration-700";
+                    ];
+                  Tyxml_helpers.x_ref "container1";
+                  Tyxml_helpers.x_bind_style
+                    "stepsToRepro == 1 ? 'max-height: ' + \
+                     ($refs.container1.scrollHeight + 20) + 'px' : ''";
+                ]
+              [
                 div
                   ~a:
                     [
                       a_class
                         [
-                          "flex space-x-6 border-b border-gray-200 mb-6 text-sm";
+                          "fg-default bg-default px-6 py-3 rounded-lg \
+                           rounded-l-none text-gray-300 w-full rounded-t-none";
                         ];
                     ]
-                  [ h3 ~a:[ a_class [ "font-medium pb-2" ] ] [ txt "Logs" ] ];
-                div
+                  [
+                    Tyxml.Html.code
+                      ~a:
+                        [
+                          a_id "build-repro";
+                          a_class [ "overflow-auto" ];
+                          Tyxml_helpers.x_ref "reproCode";
+                        ]
+                      [];
+                  ];
+              ];
+          ])
+    in
+    let logs_container =
+      Tyxml.Html.(
+        div
+          ~a:
+            [
+              a_class [ "mt-6 bg-gray-100 rounded-lg relative border" ];
+              Tyxml_helpers.x_data "codeLink";
+              Tyxml_helpers.x_init "highlightLine";
+            ]
+          [
+            Tyxml.Html.button
+              ~a:
+                [
+                  a_class [ "copy-link-btn" ];
+                  Tyxml_helpers.at_click "copyCode";
+                  Tyxml_helpers.x_show "manualSelection";
+                  Tyxml_helpers.x_ref "copyLinkBtn";
+                  Tyxml_helpers.x_cloak;
+                ]
+              [
+                Tyxml.Svg.(
+                  Tyxml.Html.svg
+                    ~a:
+                      [
+                        a_class [ "w-4 h-4" ];
+                        a_fill `None;
+                        a_viewBox (0., 0., 24., 24.);
+                        a_stroke_width (2., Some `Px);
+                        a_stroke `CurrentColor;
+                      ]
+                    [
+                      path
+                        ~a:
+                          [
+                            a_stroke_linecap `Round;
+                            a_stroke_linejoin `Round;
+                            a_d
+                              "M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 \
+                               4.5a4.5 4.5 0 \
+                               01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 \
+                               4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 \
+                               7.244";
+                          ]
+                        [];
+                    ]);
+              ];
+            div
+              ~a:
+                [
+                  a_class
+                    [
+                      "table-overflow overflow-auto rounded-lg fg-default \
+                       bg-default";
+                    ];
+                ]
+              [
+                pre
                   ~a:
                     [
-                      Tyxml_helpers.x_show "logs";
-                      Tyxml_helpers.x_data "{stepsToRepro: false}";
+                      a_id "scroller";
+                      a_class [ "flex code steps-table fg-default bg-default" ];
                     ]
-                  [ steps_to_reproduce_build; logs_container ];
+                  [];
+                div ~a:[ a_id "anchor" ] [];
               ];
-            Tyxml.Html.script ~a:[ a_src "/js/add-repro-steps.js" ] (txt "");
+            div
+              ~a:
+                [
+                  a_class
+                    [
+                      "table-overflow overflow-auto rounded-lg fg-default \
+                       bg-default";
+                    ];
+                ]
+              [
+                pre
+                  ~a:
+                    [
+                      a_class [ "flex code steps-table fg-default bg-default" ];
+                    ]
+                  [ txt "@@@" ];
+              ];
+          ])
+    in
+    let notification ~variable ~text =
+      Tyxml.Html.(
+        div
+          ~a:
+            [
+              a_class [ "notification dark:bg-gray-850" ];
+              Tyxml_helpers.x_cloak;
+              Tyxml_helpers.x_show variable;
+              Tyxml_helpers.x_transition;
+            ]
+          [
+            div
+              ~a:[ a_class [ "flex items-center space-x-2" ] ]
+              [
+                div
+                  ~a:[ a_class [ "icon-status icon-status--success" ] ]
+                  [
+                    Tyxml.Svg.(
+                      Tyxml.Html.svg
+                        ~a:
+                          [
+                            a_class [ "h-4 w-4" ];
+                            a_viewBox (0., 0., 20., 20.);
+                            a_fill (`Color ("#12B76A", None));
+                          ]
+                        [
+                          path
+                            ~a:
+                              [
+                                Tyxml_helpers.a_svg_custom "fill-rule" "evenodd";
+                                Tyxml_helpers.a_svg_custom "clip-rule" "evenodd";
+                                a_d
+                                  "M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 \
+                                   01-1.414 0l-4-4a1 1 0 011.414-1.414L8 \
+                                   12.586l7.293-7.293a1 1 0 011.414 0z";
+                              ]
+                            [];
+                        ]);
+                  ];
+                div [ txt text ];
+              ];
+            Tyxml.Html.button
+              ~a:
+                [
+                  a_class [ "icon-button" ];
+                  Tyxml_helpers.at_click (Printf.sprintf "%s=false" variable);
+                ]
+              [
+                Tyxml.Svg.(
+                  Tyxml.Html.svg
+                    ~a:
+                      [
+                        a_fill `None;
+                        a_viewBox (0., 0., 24., 24.);
+                        a_stroke_width (2.5, Some `Px);
+                        a_stroke `CurrentColor;
+                        a_class [ "w-4 h-4" ];
+                      ]
+                    [
+                      path
+                        ~a:
+                          [
+                            a_stroke_linecap `Round;
+                            a_stroke_linejoin `Round;
+                            a_d "M4.5 19.5l15-15m-15 0l15 15";
+                          ]
+                        [];
+                    ]);
+              ];
+          ])
+    in
+    (* let body = *)
+    Template.instance ~full:true
+      [
+        Tyxml.Html.script ~a:[ a_src "/js/log-highlight.js" ] (txt "");
+        Tyxml.Html.script ~a:[ a_src "/js/step-page-poll.js" ] (txt "");
+        Tyxml.Html.script ~a:[ a_src "/js/step-logs.js" ] (txt "");
+        Common.breadcrumbs
+          [
+            ("Organisations", M.prefix);
+            (org, org);
+            (repo, repo);
+            ( Printf.sprintf "%s (%s)" (Common.short_hash hash) branch,
+              Printf.sprintf "commit/%s" hash );
           ]
-      in
-      Astring.String.cut ~sep:"@@@" body |> Option.get
-    in
-    let ansi = Ansi.create () in
-    let line_number = ref 0 in
-    let last_line_blank = ref false in
-    let tabulate data : string =
-      let aux log_line =
-        if !last_line_blank && log_line = "" then
-          (* Squash consecutive new lines *)
-          None
-        else
-          let is_start_of_steps_to_reproduce =
-            Astring.String.is_infix ~affix:"To reproduce locally:" log_line
-          in
-          let is_end_of_steps_to_reproduce =
-            Astring.String.is_infix ~affix:"END-REPRO-BLOCK" log_line
-          in
-          let code_line_class =
-            if is_start_of_steps_to_reproduce then "repro-block-start"
-            else if is_end_of_steps_to_reproduce then "repro-block-end"
-            else ""
-          in
-          last_line_blank := log_line = "";
-          line_number := !line_number + 1;
-          let line_number_id = Printf.sprintf "L%d" !line_number in
-          let line =
-            Fmt.str "%a" (pp_elt ())
-              (span
-                 ~a:
-                   [
-                     a_class [ "tr" ];
-                     Tyxml_helpers.colon_class
-                       "parseInt($el.id.substring(1, $el.id.length)) >= \
-                        startingLine && parseInt($el.id.substring(1, \
-                        $el.id.length)) <= endingLine ? 'highlight' : ''";
-                     Tyxml_helpers.at_click "highlightLine";
-                     a_id line_number_id;
-                   ]
-                 [
-                   span
-                     ~a:
-                       [
-                         a_class [ "th" ];
-                         a_user_data "line-number" line_number_id;
-                       ]
-                     [];
-                   code
-                     ~a:
-                       [
-                         a_class [ code_line_class ];
-                         a_user_data "line-number" line_number_id;
-                       ]
-                     [ Unsafe.data log_line ];
-                 ])
-          in
-          Some line
-      in
-      List.filter_map aux data |> String.concat "\n"
-    in
-    let collapse_carriage_returns log_line =
-      let rec last = function
-        | [] -> raise (Failure "Trying to take log_line from empty list (BUG)")
-        | [ s ] -> s
-        | _ :: l -> last l
-      in
-      match log_line with
-      | "" -> ""
-      | log_line -> Astring.String.cuts ~sep:"\r" log_line |> last
-    in
-    let process_logs data =
-      Astring.String.(with_range ~len:(length data - 1)) data
-      |> Astring.String.cuts ~sep:"\n"
-      |> List.map (fun l -> collapse_carriage_returns l |> Ansi.process ansi)
-      |> tabulate
-    in
-    let open Lwt.Infix in
-    Dream.stream
-      ~headers:[ ("Content-type", "text/html; charset=utf-8") ]
-      (fun response_stream ->
-        Dream.write response_stream header >>= fun () ->
-        let data' = process_logs data in
-        Dream.write response_stream data' >>= fun () ->
-        let rec loop next =
-          Current_rpc.Job.log job ~start:next >>= function
-          | Ok ("", _) ->
-              Dream.write response_stream footer >>= fun () ->
-              Dream.close response_stream
-          | Ok (data, next) ->
-              Dream.log "Fetching logs";
-              let data' = process_logs data in
-              Dream.write response_stream data' >>= fun () ->
-              Dream.flush response_stream >>= fun () -> loop next
-          | Error (`Capnp ex) ->
-              Dream.log "Error fetching logs: %a" Capnp_rpc.Error.pp ex;
-              Dream.write response_stream
-                (Fmt.str "ocaml-ci error: %a@." Capnp_rpc.Error.pp ex)
-        in
-        loop next)
+          variant;
+        title_card;
+        Common.flash_messages flash_messages;
+        div
+          ~a:
+            [
+              a_class [ "mt-8 flex flex-col" ];
+              Tyxml_helpers.x_data
+                "{ url: window.location.href, logs: true, artefacts: false, \
+                 codeCoverage: false, codeCopied: false, linkCopied: false, \
+                 startingLine: null, endingLine: null, manualSelection: false}";
+            ]
+          [
+            notification ~variable:"linkCopied" ~text:"Link Copied";
+            notification ~variable:"codeCopied" ~text:"Code Copied";
+            div
+              ~a:
+                [
+                  a_class
+                    [ "flex space-x-6 border-b border-gray-200 mb-6 text-sm" ];
+                ]
+              [ h3 ~a:[ a_class [ "font-medium pb-2" ] ] [ txt "Logs" ] ];
+            div
+              ~a:
+                [
+                  Tyxml_helpers.x_show "logs";
+                  Tyxml_helpers.x_data "{stepsToRepro: false}";
+                ]
+              [ steps_to_reproduce_build; logs_container ];
+          ];
+        Tyxml.Html.script ~a:[ a_src "/js/add-repro-steps.js" ] (txt "");
+      ]
 end

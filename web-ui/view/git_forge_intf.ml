@@ -97,7 +97,8 @@ module type View = sig
     can_cancel:bool ->
     ?flash_messages:(string * string) list ->
     string * int64 ->
-    Dream.response Lwt.t
+    string
+  (* Dream.response Lwt.t *)
 end
 
 module type S = sig

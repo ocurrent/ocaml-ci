@@ -1,0 +1,10 @@
+(executable
+ (name main)
+ (modes js)
+ (preprocess (pps js_of_ocaml-ppx))
+ (libraries
+  js_of_ocaml
+  ansi
+  astring
+  brr
+  tyxml))

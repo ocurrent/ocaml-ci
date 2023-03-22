@@ -16,5 +16,4 @@
   prometheus-app.unix
   ocaml-ci
   ocaml-ci-web.controller
-  ocaml-ci-web.controller.api
-  ocaml-ci-web.controller.ws))
+  ocaml-ci-web.controller.api))

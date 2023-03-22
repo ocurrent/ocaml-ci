@@ -1,4 +1,0 @@
-(library
- (public_name ocaml-ci-web.controller.ws)
- (name ws_controller)
- (libraries dream lwt unix capnp-rpc-unix ocaml-ci-api ocaml-ci-web.controller))

@@ -32,5 +32,6 @@ module Make : functor (_ : Git_forge_intf.Forge) -> sig
     can_cancel:bool ->
     ?flash_messages:(string * string) list ->
     string * int64 ->
-    Dream.response Lwt.t
+    string
+    (* Dream.response Lwt.t *)
 end
