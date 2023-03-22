@@ -118,7 +118,7 @@ let pool_of_arch = function
   | `Ppc64le -> "linux-ppc64"
   | `Riscv64 -> "linux-riscv64"
 
-let platforms ~include_macos opam_version =
+let platforms ~ci_profile ~include_macos opam_version =
   let v ?(arch = `X86_64) label distro ocaml_version =
     {
       arch;
@@ -210,5 +210,5 @@ let fetch_platforms ~include_macos () =
         Platform.get ~arch ~label ~builder ~pool ~distro ~ocaml_version
           ~host_base ~opam_version base
   in
-  let v2_1 = platforms `V2_1 ~include_macos in
+  let v2_1 = platforms ~ci_profile `V2_1 ~include_macos in
   Current.list_seq (List.map v v2_1)
