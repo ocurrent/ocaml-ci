@@ -411,6 +411,8 @@ module Make (M : Git_forge_intf.Forge) = struct
             div
               ~a:
                 [
+                  (* this id is referenced in the jsoo script *)
+                  a_id "logs-scroller";
                   a_class
                     [
                       "table-overflow overflow-auto rounded-lg fg-default \
@@ -421,28 +423,12 @@ module Make (M : Git_forge_intf.Forge) = struct
                 pre
                   ~a:
                     [
-                      a_id "scroller";
+                      a_id "logs-pre";
                       a_class [ "flex code steps-table fg-default bg-default" ];
                     ]
                   [];
                 div ~a:[ a_id "anchor" ] [];
-              ];
-            div
-              ~a:
-                [
-                  a_class
-                    [
-                      "table-overflow overflow-auto rounded-lg fg-default \
-                       bg-default";
-                    ];
-                ]
-              [
-                pre
-                  ~a:
-                    [
-                      a_class [ "flex code steps-table fg-default bg-default" ];
-                    ]
-                  [ txt "@@@" ];
+                (* https://css-tricks.com/books/greatest-css-tricks/pin-scrolling-to-bottom/ *)
               ];
           ])
     in
