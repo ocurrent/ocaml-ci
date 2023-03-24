@@ -1,3 +1,5 @@
+module Variant = Obuilder_spec_opam.Variant
+
 let experimental_variant variant =
   Astring.String.(
     is_prefix ~affix:"macos-homebrew" variant

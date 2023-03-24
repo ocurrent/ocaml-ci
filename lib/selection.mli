@@ -1,4 +1,5 @@
 (** Selected set of packages for a single build. *)
+open Obuilder_spec_opam
 
 type t = {
   variant : Variant.t;  (** The variant image to build on. *)

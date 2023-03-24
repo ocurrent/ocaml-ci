@@ -1,3 +1,6 @@
+module Variant = Obuilder_spec_opam.Variant
+module Opam_version = Obuilder_spec_opam.Opam_version
+
 type t = {
   variant : Variant.t;  (** The variant image to build on. *)
   packages : string list;  (** The selected packages ("name.version"). *)
@@ -24,7 +27,7 @@ let remove_package t ~package =
 let filter_duplicate_opam_versions ts =
   let tbl = Hashtbl.create (List.length ts) in
   let key t =
-    ( Variant.distro t.variant,
+    ( Variant.distro_str t.variant,
       Variant.ocaml_version t.variant,
       Variant.arch t.variant )
   in

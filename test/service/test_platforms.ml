@@ -11,7 +11,7 @@ let debian_11_vars ocaml_package ocaml_version =
   }
 
 let var distro ov =
-  Ocaml_ci.Variant.v ~arch:`X86_64 ~distro
+  Obuilder_spec_opam.Variant.v ~arch:`X86_64 ~distro
     ~ocaml_version:(Ocaml_version.of_string_exn ov)
     ~opam_version:`V2_1
   |> function

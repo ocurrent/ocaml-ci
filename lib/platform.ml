@@ -2,6 +2,9 @@ open Lwt.Infix
 open Current.Syntax
 module Raw = Current_docker.Raw
 module Worker = Ocaml_ci_api.Worker
+module Variant = Obuilder_spec_opam.Variant
+module Opam_version = Obuilder_spec_opam.Opam_version
+module Distro = Obuilder_spec_opam.Distro
 
 type base = [ `Docker of Current_docker.Raw.Image.t | `MacOS of string ]
 (* TODO Use docker images for bundling macos binaries. *)
@@ -75,20 +78,18 @@ module Query = struct
 
   (* This is needed iff the opam used isn't the image default opam. *)
   let prepare_image ~job ~docker_context ~tag variant image =
-    match Variant.distro' variant with
-    | None -> Lwt_result.fail (`Msg "")
-    | Some distro ->
-        let opam = Variant.opam_version variant in
-        let spec =
-          let open Obuilder_spec in
-          stage ~from:image (Obuilder_spec_opam.opam_init opam distro)
-          |> Docker.dockerfile_of_spec ~buildkit:true ~os:`Unix
-        in
-        let cmd =
-          Raw.Cmd.docker ~docker_context [ "build"; "--pull"; "-t"; tag; "-" ]
-        in
-        Current.Process.exec ~stdin:spec ~cancellable:false ~job cmd
-        >>!= fun () -> Lwt_result.ok (Lwt.return tag)
+    let distro = Variant.distro variant in
+    let opam = Variant.opam_version variant in
+    let spec =
+      let open Obuilder_spec in
+      stage ~from:image (Obuilder_spec_opam.opam_init opam distro)
+      |> Docker.dockerfile_of_spec ~buildkit:true ~os:`Unix
+    in
+    let cmd =
+      Raw.Cmd.docker ~docker_context [ "build"; "--pull"; "-t"; tag; "-" ]
+    in
+    Current.Process.exec ~stdin:spec ~cancellable:false ~job cmd
+    >>!= fun () -> Lwt_result.ok (Lwt.return tag)
 
   let opam_template arch =
     let arch = Option.value ~default:"%{arch}%" arch in
@@ -196,11 +197,12 @@ let get_docker builder variant host_base base arch opam_version label pool =
   (* It would be better to run the opam query on the platform itself, but for
      now we run everything on x86_64 and then assume that the other
      architectures are the same except for the arch flag. *)
+  let os_family = Distro.os_family_of_distro @@ Variant.distro variant in
   let vars =
     {
       vars with
       arch = Ocaml_version.to_opam_arch arch;
-      opam_version = Opam_version.to_string_with_patch opam_version;
+      opam_version = Opam_version.to_string_with_patch os_family opam_version;
     }
   in
   let base = Raw.Image.of_hash image in
@@ -221,6 +223,7 @@ let get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
   | Ok variant ->
       Current.component "opam-vars"
       |> let** (`MacOS s) = base in
+         let os_family = Distro.os_family_of_distro @@ Variant.distro variant in
          let vars =
            {
              Worker.Vars.arch = Ocaml_version.to_opam_arch arch;
@@ -230,7 +233,7 @@ let get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
              os_version = "12.6";
              ocaml_package = "ocaml-base-compiler";
              ocaml_version = Fmt.str "%a" Ocaml_version.pp ocaml_version;
-             opam_version = Opam_version.to_string_with_patch opam_version;
+             opam_version = Opam_version.to_string_with_patch os_family opam_version;
            }
          in
          Current.return { label; builder; pool; variant; base = `MacOS s; vars }
@@ -240,7 +243,8 @@ let pull ~arch ~schedule ~builder ~distro ~ocaml_version ~opam_version =
   | Error (`Msg m) -> Current.fail m
   | Ok variant ->
       let archl = Ocaml_version.to_opam_arch arch in
-      let opam_version = Opam_version.to_string opam_version in
+      let os_family = Distro.os_family_of_distro @@ Variant.distro variant in
+      let opam_version = Opam_version.to_string os_family opam_version in
       Current.component "pull@,%s %a %s opam-%s" distro Ocaml_version.pp
         ocaml_version archl opam_version
       |> let> () = Current.return () in

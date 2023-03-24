@@ -2,6 +2,7 @@ open Current.Syntax
 open Lwt.Infix
 module Raw = Current_docker.Raw
 module Selection = Ocaml_ci_api.Worker.Selection
+module Variant = Obuilder_spec_opam.Variant
 
 let checkout_pool = Current.Pool.create ~label:"git-clone" 1
 

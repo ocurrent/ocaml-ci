@@ -49,25 +49,25 @@ module Builders = struct
     { Ocaml_ci.Builder.docker_context = None; pool = dev_pool; build_timeout }
 end
 
-module OV = Ocaml_version
-module DD = Dockerfile_opam.Distro
+module Distro = Obuilder_spec_opam.Distro
+module Opam_version = Obuilder_spec_opam.Opam_version
 
 let default_compilers =
-  OV.(List.map with_just_major_and_minor Releases.[ v4_14; latest ])
+  Ocaml_version.(List.map with_just_major_and_minor Releases.[ v4_14; latest ])
 
-let trunk_compiler = OV.(Sources.trunk |> without_patch)
+let trunk_compiler = Ocaml_version.(Sources.trunk |> without_patch)
 
 type platform = {
   label : string;
   builder : Ocaml_ci.Builder.t;
   pool : string;
   distro : string;
-  ocaml_version : OV.t;
-  arch : OV.arch;
-  opam_version : Ocaml_ci.Opam_version.t;
+  ocaml_version : Ocaml_version.t;
+  arch : Ocaml_version.arch;
+  opam_version : Opam_version.t;
 }
 
-(* TODO Hardcoding the versions for now, this should expand to OV.Releases.recent.
+(* TODO Hardcoding the versions for now, this should expand to Ocaml_version.Releases.recent.
    Currently we only have base images for these 2 compiler variants. See ocurrent/macos-infra playbook.yml.
 *)
 let macos_distros : platform list =
@@ -77,7 +77,7 @@ let macos_distros : platform list =
       builder = Builders.local;
       pool = "macos-x86_64";
       distro = "macos-homebrew";
-      ocaml_version = OV.Releases.v4_14;
+      ocaml_version = Ocaml_version.Releases.v4_14;
       arch = `X86_64;
       opam_version = `V2_1;
     };
@@ -86,7 +86,7 @@ let macos_distros : platform list =
       builder = Builders.local;
       pool = "macos-x86_64";
       distro = "macos-homebrew";
-      ocaml_version = OV.Releases.v5_0;
+      ocaml_version = Ocaml_version.Releases.v5_0;
       arch = `X86_64;
       opam_version = `V2_1;
     };
@@ -96,7 +96,7 @@ let macos_distros : platform list =
       builder = Builders.local;
       pool = "macos-arm64";
       distro = "macos-homebrew";
-      ocaml_version = OV.Releases.v4_14;
+      ocaml_version = Ocaml_version.Releases.v4_14;
       arch = `Aarch64;
       opam_version = `V2_1;
     };
@@ -105,7 +105,7 @@ let macos_distros : platform list =
       builder = Builders.local;
       pool = "macos-arm64";
       distro = "macos-homebrew";
-      ocaml_version = OV.Releases.v5_0;
+      ocaml_version = Ocaml_version.Releases.v5_0;
       arch = `Aarch64;
       opam_version = `V2_1;
     };
@@ -130,30 +130,30 @@ let platforms ~ci_profile ~include_macos opam_version =
       opam_version;
     }
   in
-  let master_distro = DD.resolve_alias DD.master_distro in
+  let master_distro = Distro.resolve_alias Distro.master_distro in
   let make_distro distro =
-    let distro = DD.resolve_alias distro in
-    let label = DD.latest_tag_of_distro (distro :> DD.t) in
-    let tag = DD.tag_of_distro (distro :> DD.t) in
+    let distro = Distro.resolve_alias distro in
+    let label = Distro.latest_tag_of_distro (distro :> Distro.t) in
+    let tag = Distro.tag_of_distro (distro :> Distro.t) in
     let f ov =
       if distro = master_distro then
-        v label tag (OV.with_variant ov (Some "flambda"))
+        v label tag (Ocaml_version.with_variant ov (Some "flambda"))
         :: List.map
              (fun arch -> v ~arch label tag ov)
-             (DD.distro_arches ov (distro :> DD.t))
+             (Distro.distro_arches ov (distro :> Distro.t))
       else [ v label tag ov ]
     in
     List.fold_left (fun l ov -> f ov @ l) [] default_compilers
   in
   let make_release ?arch ov =
-    let distro = DD.tag_of_distro (master_distro :> DD.t) in
-    let ov = OV.with_just_major_and_minor ov in
-    v ?arch (OV.to_string ov) distro ov
+    let distro = Distro.tag_of_distro (master_distro :> Distro.t) in
+    let ov = Ocaml_version.with_just_major_and_minor ov in
+    v ?arch (Ocaml_version.to_string ov) distro ov
   in
   match ci_profile with
   | `Production ->
       let distros =
-        DD.active_tier1_distros `X86_64 @ DD.active_tier2_distros `X86_64
+        Distro.active_tier1_distros `X86_64 @ Distro.active_tier2_distros `X86_64
         |> List.map make_distro
         |> List.flatten
       in
@@ -161,18 +161,18 @@ let platforms ~ci_profile ~include_macos opam_version =
         if include_macos then macos_distros @ distros else distros
       in
       (* The first one in this list is used for lint actions *)
-      let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas in
+      let ovs = List.rev Ocaml_version.Releases.recent @ Ocaml_version.Releases.unreleased_betas in
       List.map make_release ovs @ distros
   | `Dev when Sys.win32 ->
       (* Assume we're building using native Windows images. *)
       let distro =
-        DD.tag_of_distro (`Windows (`Mingw, DD.win10_latest_image) :> DD.t)
+        Distro.tag_of_distro (`Windows (`Mingw, Distro.win10_latest_image) :> Distro.t)
       in
-      let ov = OV.with_just_major_and_minor OV.Releases.latest in
-      [ v (OV.to_string ov) distro ov ]
+      let ov = Ocaml_version.with_just_major_and_minor Ocaml_version.Releases.latest in
+      [ v (Ocaml_version.to_string ov) distro ov ]
   | `Dev ->
       let[@warning "-8"] (latest :: previous :: _) =
-        List.rev OV.Releases.recent
+        List.rev Ocaml_version.Releases.recent
       in
       let ovs = [ latest; previous ] in
       let macos_distros = if include_macos then macos_distros else [] in
@@ -186,11 +186,11 @@ let fetch_platforms ~include_macos () =
     | "macos-homebrew" ->
         (* TODO No docker images for macos yet, lets pretend. *)
         let docker_image_name =
-          Fmt.str "%s-ocaml-%d.%d" distro (OV.major ocaml_version)
-            (OV.minor ocaml_version)
+          Fmt.str "%s-ocaml-%d.%d" distro (Ocaml_version.major ocaml_version)
+            (Ocaml_version.minor ocaml_version)
         in
         let label =
-          Fmt.str "pull %s %s" docker_image_name (OV.string_of_arch arch)
+          Fmt.str "pull %s %s" docker_image_name (Ocaml_version.string_of_arch arch)
         in
         let base = Current.return ~label (`MacOS docker_image_name) in
         Platform.get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version

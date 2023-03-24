@@ -1,3 +1,5 @@
+module Variant = Obuilder_spec_opam.Variant
+
 (* Use opam-2.1 to lint the packages *)
 let opam_version = `V2_1
 

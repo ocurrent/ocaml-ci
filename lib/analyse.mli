@@ -1,4 +1,5 @@
 (** Perform analysis on a source repository by inspecting the opam packages. *)
+open Obuilder_spec_opam
 
 module Analysis : sig
   type t [@@deriving yojson]

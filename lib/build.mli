@@ -1,4 +1,5 @@
 (** Build and test all opam packages. *)
+open Obuilder_spec_opam
 
 val v :
   platforms:Platform.t list Current.t ->

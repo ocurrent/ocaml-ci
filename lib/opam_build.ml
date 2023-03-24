@@ -1,3 +1,6 @@
+module Variant = Obuilder_spec_opam.Variant
+module Opam_version = Obuilder_spec_opam.Opam_version
+
 (* If the package's directory name doesn't contain a dot then opam will default to
    using the last known version, which is usually wrong. In particular, if a multi-project
    repostory adds a new package with a constraint "{ =version }" on an existing one,
@@ -87,61 +90,59 @@ let download_cache = "opam-archives"
 
 let install_project_deps ~opam_version ~opam_files ~selection =
   let { Selection.packages; commit; variant; only_packages } = selection in
-  match Variant.distro' variant with
-  | None -> raise Exit
-  | Some distro ->
-      let groups = group_opam_files opam_files in
-      let root_pkgs = get_root_opam_packages groups in
-      let compatible_root_pkgs =
-        if only_packages = [] then root_pkgs else only_packages
-      in
-      let non_root_pkgs =
-        List.filter (fun pkg -> not (List.mem pkg root_pkgs)) packages
-        |> String.concat " "
-      in
-      let network = [ "host" ] in
-      let cache = Obuilder_spec_opam.cache distro in
-      let distro_extras =
-        match distro with
-        | `Fedora _ ->
-            [ Obuilder_spec.run ~network "sudo dnf install -y findutils" ]
-            (* (we need xargs) *)
-        | _ -> []
-      in
-      let home_dir =
-        match Variant.os variant with
-        | `Macos | `Windows | `Cygwin -> None
-        | `Linux -> Some "/src"
-      in
-      let work_dir =
-        match Variant.os variant with
-        | `Macos | `Windows | `Cygwin -> Some (Fpath.v "./src/")
-        | `Linux -> None
-      in
-      let open Obuilder_spec in
-      Obuilder_spec_opam.set_personality (Variant.arch variant)
-      @ [ env "CLICOLOR_FORCE" "1" ]
-      @ [ env "OPAMCOLOR" "always" ]
-      @ (match home_dir with
-        | Some home_dir -> [ workdir home_dir ]
-        | None -> [])
-      @ distro_extras
-      @ Obuilder_spec_opam.opam_init opam_version distro
-      @ (match home_dir with
-        | Some home_dir -> [ workdir home_dir; run "sudo chown opam /src" ]
-        | None -> [])
-      @ [
-          run ~network ~cache
-            "cd ~/opam-repository && (git cat-file -e %s || git fetch origin \
-             master) && git reset -q --hard %s && git log --no-decorate -n1 \
-             --oneline && opam update -u"
-            commit commit;
-        ]
-      @ pin_opam_files ~network ?work_dir groups
-      @ [ env "DEPS" non_root_pkgs; env "CI" "true"; env "OCAMLCI" "true" ]
-      @ Obuilder_spec_opam.opam_depext ~network ~cache ~opam_version
-          compatible_root_pkgs
-      @ [ run ~network ~cache "opam install $DEPS" ]
+  let distro = Variant.distro variant in
+  let groups = group_opam_files opam_files in
+  let root_pkgs = get_root_opam_packages groups in
+  let compatible_root_pkgs =
+    if only_packages = [] then root_pkgs else only_packages
+  in
+  let non_root_pkgs =
+    List.filter (fun pkg -> not (List.mem pkg root_pkgs)) packages
+    |> String.concat " "
+  in
+  let network = [ "host" ] in
+  let cache = Obuilder_spec_opam.cache distro in
+  let distro_extras =
+    match distro with
+    | `Fedora _ ->
+        [ Obuilder_spec.run ~network "sudo dnf install -y findutils" ]
+        (* (we need xargs) *)
+    | _ -> []
+  in
+  let home_dir =
+    match Variant.os variant with
+    | `Macos | `Windows | `Cygwin -> None
+    | `Linux -> Some "/src"
+  in
+  let work_dir =
+    match Variant.os variant with
+    | `Macos | `Windows | `Cygwin -> Some (Fpath.v "./src/")
+    | `Linux -> None
+  in
+  let open Obuilder_spec in
+  Obuilder_spec_opam.set_personality (Variant.arch variant)
+  @ [ env "CLICOLOR_FORCE" "1" ]
+  @ [ env "OPAMCOLOR" "always" ]
+  @ (match home_dir with
+    | Some home_dir -> [ workdir home_dir ]
+    | None -> [])
+  @ distro_extras
+  @ Obuilder_spec_opam.opam_init opam_version distro
+  @ (match home_dir with
+    | Some home_dir -> [ workdir home_dir; run "sudo chown opam /src" ]
+    | None -> [])
+  @ [
+      run ~network ~cache
+        "cd ~/opam-repository && (git cat-file -e %s || git fetch origin \
+          master) && git reset -q --hard %s && git log --no-decorate -n1 \
+          --oneline && opam update -u"
+        commit commit;
+    ]
+  @ pin_opam_files ~network ?work_dir groups
+  @ [ env "DEPS" non_root_pkgs; env "CI" "true"; env "OCAMLCI" "true" ]
+  @ Obuilder_spec_opam.opam_depext ~network ~cache ~opam_version
+      compatible_root_pkgs
+  @ [ run ~network ~cache "opam install $DEPS" ]
 
 let spec ~base ~opam_version ~opam_files ~selection =
   let open Obuilder_spec in

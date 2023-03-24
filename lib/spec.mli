@@ -1,4 +1,5 @@
 (** Specifications for different kinds of builds. *)
+open Obuilder_spec_opam
 
 type ty =
   [ `Opam of [ `Build | `Lint of [ `Doc | `Opam ] ] * Selection.t * string list

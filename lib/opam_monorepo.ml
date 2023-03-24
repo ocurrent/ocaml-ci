@@ -1,3 +1,5 @@
+module Variant = Obuilder_spec_opam.Variant
+
 type info = string * OpamFile.OPAM.t
 type lock_file_version = V0_2 | V0_3 [@@deriving yojson, ord]
 

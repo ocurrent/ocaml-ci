@@ -1,4 +1,5 @@
 (** A platform on which we wish to perform test builds. *)
+open Obuilder_spec_opam
 
 type base = [ `Docker of Current_docker.Raw.Image.t | `MacOS of string ]
 
