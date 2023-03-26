@@ -321,14 +321,6 @@ let build_github_route github =
               List.hd (Astring.String.cuts ~sep:"/-/" (Dream.target request))
             in
             Dream.redirect request target);
-        (* Dream.get "/ws/github/:org/:repo/commit/:hash/variant/:variant"
-           (fun request ->
-             Ws_controller.Github.show_step
-               ~org:(Dream.param request "org")
-               ~repo:(Dream.param request "repo")
-               ~hash:(Dream.param request "hash")
-               ~variant:(Dream.param request "variant")
-               request backend); *)
       ]
 
     module Api = Api_controller.Github
