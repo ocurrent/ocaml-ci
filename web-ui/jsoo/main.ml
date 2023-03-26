@@ -1,11 +1,8 @@
-module Dom_html = Js_of_ocaml.Dom_html
-module Dom = Js_of_ocaml.Dom
-module Js = Js_of_ocaml.Js
-module Firebug = Js_of_ocaml.Firebug
-
-(* module WebSockets = Js_of_ocaml.WebSockets *)
 module WebSocket = Brr_io.Websocket
 module Ev = Brr.Ev
+module El = Brr.El
+module Document = Brr.Document
+module Window = Brr.Window
 
 let regexp_left_paren = Re.Str.regexp_string "("
 let regexp_right_paren = Re.Str.regexp_string ")"
@@ -22,15 +19,12 @@ let encode_parens s : Jstr.t =
   in
   Jstr.of_string s_rp_encoded
 
-(* let js_str = Js.string *)
-let document = Dom_html.document
-
 let inject_log_lines data =
-  let new_div = Dom_html.createDiv document in
-  new_div##.innerHTML := data;
-
-  let scroller = Dom_html.getElementById "logs-pre" in
-  Dom.appendChild scroller new_div
+  match Document.find_el_by_id Brr.G.document (Jstr.of_string "logs-pre") with
+  | None -> assert false
+  | Some scroller ->
+      let new_div = El.div [ El.txt data ] in
+      El.append_children scroller [ new_div ]
 
 let ws_path window =
   let location = Brr.Window.location window in
@@ -53,7 +47,7 @@ let ws_path window =
           encode_parens @@ Jstr.append (Jstr.of_string "ws") pathname;
         ]
 
-(* Would like to do below but it looks like parens are not being percent encoded - will file an issue with Brr
+(* It looks like parens are not being percent encoded - will file an issue with Brr. Then the code below should work
    Brr.Uri.with_uri ~scheme:(Jstr.of_string "ws")
    ~path:(encode_parens @@ Jstr.append (Jstr.of_string "ws") pathname)
    location *)
@@ -65,16 +59,16 @@ let go _ =
   let ws_path = ws_path window in
   let socket = WebSocket.create ws_path in
   let target = WebSocket.as_target socket in
-  let result =
+  let (_result : Ev.listener) =
     Ev.listen Brr_io.Message.Ev.message
       (fun e ->
         let data = Brr_io.Message.Ev.data (Ev.as_type e) in
         inject_log_lines
-        @@ Js.string
-        @@ Process_chunk.go line_number (Js.to_string data))
+        @@ Jstr.of_string
+        @@ Process_chunk.go line_number (Jstr.to_string data))
       target
   in
-  ignore result;
-  Js._true
+  ()
 
-let _ = Dom_html.window##.onload := Dom_html.handler go
+let () =
+  ignore (Ev.listen Ev.load go (Window.as_target Brr.G.window) : Ev.listener)
