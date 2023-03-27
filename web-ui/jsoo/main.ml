@@ -22,9 +22,7 @@ let encode_parens s : Jstr.t =
 let inject_log_lines data =
   match Document.find_el_by_id Brr.G.document (Jstr.of_string "logs-pre") with
   | None -> assert false
-  | Some scroller ->
-      let new_div = El.div [ El.txt data ] in
-      El.append_children scroller [ new_div ]
+  | Some scroller -> El.append_children scroller data
 
 let ws_path window =
   let location = Brr.Window.location window in
@@ -63,9 +61,7 @@ let go _ =
     Ev.listen Brr_io.Message.Ev.message
       (fun e ->
         let data = Brr_io.Message.Ev.data (Ev.as_type e) in
-        inject_log_lines
-        @@ Jstr.of_string
-        @@ Process_chunk.go line_number (Jstr.to_string data))
+        inject_log_lines @@ Process_chunk.go line_number (Jstr.to_string data))
       target
   in
   ()
