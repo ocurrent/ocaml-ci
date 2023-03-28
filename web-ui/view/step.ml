@@ -547,6 +547,5 @@ module Make (M : Git_forge_intf.Forge) = struct
                 ]
               [ steps_to_reproduce_build; logs_container ];
           ];
-        Tyxml.Html.script ~a:[ a_src "/js/add-repro-steps.js" ] (txt "");
       ]
 end

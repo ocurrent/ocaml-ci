@@ -35,16 +35,20 @@ let to_element ~line_number_id ~log_line ~code_line_class : El.t =
   let result = El.span ~at:At.[ id (Jstr.v line_number_id) ] [ span; code ] in
   El.set_class (Jstr.v "tr") true result;
   El.set_at (Jstr.v ":class") (Some (Jstr.v colon_class_str)) result;
+  (* Note x-on:click is another way of doing @click
+     https://github.com/alpinejs/alpine/issues/396
+  *)
   El.set_at (Jstr.v "x-on:click") (Some (Jstr.v "highlightLine")) result;
   result
 
-let tabulate line_number data =
+let tabulate line_number first_line_repro_block last_line_repro_block data =
   let last_line_blank = ref false in
   let aux log_line =
     if !last_line_blank && log_line = "" then
       (* Squash consecutive new lines *)
       None
-    else
+    else (
+      line_number := !line_number + 1;
       let is_start_of_steps_to_reproduce =
         Astring.String.is_infix ~affix:"To reproduce locally:" log_line
       in
@@ -52,20 +56,23 @@ let tabulate line_number data =
         Astring.String.is_infix ~affix:"END-REPRO-BLOCK" log_line
       in
       let code_line_class =
-        if is_start_of_steps_to_reproduce then "repro-block-start"
-        else if is_end_of_steps_to_reproduce then "repro-block-end"
+        if is_start_of_steps_to_reproduce then (
+          first_line_repro_block := !line_number;
+          "repro-block-start")
+        else if is_end_of_steps_to_reproduce then (
+          last_line_repro_block := !line_number;
+          "repro-block-end")
         else ""
       in
       last_line_blank := log_line = "";
-      line_number := !line_number + 1;
       let line_number_id = Printf.sprintf "L%d" !line_number in
       let line = to_element ~line_number_id ~log_line ~code_line_class in
-      Some line
+      Some line)
   in
   List.filter_map aux data
 
-let go line_number data =
+let go line_number first_line_repro_block last_line_repro_block data =
   Astring.String.(with_range ~len:(length data - 1)) data
   |> Astring.String.cuts ~sep:"\n"
   |> List.map (fun l -> collapse_carriage_returns l |> Ansi.process ansi)
-  |> tabulate line_number
+  |> tabulate line_number first_line_repro_block last_line_repro_block

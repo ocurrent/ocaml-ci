@@ -19,10 +19,15 @@ let encode_parens s : Jstr.t =
   in
   Jstr.of_string s_rp_encoded
 
-let inject_log_lines data =
+let inject_log_lines first_line_repro_block last_line_repro_block data =
   match Document.find_el_by_id Brr.G.document (Jstr.of_string "logs-pre") with
   | None -> assert false
-  | Some scroller -> El.append_children scroller data
+  | Some scroller ->
+      El.append_children scroller data;
+      if !last_line_repro_block <> 0 then
+        Steps_to_reproduce_build.go !first_line_repro_block
+          !last_line_repro_block;
+      ()
 
 let ws_path window =
   let location = Brr.Window.location window in
@@ -50,8 +55,11 @@ let ws_path window =
    ~path:(encode_parens @@ Jstr.append (Jstr.of_string "ws") pathname)
    location *)
 
-let go _ =
+let fetch_logs =
   let line_number = ref 0 in
+  let first_line_repro_block = ref 0 in
+  let last_line_repro_block = ref 0 in
+
   let window = Brr.G.window in
   (* this will throw an exception if the encoding fails *)
   let ws_path = ws_path window in
@@ -61,10 +69,11 @@ let go _ =
     Ev.listen Brr_io.Message.Ev.message
       (fun e ->
         let data = Brr_io.Message.Ev.data (Ev.as_type e) in
-        inject_log_lines @@ Process_chunk.go line_number (Jstr.to_string data))
+        inject_log_lines first_line_repro_block last_line_repro_block
+        @@ Process_chunk.go line_number first_line_repro_block
+             last_line_repro_block (Jstr.to_string data))
       target
   in
   ()
 
-let () =
-  ignore (Ev.listen Ev.load go (Window.as_target Brr.G.window) : Ev.listener)
+let () = ignore fetch_logs
