@@ -10,6 +10,7 @@ html {
 body {
   font-family: "Inter", sans-serif;
   @apply bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-100;
+  counter-reset: linenum;
 }
 
 .container-fluid {
@@ -329,4 +330,14 @@ pre.code span.tr:last-child span.th {
 
 .svg-fill {
     @apply fill-gray-900 dark:fill-gray-100;
+}
+
+/* https://css-tricks.com/books/greatest-css-tricks/pin-scrolling-to-bottom/ */
+#logs-scroller * {
+  overflow-anchor: none;
+}
+
+#anchor {
+  overflow-anchor: auto;
+  height: 1px;
 }
