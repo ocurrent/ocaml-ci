@@ -1,0 +1,7 @@
+(rule
+ (deps ../../jsoo/main.bc.js)
+ (target ./step-logs.js)
+ (mode
+  (promote (until-clean)))
+ (action
+  (copy %{deps} %{target})))
