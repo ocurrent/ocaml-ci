@@ -1,7 +1,0 @@
-(executable
- (modules process_chunk main steps_to_reproduce_build)
- (name main)
- (modes js)
- (preprocess
-  (pps js_of_ocaml-ppx))
- (libraries ansi astring brr))
