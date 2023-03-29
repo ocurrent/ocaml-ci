@@ -197,7 +197,6 @@ module Make (M : Git_forge_intf.Forge) = struct
     ignore data;
     ignore next;
     let show_rebuild = (not can_cancel) && can_rebuild in
-    (* let header, footer = *)
     let buttons =
       [
         Common.form_cancel_step ~variant ~csrf_token ~show:can_cancel ();

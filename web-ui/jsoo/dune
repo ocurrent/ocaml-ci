@@ -5,11 +5,3 @@
  (preprocess
   (pps js_of_ocaml-ppx))
  (libraries ansi astring brr))
-
-; (executable
-;  (modules steps_to_reproduce_build)
-;  (name steps_to_reproduce_build)
-;  (modes js)
-;  (preprocess (pps js_of_ocaml-ppx))
-;  (libraries
-;   brr))

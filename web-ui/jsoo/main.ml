@@ -10,8 +10,8 @@ let encoded_left_paren = "%28"
 let encoded_right_paren = "%29"
 
 let encode_parens s : Jstr.t =
-  let s_lp_encoded = 
-    Jstr.to_string s 
+  let s_lp_encoded =
+    Jstr.to_string s
     |> Re.Str.global_replace regexp_left_paren encoded_left_paren
   in
   let s_rp_encoded =
@@ -50,10 +50,9 @@ let ws_path window =
           encode_parens @@ Jstr.append (Jstr.of_string "ws") pathname;
         ]
 
-(* It looks like parens are not being percent encoded - will file an issue with Brr. Then the code below should work
-   Brr.Uri.with_uri ~scheme:(Jstr.of_string "ws")
-   ~path:(encode_parens @@ Jstr.append (Jstr.of_string "ws") pathname)
-   location *)
+(* It looks like parens are not being percent encoded - see https://github.com/dbuenzli/brr/issues/47.
+   Once this is fixed then something similar to the below should work:
+   Brr.Uri.with_uri ~scheme:(Jstr.of_string "ws") ~path:(pathname) location *)
 
 let fetch_logs =
   let line_number = ref 0 in
