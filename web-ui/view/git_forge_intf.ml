@@ -98,7 +98,6 @@ module type View = sig
     ?flash_messages:(string * string) list ->
     string * int64 ->
     string
-  (* Dream.response Lwt.t *)
 end
 
 module type S = sig

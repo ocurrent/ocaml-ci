@@ -10,9 +10,9 @@ let encoded_left_paren = "%28"
 let encoded_right_paren = "%29"
 
 let encode_parens s : Jstr.t =
-  let s' = Jstr.to_string s in
-  let s_lp_encoded =
-    Re.Str.global_replace regexp_left_paren encoded_left_paren s'
+  let s_lp_encoded = 
+    Jstr.to_string s 
+    |> Re.Str.global_replace regexp_left_paren encoded_left_paren
   in
   let s_rp_encoded =
     Re.Str.global_replace regexp_right_paren encoded_right_paren s_lp_encoded
