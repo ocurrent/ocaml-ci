@@ -38,7 +38,7 @@ Get the code with:
 ```sh
 git clone --recursive https://github.com/ocurrent/ocaml-ci.git
 cd ocaml-ci
-opam install --deps-only ocaml-version ./ocaml-dockerfile ./ocluster ./ocurrent ./solver-service .
+opam install --deps-only ./ocaml-dockerfile ./ocluster ./ocurrent ./solver-service .
 ```
 
 Note: you need to clone with `--recursive` because this project uses submodules
