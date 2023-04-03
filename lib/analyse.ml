@@ -158,6 +158,8 @@ module Analysis = struct
         lower_bound;
       }
     in
+    Current.Job.log job "Solving with opam-repository commit: %a"
+      Current_git.Commit_id.pp opam_repository_commit;
     Capnp_rpc_lwt.Capability.with_ref (job_log job) @@ fun log ->
     Backend_solver.solve solver job request ~log >|= function
     | Error (`Msg msg) -> Fmt.error_msg "Error from solver: %s" msg
