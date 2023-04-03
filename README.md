@@ -1,6 +1,6 @@
 # OCaml-CI
 
-[![OCaml-CI Build Status](https://img.shields.io/endpoint?url=https%3A%2F%2Fci.ocamllabs.io%2Fbadge%2Focurrent%2Focaml-ci%2Fmaster&logo=ocaml)](https://ci.ocamllabs.io/github/ocurrent/ocaml-ci)
+[![OCaml-CI Build Status](https://img.shields.io/endpoint?url=https%3A%2F%2Focaml.ci.dev%2Fbadge%2Focurrent%2Focaml-ci%2Fmaster&logo=ocaml)](https://ocaml.ci.dev/github/ocurrent/ocaml-ci)
 
 This is an [OCurrent][] pipeline that provides CI for OCaml projects hosted on GitHub.
 It uses metadata from the project’s opam and dune files to work out what to build,
@@ -27,7 +27,7 @@ To add the CI to your own project:
    repository adding yourself to `--github-account-allowlist` in `stack.yml`. eg https://github.com/ocurrent/ocaml-ci/pull/346. Additionally, please add yourself to `deploy-data/github-organisations.txt`.
 4. Add a status badge from the OCaml-CI endpoint with:
    ```
-   [![OCaml-CI Build Status](https://img.shields.io/endpoint?url=https://ci.ocamllabs.io/badge/<user>/<repo>/<branch>&logo=ocaml)](https://ci.ocamllabs.io/github/<user>/<repo>)
+   [![OCaml-CI Build Status](https://img.shields.io/endpoint?url=https://ocaml.ci.dev/badge/<user>/<repo>/<branch>&logo=ocaml)](https://ocaml.ci.dev/github/<user>/<repo>)
    ```
 5. Report bugs :-)
 
@@ -150,7 +150,7 @@ To deploy code changes either from `master` or a branch:
 To deploy changes to `stack.yml` run (assuming a docker context with sufficient access):
 
 ``` bash
-docker -c ci.ocamllabs.io stack deploy -c stack.yml ocaml-ci
+docker -c ocaml.ci.dev stack deploy -c stack.yml ocaml-ci
 ```
 ## Local development
 
