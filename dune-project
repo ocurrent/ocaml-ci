@@ -127,6 +127,6 @@
   (timedesc (>= 0.9.0))
   js_of_ocaml
   js_of_ocaml-ppx
-  (js_of_ocaml (>= 5.1.1))
+  (js_of_ocaml (>= 5.1.0))
   (brr (>= 0.0.4))
   ))
