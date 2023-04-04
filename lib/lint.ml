@@ -42,7 +42,7 @@ let fmt_spec ~base ~ocamlformat_source ~selection =
   in
   let cache =
     [
-      Obuilder_spec.Cache.v Opam_build.download_cache
+      Cache.v Opam_build.download_cache
         ~target:"/home/opam/.opam/download-cache";
     ]
   in
@@ -71,14 +71,14 @@ let fmt_spec ~base ~ocamlformat_source ~selection =
       ])
 
 let doc_spec ~base ~opam_files ~selection =
+  let open Obuilder_spec in
   let cache =
     [
-      Obuilder_spec.Cache.v Opam_build.download_cache
+      Cache.v Opam_build.download_cache
         ~target:"/home/opam/.opam/download-cache";
     ]
   in
   let network = [ "host" ] in
-  let open Obuilder_spec in
   let to_name x = OpamPackage.of_string x |> OpamPackage.name_to_string in
   let only_packages =
     match selection.Selection.only_packages with
@@ -115,14 +115,14 @@ let install_opam_dune_lint ~cache ~network ~base =
     ]
 
 let opam_dune_lint_spec ~base ~opam_files ~selection =
+  let open Obuilder_spec in
   let cache =
     [
-      Obuilder_spec.Cache.v Opam_build.download_cache
+      Cache.v Opam_build.download_cache
         ~target:"/home/opam/.opam/download-cache";
     ]
   in
   let network = [ "host" ] in
-  let open Obuilder_spec in
   stage
     ~child_builds:
       [ ("opam-dune-lint", install_opam_dune_lint ~cache ~network ~base) ]
