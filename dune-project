@@ -115,7 +115,7 @@
   (ansi (>= 0.6.0))
   (capnp-rpc-unix (>= 1.2))
   (crunch (and (>= 3.2.0) :build))
-  dream
+  (dream (>= 1.0.0~alpha5 ))
   (fmt (>= 0.8.9))
   (logs (>= 0.7.0))
   (lwt (>= 5.6.1))
@@ -124,4 +124,9 @@
   (prometheus-app (>= 1.2))
   tyxml
   tailwindcss
-  (timedesc (>= 0.9.0))))
+  (timedesc (>= 0.9.0))
+  js_of_ocaml
+  js_of_ocaml-ppx
+  (js_of_ocaml (>= 5.1.0))
+  (brr (>= 0.0.4))
+  ))
