@@ -3,6 +3,7 @@ module Ev = Brr.Ev
 module El = Brr.El
 module Document = Brr.Document
 module Window = Brr.Window
+module Uri = Brr.Uri
 
 let regexp_left_paren = Re.Str.regexp_string "("
 let regexp_right_paren = Re.Str.regexp_string ")"
@@ -30,25 +31,27 @@ let inject_log_lines first_line_repro_block last_line_repro_block data =
       ()
 
 let ws_path window =
-  let location = Brr.Window.location window in
-  let pathname = Brr.Uri.path location in
-  let port = Brr.Uri.port location in
-  let hostname = Brr.Uri.host location in
+  let location = Window.location window in
+  let pathname = Uri.path location in
+  let port = Uri.port location in
+  let hostname = Uri.host location in
   match port with
   | None ->
-      Jstr.concat ~sep:(Jstr.of_string "/")
-        [
-          Jstr.of_string "ws:/";
-          hostname;
-          encode_parens @@ Jstr.append (Jstr.of_string "ws") pathname;
-        ]
+      Jstr.(
+        concat ~sep:(of_string "/")
+          [
+            of_string "ws:/";
+            hostname;
+            encode_parens @@ append (of_string "ws") pathname;
+          ])
   | Some port ->
-      Jstr.concat ~sep:(Jstr.of_string "/")
-        [
-          Jstr.of_string "ws:/";
-          Jstr.concat ~sep:(Jstr.of_string ":") [ hostname; Jstr.of_int port ];
-          encode_parens @@ Jstr.append (Jstr.of_string "ws") pathname;
-        ]
+      Jstr.(
+        concat ~sep:(of_string "/")
+          [
+            of_string "ws:/";
+            concat ~sep:(of_string ":") [ hostname; of_int port ];
+            encode_parens @@ append (of_string "ws") pathname;
+          ])
 
 (* It looks like parens are not being percent encoded - see https://github.com/dbuenzli/brr/issues/47.
    Once this is fixed then something similar to the below should work:
