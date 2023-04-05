@@ -48,18 +48,6 @@ struct
           ~variant:(Dream.param request "variant")
           request F.backend)
 
-  let variant_websockets =
-    let url =
-      Printf.sprintf "/ws/%s/:org/:repo/commit/:hash/variant/:variant" F.prefix
-    in
-    Dream.get url (fun request ->
-        F.Controller.ws_show_step
-          ~org:(Dream.param request "org")
-          ~repo:(Dream.param request "repo")
-          ~hash:(Dream.param request "hash")
-          ~variant:(Dream.param request "variant")
-          request F.backend)
-
   let branch_history =
     let url = Printf.sprintf "/%s/:org/:repo/history/branch/**" F.prefix in
     Dream.get url (fun request ->
@@ -220,7 +208,6 @@ struct
       rebuild_variant;
       build_api;
       variant_api;
-      variant_websockets;
       badge;
     ]
     @ F.extra_routes

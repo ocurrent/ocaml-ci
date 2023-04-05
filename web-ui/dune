@@ -2,7 +2,6 @@
  (target static.ml)
  (deps
   %{workspace_root}/web-ui/static/css/main.css
-  %{workspace_root}/web-ui/static/js/step-logs.js
   (source_tree %{workspace_root}/web-ui/static/))
  (action
   (run ocaml-crunch --mode=plain --output=%{target} static)))

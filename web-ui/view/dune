@@ -1,4 +1,4 @@
 (library
  (public_name ocaml-ci-web.view)
  (name view)
- (libraries ansi unix fmt dream tyxml ocaml-ci ocaml-ci-api timedesc))
+ (libraries ansi unix fmt dream tyxml ocaml-ci timedesc))

@@ -11,7 +11,7 @@ depends: [
   "ansi" {>= "0.6.0"}
   "capnp-rpc-unix" {>= "1.2"}
   "crunch" {>= "3.2.0" & build}
-  "dream" {>= "1.0.0~alpha5"}
+  "dream"
   "fmt" {>= "0.8.9"}
   "logs" {>= "0.7.0"}
   "lwt" {>= "5.6.1"}
@@ -21,10 +21,6 @@ depends: [
   "tyxml"
   "tailwindcss"
   "timedesc" {>= "0.9.0"}
-  "js_of_ocaml"
-  "js_of_ocaml-ppx"
-  "js_of_ocaml" {>= "5.1.0"}
-  "brr" {>= "0.0.4"}
   "odoc" {with-doc}
 ]
 build: [
@@ -43,5 +39,8 @@ build: [
 ]
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
 pin-depends: [
+  ["dream.dev" "git+https://github.com/aantron/dream#ff97ac7583cb939caeac35da1210bf18411cb9b9"]
+  ["dream-httpaf.dev" "git+https://github.com/aantron/dream#ff97ac7583cb939caeac35da1210bf18411cb9b9"]
+  ["dream-pure.dev" "git+https://github.com/aantron/dream#ff97ac7583cb939caeac35da1210bf18411cb9b9"]
   ["tailwindcss.dev" "git+https://github.com/tmattio/opam-tailwindcss#170065255079ad2c1f3adef78950d8dbd418fd48"]
 ]

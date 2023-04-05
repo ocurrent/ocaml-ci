@@ -1,32 +1,3 @@
-// Called via jsoo in the generated step-logs.js
-function extractStepsToReproduce(startIndex, finishIndex) {
-  if ( // return if already done
-    !!document.getElementById("build-repro-container") &&
-    document.getElementById("build-repro-container").style.display != "none"
-  ) {
-    return null;
-  }
-  const tables = document.getElementsByClassName("steps-table");
-  const br = document.createElement("br");
-  const reproDiv = document.getElementById("build-repro");
-  const rows = [...tables].map((t) => Array.from(t.children)).flat(1);
-
-  document
-    .getElementById("build-repro-container")
-    .style.removeProperty("display");
-
-  for (let i = startIndex; i < finishIndex - 1; i++) {
-    // Remove line-number, whitespace and possible newlines from the row
-    const newContent = document.createTextNode(
-      rows[i].innerText.replace(/\s*\n?/, "")
-    );
-    reproDiv.appendChild(newContent);
-    if (i > startIndex) {
-      reproDiv.appendChild(br.cloneNode());
-    }
-  }
-}
-
 function poll(api_path, timeout, interval) {
   var endTime = Number(new Date()) + (timeout || 2700000); // 45min timeout
   interval = interval || 10000; // 10s
@@ -50,19 +21,16 @@ function poll(api_path, timeout, interval) {
     fetch(api_path)
       .then((response) => response.json())
       .then((data) => {
+        console.log(data);
+
         const element_created_at = document.getElementById("step-created-at");
-        !!data["created_at"] &&
-          (element_created_at.innerHTML = "Created at " + data["created_at"]);
+        element_created_at.innerHTML = "Created at " + data["created_at"];
         const element_finished_at = document.getElementById("step-finished-at");
-        !!data["finished_at"] &&
-          (element_finished_at.innerHTML =
-            "Finished at " + data["finished_at"]);
+        element_finished_at.innerHTML = "Finished at " + data["finished_at"];
         const element_ran_for = document.getElementById("step-ran-for");
-        !!data["ran_for"] &&
-          (element_ran_for.innerHTML = "Ran for " + data["ran_for"]);
+        element_ran_for.innerHTML = "Ran for " + data["ran_for"];
         const element_queued_for = document.getElementById("step-queued-for");
-        !!data["queued_for"] &&
-          (element_queued_for.innerHTML = data["queued_for"] + " in queue");
+        element_queued_for.innerHTML = data["queued_for"] + " in queue";
 
         if (
           data["status"].startsWith("passed") ||
@@ -79,7 +47,7 @@ function poll(api_path, timeout, interval) {
               .getElementById("rebuild-step")
               .style.removeProperty("display");
           }
-          if (data["can_cancel"]) {
+        if (data["can_cancel"]) {
             document
               .getElementById("cancel-step")
               .style.removeProperty("display");
@@ -102,6 +70,5 @@ function poll(api_path, timeout, interval) {
   return new Promise(checkCondition);
 }
 
-window.onload = function () {
-  poll(location.origin + "/api" + location.pathname);
-};
+// Usage:  ensure element is visible
+poll(location.origin + "/api" + location.pathname);
