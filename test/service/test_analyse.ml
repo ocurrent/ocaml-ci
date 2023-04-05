@@ -36,7 +36,8 @@ module Analysis = struct
 
   let selection (t : Ocaml_ci.Selection.t) =
     let ocaml_version =
-      Ocaml_version.to_string (Obuilder_spec_opam.Variant.ocaml_version t.variant)
+      Ocaml_version.to_string
+        (Obuilder_spec_opam.Variant.ocaml_version t.variant)
     in
     { ocaml_version; only_packages = t.only_packages }
 

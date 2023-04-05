@@ -82,12 +82,6 @@ let rec get_root_opam_packages = function
 
 let download_cache = "opam-archives"
 
-(* -          Obuilder_spec.Cache.v download_cache ~target:"~/.opam/download-cache";
-   +          Obuilder_spec.Cache.v download_cache
-   +            ~target:"/Users/mac1000/.opam/download-cache";
-   +          Obuilder_spec.Cache.v "homebrew"
-   +            ~target:"/Users/mac1000/Library/Caches/Homebrew"; *)
-
 let install_project_deps ~opam_version ~opam_files ~selection =
   let { Selection.packages; commit; variant; only_packages } = selection in
   let distro = Variant.distro variant in
@@ -101,7 +95,14 @@ let install_project_deps ~opam_version ~opam_files ~selection =
     |> String.concat " "
   in
   let network = [ "host" ] in
-  let cache = Obuilder_spec_opam.cache distro in
+  let cache =
+    let extra_caches =
+      match Variant.os variant with
+      | `Macos -> [ ("homebrew", "/Users/mac1000/Library/Caches/Homebrew") ]
+      | _ -> []
+    in
+    Obuilder_spec_opam.caches ~extra_caches distro
+  in
   let distro_extras =
     match distro with
     | `Fedora _ ->
@@ -123,9 +124,7 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   Obuilder_spec_opam.set_personality (Variant.arch variant)
   @ [ env "CLICOLOR_FORCE" "1" ]
   @ [ env "OPAMCOLOR" "always" ]
-  @ (match home_dir with
-    | Some home_dir -> [ workdir home_dir ]
-    | None -> [])
+  @ (match home_dir with Some home_dir -> [ workdir home_dir ] | None -> [])
   @ distro_extras
   @ Obuilder_spec_opam.opam_init opam_version distro
   @ (match home_dir with
@@ -134,8 +133,8 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   @ [
       run ~network ~cache
         "cd ~/opam-repository && (git cat-file -e %s || git fetch origin \
-          master) && git reset -q --hard %s && git log --no-decorate -n1 \
-          --oneline && opam update -u"
+         master) && git reset -q --hard %s && git log --no-decorate -n1 \
+         --oneline && opam update -u"
         commit commit;
     ]
   @ pin_opam_files ~network ?work_dir groups

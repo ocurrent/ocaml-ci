@@ -153,7 +153,8 @@ let platforms ~ci_profile ~include_macos opam_version =
   match ci_profile with
   | `Production ->
       let distros =
-        Distro.active_tier1_distros `X86_64 @ Distro.active_tier2_distros `X86_64
+        Distro.active_tier1_distros `X86_64
+        @ Distro.active_tier2_distros `X86_64
         |> List.map make_distro
         |> List.flatten
       in
@@ -161,14 +162,20 @@ let platforms ~ci_profile ~include_macos opam_version =
         if include_macos then macos_distros @ distros else distros
       in
       (* The first one in this list is used for lint actions *)
-      let ovs = List.rev Ocaml_version.Releases.recent @ Ocaml_version.Releases.unreleased_betas in
+      let ovs =
+        List.rev Ocaml_version.Releases.recent
+        @ Ocaml_version.Releases.unreleased_betas
+      in
       List.map make_release ovs @ distros
   | `Dev when Sys.win32 ->
       (* Assume we're building using native Windows images. *)
       let distro =
-        Distro.tag_of_distro (`Windows (`Mingw, Distro.win10_latest_image) :> Distro.t)
+        Distro.tag_of_distro
+          (`Windows (`Mingw, Distro.win10_latest_image) :> Distro.t)
       in
-      let ov = Ocaml_version.with_just_major_and_minor Ocaml_version.Releases.latest in
+      let ov =
+        Ocaml_version.with_just_major_and_minor Ocaml_version.Releases.latest
+      in
       [ v (Ocaml_version.to_string ov) distro ov ]
   | `Dev ->
       let[@warning "-8"] (latest :: previous :: _) =
@@ -186,11 +193,13 @@ let fetch_platforms ~include_macos () =
     | "macos-homebrew" ->
         (* TODO No docker images for macos yet, lets pretend. *)
         let docker_image_name =
-          Fmt.str "%s-ocaml-%d.%d" distro (Ocaml_version.major ocaml_version)
+          Fmt.str "%s-ocaml-%d.%d" distro
+            (Ocaml_version.major ocaml_version)
             (Ocaml_version.minor ocaml_version)
         in
         let label =
-          Fmt.str "pull %s %s" docker_image_name (Ocaml_version.string_of_arch arch)
+          Fmt.str "pull %s %s" docker_image_name
+            (Ocaml_version.string_of_arch arch)
         in
         let base = Current.return ~label (`MacOS docker_image_name) in
         Platform.get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version

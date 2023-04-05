@@ -88,8 +88,8 @@ module Query = struct
     let cmd =
       Raw.Cmd.docker ~docker_context [ "build"; "--pull"; "-t"; tag; "-" ]
     in
-    Current.Process.exec ~stdin:spec ~cancellable:false ~job cmd
-    >>!= fun () -> Lwt_result.ok (Lwt.return tag)
+    Current.Process.exec ~stdin:spec ~cancellable:false ~job cmd >>!= fun () ->
+    Lwt_result.ok (Lwt.return tag)
 
   let opam_template arch =
     let arch = Option.value ~default:"%{arch}%" arch in
@@ -233,7 +233,8 @@ let get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
              os_version = "12.6";
              ocaml_package = "ocaml-base-compiler";
              ocaml_version = Fmt.str "%a" Ocaml_version.pp ocaml_version;
-             opam_version = Opam_version.to_string_with_patch os_family opam_version;
+             opam_version =
+               Opam_version.to_string_with_patch os_family opam_version;
            }
          in
          Current.return { label; builder; pool; variant; base = `MacOS s; vars }
