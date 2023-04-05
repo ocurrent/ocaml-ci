@@ -40,7 +40,7 @@ let ws_path window =
       Jstr.(
         concat ~sep:(of_string "/")
           [
-            of_string "wss:/";
+            of_string "ws:/";
             hostname;
             encode_parens @@ append (of_string "ws") pathname;
           ])
