@@ -27,7 +27,7 @@ services:
   ci:
     image: ocurrent/ocaml-ci-service:live
     # image: ocaml-ci-service
-    # For local deploys using docker -c ci.ocamllabs.io build -t ocaml-ci-service -f Dockerfile .
+    # For local deploys using docker -c ocaml.ci.dev build -t ocaml-ci-service -f Dockerfile .
     command: >
       --github-app-id 39151
       --github-private-key-file /run/secrets/ocaml-ci-github-key
@@ -35,7 +35,7 @@ services:
       --github-webhook-secret-file /run/secrets/ocaml-ci-webhook-secret
       --confirm above-average
       --confirm-auto-release 120
-      --capnp-public-address=tcp:ci.ocamllabs.io:8102 --capnp-listen-address=tcp:0.0.0.0:9000
+      --capnp-public-address=tcp:ocaml.ci.dev:8102 --capnp-listen-address=tcp:0.0.0.0:9000
       --submission-service /run/secrets/ocaml-ci-submission.cap
       --migration-path /migrations
       --verbosity info
@@ -62,13 +62,13 @@ services:
   gitlab:
     image: ocurrent/ocaml-ci-gitlab-service:live
     # image: ocaml-ci-gitlab-service
-    # For local deploys using docker -c ci.ocamllabs.io build -t ocaml-ci-gitlab-service -f Dockerfile.gitlab .
+    # For local deploys using docker -c ocaml.ci.dev build -t ocaml-ci-gitlab-service -f Dockerfile.gitlab .
     command: >
       --gitlab-oauth /run/secrets/ocaml-ci-gitlab-oauth
       --gitlab-token-file /run/secrets/ocaml-ci-gitlab-token
       --gitlab-webhook-secret-file /run/secrets/ocaml-ci-gitlab-webhook-secret
       --submission-service /run/secrets/ocaml-ci-submission.cap
-      --capnp-public-address=tcp:ci.ocamllabs.io:8202
+      --capnp-public-address=tcp:ocaml.ci.dev:8202
       --capnp-listen-address=tcp:0.0.0.0:9000
       --migration-path /migrations
       --verbosity info
@@ -94,7 +94,7 @@ services:
   web:
     image: ocurrent/ocaml-ci-web:live
     # image: ocaml-ci-web
-    # For local deploys using docker -c ci.ocamllabs.io build -t ocaml-ci-web -f Dockerfile.web .
+    # For local deploys using docker -c ocaml.ci.dev build -t ocaml-ci-web -f Dockerfile.web .
     command: >
       --backend /capnp-secrets/ocaml-ci-admin.cap
       --gitlab-backend /gitlab-capnp-secrets/ocaml-ci-gitlab-admin.cap
