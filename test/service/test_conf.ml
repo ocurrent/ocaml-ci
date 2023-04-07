@@ -1,9 +1,6 @@
 module Service = Ocaml_ci_service
 module OV = Ocaml_version
 module OVR = OV.Releases
-module DD = Dockerfile_opam.Distro
-
-(* type t = string * OV.t * OV.arch *)
 
 let extract { Service.Conf.distro; ocaml_version; arch; _ } =
   (distro, OV.with_just_major_and_minor ocaml_version, arch)
@@ -17,7 +14,7 @@ let pp (distro, ov, arch) =
 let pp_no_ov (distro, arch) =
   Printf.sprintf "%s-[any]-%s" distro (OV.string_of_arch arch)
 
-let to_tag d = DD.((resolve_alias d :> t) |> tag_of_distro)
+let to_tag d = Obuilder_spec_opam.Distro.((resolve_alias d :> t) |> tag_of_distro)
 
 let test_platforms () =
   let platforms =

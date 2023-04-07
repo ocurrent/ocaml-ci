@@ -21,5 +21,4 @@
  ocluster
  ocaml-version
  ocaml-gitlab
- solver-service
- ocaml-dockerfile)
+ solver-service)

@@ -23,5 +23,4 @@
   solver-worker
   obuilder-spec
   obuilder-spec-opam
-  dockerfile-opam
   timedesc))

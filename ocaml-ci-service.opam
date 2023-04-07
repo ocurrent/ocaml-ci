@@ -34,7 +34,6 @@ depends: [
   "timedesc" {>= "0.9.0"}
   "ocaml" {>= "4.13"}
   "conf-libev" {os != "win32"}
-  "dockerfile-opam" {>= "7.0.0"}
   "ocaml-version" {>= "3.6.1"}
   "alcotest" {>= "1.0.0" & with-test}
   "alcotest-lwt" {>= "1.0.1" & with-test}

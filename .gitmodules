@@ -6,10 +6,6 @@
 	path = ocluster
 	url = https://github.com/ocurrent/ocluster.git
 	branch = master
-# [submodule "ocaml-dockerfile"]
-# 	path = ocaml-dockerfile
-# 	url = https://github.com/ocurrent/ocaml-dockerfile.git
-	branch = master
 [submodule "solver-service"]
 	path = solver-service
 	url = https://github.com/ocurrent/solver-service.git

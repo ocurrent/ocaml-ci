@@ -69,7 +69,6 @@
   (timedesc (>= 0.9.0))
   (ocaml (>= 4.13))
   (conf-libev (<> :os "win32"))
-  (dockerfile-opam (>= 7.0.0))
   (ocaml-version (>= 3.6.1))
   (alcotest (and (>= 1.0.0) :with-test))
   (alcotest-lwt (and (>= 1.0.1) :with-test))))
@@ -105,7 +104,6 @@
   current_rpc
   (capnp-rpc-unix (>= 1.2))
   ocaml-ci-api
-  dockerfile
   (timedesc (>= 0.9.0))))
 
 (package
