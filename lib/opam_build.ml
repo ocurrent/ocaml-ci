@@ -80,7 +80,7 @@ let rec get_root_opam_packages = function
   | (dir, _, pkgs) :: _ when Fpath.is_current_dir dir -> pkgs
   | _ :: rest -> get_root_opam_packages rest
 
-let download_cache = "opam-archives"
+let download_cache = Obuilder_spec_opam.download_cache
 
 let install_project_deps ~opam_version ~opam_files ~selection =
   let { Selection.packages; commit; variant; only_packages } = selection in
@@ -98,10 +98,10 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   let cache =
     let extra_caches =
       match Variant.os variant with
-      | `Macos -> [ ("homebrew", "/Users/mac1000/Library/Caches/Homebrew") ]
+      | `Macos -> [ Obuilder_spec.Cache.v "homebrew" ~target:"/Users/mac1000/Library/Caches/Homebrew" ]
       | _ -> []
     in
-    Obuilder_spec_opam.caches ~extra_caches distro
+    Obuilder_spec_opam.cache distro @ extra_caches
   in
   let distro_extras =
     match distro with

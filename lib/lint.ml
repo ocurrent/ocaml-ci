@@ -7,7 +7,7 @@ let install_ocamlformat =
   let open Obuilder_spec in
   let cache =
     [
-      Obuilder_spec.Cache.v Opam_build.download_cache
+      Cache.v Opam_build.download_cache
         ~target:"/home/opam/.opam/download-cache";
     ]
   in
