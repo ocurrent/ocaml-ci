@@ -17,3 +17,4 @@
 [submodule "ocaml-gitlab"]
 	path = ocaml-gitlab
 	url = https://github.com/tmcgilchrist/ocaml-gitlab.git
+	branch = master

@@ -7,7 +7,7 @@ homepage: "https://github.com/ocurrent/ocaml-ci"
 doc: "https://ci.ocamllabs.io/documentation"
 bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
-  "dune" {>= "3.6"}
+  "dune" {>= "3.7"}
   "prometheus-app" {>= "1.2"}
   "ppx_sexp_conv" {>= "v0.14.1"}
   "ppx_deriving_yojson" {>= "3.6.1"}
@@ -16,7 +16,7 @@ depends: [
   "mirage-crypto-rng" {>= "0.8.7"}
   "logs" {>= "0.7.0"}
   "fmt" {>= "0.8.9"}
-  "cmdliner" {>= "1.1.0"}
+  "cmdliner" {>= "1.1.1"}
   "ansi" {>= "0.6.0"}
   "bos" {>= "0.2.1"}
   "current_git"
@@ -34,10 +34,10 @@ depends: [
   "timedesc" {>= "0.9.0"}
   "ocaml" {>= "4.13"}
   "conf-libev" {os != "win32"}
-  "dockerfile-opam" {>= "7.0.0"}
+  "dockerfile-opam" {>= "8.2.1"}
   "ocaml-version" {>= "3.6.1"}
-  "alcotest" {>= "1.0.0" & with-test}
-  "alcotest-lwt" {>= "1.0.1" & with-test}
+  "alcotest" {>= "1.7.0" & with-test}
+  "alcotest-lwt" {>= "1.7.0" & with-test}
   "odoc" {with-doc}
 ]
 conflicts: [
