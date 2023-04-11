@@ -69,7 +69,7 @@ let test_macos_spec () =
   let open Ocaml_ci in
   let expected = Sexplib__Pre_sexp.of_string expected_macos_spec in
   let variant =
-    Variant.v ~arch:`X86_64 ~distro:"macos-homebrew"
+    Obuilder_spec_opam.Variant.v ~arch:`X86_64 ~distro:"macos-homebrew"
       ~ocaml_version:Ocaml_version.Releases.v4_14_0 ~opam_version:`V2_1
     |> Result.get_ok
   in
@@ -106,7 +106,7 @@ let test_linux_spec () =
   let open Ocaml_ci in
   let expected = Sexplib__Pre_sexp.of_string expected_linux_spec in
   let variant =
-    Variant.v ~arch:`X86_64 ~distro:"debian-11"
+    Obuilder_spec_opam.Variant.v ~arch:`X86_64 ~distro:"debian-11"
       ~ocaml_version:Ocaml_version.Releases.v4_14_0 ~opam_version:`V2_1
     |> Result.get_ok
   in

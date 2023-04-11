@@ -1,3 +1,5 @@
+module Variant = Obuilder_spec_opam.Variant
+
 type opam_files = string list [@@deriving to_yojson, ord]
 
 type ty =

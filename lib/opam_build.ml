@@ -1,3 +1,6 @@
+module Variant = Obuilder_spec_opam.Variant
+module Opam_version = Obuilder_spec_opam.Opam_version
+
 (* If the package's directory name doesn't contain a dot then opam will default to
    using the last known version, which is usually wrong. In particular, if a multi-project
    repostory adds a new package with a constraint "{ =version }" on an existing one,
@@ -77,87 +80,57 @@ let rec get_root_opam_packages = function
   | (dir, _, pkgs) :: _ when Fpath.is_current_dir dir -> pkgs
   | _ :: rest -> get_root_opam_packages rest
 
-let download_cache = "opam-archives"
+let download_cache = Obuilder_spec_opam.download_cache
 
 let install_project_deps ~opam_version ~opam_files ~selection =
   let { Selection.packages; commit; variant; only_packages } = selection in
-  let prefix =
-    match Variant.os variant with `macOS -> "~/local" | `linux -> "/usr"
-  in
-  let ln =
-    match Variant.os variant with `macOS -> "ln" | `linux -> "sudo ln"
-  in
+  let distro = Variant.distro variant in
   let groups = group_opam_files opam_files in
   let root_pkgs = get_root_opam_packages groups in
-  let non_root_pkgs =
-    packages |> List.filter (fun pkg -> not (List.mem pkg root_pkgs))
-  in
   let compatible_root_pkgs =
     if only_packages = [] then root_pkgs else only_packages
   in
-  let open Obuilder_spec in
+  let non_root_pkgs =
+    List.filter (fun pkg -> not (List.mem pkg root_pkgs)) packages
+    |> String.concat " "
+  in
+  let network = [ "host" ] in
   let cache =
-    match Variant.os variant with
-    | `linux ->
-        [
-          Obuilder_spec.Cache.v download_cache
-            ~target:"/home/opam/.opam/download-cache";
-        ]
-    | `macOS ->
-        [
-          Obuilder_spec.Cache.v download_cache
-            ~target:"/Users/mac1000/.opam/download-cache";
-          Obuilder_spec.Cache.v "homebrew"
-            ~target:"/Users/mac1000/Library/Caches/Homebrew";
-        ]
+    let extra_caches =
+      match Variant.os variant with
+      | `Macos -> [ Obuilder_spec.Cache.v "homebrew" ~target:"/Users/mac1000/Library/Caches/Homebrew" ]
+      | _ -> []
+    in
+    Obuilder_spec_opam.cache distro @ extra_caches
   in
-  let network = [ "host" ] in
   let distro_extras =
-    if Astring.String.is_prefix ~affix:"fedora" (Variant.id variant) then
-      [ run ~network "sudo dnf install -y findutils" ] (* (we need xargs) *)
-    else []
+    match distro with
+    | `Fedora _ ->
+        [ Obuilder_spec.run ~network "sudo dnf install -y findutils" ]
+        (* (we need xargs) *)
+    | _ -> []
   in
-  let network = [ "host" ] in
-
   let home_dir =
-    match Variant.os selection.Selection.variant with
-    | `macOS -> None
-    | `linux -> Some "/src"
+    match Variant.os variant with
+    | `Macos -> None
+    | `Linux -> Some "/src"
+    | `Windows | `Cygwin ->
+        failwith "Windows and Cygwin are not yet supported by OCaml-CI"
   in
   let work_dir =
-    match Variant.os selection.Selection.variant with
-    | `macOS -> Some (Fpath.v "./src/")
-    | `linux -> None
+    match Variant.os variant with
+    | `Macos -> Some (Fpath.v "./src/")
+    | `Linux -> None
+    | `Windows | `Cygwin ->
+        failwith "Windows and Cygwin are not yet supported by OCaml-CI"
   in
-  (* XXX: don't overwrite default config? *)
-  let opamrc = "" in
-  let opam_version_str = Opam_version.to_string opam_version in
-  let compatible_root_pkgs = String.concat " " compatible_root_pkgs in
-  let non_root_pkgs = String.concat " " non_root_pkgs in
-  let opam_depext =
-    match opam_version with
-    | `V2_0 ->
-        run ~network ~cache "opam depext --update -y %s $DEPS"
-          compatible_root_pkgs
-    | `V2_1 ->
-        run ~network ~cache
-          "opam update --depexts && opam install --cli=2.1 --depext-only -y %s \
-           $DEPS"
-          compatible_root_pkgs
-  in
-  (if Variant.arch variant |> Ocaml_version.arch_is_32bit then
-     [ shell [ "/usr/bin/linux32"; "/bin/sh"; "-c" ] ]
-   else [])
+  let open Obuilder_spec in
+  Obuilder_spec_opam.set_personality (Variant.arch variant)
   @ [ env "CLICOLOR_FORCE" "1" ]
   @ [ env "OPAMCOLOR" "always" ]
-  @ (match home_dir with
-    | Some home_dir -> [ Obuilder_spec.workdir home_dir ]
-    | None -> [])
+  @ (match home_dir with Some home_dir -> [ workdir home_dir ] | None -> [])
   @ distro_extras
-  @ [
-      run "%s -f %s/bin/opam-%s %s/bin/opam" ln prefix opam_version_str prefix;
-      run "opam init --reinit%s -ni" opamrc;
-    ]
+  @ Obuilder_spec_opam.opam_init opam_version distro
   @ (match home_dir with
     | Some home_dir -> [ workdir home_dir; run "sudo chown opam /src" ]
     | None -> [])
@@ -169,21 +142,28 @@ let install_project_deps ~opam_version ~opam_files ~selection =
         commit commit;
     ]
   @ pin_opam_files ~network ?work_dir groups
-  @ [
-      env "DEPS" non_root_pkgs;
-      env "CI" "true";
-      env "OCAMLCI" "true";
-      opam_depext;
-      run ~network ~cache "opam install $DEPS";
-    ]
+  @ [ env "DEPS" non_root_pkgs; env "CI" "true"; env "OCAMLCI" "true" ]
+  @ (let pkgs = String.concat " " compatible_root_pkgs in
+     match opam_version with
+     | `V2_0 -> [ run ~network ~cache "opam depext --update -y %s $DEPS" pkgs ]
+     | `V2_1 | `Dev ->
+         [
+           run ~network ~cache
+             "opam update --depexts && opam install --cli=2.1 --depext-only -y \
+              %s $DEPS"
+             pkgs;
+         ])
+  @ [ run ~network ~cache "opam install $DEPS" ]
 
 let spec ~base ~opam_version ~opam_files ~selection =
   let open Obuilder_spec in
   let to_name x = OpamPackage.of_string x |> OpamPackage.name_to_string in
   let home_dir =
     match Variant.os selection.Selection.variant with
-    | `macOS -> "./src"
-    | `linux -> "/src"
+    | `Macos -> "./src"
+    | `Linux -> "/src"
+    | `Windows | `Cygwin ->
+        failwith "Windows and Cygwin are not yet supported by OCaml-CI"
   in
   let only_packages =
     match selection.Selection.only_packages with
@@ -192,15 +172,17 @@ let spec ~base ~opam_version ~opam_files ~selection =
   in
   let run_build =
     match Variant.os selection.Selection.variant with
-    | `macOS ->
+    | `Linux ->
+        run
+          "opam exec -- dune build%s @install @check @runtest && rm -rf _build"
+          only_packages
+    | `Macos ->
         run
           "cd ./src && opam exec -- dune build%s @install @check @runtest && \
            rm -rf _build"
           only_packages
-    | `linux ->
-        run
-          "opam exec -- dune build%s @install @check @runtest && rm -rf _build"
-          only_packages
+    | `Windows | `Cygwin ->
+        failwith "Windows and Cygwin are not yet supported by OCaml-CI"
   in
   stage ~from:base
     (comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant)

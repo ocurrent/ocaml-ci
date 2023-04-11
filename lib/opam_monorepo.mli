@@ -1,5 +1,7 @@
 (** Generate obuilder specs for building opam packages with opam-monorepo. *)
 
+open Obuilder_spec_opam
+
 type info
 
 val detect : dir:Fpath.t -> info list option

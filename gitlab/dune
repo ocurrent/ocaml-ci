@@ -29,7 +29,6 @@
   current_github
   current_gitlab
   current_rpc
-  dockerfile-opam
   ocluster-api
   capnp-rpc-unix
   mirage-crypto-rng.unix

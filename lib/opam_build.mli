@@ -1,3 +1,4 @@
+open Obuilder_spec_opam
 (** Generate obuilder specs for building opam packages with opam and dune. *)
 
 val download_cache : string

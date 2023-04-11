@@ -1,3 +1,4 @@
+open Obuilder_spec_opam
 (** Perform analysis on a source repository by inspecting the opam packages. *)
 
 module Analysis : sig

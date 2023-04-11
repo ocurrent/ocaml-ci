@@ -1,3 +1,4 @@
+open Obuilder_spec_opam
 (** Selected set of packages for a single build. *)
 
 type t = {

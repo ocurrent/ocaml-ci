@@ -22,5 +22,5 @@
   ocluster-api
   solver-worker
   obuilder-spec
-  dockerfile-opam
+  obuilder-spec-opam
   timedesc))

@@ -14,7 +14,6 @@ depends: [
   "current_rpc"
   "capnp-rpc-unix" {>= "1.2"}
   "ocaml-ci-api"
-  "dockerfile"
   "timedesc" {>= "0.9.0"}
   "odoc" {with-doc}
 ]

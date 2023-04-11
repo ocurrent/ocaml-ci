@@ -8,6 +8,7 @@ let src =
 module Log = (val Logs.src_log src : Logs.LOG)
 module Image = Current_docker.Raw.Image
 module Git = Current_git
+module Variant = Obuilder_spec_opam.Variant
 
 let ( >>!= ) = Lwt_result.bind
 

@@ -1,6 +1,8 @@
 open Lwt.Infix
 open Current.Syntax
 module Worker = Ocaml_ci_api.Worker
+module Variant = Obuilder_spec_opam.Variant
+module Distro = Obuilder_spec_opam.Distro
 
 let pool = Current.Pool.create ~label:"analyse" 20
 let solver_pool = Current.Pool.create ~label:"temporary-bottleneck" 4
@@ -231,13 +233,12 @@ module Analysis = struct
 
   let filter_lower_bound_distros platforms =
     (* [distro] is a subtype of [t] but the type checker needs some help for polymorphic variants *)
-    let t_of_distro x = Dockerfile_opam.Distro.((x : distro :> t)) in
+    let t_of_distro x = Distro.((x : distro :> t)) in
     let latest_debian =
-      Dockerfile_opam.Distro.(
-        tag_of_distro @@ t_of_distro @@ resolve_alias (`Debian `Stable))
+      Distro.(tag_of_distro @@ t_of_distro @@ resolve_alias (`Debian `Stable))
     in
     List.filter
-      (fun (v, _) -> String.equal (Variant.distro v) latest_debian)
+      (fun (v, _) -> String.equal (Variant.distro_str v) latest_debian)
       platforms
 
   let filter_lower_bound_selections (`Opam_build s) =

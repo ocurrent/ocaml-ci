@@ -1,3 +1,4 @@
+open Obuilder_spec_opam
 (** Specifications for different kinds of builds. *)
 
 type ty =

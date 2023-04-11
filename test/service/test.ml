@@ -17,7 +17,6 @@ let lwt_tests () =
        [
          ("index", Test_index.tests);
          ("analyse", Test_analyse.tests);
-         ("variant", Test_variant.tests);
          ("run_time", Test_run_time.tests);
        ]
 
