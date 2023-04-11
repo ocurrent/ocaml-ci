@@ -14,7 +14,8 @@ let pp (distro, ov, arch) =
 let pp_no_ov (distro, arch) =
   Printf.sprintf "%s-[any]-%s" distro (OV.string_of_arch arch)
 
-let to_tag d = Obuilder_spec_opam.Distro.((resolve_alias d :> t) |> tag_of_distro)
+let to_tag d =
+  Obuilder_spec_opam.Distro.((resolve_alias d :> t) |> tag_of_distro)
 
 let test_platforms () =
   let platforms =

@@ -112,13 +112,17 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   in
   let home_dir =
     match Variant.os variant with
-    | `Macos | `Windows | `Cygwin -> None
+    | `Macos -> None
     | `Linux -> Some "/src"
+    | `Windows | `Cygwin ->
+        failwith "Windows and Cygwin are not yet supported by OCaml-CI"
   in
   let work_dir =
     match Variant.os variant with
-    | `Macos | `Windows | `Cygwin -> Some (Fpath.v "./src/")
+    | `Macos -> Some (Fpath.v "./src/")
     | `Linux -> None
+    | `Windows | `Cygwin ->
+        failwith "Windows and Cygwin are not yet supported by OCaml-CI"
   in
   let open Obuilder_spec in
   Obuilder_spec_opam.set_personality (Variant.arch variant)
@@ -139,8 +143,16 @@ let install_project_deps ~opam_version ~opam_files ~selection =
     ]
   @ pin_opam_files ~network ?work_dir groups
   @ [ env "DEPS" non_root_pkgs; env "CI" "true"; env "OCAMLCI" "true" ]
-  @ Obuilder_spec_opam.opam_depext ~network ~cache ~opam_version
-      compatible_root_pkgs
+  @ (let pkgs = String.concat " " compatible_root_pkgs in
+     match opam_version with
+     | `V2_0 -> [ run ~network ~cache "opam depext --update -y %s $DEPS" pkgs ]
+     | `V2_1 | `Dev ->
+         [
+           run ~network ~cache
+             "opam update --depexts && opam install --cli=2.1 --depext-only -y \
+              %s $DEPS"
+             pkgs;
+         ])
   @ [ run ~network ~cache "opam install $DEPS" ]
 
 let spec ~base ~opam_version ~opam_files ~selection =
@@ -148,8 +160,10 @@ let spec ~base ~opam_version ~opam_files ~selection =
   let to_name x = OpamPackage.of_string x |> OpamPackage.name_to_string in
   let home_dir =
     match Variant.os selection.Selection.variant with
-    | `Macos | `Windows | `Cygwin -> "./src"
+    | `Macos -> "./src"
     | `Linux -> "/src"
+    | `Windows | `Cygwin ->
+        failwith "Windows and Cygwin are not yet supported by OCaml-CI"
   in
   let only_packages =
     match selection.Selection.only_packages with
@@ -158,7 +172,7 @@ let spec ~base ~opam_version ~opam_files ~selection =
   in
   let run_build =
     match Variant.os selection.Selection.variant with
-    | `Linux | `Windows | `Cygwin ->
+    | `Linux ->
         run
           "opam exec -- dune build%s @install @check @runtest && rm -rf _build"
           only_packages
@@ -167,6 +181,8 @@ let spec ~base ~opam_version ~opam_files ~selection =
           "cd ./src && opam exec -- dune build%s @install @check @runtest && \
            rm -rf _build"
           only_packages
+    | `Windows | `Cygwin ->
+        failwith "Windows and Cygwin are not yet supported by OCaml-CI"
   in
   stage ~from:base
     (comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant)
