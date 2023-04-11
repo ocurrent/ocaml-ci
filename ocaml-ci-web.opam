@@ -7,7 +7,7 @@ homepage: "https://github.com/ocurrent/ocaml-ci"
 doc: "https://ci.ocamllabs.io/documentation"
 bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
-  "dune" {>= "3.6"}
+  "dune" {>= "3.7"}
   "ansi" {>= "0.6.0"}
   "capnp-rpc-unix" {>= "1.2"}
   "crunch" {>= "3.2.0" & build}
@@ -39,8 +39,8 @@ build: [
 ]
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
 pin-depends: [
-  ["dream.dev" "git+https://github.com/aantron/dream#ff97ac7583cb939caeac35da1210bf18411cb9b9"]
-  ["dream-httpaf.dev" "git+https://github.com/aantron/dream#ff97ac7583cb939caeac35da1210bf18411cb9b9"]
-  ["dream-pure.dev" "git+https://github.com/aantron/dream#ff97ac7583cb939caeac35da1210bf18411cb9b9"]
-  ["tailwindcss.dev" "git+https://github.com/tmattio/opam-tailwindcss#170065255079ad2c1f3adef78950d8dbd418fd48"]
+  ["dream.dev" "git+https://github.com/aantron/dream#fcc618d2006ceb06e8640e96fa9ac71ee71a6d3a"]
+  ["dream-httpaf.dev" "git+https://github.com/aantron/dream#fcc618d2006ceb06e8640e96fa9ac71ee71a6d3a"]
+  ["dream-pure.dev" "git+https://github.com/aantron/dream#fcc618d2006ceb06e8640e96fa9ac71ee71a6d3a"]
+  ["tailwindcss.dev" "git+https://github.com/tmattio/opam-tailwindcss#a4c0ee9b9a80d44c4a953b07dc29e4aa065adf57"]
 ]
