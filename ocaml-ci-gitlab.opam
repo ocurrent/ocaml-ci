@@ -5,7 +5,7 @@ description: "Test OCaml projects on GitLab"
 maintainer: ["talex5@gmail.com"]
 authors: ["talex5@gmail.com"]
 homepage: "https://github.com/ocurrent/ocaml-ci"
-doc: "https://ci.ocamllabs.io/documentation"
+doc: "https://ocaml.ci.dev/documentation"
 bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
   "dune" {>= "3.7"}
