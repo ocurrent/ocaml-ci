@@ -4,14 +4,14 @@ synopsis: "Web-server frontend for ocaml-ci"
 maintainer: ["talex5@gmail.com"]
 authors: ["talex5@gmail.com"]
 homepage: "https://github.com/ocurrent/ocaml-ci"
-doc: "https://ci.ocamllabs.io/documentation"
+doc: "https://ocaml.ci.dev/documentation"
 bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
   "dune" {>= "3.7"}
   "ansi" {>= "0.6.0"}
   "capnp-rpc-unix" {>= "1.2"}
   "crunch" {>= "3.2.0" & build}
-  "dream"
+  "dream" {= "1.0.0~alpha5"}
   "fmt" {>= "0.8.9"}
   "logs" {>= "0.7.0"}
   "lwt" {>= "5.6.1"}
@@ -39,8 +39,5 @@ build: [
 ]
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
 pin-depends: [
-  ["dream.dev" "git+https://github.com/aantron/dream#fcc618d2006ceb06e8640e96fa9ac71ee71a6d3a"]
-  ["dream-httpaf.dev" "git+https://github.com/aantron/dream#fcc618d2006ceb06e8640e96fa9ac71ee71a6d3a"]
-  ["dream-pure.dev" "git+https://github.com/aantron/dream#fcc618d2006ceb06e8640e96fa9ac71ee71a6d3a"]
   ["tailwindcss.dev" "git+https://github.com/tmattio/opam-tailwindcss#a4c0ee9b9a80d44c4a953b07dc29e4aa065adf57"]
 ]
