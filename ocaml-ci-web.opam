@@ -39,5 +39,5 @@ build: [
 ]
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
 pin-depends: [
-  ["tailwindcss.dev" "git+https://github.com/tmattio/opam-tailwindcss#a4c0ee9b9a80d44c4a953b07dc29e4aa065adf57"]
+  ["tailwindcss.dev" "git+https://github.com/tmattio/opam-tailwindcss#f0d65be5f94322f48497b33bc05c057882d57977"]
 ]
