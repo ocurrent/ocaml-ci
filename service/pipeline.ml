@@ -33,25 +33,26 @@ let github_status_of_state ~head result results =
   let hash = Github.Api.Commit.hash head in
   let url = url ~owner ~name ~hash ~gref in
   let pp_status f = function
-    | variant, (build, _job_id) -> (
-        let job_url = url_variant ~owner ~name ~hash ~variant ~gref in
+    | s, (build, _job_id) -> (
+        let label = s.label in
+        let job_url = url_variant ~owner ~name ~hash ~variant:label ~gref in
         match build with
         | Ok `Checked | Ok `Built ->
-            Fmt.pf f "%s [%s (%s)](%s)" "✅" variant "passed" job_url
+            Fmt.pf f "%s [%s (%s)](%s)" "✅" label "passed" job_url
         | Error (`Msg m) when Astring.String.is_prefix ~affix:"[SKIP]" m ->
-            Fmt.pf f "%s [%s (%s)](%s)" "¯\\_(ツ)_/¯" variant "skipped" job_url
-        | Error (`Msg m) when experimental_variant variant ->
-            Fmt.pf f "%s [EXPERIMENTAL: %s (%a)](%s)" "❌" variant
+            Fmt.pf f "%s [%s (%s)](%s)" "¯\\_(ツ)_/¯" label "skipped" job_url
+        | Error (`Msg m) when experimental_variant s ->
+            Fmt.pf f "%s [EXPERIMENTAL: %s (%a)](%s)" "❌" label
               (pp_fail "failure") m job_url
         | Error (`Msg m) ->
-            Fmt.pf f "%s [%s (%a)](%s)" "❌" variant (pp_fail "failed") m job_url
+            Fmt.pf f "%s [%s (%a)](%s)" "❌" label (pp_fail "failed") m job_url
         | Error (`Active _) ->
-            Fmt.pf f "%s [%s (%s)](%s)" "🟠" variant "active" job_url)
+            Fmt.pf f "%s [%s (%s)](%s)" "🟠" label "active" job_url)
   in
   let summary =
     Fmt.str "@[<v>%a@]"
       (Fmt.list ~sep:Fmt.cut pp_status)
-      (List.sort (fun (x, _) (y, _) -> String.compare x y) results)
+      (List.sort (fun (x, _) (y, _) -> String.compare x.label y.label) results)
   in
   match result with
   | Ok _ -> Github.Api.CheckRunStatus.v ~url (`Completed `Success) ~summary
@@ -193,7 +194,7 @@ let v ?ocluster ~app ~solver ~migrations () =
              in
              let hash = Current_github.Api.Commit.hash commit in
              let jobs =
-               List.map (fun (variant, (_, job_id)) -> (variant, job_id)) builds
+               List.map (fun (s, (_, job_id)) -> (s.label, job_id)) builds
              in
              Index.record ~repo ~hash ~status ~gref jobs
            and set_github_status =

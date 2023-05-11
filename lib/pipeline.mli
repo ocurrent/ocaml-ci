@@ -1,13 +1,20 @@
 (** Common logic for building a CI pipeline. *)
 
-val experimental_variant : string -> bool
+type build_info = { label : string; variant : Variant.t option }
+(** [variant] will be [None] for utility or linting jobs without a platform, and
+    [Some v] for jobs building on a particular platform [v]. *)
+
+val build_info_of_spec : Spec.t -> build_info
+val build_info_of_label : string -> build_info
+
+val experimental_variant : build_info -> bool
 (** Check whether a variant is considered experimental.
 
     If it is experimental we allow those builds to fail without failing the
     overall build for a commit. *)
 
 val summarise :
-  (string
+  (build_info
   * (([< `Built | `Checked ], [< `Active of 'a | `Msg of string ]) result * 'b))
   list ->
   (unit, [> `Active of [> `Running ] | `Msg of string ]) result
@@ -25,7 +32,8 @@ val build_with_docker :
   analysis:Analyse.Analysis.t Current.t ->
   platforms:Platform.t list Current.t ->
   Current_git.Commit.t Current.t ->
-  (string * ([> `Built | `Checked ] Current_term.Output.t * string option)) list
+  (build_info * ([> `Built | `Checked ] Current_term.Output.t * string option))
+  list
   Current.t
 (** [build_with_docker ~repo ~analysis ~platforms commit] creates a suite of
     builds to perform against [commit].

@@ -1,8 +1,22 @@
-let experimental_variant variant =
-  Astring.String.(
-    is_prefix ~affix:"macos-homebrew" variant
-    || is_prefix ~affix:"(lint-lower-bounds)" variant
-    || is_prefix ~affix:"(lint-opam)" variant)
+type build_info = { label : string; variant : Variant.t option }
+
+let build_info_of_spec = function
+  | Spec.{ label; variant; ty = _ } -> { label; variant = Some variant }
+
+let build_info_of_label label = { label; variant = None }
+
+let experimental_variant s =
+  if Astring.String.(
+    is_prefix ~affix:"(lint-lower-bounds)" s.label
+    || is_prefix ~affix:"(lint-opam)" s.label) then true
+  else
+    match s.variant with
+    | None -> false
+    | Some v ->
+        Astring.String.equal "macos-homebrew" (Variant.distro v)
+        || Ocaml_version.(equal (v 5 1 ~patch:0)) (Variant.ocaml_version v)
+        || Ocaml_version.(equal (v 5 1 ~patch:0 ~prerelease:"alpha1"))
+             (Variant.ocaml_version v)
 
 let list_errors ~ok errs =
   let groups =
@@ -11,8 +25,8 @@ let list_errors ~ok errs =
     |> List.fold_left
          (fun acc (msg, l) ->
            match acc with
-           | (m2, ls) :: acc' when m2 = msg -> (m2, l :: ls) :: acc'
-           | _ -> (msg, [ l ]) :: acc)
+           | (m2, ls) :: acc' when m2 = msg -> (m2, l.label :: ls) :: acc'
+           | _ -> (msg, [ l.label ]) :: acc)
          []
   in
   Error
@@ -25,7 +39,7 @@ let list_errors ~ok errs =
           Fmt.str "%a failed: %s" Fmt.(list ~sep:(any ", ") string) ls msg
       | _ ->
           (* Multiple error messages; just list everything that failed. *)
-          let pp_label f (_, l) = Fmt.string f l in
+          let pp_label f (_, l) = Fmt.string f l.label in
           Fmt.str "%a failed" Fmt.(list ~sep:(any ", ") pp_label) errs))
 
 let summarise results =
@@ -37,7 +51,7 @@ let summarise results =
          | _, (Ok `Built, _) -> (ok + 1, pending, err, skip)
          | l, (Error (`Msg m), _)
            when Astring.String.is_prefix ~affix:"[SKIP]" m ->
-             (ok, pending, err, (m, l) :: skip)
+             (ok, pending, err, (m, l.label) :: skip)
          | l, (Error (`Msg _ | `Active _), _) when experimental_variant l ->
              (ok + 1, pending, err, skip)
          (* Don't fail the commit if an experimental build failed. *)
@@ -50,7 +64,8 @@ let summarise results =
     match (ok, err, skip) with
     | 0, [], skip ->
         list_errors ~ok:0
-          skip (* Everything was skipped - treat skips as errors *)
+          (List.map (fun (m, l) -> (m, build_info_of_label l)) skip)
+        (* Everything was skipped - treat skips as errors *)
     | _, [], _ -> Ok () (* No errors and at least one success *)
     | ok, err, _ -> list_errors ~ok err (* Some errors found - report *)
 
@@ -121,10 +136,11 @@ let build_with_docker ?ocluster ?on_cancel ~(repo : Repo_id.t Current.t)
                  let src = Current.map Git.Commit.id source in
                  Cluster_build.v ocluster ?on_cancel ~platforms ~repo ~spec src
            and+ spec in
-           (Spec.label spec, result))
+           (build_info_of_spec spec, result))
   in
   let+ builds
   and+ analysis_result =
     Current.state ~hidden:true (Current.map (fun _ -> `Checked) analysis)
   and+ analysis_id = get_job_id analysis in
-  builds @ [ ("(analysis)", (analysis_result, analysis_id)) ]
+  builds
+  @ [ (build_info_of_label "(analysis)", (analysis_result, analysis_id)) ]
