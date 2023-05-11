@@ -152,6 +152,14 @@ To deploy changes to `stack.yml` run (assuming a docker context with sufficient 
 ``` bash
 docker -c ocaml.ci.dev stack deploy -c stack.yml ocaml-ci
 ```
+
+## Opam repository updates
+
+When it is updated [`opam-repository`](https://github.com/ocaml/opam-repository) sends a webhook to `Ocaml-ci` triggering its pipelines.
+This mechanism allows builds to remain up to date with changes in the opam package ecosystem. For further details of this webhook,
+please contact a maintainer of `opam-repository`.
+
+
 ## Local development
 
 See [this document](doc/dev.md) for set up and running the server and web components locally.
