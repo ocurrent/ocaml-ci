@@ -163,44 +163,38 @@ let platforms ~ci_profile ~include_macos opam_version =
     in
     List.fold_left (fun l ov -> f ov @ l) [] default_compilers
   in
-  ignore make_distro;
-  ignore include_macos;
   let make_release ?arch ov =
     let distro = DD.tag_of_distro (master_distro :> DD.t) in
     let ov = OV.with_just_major_and_minor ov in
     v ?arch (OV.to_string ov) distro ov
   in
   match ci_profile with
-  | `Production | `Dev ->
-      (* let distros =
-           (* DD.active_tier1_distros `X86_64 @ DD.active_tier2_distros `X86_64 *)
-           [ `Debian `Stable ]
-           |> List.map make_distro
-           |> List.flatten
-         in *)
-      (* let distros =
-           if include_macos then macos_distros @ distros else distros
-         in *)
-      (* The first one in this list is used for lint actions *)
-      let ovs =
-        (* List.rev OV.Releases.recent @ *) OV.Releases.unreleased_betas
+  | `Production ->
+      let distros =
+        DD.active_tier1_distros `X86_64 @ DD.active_tier2_distros `X86_64
+        |> List.map make_distro
+        |> List.flatten
       in
-      List.map (make_release ~arch:`Aarch64) ovs @ macos_distros (* @ distros *)
-
-(* | `Dev when Sys.win32 ->
-    (* Assume we're building using native Windows images. *)
-    let distro =
-      DD.tag_of_distro (`Windows (`Mingw, DD.win10_latest_image) :> DD.t)
-    in
-    let ov = OV.with_just_major_and_minor OV.Releases.latest in
-    [ v (OV.to_string ov) distro ov ] *)
-(* | `Dev ->
-    let[@warning "-8"] (latest :: previous :: _) =
-      List.rev OV.Releases.recent
-    in
-    let ovs = [ latest; previous ] in
-    let macos_distros = if include_macos then macos_distros else [] in
-    List.map make_release ovs @ macos_distros *)
+      let distros =
+        if include_macos then macos_distros @ distros else distros
+      in
+      (* The first one in this list is used for lint actions *)
+      let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas in
+      List.map make_release ovs @ distros
+  | `Dev when Sys.win32 ->
+      (* Assume we're building using native Windows images. *)
+      let distro =
+        DD.tag_of_distro (`Windows (`Mingw, DD.win10_latest_image) :> DD.t)
+      in
+      let ov = OV.with_just_major_and_minor OV.Releases.latest in
+      [ v (OV.to_string ov) distro ov ]
+  | `Dev ->
+      let[@warning "-8"] (latest :: previous :: _) =
+        List.rev OV.Releases.recent
+      in
+      let ovs = [ latest; previous ] in
+      let macos_distros = if include_macos then macos_distros else [] in
+      List.map make_release ovs @ macos_distros
 
 let fetch_platforms ~include_macos () =
   let open Ocaml_ci in
