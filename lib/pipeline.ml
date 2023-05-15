@@ -1,7 +1,8 @@
 let experimental_variant variant =
   Astring.String.(
     is_prefix ~affix:"macos-homebrew" variant
-    || is_prefix ~affix:"(lint-lower-bounds)" variant)
+    || is_prefix ~affix:"(lint-lower-bounds)" variant
+    || is_prefix ~affix:"(lint-opam)" variant)
 
 let list_errors ~ok errs =
   let groups =
