@@ -23,6 +23,8 @@ depends: [
   "ocluster-api"
   "obuilder-spec"
   "solver-service"
+  "tar" {>= "2.4.0"}
+  "tar-unix" {>= "2.4.0"}
   "odoc" {with-doc}
 ]
 build: [

@@ -36,7 +36,9 @@
   current_ocluster
   ocluster-api
   obuilder-spec
-  solver-service))
+  solver-service
+  (tar (>= 2.4.0))
+  (tar-unix (>= 2.4.0))))
 
 (package
  (name ocaml-ci-service)
