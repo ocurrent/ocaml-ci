@@ -162,6 +162,7 @@ module Analysis = struct
       Current_git.Commit_id.pp opam_repository_commit;
     Capnp_rpc_lwt.Capability.with_ref (job_log job) @@ fun log ->
     Backend_solver.solve solver job request ~log >|= function
+    | Error `Cancelled -> Fmt.error_msg "Job cancelled"
     | Error (`Msg msg) -> Fmt.error_msg "Error from solver: %s" msg
     | Ok [] -> Fmt.error_msg "No solution found for any supported platform"
     | Ok x -> (

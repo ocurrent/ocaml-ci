@@ -17,6 +17,7 @@ COPY --chown=opam \
 COPY --chown=opam \
 	solver-service/solver-service-api.opam \
 	solver-service/solver-service.opam \
+	solver-service/solver-worker.opam \
 	/src/solver-service/
 COPY --chown=opam \
 	ocaml-dockerfile/dockerfile*.opam \
@@ -34,6 +35,7 @@ RUN opam pin add -yn current_docker.dev "./ocurrent" && \
     opam pin add -yn dockerfile-opam.dev "./ocaml-dockerfile" && \
     opam pin add -yn solver-service-api.dev "./solver-service" && \
     opam pin add -yn solver-service.dev "./solver-service" && \
+    opam pin add -yn solver-worker.dev "./solver-service" && \
     opam pin add -yn ocluster-api.dev "./ocluster"
 COPY --chown=opam ocaml-ci.opam ocaml-ci-service.opam ocaml-ci-api.opam /src/
 RUN opam-2.1 install -y --deps-only .
