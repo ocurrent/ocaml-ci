@@ -4,13 +4,13 @@ type t
 (** Type of a solver service, either as a local solver or a remote solver
     cluster. *)
 
-val v : ?solver_dir:string -> Uri.t option -> t
+val v : Uri.t option -> t
 (** Create a solver service from [Uri.t option].
 
     For Some uri a remote CapnP connection is setup to a solver pool. If the
     option is None a local solver will be created. *)
 
-val local_ci : t -> Ocaml_ci_api.Solver.t Lwt.t
+val local_ci : t -> Solver_worker.Solver_request.t Lwt.t
 (** Retrieve the local solver if [t] is a local solver, otherwise fail with an
     exception. *)
 

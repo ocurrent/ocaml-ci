@@ -55,12 +55,8 @@ module Analysis = struct
   }
   [@@deriving eq, yojson]
 
-  let of_dir ~switch ~job ~platforms ~solver_dir ~opam_repository_commit d =
-    let solver = Ocaml_ci.Backend_solver.v ~solver_dir None in
-    Lwt_switch.add_hook (Some switch) (fun () ->
-        Ocaml_ci.Backend_solver.local_ci solver >>= fun solver ->
-        Capnp_rpc_lwt.Capability.dec_ref solver;
-        Lwt.return_unit);
+  let of_dir ~job ~platforms ~opam_repository_commit d =
+    let solver = Ocaml_ci.Backend_solver.v None in
     of_dir ~solver ~job ~platforms ~opam_repository_commit d
     |> Lwt_result.map (fun t ->
            {
@@ -151,9 +147,8 @@ let expect_test name ~project ~expected =
         Current_git.Commit_id.v ~repo:"opam-repository" ~hash:(String.trim hash)
           ~gref:"master"
       in
-      Lwt_switch.with_switch (fun switch ->
-          Analysis.of_dir ~switch ~job ~platforms:Test_platforms.v ~solver_dir
-            ~opam_repository_commit (Fpath.v root))
+      Analysis.of_dir ~job ~platforms:Test_platforms.v ~opam_repository_commit
+        (Fpath.v root)
       >|= fun result ->
       (match (result, expected) with
       | Error _, Ok _ ->
