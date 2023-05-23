@@ -70,7 +70,7 @@ type platform = {
 (* TODO Hardcoding the versions for now, this should expand to OV.Releases.recent.
    Currently we only have base images for these 2 compiler variants. See ocurrent/macos-infra playbook.yml.
 *)
-let macos_distros : platform list =
+let macos_distros =
   [
     {
       label = "macos-homebrew";
@@ -87,15 +87,6 @@ let macos_distros : platform list =
       pool = "macos-x86_64";
       distro = "macos-homebrew";
       ocaml_version = OV.Releases.v5_0;
-      arch = `X86_64;
-      opam_version = `V2_1;
-    };
-    {
-      label = "macos-homebrew";
-      builder = Builders.local;
-      pool = "macos-x86_64";
-      distro = "macos-homebrew";
-      ocaml_version = OV.v 5 1 ~patch:0 ~prerelease:"alpha1";
       arch = `X86_64;
       opam_version = `V2_1;
     };
@@ -116,6 +107,19 @@ let macos_distros : platform list =
       distro = "macos-homebrew";
       ocaml_version = OV.Releases.v5_0;
       arch = `Aarch64;
+      opam_version = `V2_1;
+    };
+  ]
+
+let macos_distros_experimental =
+  [
+    {
+      label = "macos-homebrew";
+      builder = Builders.local;
+      pool = "macos-x86_64";
+      distro = "macos-homebrew";
+      ocaml_version = OV.v 5 1 ~patch:0 ~prerelease:"alpha1";
+      arch = `X86_64;
       opam_version = `V2_1;
     };
     {
@@ -176,7 +180,9 @@ let platforms ~ci_profile ~include_macos opam_version =
         |> List.flatten
       in
       let distros =
-        if include_macos then macos_distros @ distros else distros
+        if include_macos then
+          macos_distros @ macos_distros_experimental @ distros
+        else distros
       in
       (* The first one in this list is used for lint actions *)
       let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas in

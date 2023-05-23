@@ -6,9 +6,11 @@ let build_info_of_spec = function
 let build_info_of_label label = { label; variant = None }
 
 let experimental_variant s =
-  if Astring.String.(
-    is_prefix ~affix:"(lint-lower-bounds)" s.label
-    || is_prefix ~affix:"(lint-opam)" s.label) then true
+  if
+    Astring.String.(
+      is_prefix ~affix:"(lint-lower-bounds)" s.label
+      || is_prefix ~affix:"(lint-opam)" s.label)
+  then true
   else
     match s.variant with
     | None -> false
