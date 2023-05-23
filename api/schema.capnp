@@ -12,41 +12,42 @@ enum BuildStatus {
 struct JobInfo {
   variant @0 :Text;
   state :union {
-    notStarted @1 :Void;
+    notStarted   @1 :Void;
 
-    passed     @2 :Void;
+    passed       @2 :Void;
 
-    failed     @3 :Text;
+    failed       @3 :Text;
     # The text is the error message.
 
-    active     @4 :Void;
+    active       @4 :Void;
     # The job is still running.
 
-    aborted    @5 :Void;
+    aborted      @5 :Void;
     # This means we couldn't find any record of the job. It probably means
     # that the server crashed while building, and when it came back up we
     # no longer wanted to test that commit anyway.
   }
 
   queuedAt  :union {
-    ts         @6 :Float64;
+    ts           @6 :Float64;
     # timestamp as seconds since epoch
-    none       @7 :Void;
+    none         @7 :Void;
   }
 
   startedAt :union {
-    ts         @8 :Float64;
+    ts           @8 :Float64;
     # timestamp as seconds since epoch
-    none       @9 :Void;
+    none         @9 :Void;
   }
 
   finishedAt :union {
-    ts         @10 :Float64;
+    ts           @10 :Float64;
     # timestamp as seconds since epoch
-    none       @11 :Void;
+    none         @11 :Void;
   }
-}
 
+  isExperimental @12 :Bool;
+}
 
 interface Commit {
   jobs  @0 () -> (jobs :List(JobInfo));

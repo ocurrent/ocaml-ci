@@ -43,7 +43,19 @@ type job_info = {
   queued_at : float option;
   started_at : float option;
   finished_at : float option;
+  is_experimental : bool;
 }
+
+let create_job_info ?is_experimental variant outcome ~queued_at ~started_at
+    ~finished_at =
+  {
+    variant;
+    outcome;
+    queued_at;
+    started_at;
+    finished_at;
+    is_experimental = Option.value ~default:false is_experimental;
+  }
 
 module CI = struct
   type t = Raw.Client.CI.t Capability.t
@@ -303,7 +315,15 @@ module Commit = struct
                 | FinishedAt.None | Undefined _ -> None
                 | FinishedAt.Ts v -> Some v
               in
-              { variant; outcome; queued_at; started_at; finished_at })
+              let is_experimental = is_experimental_get job in
+              {
+                variant;
+                outcome;
+                queued_at;
+                started_at;
+                finished_at;
+                is_experimental;
+              })
 
   let refs t =
     let open Raw.Client.Commit.Refs in

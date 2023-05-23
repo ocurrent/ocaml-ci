@@ -153,7 +153,9 @@ let step_row ~step_title ~created_at ~queued_for ~ran_for ~status ~step_uri =
                    items-center";
                 ];
             ]
-          [ div [ txt ran_for_txt ]; Common.right_arrow_head ];
+          (let content = [ div [ txt ran_for_txt ]; Common.right_arrow_head ] in
+
+           if true then div [ txt "(EXPERIMENTAL)" ] :: content else content);
       ])
 
 let tabulate_steps step_rows =
@@ -164,4 +166,12 @@ let tabulate_steps step_rows =
         div
           ~a:[ a_id "table-container"; a_class [ "table-container" ] ]
           step_rows;
+        div
+          [
+            txt "*Variants labelled ";
+            code [ txt "(EXPERIMENTAL)" ];
+            txt
+              " are still undergoing testing; if they have failed it may be a \
+               bug in OCaml-CI.";
+          ];
       ])
