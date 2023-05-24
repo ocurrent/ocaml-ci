@@ -72,7 +72,7 @@ function poll(api_path, timeout, interval) {
           const hyphen = document.createElement("div");
           const step_queued_for = document.createElement("div");
           const right_matter = document.createElement("div"); // ran_for, right_arrow
-          const is_experimental = document.createElement("div"); // TODO
+          const is_experimental = document.createElement("div"); // is_experimental
           const step_ran_for = document.createElement("div"); // ran_for
           const right_arrow_elt = document.createElement("div");
 

@@ -46,16 +46,9 @@ type job_info = {
   is_experimental : bool;
 }
 
-let create_job_info ?is_experimental variant outcome ~queued_at ~started_at
-    ~finished_at =
-  {
-    variant;
-    outcome;
-    queued_at;
-    started_at;
-    finished_at;
-    is_experimental = Option.value ~default:false is_experimental;
-  }
+let create_job_info ?(is_experimental = false) variant outcome ~queued_at
+    ~started_at ~finished_at =
+  { variant; outcome; queued_at; started_at; finished_at; is_experimental }
 
 module CI = struct
   type t = Raw.Client.CI.t Capability.t

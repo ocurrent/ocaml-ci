@@ -34,14 +34,14 @@ let github_status_of_state ~head result results =
   let url = url ~owner ~name ~hash ~gref in
   let pp_status f = function
     | s, (build, _job_id) -> (
-        let label = s.label in
+        let label = s.Build_info.label in
         let job_url = url_variant ~owner ~name ~hash ~variant:label ~gref in
         match build with
         | Ok `Checked | Ok `Built ->
             Fmt.pf f "%s [%s (%s)](%s)" "✅" label "passed" job_url
         | Error (`Msg m) when Astring.String.is_prefix ~affix:"[SKIP]" m ->
             Fmt.pf f "%s [%s (%s)](%s)" "¯\\_(ツ)_/¯" label "skipped" job_url
-        | Error (`Msg m) when experimental_variant s ->
+        | Error (`Msg m) when Build_info.experimental_variant s ->
             Fmt.pf f "%s [EXPERIMENTAL: %s (%a)](%s)" "❌" label
               (pp_fail "failure") m job_url
         | Error (`Msg m) ->
@@ -52,7 +52,10 @@ let github_status_of_state ~head result results =
   let summary =
     Fmt.str "@[<v>%a@]"
       (Fmt.list ~sep:Fmt.cut pp_status)
-      (List.sort (fun (x, _) (y, _) -> String.compare x.label y.label) results)
+      (List.sort
+         (fun (x, _) (y, _) ->
+           String.compare x.Build_info.label y.Build_info.label)
+         results)
   in
   match result with
   | Ok _ -> Github.Api.CheckRunStatus.v ~url (`Completed `Success) ~summary
@@ -194,7 +197,9 @@ let v ?ocluster ~app ~solver ~migrations () =
              in
              let hash = Current_github.Api.Commit.hash commit in
              let jobs =
-               List.map (fun (s, (_, job_id)) -> (s.label, job_id)) builds
+               List.map
+                 (fun (s, (_, job_id)) -> (s.Build_info.label, job_id))
+                 builds
              in
              Index.record ~repo ~hash ~status ~gref jobs
            and set_github_status =

@@ -2,7 +2,7 @@ module Rpc = Current_rpc.Impl (Current)
 module Raw = Ocaml_ci_api.Raw
 module String_map = Map.Make (String)
 module Index = Ocaml_ci.Index
-module Pipeline = Ocaml_ci.Pipeline
+module Build_info = Ocaml_ci.Build_info
 module Run_time = Ocaml_ci.Run_time
 open Capnp_rpc_lwt
 
@@ -54,7 +54,7 @@ let make_commit ~engine ~owner ~name hash =
            | `Aborted -> S.aborted_set state
            | `Active -> S.active_set state
            | `Failed msg -> S.failed_set state msg);
-           let is_experimental = Pipeline.experimental_variant_str variant in
+           let is_experimental = Build_info.experimental_variant_str variant in
            is_experimental_set slot is_experimental
          in
          jobs |> List.iteri f;

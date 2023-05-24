@@ -10,11 +10,11 @@ let t_ret = Alcotest.testable pp_t_ret equal_t_ret
 
 let test_summarise_success () =
   let result =
-    Ocaml_ci.Pipeline.
+    Ocaml_ci.Build_info.
       [
-        (build_info_of_label "build_1", (Result.Ok `Built, ()));
-        (build_info_of_label "build_2", (Result.Ok `Built, ()));
-        (build_info_of_label "lint_1", (Result.Ok `Checked, ()));
+        (of_label "build_1", (Result.Ok `Built, ()));
+        (of_label "build_2", (Result.Ok `Built, ()));
+        (of_label "lint_1", (Result.Ok `Checked, ()));
       ]
     |> Ocaml_ci.Pipeline.summarise
   in
@@ -23,12 +23,12 @@ let test_summarise_success () =
 
 let test_summarise_fail () =
   let result =
-    Ocaml_ci.Pipeline.
+    Ocaml_ci.Build_info.
       [
-        (build_info_of_label "build_1", (Result.Ok `Built, ()));
-        (build_info_of_label "build_2", (Result.Ok `Built, ()));
-        (build_info_of_label "lint_1", (Result.Ok `Checked, ()));
-        (build_info_of_label "build_3", (Result.Error (`Msg "msg"), ()));
+        (of_label "build_1", (Result.Ok `Built, ()));
+        (of_label "build_2", (Result.Ok `Built, ()));
+        (of_label "lint_1", (Result.Ok `Checked, ()));
+        (of_label "build_3", (Result.Error (`Msg "msg"), ()));
       ]
     |> Ocaml_ci.Pipeline.summarise
   in
@@ -37,12 +37,12 @@ let test_summarise_fail () =
 
 let test_summarise_running () =
   let result =
-    Ocaml_ci.Pipeline.
+    Ocaml_ci.Build_info.
       [
-        (build_info_of_label "build_1", (Result.Ok `Built, ()));
-        (build_info_of_label "build_2", (Result.Ok `Built, ()));
-        (build_info_of_label "lint_1", (Result.Ok `Checked, ()));
-        (build_info_of_label "lint_2", (Result.Error (`Active ()), ()));
+        (of_label "build_1", (Result.Ok `Built, ()));
+        (of_label "build_2", (Result.Ok `Built, ()));
+        (of_label "lint_1", (Result.Ok `Checked, ()));
+        (of_label "lint_2", (Result.Error (`Active ()), ()));
       ]
     |> Ocaml_ci.Pipeline.summarise
   in
@@ -51,13 +51,12 @@ let test_summarise_running () =
 
 let test_summarise_success_experimental_fail () =
   let result =
-    Ocaml_ci.Pipeline.
+    Ocaml_ci.Build_info.
       [
-        (build_info_of_label "build_1", (Result.Ok `Built, ()));
-        (build_info_of_label "build_2", (Result.Ok `Built, ()));
-        (build_info_of_label "lint_1", (Result.Ok `Checked, ()));
-        ( build_info_of_label "(lint-lower-bounds)",
-          (Result.Error (`Msg "failed"), ()) );
+        (of_label "build_1", (Result.Ok `Built, ()));
+        (of_label "build_2", (Result.Ok `Built, ()));
+        (of_label "lint_1", (Result.Ok `Checked, ()));
+        (of_label "(lint-lower-bounds)", (Result.Error (`Msg "failed"), ()));
       ]
     |> Ocaml_ci.Pipeline.summarise
   in
@@ -66,13 +65,12 @@ let test_summarise_success_experimental_fail () =
 
 let test_summarise_success_experimental_running () =
   let result =
-    Ocaml_ci.Pipeline.
+    Ocaml_ci.Build_info.
       [
-        (build_info_of_label "build_1", (Result.Ok `Built, ()));
-        (build_info_of_label "build_2", (Result.Ok `Built, ()));
-        (build_info_of_label "lint_1", (Result.Ok `Checked, ()));
-        ( build_info_of_label "(lint-lower-bounds)",
-          (Result.Error (`Active ()), ()) );
+        (of_label "build_1", (Result.Ok `Built, ()));
+        (of_label "build_2", (Result.Ok `Built, ()));
+        (of_label "lint_1", (Result.Ok `Checked, ()));
+        (of_label "(lint-lower-bounds)", (Result.Error (`Active ()), ()));
       ]
     |> Ocaml_ci.Pipeline.summarise
   in
@@ -87,10 +85,10 @@ let test_experimental () =
   in
   let v =
     Ocaml_ci.(
-      Pipeline.
+      Build_info.
         [
-          (true, build_info_of_label "(lint-lower-bounds)");
-          (false, build_info_of_label "(lint-doc)");
+          (true, of_label "(lint-lower-bounds)");
+          (false, of_label "(lint-doc)");
           ( true,
             {
               label = "";
@@ -119,7 +117,7 @@ let test_experimental () =
   in
   let expected = List.map fst v in
   let result =
-    List.map (fun v -> snd v |> Ocaml_ci.Pipeline.experimental_variant) v
+    List.map (fun v -> snd v |> Ocaml_ci.Build_info.experimental_variant) v
   in
   List.iter2 (Alcotest.(check bool) "Success") expected result
 
