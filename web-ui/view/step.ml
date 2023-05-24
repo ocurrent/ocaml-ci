@@ -175,7 +175,8 @@ module Make (M : Git_forge_intf.Forge) = struct
           List.append l
             [
               Build.step_row ~step_title:j.variant ~created_at ~queued_for
-                ~ran_for ~status:j.outcome ~step_uri;
+                ~ran_for ~status:j.outcome ~step_uri
+                ~is_experimental:j.is_experimental;
             ])
         [] jobs
     in

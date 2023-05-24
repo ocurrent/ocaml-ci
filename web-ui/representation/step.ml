@@ -13,35 +13,51 @@ type t = {
   can_rebuild : bool;
   can_cancel : bool;
   variant : string;
+  is_experimental : bool;
 }
 [@@deriving yojson]
 
 let from_status_info_run_time ~step_info ~run_time ~can_rebuild ~can_cancel =
+  let status =
+    Option.fold ~none:""
+      ~some:(fun i -> Fmt.str "%a" Client.State.pp i.Client.outcome)
+      step_info
+  in
+  let created_at =
+    Option.fold ~none:""
+      ~some:(fun i -> Run_time.Duration.pp_readable_opt i.Client.queued_at)
+      step_info
+  in
+  let finished_at =
+    Option.fold ~none:""
+      ~some:(fun i -> Run_time.Duration.pp_readable_opt i.Client.finished_at)
+      step_info
+  in
+  let queued_for =
+    Run_time.Duration.pp_opt (Option.map Run_time.TimeInfo.queued_for run_time)
+  in
+  let ran_for =
+    Run_time.Duration.pp_opt (Option.map Run_time.TimeInfo.ran_for run_time)
+  in
+  let variant =
+    Option.fold ~none:""
+      ~some:(fun i -> Fmt.str "%s" i.Client.variant)
+      step_info
+  in
+  let is_experimental =
+    Option.fold ~none:false ~some:(fun i -> i.Client.is_experimental) step_info
+  in
   {
     version;
-    status =
-      Option.fold ~none:""
-        ~some:(fun i -> Fmt.str "%a" Client.State.pp i.Client.outcome)
-        step_info;
-    created_at =
-      Option.fold ~none:""
-        ~some:(fun i -> Run_time.Duration.pp_readable_opt i.Client.queued_at)
-        step_info;
-    finished_at =
-      Option.fold ~none:""
-        ~some:(fun i -> Run_time.Duration.pp_readable_opt i.Client.finished_at)
-        step_info;
-    queued_for =
-      Run_time.Duration.pp_opt
-        (Option.map Run_time.TimeInfo.queued_for run_time);
-    ran_for =
-      Run_time.Duration.pp_opt (Option.map Run_time.TimeInfo.ran_for run_time);
+    status;
+    created_at;
+    finished_at;
+    queued_for;
+    ran_for;
     can_rebuild;
     can_cancel;
-    variant =
-      Option.fold ~none:""
-        ~some:(fun i -> Fmt.str "%s" i.Client.variant)
-        step_info;
+    variant;
+    is_experimental;
   }
 
 let from_status_info ~step_info ~build_created_at =

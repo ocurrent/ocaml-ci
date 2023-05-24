@@ -275,7 +275,9 @@ let v ?ocluster ~app ~solver ~migrations () =
              in
              let hash = Gitlab.Api.Commit.hash commit in
              let jobs =
-               List.map (fun (s, (_, job_id)) -> (s.label, job_id)) builds
+               List.map
+                 (fun (s, (_, job_id)) -> (s.Build_info.label, job_id))
+                 builds
              in
              Index.record ~repo ~hash ~status ~gref jobs
            and set_gitlab_status =

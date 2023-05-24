@@ -72,6 +72,7 @@ function poll(api_path, timeout, interval) {
           const hyphen = document.createElement("div");
           const step_queued_for = document.createElement("div");
           const right_matter = document.createElement("div"); // ran_for, right_arrow
+          const is_experimental = document.createElement("div"); // is_experimental
           const step_ran_for = document.createElement("div"); // ran_for
           const right_arrow_elt = document.createElement("div");
 
@@ -102,8 +103,11 @@ function poll(api_path, timeout, interval) {
           main.setAttribute("class", "flex items-center space-x-3");
 
           step_ran_for.textContent = "Ran for " + step["ran_for"];
-
           right_arrow_elt.innerHTML = right_arrow;
+          if (step["is_experimental"]) {
+            is_experimental.textContent = "(experimental)";
+            right_matter.appendChild(is_experimental);
+          }
           right_matter.appendChild(step_ran_for);
           right_matter.appendChild(right_arrow_elt);
           right_matter.setAttribute(

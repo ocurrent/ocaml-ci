@@ -27,7 +27,17 @@ type job_info = {
   queued_at : float option;
   started_at : float option;
   finished_at : float option;
+  is_experimental : bool;
 }
+
+val create_job_info :
+  ?is_experimental:bool ->
+  variant ->
+  State.t ->
+  queued_at:float option ->
+  started_at:float option ->
+  finished_at:float option ->
+  job_info
 
 module Commit : sig
   type t = Raw.Client.Commit.t Capability.t

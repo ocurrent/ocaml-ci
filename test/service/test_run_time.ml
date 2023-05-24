@@ -169,14 +169,9 @@ let test_info_from_timestamps_never_ran () =
     "info_from_timestamps - finished" [ expected ] [ result ]
 
 let test_timestamps_from_job_info_queued =
-  let not_started_job : Client.job_info =
-    {
-      variant = "variant";
-      outcome = NotStarted;
-      queued_at = Some 1234567.;
-      started_at = None;
-      finished_at = None;
-    }
+  let not_started_job =
+    Client.create_job_info "variant" NotStarted ~queued_at:(Some 1234567.)
+      ~started_at:None ~finished_at:None
   in
   let expected : Run_time.Timestamp.t = Queued 1234567. in
   let result = Run_time.Timestamp.of_job_info not_started_job in
@@ -187,14 +182,9 @@ let test_timestamps_from_job_info_queued =
         "timestamps_from_job_info" [ expected ] [ result ]
 
 let test_timestamps_from_job_info_running =
-  let active_job : Client.job_info =
-    {
-      variant = "variant";
-      outcome = Active;
-      queued_at = Some 1234567.;
-      started_at = Some 1234570.;
-      finished_at = None;
-    }
+  let active_job =
+    Client.create_job_info "variant" Active ~queued_at:(Some 1234567.)
+      ~started_at:(Some 1234570.) ~finished_at:None
   in
   let expected : Run_time.Timestamp.t =
     Running { queued_at = 1234567.; started_at = 1234570. }
@@ -207,14 +197,9 @@ let test_timestamps_from_job_info_running =
         "timestamps_from_job_info" [ expected ] [ result ]
 
 let test_timestamps_from_job_info_finished =
-  let finished_job : Client.job_info =
-    {
-      variant = "variant";
-      outcome = Passed;
-      queued_at = Some 1234567.;
-      started_at = Some 1234570.;
-      finished_at = Some 1234575.;
-    }
+  let finished_job =
+    Client.create_job_info "variant" Passed ~queued_at:(Some 1234567.)
+      ~started_at:(Some 1234570.) ~finished_at:(Some 1234575.)
   in
   let expected : Run_time.Timestamp.t =
     Finished
@@ -240,6 +225,7 @@ let test_timestamps_from_job_info_finished_with_errors =
         queued_at = Some 1234567.;
         started_at = None;
         finished_at = Some 1234575.;
+        is_experimental = false;
       }
     in
     let expected : Run_time.Timestamp.t =
@@ -363,32 +349,17 @@ let test_build_created_at_empty =
     "build_created_for empty" expected result
 
 let test_build_created_at_happy_path =
-  let analysis_step : Client.job_info =
-    {
-      variant = "(analysis)";
-      outcome = Passed;
-      queued_at = Some 1234567.;
-      started_at = Some 1234570.;
-      finished_at = Some 1234575.;
-    }
+  let analysis_step =
+    Client.create_job_info "(analysis)" Passed ~queued_at:(Some 1234567.)
+      ~started_at:(Some 1234570.) ~finished_at:(Some 1234575.)
   in
-  let lint_step : Client.job_info =
-    {
-      variant = "(lint-fmt)";
-      outcome = Passed;
-      queued_at = Some 1234576.;
-      started_at = Some 1234579.;
-      finished_at = Some 1234585.;
-    }
+  let lint_step =
+    Client.create_job_info "(lint-fmt)" Passed ~queued_at:(Some 1234576.)
+      ~started_at:(Some 1234579.) ~finished_at:(Some 1234585.)
   in
-  let build_step : Client.job_info =
-    {
-      variant = "foo-11-4.14";
-      outcome = Active;
-      queued_at = Some 1234576.;
-      started_at = Some 1234579.;
-      finished_at = None;
-    }
+  let build_step =
+    Client.create_job_info "foo-11-4.14" Active ~queued_at:(Some 1234576.)
+      ~started_at:(Some 1234579.) ~finished_at:None
   in
   let build = [ analysis_step; lint_step; build_step ] in
   let expected = Ok (Some 1234567.) in
@@ -397,32 +368,17 @@ let test_build_created_at_happy_path =
     "build_created_for happy" expected result
 
 let test_build_created_at_mangled =
-  let analysis_step : Client.job_info =
-    {
-      variant = "(analysis)";
-      outcome = Passed;
-      queued_at = Some 1234567.;
-      started_at = Some 1234570.;
-      finished_at = Some 1234575.;
-    }
+  let analysis_step =
+    Client.create_job_info "(analysis)" Passed ~queued_at:(Some 1234567.)
+      ~started_at:(Some 1234570.) ~finished_at:(Some 1234575.)
   in
-  let analysis_step_2 : Client.job_info =
-    {
-      variant = "(analysis)";
-      outcome = Passed;
-      queued_at = Some 1234576.;
-      started_at = Some 1234579.;
-      finished_at = Some 1234585.;
-    }
+  let analysis_step_2 =
+    Client.create_job_info "(analysis)" Passed ~queued_at:(Some 1234576.)
+      ~started_at:(Some 1234579.) ~finished_at:(Some 1234585.)
   in
-  let build_step : Client.job_info =
-    {
-      variant = "foo-11-4.14";
-      outcome = Active;
-      queued_at = Some 1234576.;
-      started_at = Some 1234579.;
-      finished_at = None;
-    }
+  let build_step =
+    Client.create_job_info "foo-11-4.14" Active ~queued_at:(Some 1234576.)
+      ~started_at:(Some 1234579.) ~finished_at:None
   in
   let build = [ analysis_step; analysis_step_2; build_step ] in
   let expected = Error "Multiple analysis steps found" in
@@ -431,32 +387,17 @@ let test_build_created_at_mangled =
     "build_created_for multiple" expected result
 
 let test_total_of_run_times =
-  let analysis_step : Client.job_info =
-    {
-      variant = "(analysis)";
-      outcome = Passed;
-      queued_at = Some 1234567.;
-      started_at = Some 1234570.;
-      finished_at = Some 1234575.;
-    }
+  let analysis_step =
+    Client.create_job_info "(analysis)" Passed ~queued_at:(Some 1234567.)
+      ~started_at:(Some 1234570.) ~finished_at:(Some 1234575.)
   in
-  let lint_step : Client.job_info =
-    {
-      variant = "(lint-fmt)";
-      outcome = Passed;
-      queued_at = Some 1234576.;
-      started_at = Some 1234579.;
-      finished_at = Some 1234585.;
-    }
+  let lint_step =
+    Client.create_job_info "(lint-fmt)" Passed ~queued_at:(Some 1234576.)
+      ~started_at:(Some 1234579.) ~finished_at:(Some 1234585.)
   in
-  let build_step : Client.job_info =
-    {
-      variant = "foo-11-4.14";
-      outcome = Passed;
-      queued_at = Some 1234576.;
-      started_at = Some 1234579.;
-      finished_at = Some 1234590.;
-    }
+  let build_step =
+    Client.create_job_info "foo-11-4.14" Passed ~queued_at:(Some 1234576.)
+      ~started_at:(Some 1234579.) ~finished_at:(Some 1234590.)
   in
   let build = [ analysis_step; lint_step; build_step ] in
   let expected = 3. +. 5. +. 3. +. 6. +. 3. +. 11. in
@@ -464,35 +405,20 @@ let test_total_of_run_times =
   Alcotest.(check (float 0.001)) "total_of_run_times" expected result
 
 let test_build_run_time =
-  let analysis_step : Client.job_info =
-    {
-      variant = "(analysis)";
-      outcome = Passed;
-      queued_at = Some 1234567.;
-      started_at = Some 1234570.;
-      finished_at = Some 1234575.;
-    }
-    (* thus run-time of analysis step is 3 + 5 = 8 *)
+  (* run-time of analysis step is 3 + 5 = 8 *)
+  let analysis_step =
+    Client.create_job_info "(analysis)" Passed ~queued_at:(Some 1234567.)
+      ~started_at:(Some 1234570.) ~finished_at:(Some 1234575.)
   in
-  let lint_step : Client.job_info =
-    {
-      variant = "(lint-fmt)";
-      outcome = Passed;
-      queued_at = Some 1234576.;
-      started_at = Some 1234579.;
-      finished_at = Some 1234585.;
-    }
-    (* run-time of lint_step is 3 + 6 = 9 *)
+  (* run-time of lint step is 3 + 6 = 9 *)
+  let lint_step =
+    Client.create_job_info "(lint-fmt)" Passed ~queued_at:(Some 1234576.)
+      ~started_at:(Some 1234579.) ~finished_at:(Some 1234585.)
   in
-  let build_step : Client.job_info =
-    {
-      variant = "foo-11-4.14";
-      outcome = Passed;
-      queued_at = Some 1234576.;
-      started_at = Some 1234579.;
-      finished_at = Some 1234590.;
-    }
-    (* run-time of build_step is 3 + 11 = 14 -- this is the longest running step *)
+  (* run-time of build_step is 3 + 11 = 14 -- this is the longest running step *)
+  let build_step =
+    Client.create_job_info "foo-11-4.14" Passed ~queued_at:(Some 1234576.)
+      ~started_at:(Some 1234579.) ~finished_at:(Some 1234590.)
   in
   let build = [ analysis_step; lint_step; build_step ] in
   let expected = 8. +. 14. in
@@ -501,41 +427,21 @@ let test_build_run_time =
   Alcotest.(check (float 0.001)) "build_run_time" expected result
 
 let test_first_step_queued_at =
-  let not_started : Client.job_info =
-    {
-      variant = "variant";
-      outcome = NotStarted;
-      queued_at = None;
-      started_at = None;
-      finished_at = None;
-    }
+  let not_started =
+    Client.create_job_info "variant" NotStarted ~queued_at:None ~started_at:None
+      ~finished_at:None
   in
-  let step_1 : Client.job_info =
-    {
-      variant = "variant";
-      outcome = Passed;
-      queued_at = Some 1234567.;
-      started_at = Some 1234570.;
-      finished_at = Some 1234575.;
-    }
+  let step_1 =
+    Client.create_job_info "variant" Passed ~queued_at:(Some 1234567.)
+      ~started_at:(Some 1234570.) ~finished_at:(Some 12312345754590.)
   in
-  let step_2 : Client.job_info =
-    {
-      variant = "variant";
-      outcome = Passed;
-      queued_at = Some 1234576.;
-      started_at = Some 1234579.;
-      finished_at = Some 1234585.;
-    }
+  let step_2 =
+    Client.create_job_info "variant" Passed ~queued_at:(Some 1234576.)
+      ~started_at:(Some 1234579.) ~finished_at:(Some 1234585.)
   in
-  let step_3 : Client.job_info =
-    {
-      variant = "variant-11-4.14";
-      outcome = Passed;
-      queued_at = Some 1234576.;
-      started_at = Some 1234579.;
-      finished_at = Some 1234590.;
-    }
+  let step_3 =
+    Client.create_job_info "variant-11-4.14" Passed ~queued_at:(Some 1234576.)
+      ~started_at:(Some 1234579.) ~finished_at:(Some 1234590.)
   in
   let empty = [] in
   let expected = Error "Empty build" in

@@ -91,10 +91,19 @@ let pp_timestamp f v =
     Fmt.(option ~none:(any "-") (Timedesc.pp_iso8601 ()))
     (Option.bind v Timedesc.of_timestamp_float_s)
 
-let pp_job f { Client.variant; outcome; queued_at; started_at; finished_at } =
-  Fmt.pf f "%s (%a) (Queued_at: %a) (Started_at: %a) (Finished_at: %a)" variant
-    Client.State.pp outcome pp_timestamp queued_at pp_timestamp started_at
-    pp_timestamp finished_at
+let pp_job f
+    {
+      Client.variant;
+      outcome;
+      queued_at;
+      started_at;
+      finished_at;
+      is_experimental;
+    } =
+  let experimental = if is_experimental then " (experimental)" else "" in
+  Fmt.pf f "%s (%a) (Queued_at: %a) (Started_at: %a) (Finished_at: %a)%s"
+    variant Client.State.pp outcome pp_timestamp queued_at pp_timestamp
+    started_at pp_timestamp finished_at experimental
 
 let list_variants commit =
   Client.Commit.jobs commit
