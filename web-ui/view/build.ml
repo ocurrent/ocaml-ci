@@ -103,7 +103,8 @@ let title_card ~status ~card_title ~hash_link ~ref_links ~first_created_at
           ];
       ])
 
-let step_row ~step_title ~created_at ~queued_for ~ran_for ~status ~step_uri =
+let step_row ~step_title ~created_at ~queued_for ~ran_for ~status ~step_uri
+    ~is_experimental =
   let cached = queued_for = "0s" && ran_for = "0s" in
   let queued_for_txt =
     if cached then "cached" else Fmt.str "%s in queue" queued_for
@@ -154,8 +155,8 @@ let step_row ~step_title ~created_at ~queued_for ~ran_for ~status ~step_uri =
                 ];
             ]
           (let content = [ div [ txt ran_for_txt ]; Common.right_arrow_head ] in
-
-           if true then div [ txt "(EXPERIMENTAL)" ] :: content else content);
+           if is_experimental then div [ txt "(experimental)" ] :: content
+           else content);
       ])
 
 let tabulate_steps step_rows =
@@ -169,7 +170,7 @@ let tabulate_steps step_rows =
         div
           [
             txt "*Variants labelled ";
-            code [ txt "(EXPERIMENTAL)" ];
+            code [ txt "(experimental)" ];
             txt
               " are still undergoing testing; if they have failed it may be a \
                bug in OCaml-CI.";

@@ -13,6 +13,13 @@ val experimental_variant : build_info -> bool
     If it is experimental we allow those builds to fail without failing the
     overall build for a commit. *)
 
+val experimental_variant_str : string -> bool
+(** Like [experimental_variant], but takes strings for when a [build_info]
+    record is unavailable.
+
+    Prefer to use [experimental_variant] when possible, as this function can
+    potentially give false positives. *)
+
 val summarise :
   (build_info
   * (([< `Built | `Checked ], [< `Active of 'a | `Msg of string ]) result * 'b))

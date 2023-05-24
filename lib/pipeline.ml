@@ -20,6 +20,15 @@ let experimental_variant s =
         || Ocaml_version.(equal (v 5 1 ~patch:0 ~prerelease:"alpha1"))
              (Variant.ocaml_version v)
 
+let experimental_variant_str s =
+  Astring.String.(
+    is_prefix ~affix:"(lint-lower-bounds)" s
+    || is_prefix ~affix:"(lint-opam)" s
+    || is_prefix ~affix:"macos-homebrew" s
+    || is_infix ~affix:"-5.1" s
+    || is_infix ~affix:"-5.1~alpha1" s
+    || is_infix ~affix:"-5.1.0~alpha1" s)
+
 let list_errors ~ok errs =
   let groups =
     (* Group by error message *)

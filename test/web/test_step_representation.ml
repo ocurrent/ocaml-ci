@@ -49,12 +49,25 @@ let test_simple () =
   let expected_3 =
     {|{"version":"1.0","status":"failed: For reasons","created_at":"Oct 19 20:13 +00:00","finished_at":"-","queued_for":"42s","ran_for":"5s","can_rebuild":true,"can_cancel":false,"variant":"variant","is_experimental":false}|}
   in
+  let step_info_4 =
+    Option.some
+    @@ Client.create_job_info "variant" (Failed "For reasons")
+         ~queued_at:(Some 1666210392.) ~started_at:(Some 1666210434.)
+         ~finished_at:None ~is_experimental:true
+  in
+  let run_time_4 : Run_time.TimeInfo.t option =
+    Some (Finished { queued_for = 42.2; ran_for = Some 5.4 })
+  in
+  let expected_4 =
+    {|{"version":"1.0","status":"failed: For reasons","created_at":"Oct 19 20:13 +00:00","finished_at":"-","queued_for":"42s","ran_for":"5s","can_rebuild":true,"can_cancel":false,"variant":"variant","is_experimental":true}|}
+  in
 
   List.iter test_to_json
     [
       (step_info_1, run_time_1, can_rebuild, can_cancel, expected_1);
       (step_info_2, run_time_2, can_rebuild, can_cancel, expected_2);
       (step_info_3, run_time_3, can_rebuild, can_cancel, expected_3);
+      (step_info_4, run_time_4, can_rebuild, can_cancel, expected_4);
     ]
 
 let tests = [ Alcotest_lwt.test_case_sync "simple" `Quick test_simple ]

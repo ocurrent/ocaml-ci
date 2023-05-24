@@ -102,11 +102,12 @@ function poll(api_path, timeout, interval) {
           main.appendChild(step_info);
           main.setAttribute("class", "flex items-center space-x-3");
 
-          is_experimental.textContent = "(EXPERIMENTAL)";
           step_ran_for.textContent = "Ran for " + step["ran_for"];
-
           right_arrow_elt.innerHTML = right_arrow;
-          right_matter.appendChild(is_experimental);
+          if (step["is_experimental"]) {
+            is_experimental.textContent = "(experimental)";
+            right_matter.appendChild(is_experimental);
+          }
           right_matter.appendChild(step_ran_for);
           right_matter.appendChild(right_arrow_elt);
           right_matter.setAttribute(
