@@ -138,7 +138,7 @@ $ ocaml-ci mirage/irmin pull/867 alpine-3.10-ocaml-4.08 cancel
 
 `ocaml-ci` is deployed as three docker images built from `Dockerfile`, `Dockerfile.gitlab` and `Dockerfile.web`, with
 the live service following `live-engine` for the backend and `live-www` for the frontend.
-An ocurrent-deployer [pipeline](deploy.ci3.ocamllabs.io) watches these branches, performing a docker build
+An ocurrent-deployer [pipeline](deploy.ci.dev) watches these branches, performing a docker build
 and deploy whenever it sees a new commit. The live branches should typically contain commits from `master` plus potentially
 short lived commits for testing changes that are later merged into `master`.
 
