@@ -20,7 +20,9 @@ depends: [
   "prometheus-app" {>= "1.2"}
   "tyxml"
   "tailwindcss"
-  "timedesc" {>= "0.9.0"}
+  "timedesc" {>= "1.2.0"}
+  "ppx_deriving_yojson" {>= "3.7.0"}
+  "yojson" {>= "2.1.0"}
   "odoc" {with-doc}
 ]
 build: [
