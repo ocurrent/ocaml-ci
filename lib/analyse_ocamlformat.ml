@@ -45,7 +45,7 @@ let ocamlformat_version_from_file ~root job path =
     match versions with
     | [ v ] ->
         let () =
-          Current.Job.log job "Found OCamlformat version '%s' in dotfile" v
+          Current.Job.log job "Found OCamlFormat version '%s' in dotfile" v
         in
         Lwt.return (Ok (Some v))
     | [] -> (

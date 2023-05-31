@@ -27,7 +27,7 @@ val build_with_docker :
     builds to perform against [commit].
 
     The builds created will depend on the [platforms] available and the solver
-    [analysis] for those platforms. Optionally the builds can be peformed
+    [analysis] for those platforms. Optionally the builds can be performed
     locally in docker or on an OCluster instance.
 
     [on_cancel] is only called when [ocluster] is [Some cluster]. *)

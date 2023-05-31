@@ -1,6 +1,6 @@
 (* If the package's directory name doesn't contain a dot then opam will default to
    using the last known version, which is usually wrong. In particular, if a multi-project
-   repostory adds a new package with a constraint "{ =version }" on an existing one,
+   repository adds a new package with a constraint "{ =version }" on an existing one,
    this will fail because opam will pin the new package as "dev" but the old one with
    the version of its last release. *)
 let maybe_add_dev ~dir name =

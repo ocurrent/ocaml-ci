@@ -1,10 +1,10 @@
-(** Detect the required version of ocamlformat used in a source repository. *)
+(** Detect the required version of OCamlFormat used in a source repository. *)
 
 type source =
   | Opam of { version : string; opam_repo_commit : string }
-      (** Should install OCamlformat from Opam. *)
+      (** Should install OCamlFormat from opam. *)
   | Vendored of { path : string }
-      (** OCamlformat is vendored. [path] is relative to the project's root. *)
+      (** OCamlFormat is vendored. [path] is relative to the project's root. *)
 [@@deriving yojson, eq, ord]
 
 val pp_source : source Fmt.t
@@ -17,5 +17,5 @@ val get_ocamlformat_source :
   find_opam_repo_commit:
     (string -> (string * Selection.t, [ `Msg of string ]) Lwt_result.t) ->
   (source option * Selection.t option, [ `Msg of string ]) Lwt_result.t
-(** Detect the required version of OCamlformat or if it's vendored. Vendored
-    OCamlformat is detected by looking at file names in [opam_files]. *)
+(** Detect the required version of OCamlFormat or if it's vendored. Vendored
+    OCamlFormat is detected by looking at file names in [opam_files]. *)

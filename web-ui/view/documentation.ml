@@ -184,7 +184,7 @@ let user_guide =
                   li
                     [
                       txt
-                        "First, it retreives the list of organisations that \
+                        "First, it retrieves the list of organisations that \
                          have installed it.";
                     ];
                   li

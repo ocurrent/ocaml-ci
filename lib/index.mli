@@ -182,7 +182,7 @@ val get_build_history :
   * string)
   list
 (** [get_build_history ~owner ~name ~gref] is a list of builds for the branch
-    gref of the repo identfied by (owner, name) The builds are identified by
+    gref of the repo identified by (owner, name). The builds are identified by
     (hash, build_number, status, started_at, total_ran_for, ran_for,
     total_queued_for, commit_message) *)
 
