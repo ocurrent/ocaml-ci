@@ -25,6 +25,10 @@ depends: [
   "solver-service"
   "tar" {>= "2.4.0"}
   "tar-unix" {>= "2.4.0"}
+  "bos" {>= "0.2.1"}
+  "cohttp-lwt-unix" {>= "5.1.0"}
+  "ppx_deriving" {>= "5.2.1"}
+  "timedesc" {>= "1.2.0"}
   "odoc" {with-doc}
 ]
 build: [
