@@ -1,5 +1,7 @@
 (** Pipeline configuration. *)
 
+let website_scheme_and_domain = "https://ocaml.ci.dev"
+
 let ci_profile =
   match Sys.getenv_opt "CI_PROFILE" with
   | Some "production" -> `Production

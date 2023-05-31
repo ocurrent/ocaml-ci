@@ -242,11 +242,13 @@ let static =
   ]
 
 let documentation =
+  let website_scheme_and_domain = "https://ocaml.ci.dev" in
   [
     Dream.get "/getting-started" (fun _ ->
         Dream.html @@ Controller.Documentation.getting_started);
     Dream.get "/documentation" (fun _ ->
-        Dream.html @@ Controller.Documentation.user_guide);
+        Dream.html
+        @@ Controller.Documentation.user_guide website_scheme_and_domain);
   ]
 
 let root ~gitlab ~github =

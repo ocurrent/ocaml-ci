@@ -110,7 +110,7 @@ let getting_started =
         ];
     ]
 
-let user_guide =
+let user_guide website_scheme_and_domain =
   Template.instance
     [
       div
@@ -173,7 +173,12 @@ let user_guide =
                 [
                   txt "In ";
                   a
-                    ~a:[ a_href "https://ci.ocamllabs.io/getting-started" ]
+                    ~a:
+                      [
+                        a_href
+                          (Printf.sprintf "%s/getting-started"
+                             website_scheme_and_domain);
+                      ]
                     [ txt "Getting Started" ];
                   txt
                     ", you installed the the OCaml-CI app, which follows this \
