@@ -178,8 +178,7 @@ let platforms ~ci_profile ~include_macos opam_version =
   | `Production ->
       let distros =
         DD.active_tier1_distros `X86_64 @ DD.active_tier2_distros `X86_64
-        |> List.map make_distro
-        |> List.flatten
+        |> List.concat_map make_distro
       in
       let distros =
         if include_macos then
