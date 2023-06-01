@@ -1,6 +1,7 @@
 open Current.Syntax
 open Ocaml_ci
 open Pipeline
+module Conf = Ocaml_ci_service.Conf
 module Git = Current_git
 module Gitlab = Current_gitlab
 module Docker = Current_docker.Default
@@ -17,14 +18,14 @@ module Metrics = struct
       "repositories_total"
 end
 
-let platforms = Ocaml_ci_service.Conf.fetch_platforms ~include_macos:true ()
+let platforms = Conf.fetch_platforms ~include_macos:true ()
 let program_name = "ocaml-ci"
 
 (* Link for GitLab statuses. *)
 let url ~owner ~name ~hash =
   Uri.of_string
-    (Printf.sprintf "https://ci.ocamllabs.io/gitlab/%s/%s/commit/%s" owner name
-       hash)
+    (Printf.sprintf "%s/gitlab/%s/%s/commit/%s" Conf.website_scheme_and_domain
+       owner name hash)
 
 (* Watch the opam-repository for changes. *)
 let opam_repository_commit =
@@ -185,9 +186,7 @@ let gitlab_status_of_state head result =
       Gitlab.Api.Status.v ~url `Failure ~description:m ~name:program_name
 
 let local_test ~solver repo () =
-  let platforms =
-    Ocaml_ci_service.Conf.fetch_platforms ~include_macos:false ()
-  in
+  let platforms = Conf.fetch_platforms ~include_macos:false () in
   let src = Git.Local.head_commit repo in
   let repo = Current.return { Repo_id.owner = "local"; name = "test" }
   and analysis =
@@ -222,8 +221,7 @@ let v ?ocluster ~app ~solver ~migrations () =
         let default = Gitlab.Api.head_commit app repo_id in
         let refs =
           let refs =
-            Gitlab.Api.ci_refs app
-              ~staleness:Ocaml_ci_service.Conf.max_staleness repo_id
+            Gitlab.Api.ci_refs app ~staleness:Conf.max_staleness repo_id
           in
           set_active_refs ~repo ~default refs
         in

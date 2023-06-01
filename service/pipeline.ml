@@ -10,14 +10,13 @@ let platforms = Conf.fetch_platforms ~include_macos:true ()
 (* Link for GitHub statuses. *)
 let url ~owner ~name ~hash ~gref =
   Uri.of_string
-    (Printf.sprintf "https://ci.ocamllabs.io/github/%s/%s/commit/%s/-/%s" owner
-       name hash gref)
+    (Printf.sprintf "%s/github/%s/%s/commit/%s/-/%s"
+       Conf.website_scheme_and_domain owner name hash gref)
 
 (* Link for GitHub CheckRun details. *)
 let url_variant ~owner ~name ~hash ~variant ~gref =
-  Printf.sprintf
-    "https://ci.ocamllabs.io/github/%s/%s/commit/%s/variant/%s/-/%s" owner name
-    hash variant gref
+  Printf.sprintf "%s/github/%s/%s/commit/%s/variant/%s/-/%s"
+    Conf.website_scheme_and_domain owner name hash variant gref
 
 let opam_repository_commit =
   let repo = { Github.Repo_id.owner = "ocaml"; name = "opam-repository" } in

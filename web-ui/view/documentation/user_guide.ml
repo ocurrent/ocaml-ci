@@ -14,7 +14,7 @@ let intro =
       ];
   ]
 
-let overview =
+let overview website_scheme_and_domain =
   [
     div ~a:[ a_id "overview" ] [ h2 [ txt "Welcome to OCaml-CI" ] ];
     p
@@ -51,7 +51,11 @@ let overview =
       [
         txt "In ";
         a
-          ~a:[ a_href "https://ci.ocamllabs.io/getting-started" ]
+          ~a:
+            [
+              a_href
+                (Printf.sprintf "%s/getting-started" website_scheme_and_domain);
+            ]
           [ txt "Getting Started" ];
         txt
           ", you installed the the OCaml-CI app, which follows this pattern \
@@ -230,10 +234,10 @@ let links =
         [ txt "History Page" ];
     ]
 
-let show =
+let show website_scheme_and_domain =
   let content =
     intro
-    @ overview
+    @ overview website_scheme_and_domain
     @ concepts_and_terms
     @ Index_page.show
     @ Repo_page.show
