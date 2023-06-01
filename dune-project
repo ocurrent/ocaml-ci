@@ -38,11 +38,7 @@
   obuilder-spec
   solver-service
   (tar (>= 2.4.0))
-  (tar-unix (>= 2.4.0))
-  (bos (>= 0.2.1))
-  (cohttp-lwt-unix (>= 5.1.0))
-  (ppx_deriving (>= 5.2.1))
-  (timedesc (>= 1.2.0))))
+  (tar-unix (>= 2.4.0))))
 
 (package
  (name ocaml-ci-service)
@@ -51,13 +47,13 @@
  (depends
   (prometheus-app (>= 1.2))
   (ppx_sexp_conv (>= v0.14.1))
-  (ppx_deriving_yojson (>= 3.7.0))
-  (ppx_deriving (>= 5.2.1))
+  (ppx_deriving_yojson (>= 3.6.1))
+  (ppx_deriving (>= 5.1))
   (opam-0install (>= 0.4.3))
   (mirage-crypto-rng (>= 0.8.7))
   (logs (>= 0.7.0))
   (fmt (>= 0.8.9))
-  (cmdliner (>= 1.2.0))
+  (cmdliner (>= 1.1.1))
   (ansi (>= 0.6.0))
   (bos (>= 0.2.1))
   current_git
@@ -72,7 +68,7 @@
   ocluster-api
   obuilder-spec
   (astring (>= 0.8.5))
-  (timedesc (>= 1.2.0))
+  (timedesc (>= 0.9.0))
   (ocaml (>= 4.13))
   (conf-libev (<> :os "win32"))
   (dockerfile-opam (>= 8.2.1))
@@ -87,6 +83,7 @@
  (depends
   (ocaml (>= 4.13))
   (alcotest (and (>= 1.7.0) :with-test))
+  (odoc :with-doc)
   current
   current_git
   current_gitlab
@@ -94,7 +91,7 @@
   current_docker
   (prometheus-app (>= 1.2))
   (fmt (>= 0.8.9))
-  (cmdliner (>= 1.2.0))
+  (cmdliner (>= 1.1.1))
   ocaml-ci
   ocaml-ci-service
   (ocaml (>= 4.13))
@@ -111,7 +108,7 @@
   (capnp-rpc-unix (>= 1.2))
   ocaml-ci-api
   (dockerfile (>= 8.2.1))
-  (timedesc (>= 1.2.0))))
+  (timedesc (>= 0.9.0))))
 
 (package
  (name ocaml-ci-web)
@@ -129,6 +126,4 @@
   (prometheus-app (>= 1.2))
   tyxml
   tailwindcss
-  (timedesc (>= 1.2.0))
-  (ppx_deriving_yojson (>= 3.7.0))
-  (yojson (>= 2.1.0))))
+  (timedesc (>= 0.9.0))))
