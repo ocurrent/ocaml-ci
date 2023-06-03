@@ -31,7 +31,8 @@ let commit_from_ocamlformat_source ocamlformat_source =
 
 let fmt_spec ~base ~ocamlformat_source ~selection =
   let open Obuilder_spec in
-  let { Selection.packages = _; commit; variant = _; only_packages = _ } =
+  let { Selection.packages = _; commit; variant = _; compatible_root_pkgs = _ }
+      =
     selection
   in
   let commit =
@@ -79,9 +80,9 @@ let doc_spec ~base ~opam_files ~selection =
   let open Obuilder_spec in
   let to_name x = OpamPackage.of_string x |> OpamPackage.name_to_string in
   let only_packages =
-    match selection.Selection.only_packages with
-    | [] -> ""
-    | pkgs -> " --only-packages=" ^ String.concat "," (List.map to_name pkgs)
+    " --only-packages="
+    ^ String.concat ","
+        (List.map to_name selection.Selection.compatible_root_pkgs)
   in
   stage ~from:base
   @@ comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant)
