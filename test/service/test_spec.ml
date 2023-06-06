@@ -97,6 +97,7 @@ let test_macos_spec () =
               ];
             only_packages = [];
             commit = "f207d3f018d642d1fcddb2c118e7fa8e65f4e366";
+            lower_bound = false;
           }
     |> Obuilder_spec.sexp_of_t
   in
@@ -136,6 +137,7 @@ let test_linux_spec () =
               ];
             only_packages = [];
             commit = "f207d3f018d642d1fcddb2c118e7fa8e65f4e366";
+            lower_bound = false;
           }
     |> Obuilder_spec.sexp_of_t
   in

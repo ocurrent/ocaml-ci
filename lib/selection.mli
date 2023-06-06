@@ -6,6 +6,7 @@ type t = {
   only_packages : string list; [@default []]
       (** Local root packages to include (empty to include all). *)
   commit : string;  (** A commit in opam-repository to use. *)
+  lower_bound : bool;  (** Is this selection a lower-bound selection? *)
 }
 [@@deriving yojson, ord]
 (** A set of packages for a single build. *)

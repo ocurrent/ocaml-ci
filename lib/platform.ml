@@ -50,7 +50,11 @@ module Query = struct
   type t = No_context
 
   module Key = struct
-    type t = { docker_context : string option; variant : Variant.t }
+    type t = {
+      docker_context : string option;
+      variant : Variant.t;
+      lower_bound : bool;
+    }
     [@@deriving to_yojson]
 
     let digest t = Yojson.Safe.to_string (to_yojson t)
@@ -137,7 +141,7 @@ module Query = struct
         "ocaml-system";
       ]
 
-  let run No_context job { Key.docker_context; variant }
+  let run No_context job { Key.docker_context; variant; lower_bound }
       { Value.image; host_image } =
     Current.Job.start job ~level:Current.Level.Mostly_harmless >>= fun () ->
     let prep_image =
@@ -167,6 +171,7 @@ module Query = struct
           `Assoc
             (("ocaml_package", `String ocaml_package_name)
             :: ("ocaml_version", `String ocaml_version)
+            :: ("lower_bound", `Bool lower_bound)
             :: items)
       | json ->
           Fmt.failwith "Unexpected JSON: %a"
@@ -190,19 +195,20 @@ end
 
 module QC = Current_cache.Generic (Query)
 
-let query builder ~variant ~host_image image =
+let query builder ~variant ~lower_bound ~host_image image =
   Current.component "opam-vars"
   |> let> host_image and> image in
      let image = Raw.Image.hash image in
      let host_image = Raw.Image.hash host_image in
      let docker_context = builder.Builder.docker_context in
      QC.run Query.No_context
-       { Query.Key.docker_context; variant }
+       { Query.Key.docker_context; variant; lower_bound }
        { Query.Value.image; host_image }
 
-let get_docker builder variant host_base base arch opam_version label pool =
+let get_docker builder variant lower_bound host_base base arch opam_version
+    label pool =
   let+ { Query.Outcome.vars; image } =
-    query builder ~variant ~host_image:host_base base
+    query builder ~variant ~lower_bound ~host_image:host_base base
   in
   (* It would be better to run the opam query on the platform itself, but for
      now we run everything on x86_64 and then assume that the other
@@ -218,14 +224,15 @@ let get_docker builder variant host_base base arch opam_version label pool =
   { label; builder; pool; variant; base = `Docker base; vars }
 
 let get ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base
-    ~opam_version base =
+    ~opam_version ~lower_bound base =
   match Variant.v ~arch ~distro ~ocaml_version ~opam_version with
   | Error (`Msg m) -> Current.fail m
   | Ok variant ->
-      get_docker builder variant host_base base arch opam_version label pool
+      get_docker builder variant lower_bound host_base base arch opam_version
+        label pool
 
 let get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
-    base =
+    ~lower_bound base =
   (* Hardcoding opam-vars for macos 12.6 Monterey. *)
   match Variant.v ~arch ~distro ~ocaml_version ~opam_version with
   | Error (`Msg m) -> Current.fail m
@@ -242,6 +249,7 @@ let get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
              ocaml_package = "ocaml-base-compiler";
              ocaml_version = Fmt.str "%a" Ocaml_version.pp ocaml_version;
              opam_version = Opam_version.to_string_with_patch opam_version;
+             lower_bound;
            }
          in
          Current.return { label; builder; pool; variant; base = `MacOS s; vars }

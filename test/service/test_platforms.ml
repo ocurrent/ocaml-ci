@@ -8,6 +8,7 @@ let debian_11_vars ocaml_package ocaml_version =
     opam_version = "2.1.3";
     ocaml_package;
     ocaml_version;
+    lower_bound = false;
   }
 
 let var distro ov =

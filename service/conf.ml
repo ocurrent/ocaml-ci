@@ -67,6 +67,7 @@ type platform = {
   ocaml_version : OV.t;
   arch : OV.arch;
   opam_version : Ocaml_ci.Opam_version.t;
+  lower_bound : bool;
 }
 
 (* TODO Hardcoding the versions for now, this should expand to OV.Releases.recent.
@@ -82,6 +83,7 @@ let macos_distros =
       ocaml_version = OV.Releases.v4_14;
       arch = `X86_64;
       opam_version = `V2_1;
+      lower_bound = false;
     };
     {
       label = "macos-homebrew";
@@ -91,6 +93,7 @@ let macos_distros =
       ocaml_version = OV.Releases.v5_0;
       arch = `X86_64;
       opam_version = `V2_1;
+      lower_bound = false;
     };
     (* Apple Silicon *)
     {
@@ -101,6 +104,7 @@ let macos_distros =
       ocaml_version = OV.Releases.v4_14;
       arch = `Aarch64;
       opam_version = `V2_1;
+      lower_bound = false;
     };
     {
       label = "macos-homebrew";
@@ -110,6 +114,7 @@ let macos_distros =
       ocaml_version = OV.Releases.v5_0;
       arch = `Aarch64;
       opam_version = `V2_1;
+      lower_bound = false;
     };
   ]
 
@@ -123,6 +128,7 @@ let macos_distros_experimental =
       ocaml_version = OV.v 5 1 ~patch:0 ~prerelease:"alpha2";
       arch = `X86_64;
       opam_version = `V2_1;
+      lower_bound = false;
     };
     {
       label = "macos-homebrew";
@@ -132,6 +138,7 @@ let macos_distros_experimental =
       ocaml_version = OV.v 5 1 ~patch:0 ~prerelease:"alpha2";
       arch = `Aarch64;
       opam_version = `V2_1;
+      lower_bound = false;
     };
   ]
 
@@ -143,7 +150,7 @@ let pool_of_arch = function
   | `Riscv64 -> "linux-riscv64"
 
 let platforms ~ci_profile ~include_macos opam_version =
-  let v ?(arch = `X86_64) label distro ocaml_version =
+  let v ?(arch = `X86_64) ?(lower_bound = false) label distro ocaml_version =
     {
       arch;
       label;
@@ -152,6 +159,7 @@ let platforms ~ci_profile ~include_macos opam_version =
       distro;
       ocaml_version;
       opam_version;
+      lower_bound;
     }
   in
   let master_distro = DD.resolve_alias DD.master_distro in
@@ -162,6 +170,7 @@ let platforms ~ci_profile ~include_macos opam_version =
     let f ov =
       if distro = master_distro then
         v label tag (OV.with_variant ov (Some "flambda"))
+        :: v label tag ov ~lower_bound:true
         :: List.map
              (fun arch -> v ~arch label tag ov)
              (DD.distro_arches ov (distro :> DD.t))
@@ -175,7 +184,7 @@ let platforms ~ci_profile ~include_macos opam_version =
     v ?arch (OV.to_string ov) distro ov
   in
   match ci_profile with
-  | `Production ->
+  | `Dev ->
       let distros =
         DD.active_tier1_distros `X86_64 @ DD.active_tier2_distros `X86_64
         |> List.filter (( <> ) (`OpenSUSE `Tumbleweed :> DD.t))
@@ -190,14 +199,14 @@ let platforms ~ci_profile ~include_macos opam_version =
       (* The first one in this list is used for lint actions *)
       let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas in
       List.map make_release ovs @ distros
-  | `Dev when Sys.win32 ->
+  (* | `Dev when Sys.win32 ->
       (* Assume we're building using native Windows images. *)
       let distro =
         DD.tag_of_distro (`Windows (`Mingw, DD.win10_latest_image) :> DD.t)
       in
       let ov = OV.with_just_major_and_minor OV.Releases.latest in
-      [ v (OV.to_string ov) distro ov ]
-  | `Dev ->
+      [ v (OV.to_string ov) distro ov ] *)
+  | `Production ->
       let[@warning "-8"] (latest :: previous :: _) =
         List.rev OV.Releases.recent
       in
@@ -208,7 +217,17 @@ let platforms ~ci_profile ~include_macos opam_version =
 let fetch_platforms ~include_macos () =
   let open Ocaml_ci in
   let schedule = Current_cache.Schedule.v ~valid_for:(Duration.of_day 30) () in
-  let v { label; builder; pool; distro; ocaml_version; arch; opam_version } =
+  let v
+      {
+        label;
+        builder;
+        pool;
+        distro;
+        ocaml_version;
+        arch;
+        opam_version;
+        lower_bound;
+      } =
     match distro with
     | "macos-homebrew" ->
         (* TODO No docker images for macos yet, lets pretend. *)
@@ -221,7 +240,7 @@ let fetch_platforms ~include_macos () =
         in
         let base = Current.return ~label (`MacOS docker_image_name) in
         Platform.get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version
-          ~opam_version base
+          ~opam_version ~lower_bound base
     | _ ->
         let base =
           Platform.pull ~arch ~schedule ~builder ~distro ~ocaml_version
@@ -235,7 +254,7 @@ let fetch_platforms ~include_macos () =
                 ~ocaml_version ~opam_version
         in
         Platform.get ~arch ~label ~builder ~pool ~distro ~ocaml_version
-          ~host_base ~opam_version base
+          ~host_base ~opam_version ~lower_bound base
   in
   let v2_1 = platforms ~ci_profile `V2_1 ~include_macos in
   Current.list_seq (List.map v v2_1)
