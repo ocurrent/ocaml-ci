@@ -40,7 +40,7 @@ val get :
   opam_version:Opam_version.t ->
   lower_bound:bool ->
   Current_docker.Raw.Image.t Current.t ->
-  t Current.t
+  t list Current.t
 (** [get ~label ~builder ~variant ~host_base base] creates a [t] by getting the
     opam variables from [host_base] and returning [base] for subsequent builds. *)
 
@@ -65,7 +65,7 @@ val get_macos :
   opam_version:Opam_version.t ->
   lower_bound:bool ->
   [< `MacOS of string ] Current.t ->
-  t Current.t
+  t list Current.t
 (** [get_macos ~label ~builder ~variant ~host_base base] creates a [t] by
     getting the opam variables from [host_base] and returning [base] for
     subsequent builds. *)

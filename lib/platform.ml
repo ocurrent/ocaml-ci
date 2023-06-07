@@ -196,7 +196,8 @@ end
 module QC = Current_cache.Generic (Query)
 
 let query builder ~variant ~lower_bound ~host_image image =
-  Current.component "opam-vars"
+  let label = if lower_bound then "opam-vars (lower-bound)" else "opam-vars" in
+  Current.component "%s" label
   |> let> host_image and> image in
      let image = Raw.Image.hash image in
      let host_image = Raw.Image.hash host_image in
@@ -205,7 +206,7 @@ let query builder ~variant ~lower_bound ~host_image image =
        { Query.Key.docker_context; variant; lower_bound }
        { Query.Value.image; host_image }
 
-let get_docker builder variant lower_bound host_base base arch opam_version
+let get_docker builder variant ~lower_bound host_base base arch opam_version
     label pool =
   let+ { Query.Outcome.vars; image } =
     query builder ~variant ~lower_bound ~host_image:host_base base
@@ -228,8 +229,17 @@ let get ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base
   match Variant.v ~arch ~distro ~ocaml_version ~opam_version with
   | Error (`Msg m) -> Current.fail m
   | Ok variant ->
-      get_docker builder variant lower_bound host_base base arch opam_version
-        label pool
+      let upper_bound =
+        get_docker builder variant ~lower_bound:false host_base base arch
+          opam_version label pool
+      in
+      if lower_bound then
+        let lower_bound =
+          get_docker builder variant ~lower_bound:true host_base base arch
+            opam_version label pool
+        in
+        Current.list_seq [ upper_bound; lower_bound ]
+      else Current.list_seq [ upper_bound ]
 
 let get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
     ~lower_bound base =
@@ -252,7 +262,8 @@ let get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
              lower_bound;
            }
          in
-         Current.return { label; builder; pool; variant; base = `MacOS s; vars }
+         Current.return
+           [ { label; builder; pool; variant; base = `MacOS s; vars } ]
 
 let pull ~arch ~schedule ~builder ~distro ~ocaml_version ~opam_version =
   match Variant.v ~arch ~distro ~ocaml_version ~opam_version with

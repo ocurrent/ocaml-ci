@@ -163,14 +163,13 @@ let platforms ~ci_profile ~include_macos opam_version =
     }
   in
   let master_distro = DD.resolve_alias DD.master_distro in
-  let make_distro distro =
+  let make_platform distro =
     let distro = DD.resolve_alias distro in
     let label = DD.latest_tag_of_distro (distro :> DD.t) in
     let tag = DD.tag_of_distro (distro :> DD.t) in
     let f ov =
       if distro = master_distro then
         v label tag (OV.with_variant ov (Some "flambda"))
-        :: v label tag ov ~lower_bound:true
         :: List.map
              (fun arch -> v ~arch label tag ov)
              (DD.distro_arches ov (distro :> DD.t))
@@ -178,18 +177,28 @@ let platforms ~ci_profile ~include_macos opam_version =
     in
     List.fold_left (fun l ov -> f ov @ l) [] default_compilers
   in
+  let lower_bound_platforms ovs distro =
+    let distro = DD.resolve_alias distro in
+    let label = DD.latest_tag_of_distro (distro :> DD.t) in
+    let tag = DD.tag_of_distro (distro :> DD.t) in
+    List.fold_left
+      (fun l ov ->
+        let ov = OV.with_just_major_and_minor ov in
+        v ~lower_bound:true label tag ov :: l)
+      [] ovs
+  in
   let make_release ?arch ov =
     let distro = DD.tag_of_distro (master_distro :> DD.t) in
     let ov = OV.with_just_major_and_minor ov in
     v ?arch (OV.to_string ov) distro ov
   in
   match ci_profile with
-  | `Dev ->
+  | `Production ->
       let distros =
         DD.active_tier1_distros `X86_64 @ DD.active_tier2_distros `X86_64
         |> List.filter (( <> ) (`OpenSUSE `Tumbleweed :> DD.t))
         (* Removing Tumbleweed due to bug in opam depext see https://github.com/ocaml/opam/issues/5565 *)
-        |> List.concat_map make_distro
+        |> List.concat_map make_platform
       in
       let distros =
         if include_macos then
@@ -198,21 +207,67 @@ let platforms ~ci_profile ~include_macos opam_version =
       in
       (* The first one in this list is used for lint actions *)
       let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas in
-      List.map make_release ovs @ distros
-  (* | `Dev when Sys.win32 ->
+      List.map make_release ovs
+      @ distros
+      @ lower_bound_platforms ovs (`Debian `V11)
+  | `Dev when Sys.win32 ->
       (* Assume we're building using native Windows images. *)
       let distro =
         DD.tag_of_distro (`Windows (`Mingw, DD.win10_latest_image) :> DD.t)
       in
       let ov = OV.with_just_major_and_minor OV.Releases.latest in
-      [ v (OV.to_string ov) distro ov ] *)
-  | `Production ->
+      [ v (OV.to_string ov) distro ov ]
+  | `Dev ->
       let[@warning "-8"] (latest :: previous :: _) =
         List.rev OV.Releases.recent
       in
       let ovs = [ latest; previous ] in
       let macos_distros = if include_macos then macos_distros else [] in
-      List.map make_release ovs @ macos_distros
+      List.map make_release ovs
+      @ macos_distros
+      @ lower_bound_platforms ovs (`Debian `V11)
+
+(** When we have the same platform differing only in [lower_bound], for the
+    purposes of Docker pulls, take only the platform with [lower_bound = true].
+    The non-lower-bound platform will be regenerated in the "opam-vars" step *)
+let merge_lower_bound_platforms platforms =
+  let eq_without_lower_bound
+      {
+        arch = arch0;
+        label = _;
+        builder = _;
+        pool = pool0;
+        distro = distro0;
+        ocaml_version = ocaml_version0;
+        opam_version = opam_version0;
+        lower_bound = _;
+      }
+      {
+        arch = arch1;
+        label = _;
+        builder = _;
+        pool = pool1;
+        distro = distro1;
+        ocaml_version = ocaml_version1;
+        opam_version = opam_version1;
+        lower_bound = _;
+      } =
+    arch0 = arch1
+    && pool0 = pool1
+    && distro0 = distro1
+    && OV.equal ocaml_version0 ocaml_version1
+    && Ocaml_ci.Opam_version.equal opam_version0 opam_version1
+  in
+  let lower_bound, upper_bound =
+    List.partition (fun p -> p.lower_bound) platforms
+  in
+  let upper_bound =
+    List.filter
+      (fun u ->
+        not (List.exists (fun l -> eq_without_lower_bound u l) lower_bound))
+      upper_bound
+  in
+  upper_bound @ lower_bound
 
 let fetch_platforms ~include_macos () =
   let open Ocaml_ci in
@@ -256,5 +311,7 @@ let fetch_platforms ~include_macos () =
         Platform.get ~arch ~label ~builder ~pool ~distro ~ocaml_version
           ~host_base ~opam_version ~lower_bound base
   in
-  let v2_1 = platforms ~ci_profile `V2_1 ~include_macos in
-  Current.list_seq (List.map v v2_1)
+  let v2_1 =
+    platforms ~ci_profile `V2_1 ~include_macos |> merge_lower_bound_platforms
+  in
+  Current.list_seq (List.map v v2_1) |> Current.map List.flatten

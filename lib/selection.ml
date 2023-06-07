@@ -33,7 +33,8 @@ let filter_duplicate_opam_versions ts =
   let key t =
     ( Variant.distro t.variant,
       Variant.ocaml_version t.variant,
-      Variant.arch t.variant )
+      Variant.arch t.variant,
+      t.lower_bound )
   in
   List.iter
     (fun t ->
