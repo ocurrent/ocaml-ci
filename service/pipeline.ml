@@ -4,8 +4,8 @@ open Pipeline
 module Git = Current_git
 module Github = Current_github
 module Docker = Current_docker.Default
-(*
-   let platforms = Conf.fetch_platforms ~include_macos:true () *)
+
+let platforms = Conf.fetch_platforms ~include_macos:true ()
 
 (* Link for GitHub statuses. *)
 let url ~owner ~name ~hash ~gref =
@@ -124,7 +124,6 @@ let local_test ~solver repo () =
      Current_incr.const (result, None)
 
 let v ?ocluster ~app ~solver ~migrations () =
-  let platforms = Conf.fetch_platforms ~include_macos:true () in
   let ocluster =
     Option.map (Cluster_build.config ~timeout:(Duration.of_hour 1)) ocluster
   in
