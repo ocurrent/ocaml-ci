@@ -163,6 +163,7 @@ let platforms ~ci_profile ~include_macos opam_version =
     }
   in
   let master_distro = DD.resolve_alias DD.master_distro in
+  (* Make platforms for all arches and desired variants using [distro] *)
   let make_platform distro =
     let distro = DD.resolve_alias distro in
     let label = DD.latest_tag_of_distro (distro :> DD.t) in
@@ -177,20 +178,11 @@ let platforms ~ci_profile ~include_macos opam_version =
     in
     List.fold_left (fun l ov -> f ov @ l) [] default_compilers
   in
-  let lower_bound_platforms ovs distro =
-    let distro = DD.resolve_alias distro in
-    let label = DD.latest_tag_of_distro (distro :> DD.t) in
-    let tag = DD.tag_of_distro (distro :> DD.t) in
-    List.fold_left
-      (fun l ov ->
-        let ov = OV.with_just_major_and_minor ov in
-        v ~lower_bound:true label tag ov :: l)
-      [] ovs
-  in
-  let make_release ?arch ov =
+  (* Make platform for OCaml version [ov] using [master_distro] *)
+  let make_release ?arch ?(lower_bound = false) ov =
     let distro = DD.tag_of_distro (master_distro :> DD.t) in
     let ov = OV.with_just_major_and_minor ov in
-    v ?arch (OV.to_string ov) distro ov
+    v ?arch ~lower_bound (OV.to_string ov) distro ov
   in
   match ci_profile with
   | `Production ->
@@ -207,9 +199,9 @@ let platforms ~ci_profile ~include_macos opam_version =
       in
       (* The first one in this list is used for lint actions *)
       let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas in
-      List.map make_release ovs
-      @ distros
-      @ lower_bound_platforms ovs (`Debian `V11)
+      let releases = List.map make_release ovs in
+      let lower_bounds = List.map (make_release ~lower_bound:true) ovs in
+      releases @ lower_bounds @ distros
   | `Dev when Sys.win32 ->
       (* Assume we're building using native Windows images. *)
       let distro =
@@ -221,11 +213,13 @@ let platforms ~ci_profile ~include_macos opam_version =
       let[@warning "-8"] (latest :: previous :: _) =
         List.rev OV.Releases.recent
       in
-      let ovs = [ latest; previous ] in
       let macos_distros = if include_macos then macos_distros else [] in
-      List.map make_release ovs
-      @ macos_distros
-      @ lower_bound_platforms ovs (`Debian `V11)
+      let ovs = [ latest; previous ] in
+      let releases = List.map make_release ovs in
+      let lower_bounds =
+        List.map (make_release ~lower_bound:true) OV.Releases.recent
+      in
+      releases @ macos_distros @ lower_bounds
 
 (** When we have the same platform differing only in [lower_bound], for the
     purposes of Docker pulls, take only the platform with [lower_bound = true].
