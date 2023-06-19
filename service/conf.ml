@@ -120,7 +120,7 @@ let macos_distros_experimental =
       builder = Builders.local;
       pool = "macos-x86_64";
       distro = "macos-homebrew";
-      ocaml_version = OV.v 5 1 ~patch:0 ~prerelease:"alpha1";
+      ocaml_version = OV.v 5 1 ~patch:0 ~prerelease:"alpha2";
       arch = `X86_64;
       opam_version = `V2_1;
     };
@@ -129,7 +129,7 @@ let macos_distros_experimental =
       builder = Builders.local;
       pool = "macos-arm64";
       distro = "macos-homebrew";
-      ocaml_version = OV.v 5 1 ~patch:0 ~prerelease:"alpha1";
+      ocaml_version = OV.v 5 1 ~patch:0 ~prerelease:"alpha2";
       arch = `Aarch64;
       opam_version = `V2_1;
     };
