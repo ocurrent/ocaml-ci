@@ -179,6 +179,7 @@ let platforms ~ci_profile ~include_macos opam_version =
       let distros =
         DD.active_tier1_distros `X86_64 @ DD.active_tier2_distros `X86_64
         |> List.filter (( <> ) (`OpenSUSE `Tumbleweed :> DD.t))
+        (* Removing Tumbleweed due to bug in opam depext see https://github.com/ocaml/opam/issues/5565 *)
         |> List.concat_map make_distro
       in
       let distros =
