@@ -73,17 +73,29 @@ let clone ~job repo =
 
 let re_hash = Str.regexp "^[0-9A-Fa-f]+$"
 
+let first_ok_s f l =
+  let rec apply x l =
+    Lwt.apply f x >>= function
+    | Ok v -> Lwt_result.return v
+    | Error e -> loop e l
+  and loop e = function [] -> Lwt_result.fail e | x :: l -> apply x l in
+  match l with [] -> Lwt.fail Not_found | x :: l -> apply x l
+
+let no_opam_file opam_filenames msg =
+  let msg =
+    Fmt.str "Can't find either of %a: %s"
+      Fmt.(list ~sep:(any ", ") string)
+      opam_filenames msg
+  in
+  `Msg msg
+
 let read_opam_file ~job ~repo ~hash pkg =
-  let opam_filename = OpamPackage.name_to_string pkg ^ ".opam" in
-  Cmd.git_show ~job ~repo hash opam_filename >>= function
-  | Ok contents -> Lwt_result.return contents
-  | Error (`Msg msg) -> (
-      Cmd.git_show ~job ~repo hash ("opam/" ^ opam_filename) >>= function
-      | Ok contents -> Lwt_result.return contents
-      | Error _ ->
-          Lwt.return
-          @@ Fmt.error_msg "Can't find %s (or opam/%s): %s" opam_filename
-               opam_filename msg)
+  let opam_filenames =
+    let opam_filename = OpamPackage.name_to_string pkg ^ ".opam" in
+    [ opam_filename; "opam/" ^ opam_filename ]
+  in
+  first_ok_s (Cmd.git_show ~job ~repo hash) opam_filenames
+  |> Lwt_result.map_error @@ fun (`Msg msg) -> no_opam_file opam_filenames msg
 
 let get_opam_git ~job ~pkg url =
   let { OpamUrl.transport; path = _; hash; backend = _ } = url in
@@ -137,40 +149,51 @@ end
 
 module Tgz = Tar_gz.Make (Lwt) (TgzLwtUnixWriter) (TgzLwtUnixReader)
 
+let memi e l =
+  let rec aux i = function
+    | [] -> raise Not_found
+    | x :: l -> if String.compare x e = 0 then i else aux (i + 1) l
+  in
+  aux 0 l
+
 let read_opam_file ~tarball ~prefix pkg =
-  let opam_filename = prefix ^ "/" ^ OpamPackage.name_to_string pkg ^ ".opam" in
-  let opam_filename' =
-    prefix ^ "/opam/" ^ OpamPackage.name_to_string pkg ^ ".opam"
+  let opam_filenames =
+    [
+      prefix ^ "/" ^ OpamPackage.name_to_string pkg ^ ".opam";
+      prefix ^ "/opam/" ^ OpamPackage.name_to_string pkg ^ ".opam";
+    ]
   in
   let read tgz hdr =
     let buf = Cstruct.create (hdr.Tar.Header.file_size |> Int64.to_int) in
     Tgz.really_read tgz buf >|= fun () -> Cstruct.to_string buf
   in
-  let rec find opam_file' tgz =
+  let rec find acc tgz =
     Lwt.catch
       (fun () ->
         Tgz.get_next_header tgz >>= fun hdr ->
-        if hdr.Tar.Header.file_name = opam_filename then
-          read tgz hdr >|= fun opam_file -> Some opam_file
-        else
-          (if hdr.Tar.Header.file_name = opam_filename' then
-             read tgz hdr >|= fun opam_file' -> Some opam_file'
-           else Lwt.return_none)
-          >>= fun opam_file' ->
-          let to_skip = Tar.Header.(Int64.to_int (to_sectors hdr) * length) in
-          Tgz.skip tgz to_skip >>= fun () -> find opam_file' tgz)
+        (match (acc, memi hdr.Tar.Header.file_name opam_filenames) with
+        | Some (priority, _), priority' when priority' <= priority ->
+            read tgz hdr >>= fun contents ->
+            Lwt.return_some (priority', contents)
+        | None, priority' ->
+            read tgz hdr >>= fun contents ->
+            Lwt.return_some (priority', contents)
+        | _ -> Lwt.return acc
+        | exception Not_found -> Lwt.return acc)
+        >>= fun acc ->
+        let to_skip = Tar.Header.(Int64.to_int (to_sectors hdr) * length) in
+        Tgz.skip tgz to_skip >>= fun () -> find acc tgz)
       (function
-        | Tar.Header.End_of_stream -> Lwt.return opam_file'
-        | exn -> Lwt.fail exn)
+        | Tar.Header.End_of_stream -> Lwt.return acc | exn -> Lwt.fail exn)
   in
-  Lwt_unix.openfile (Fpath.to_string tarball)
-    [ O_RDONLY; O_CLOEXEC; O_NONBLOCK ]
-    0
+  Lwt_unix.openfile (Fpath.to_string tarball) [ O_RDONLY; O_CLOEXEC ] 0
   >>= fun fd ->
   Lwt.finalize
     (fun () ->
       let tgz = Tgz.of_in_channel ~internal:(Cstruct.create 4096) fd in
-      find None tgz)
+      find None tgz >>= function
+      | Some (_, contents) -> Lwt_result.return contents
+      | None -> Lwt_result.fail (no_opam_file opam_filenames "no such files."))
     (fun () -> Lwt_unix.close fd)
 
 let fetch ~transport ~path ~tarball =
@@ -215,11 +238,12 @@ let get_opam_http ~job ~pkg url =
              Lwt.fail exn))
       >>= fun () ->
       read_opam_file ~tarball ~prefix:(repo ^ "-" ^ hash) pkg >>= function
-      | Some contents -> Lwt.return contents
-      | None ->
-          Fmt.failwith "Couldn't get opam file %a contents from %s for %s"
+      | Ok contents -> Lwt.return contents
+      | Error (`Msg msg) ->
+          Fmt.failwith "Couldn't get opam file %a contents from %s for %s: %s"
             Fpath.pp tarball (OpamUrl.to_string url)
-            (OpamPackage.to_string pkg))
+            (OpamPackage.to_string pkg)
+            msg)
   | _ ->
       Fmt.failwith
         "Only Git or GitHub https pin-depends are supported (got %S for %s)"
