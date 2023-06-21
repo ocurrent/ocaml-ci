@@ -92,7 +92,7 @@ let no_opam_file opam_filenames msg =
 let read_opam_file ~job ~repo ~hash pkg =
   let opam_filenames =
     let opam_filename = OpamPackage.name_to_string pkg ^ ".opam" in
-    [ opam_filename; "opam/" ^ opam_filename ]
+    [ opam_filename; "opam/" ^ opam_filename; "opam" ]
   in
   first_ok_s (Cmd.git_show ~job ~repo hash) opam_filenames
   |> Lwt_result.map_error @@ fun (`Msg msg) -> no_opam_file opam_filenames msg
@@ -161,6 +161,7 @@ let read_opam_file ~tarball ~prefix pkg =
     [
       prefix ^ "/" ^ OpamPackage.name_to_string pkg ^ ".opam";
       prefix ^ "/opam/" ^ OpamPackage.name_to_string pkg ^ ".opam";
+      prefix ^ "/opam";
     ]
   in
   let read tgz hdr =
