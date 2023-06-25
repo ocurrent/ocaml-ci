@@ -1,6 +1,6 @@
-FROM ocaml/opam:debian-11-ocaml-4.14@sha256:5ce947a2707d3cfe0d2a8918ef41c8b5f88ccddfcace11871c5f553afac189ed AS build
+FROM ocaml/opam:debian-11-ocaml-4.14@sha256:48362dd2acf76b1c7bd4cfe5b5c5cead036f018c5c69153296759faf9179cf8c AS build
 RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libsqlite3-dev libgmp-dev graphviz -y --no-install-recommends
-RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard 4f8d9820693746275a0438102c57ef7e43e745b9 && opam update
+RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard aba239bd4ea3b0293c11c5b773a2dad6e35b2262 && opam update
 COPY --chown=opam \
 	ocurrent/current_docker.opam \
 	ocurrent/current_github.opam \
@@ -45,7 +45,7 @@ RUN opam-2.1 exec -- dune build ./_build/install/default/bin/ocaml-ci-service
 FROM debian:11
 RUN apt-get update && apt-get install libev4 openssh-client curl gnupg2 dumb-init git graphviz libsqlite3-dev ca-certificates netbase -y --no-install-recommends
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -
-RUN echo 'deb https://download.docker.com/linux/debian buster stable' >> /etc/apt/sources.list
+RUN echo 'deb https://download.docker.com/linux/debian bullseye stable' >> /etc/apt/sources.list
 RUN apt-get update && apt-get install docker-ce docker-buildx-plugin -y --no-install-recommends
 WORKDIR /var/lib/ocurrent
 ENTRYPOINT ["dumb-init", "/usr/local/bin/ocaml-ci-service"]
