@@ -80,7 +80,9 @@ let rec get_root_opam_packages = function
 let download_cache = "opam-archives"
 
 let install_project_deps ~opam_version ~opam_files ~selection =
-  let { Selection.packages; commit; variant; only_packages } = selection in
+  let { Selection.packages; commit; variant; only_packages; lower_bound = _ } =
+    selection
+  in
   let prefix =
     match Variant.os variant with `macOS -> "~/local" | `linux -> "/usr"
   in

@@ -31,7 +31,13 @@ let commit_from_ocamlformat_source ocamlformat_source =
 
 let fmt_spec ~base ~ocamlformat_source ~selection =
   let open Obuilder_spec in
-  let { Selection.packages = _; commit; variant = _; only_packages = _ } =
+  let {
+    Selection.packages = _;
+    commit;
+    variant = _;
+    only_packages = _;
+    lower_bound = _;
+  } =
     selection
   in
   let commit =

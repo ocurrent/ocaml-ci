@@ -4,16 +4,23 @@ type t = {
   only_packages : string list; [@default []]
       (** Local root packages to include (empty to include all). *)
   commit : string;  (** A commit in opam-repository to use. *)
+  lower_bound : bool;  (** Is this selection a lower-bound selection? *)
 }
 [@@deriving yojson, ord]
 (** A set of packages for a single build. *)
 
 let of_worker ~root_pkgs w =
   let module W = Ocaml_ci_api.Worker.Selection in
-  let { W.id; compat_pkgs; packages; commits } = w in
+  let { W.id; compat_pkgs; packages; commits; lower_bound } = w in
   let variant = Variant.of_string id in
   let only_packages = if root_pkgs = compat_pkgs then [] else compat_pkgs in
-  { variant; only_packages; packages; commit = snd (List.hd commits) }
+  {
+    variant;
+    only_packages;
+    packages;
+    commit = snd (List.hd commits);
+    lower_bound;
+  }
 
 let remove_package t ~package =
   {
@@ -26,7 +33,8 @@ let filter_duplicate_opam_versions ts =
   let key t =
     ( Variant.distro t.variant,
       Variant.ocaml_version t.variant,
-      Variant.arch t.variant )
+      Variant.arch t.variant,
+      t.lower_bound )
   in
   List.iter
     (fun t ->

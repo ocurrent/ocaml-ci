@@ -54,6 +54,21 @@ let summarise results =
 open Current.Syntax
 module Git = Current_git
 
+let take_lowest_bound_selection = function
+  | [] -> []
+  | hd :: _ as selections ->
+      List.fold_left
+        (fun (v : Selection.t) (v' : Selection.t) ->
+          if
+            Ocaml_version.compare
+              (Variant.ocaml_version v.variant)
+              (Variant.ocaml_version v'.variant)
+            <= 0
+          then v
+          else v')
+        hd selections
+      |> fun s -> [ s ]
+
 let get_job_id x =
   let+ md = Current.Analysis.metadata x in
   match md with Some { Current.Metadata.job_id; _ } -> job_id | None -> None
@@ -76,19 +91,25 @@ let build_with_docker ?ocluster ?on_cancel ~(repo : Repo_id.t Current.t)
             Spec.opam ~label:"(lint-fmt)" ~selection:lint_selection ~analysis
               (`Lint `Fmt)
             :: Spec.opam_monorepo builds
-        | `Opam_build (`Default selections, `Lower_bound lower_bound_selections)
-          ->
+        | `Opam_build selections ->
             let lint_selection = List.hd selections in
             let lint_ocamlformat =
               match Analyse.Analysis.ocamlformat_selection analysis with
               | None -> lint_selection
               | Some selection -> selection
             in
-            let builds ~is_lower_bound s =
+            (* For lower-bound, take only the lowest version of OCaml that has a solution *)
+            let selections =
+              let lower_bound, other =
+                List.partition (fun s -> s.Selection.lower_bound) selections
+              in
+              take_lowest_bound_selection lower_bound @ other
+            in
+            let builds s =
               Selection.filter_duplicate_opam_versions s
               |> List.map (fun selection ->
                      let label =
-                       if is_lower_bound then "(lint-lower-bounds)"
+                       if selection.Selection.lower_bound then "(lower-bound)"
                        else Variant.to_string selection.Selection.variant
                      in
                      Spec.opam ~label ~selection ~analysis `Build)
@@ -102,9 +123,7 @@ let build_with_docker ?ocluster ?on_cancel ~(repo : Repo_id.t Current.t)
                   ~analysis (`Lint `Opam);
               ]
             in
-            lint
-            @ builds ~is_lower_bound:false selections
-            @ builds ~is_lower_bound:true lower_bound_selections)
+            lint @ builds selections)
   in
   let builds =
     specs
