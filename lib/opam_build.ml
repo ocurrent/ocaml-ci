@@ -206,6 +206,7 @@ let spec ~base ~opam_version ~opam_files ~selection =
   in
   stage ~from:base
     (comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant)
+     :: run "eval $(opam env) && ocaml --version && opam --version"
      :: user_unix ~uid:1000 ~gid:1000
      :: install_project_deps ~opam_version ~opam_files ~selection
     @ [ copy [ "." ] ~dst:home_dir; run_build ])
