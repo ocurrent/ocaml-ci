@@ -1,6 +1,7 @@
 FROM ocaml/opam:debian-11-ocaml-4.14@sha256:5ce947a2707d3cfe0d2a8918ef41c8b5f88ccddfcace11871c5f553afac189ed AS build
+RUN sudo ln -f /usr/bin/opam-2.1 /usr/bin/opam && opam init --reinit -ni
 RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libsqlite3-dev libgmp-dev graphviz -y --no-install-recommends
-RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard 4f8d9820693746275a0438102c57ef7e43e745b9 && opam update
+RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard f35584e0c472f68694d003e96ba513b1ca7b17c6 && opam update
 COPY --chown=opam \
 	ocurrent/current_docker.opam \
 	ocurrent/current_github.opam \
@@ -44,9 +45,9 @@ RUN opam pin add -yn current_docker.dev "./ocurrent" && \
     opam pin add -yn solver-service.dev "./solver-service" && \
     opam pin add -yn ocluster-api.dev "./ocluster"
 COPY --chown=opam ocaml-ci.opam ocaml-ci-gitlab.opam ocaml-ci-service.opam ocaml-ci-api.opam /src/
-RUN opam-2.1 install -y --deps-only .
+RUN opam install -y --deps-only .
 ADD --chown=opam . .
-RUN opam-2.1 exec -- dune build ./_build/install/default/bin/ocaml-ci-gitlab
+RUN opam exec -- dune build ./_build/install/default/bin/ocaml-ci-gitlab
 
 FROM debian:11
 RUN apt-get update && apt-get install libev4 openssh-client curl gnupg2 dumb-init git graphviz libsqlite3-dev ca-certificates netbase -y --no-install-recommends
