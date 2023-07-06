@@ -3,6 +3,12 @@
     A build variant covers the OCaml version, opam version, hardware [arch] and
     operating system distribution. *)
 
+val analysis_label : string
+val lower_bound_label : string
+val fmt_label : string
+val doc_label : string
+val opam_label : string
+
 type t [@@deriving eq, ord, yojson]
 
 val v :

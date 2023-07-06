@@ -88,8 +88,8 @@ let build_with_docker ?ocluster ?on_cancel ~(repo : Repo_id.t Current.t)
             let lint_selection =
               Opam_monorepo.selection_of_config (List.hd builds)
             in
-            Spec.opam ~label:"(lint-fmt)" ~selection:lint_selection ~analysis
-              (`Lint `Fmt)
+            Spec.opam ~label:Variant.analysis_label ~selection:lint_selection
+              ~analysis (`Lint `Fmt)
             :: Spec.opam_monorepo builds
         | `Opam_build selections ->
             let lint_selection = List.hd selections in
@@ -109,17 +109,18 @@ let build_with_docker ?ocluster ?on_cancel ~(repo : Repo_id.t Current.t)
               Selection.filter_duplicate_opam_versions s
               |> List.map (fun selection ->
                      let label =
-                       if selection.Selection.lower_bound then "(lower-bound)"
+                       if selection.Selection.lower_bound then
+                         Variant.lower_bound_label
                        else Variant.to_string selection.Selection.variant
                      in
                      Spec.opam ~label ~selection ~analysis `Build)
             and lint =
               [
-                Spec.opam ~label:"(lint-fmt)" ~selection:lint_ocamlformat
+                Spec.opam ~label:Variant.fmt_label ~selection:lint_ocamlformat
                   ~analysis (`Lint `Fmt);
-                Spec.opam ~label:"(lint-doc)" ~selection:lint_selection
+                Spec.opam ~label:Variant.doc_label ~selection:lint_selection
                   ~analysis (`Lint `Doc);
-                Spec.opam ~label:"(lint-opam)" ~selection:lint_selection
+                Spec.opam ~label:Variant.opam_label ~selection:lint_selection
                   ~analysis (`Lint `Opam);
               ]
             in
@@ -144,4 +145,7 @@ let build_with_docker ?ocluster ?on_cancel ~(repo : Repo_id.t Current.t)
     Current.state ~hidden:true (Current.map (fun _ -> `Checked) analysis)
   and+ analysis_id = get_job_id analysis in
   builds
-  @ [ (Build_info.of_label "(analysis)", (analysis_result, analysis_id)) ]
+  @ [
+      ( Build_info.of_label Variant.analysis_label,
+        (analysis_result, analysis_id) );
+    ]

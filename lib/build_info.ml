@@ -14,8 +14,8 @@ let of_label label = { label; variant = None }
 let experimental_variant s =
   if
     Astring.String.(
-      is_prefix ~affix:"(lint-lower-bounds)" s.label
-      || is_prefix ~affix:"(lint-opam)" s.label)
+      is_prefix ~affix:Variant.lower_bound_label s.label
+      || is_prefix ~affix:Variant.opam_label s.label)
   then true
   else
     match s.variant with
@@ -35,8 +35,8 @@ let experimental_variant s =
     potentially give false positives. *)
 let experimental_variant_str s =
   Astring.String.(
-    is_prefix ~affix:"(lint-lower-bounds)" s
-    || is_prefix ~affix:"(lint-opam)" s
+    is_prefix ~affix:Variant.lower_bound_label s
+    || is_prefix ~affix:Variant.opam_label s
     || is_prefix ~affix:"macos-homebrew" s
     || is_infix ~affix:"-5.1" s
     || is_infix ~affix:"-5.1~alpha1" s
