@@ -51,13 +51,15 @@ let test_summarise_running () =
 
 let test_summarise_success_experimental_fail () =
   let result =
-    Ocaml_ci.Build_info.
-      [
-        (of_label "build_1", (Result.Ok `Built, ()));
-        (of_label "build_2", (Result.Ok `Built, ()));
-        (of_label "lint_1", (Result.Ok `Checked, ()));
-        (of_label "(lint-lower-bounds)", (Result.Error (`Msg "failed"), ()));
-      ]
+    Ocaml_ci.(
+      Build_info.
+        [
+          (of_label "build_1", (Result.Ok `Built, ()));
+          (of_label "build_2", (Result.Ok `Built, ()));
+          (of_label "lint_1", (Result.Ok `Checked, ()));
+          ( of_label Variant.lower_bound_label,
+            (Result.Error (`Msg "failed"), ()) );
+        ])
     |> Ocaml_ci.Pipeline.summarise
   in
   let expected = Result.Ok () in
@@ -65,13 +67,14 @@ let test_summarise_success_experimental_fail () =
 
 let test_summarise_success_experimental_running () =
   let result =
-    Ocaml_ci.Build_info.
-      [
-        (of_label "build_1", (Result.Ok `Built, ()));
-        (of_label "build_2", (Result.Ok `Built, ()));
-        (of_label "lint_1", (Result.Ok `Checked, ()));
-        (of_label "(lint-lower-bounds)", (Result.Error (`Active ()), ()));
-      ]
+    Ocaml_ci.(
+      Build_info.
+        [
+          (of_label "build_1", (Result.Ok `Built, ()));
+          (of_label "build_2", (Result.Ok `Built, ()));
+          (of_label "lint_1", (Result.Ok `Checked, ()));
+          (of_label Variant.lower_bound_label, (Result.Error (`Active ()), ()));
+        ])
     |> Ocaml_ci.Pipeline.summarise
   in
   let expected = Result.Ok () in
@@ -87,8 +90,8 @@ let test_experimental () =
     Ocaml_ci.(
       Build_info.
         [
-          (true, of_label "(lint-lower-bounds)");
-          (false, of_label "(lint-doc)");
+          (true, of_label Variant.lower_bound_label);
+          (false, of_label Variant.doc_label);
           ( true,
             {
               label = "";

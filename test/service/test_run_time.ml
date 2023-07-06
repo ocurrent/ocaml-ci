@@ -2,6 +2,7 @@ module Index = Ocaml_ci.Index
 module Run_time = Ocaml_ci.Run_time
 module Job = Current.Job
 module Client = Ocaml_ci_api.Client
+module Variant = Ocaml_ci.Variant
 
 let setup () =
   let open Lwt.Syntax in
@@ -350,11 +351,12 @@ let test_build_created_at_empty =
 
 let test_build_created_at_happy_path =
   let analysis_step =
-    Client.create_job_info "(analysis)" Passed ~queued_at:(Some 1234567.)
-      ~started_at:(Some 1234570.) ~finished_at:(Some 1234575.)
+    Client.create_job_info Variant.analysis_label Passed
+      ~queued_at:(Some 1234567.) ~started_at:(Some 1234570.)
+      ~finished_at:(Some 1234575.)
   in
   let lint_step =
-    Client.create_job_info "(lint-fmt)" Passed ~queued_at:(Some 1234576.)
+    Client.create_job_info Variant.fmt_label Passed ~queued_at:(Some 1234576.)
       ~started_at:(Some 1234579.) ~finished_at:(Some 1234585.)
   in
   let build_step =
@@ -369,12 +371,14 @@ let test_build_created_at_happy_path =
 
 let test_build_created_at_mangled =
   let analysis_step =
-    Client.create_job_info "(analysis)" Passed ~queued_at:(Some 1234567.)
-      ~started_at:(Some 1234570.) ~finished_at:(Some 1234575.)
+    Client.create_job_info Variant.analysis_label Passed
+      ~queued_at:(Some 1234567.) ~started_at:(Some 1234570.)
+      ~finished_at:(Some 1234575.)
   in
   let analysis_step_2 =
-    Client.create_job_info "(analysis)" Passed ~queued_at:(Some 1234576.)
-      ~started_at:(Some 1234579.) ~finished_at:(Some 1234585.)
+    Client.create_job_info Variant.analysis_label Passed
+      ~queued_at:(Some 1234576.) ~started_at:(Some 1234579.)
+      ~finished_at:(Some 1234585.)
   in
   let build_step =
     Client.create_job_info "foo-11-4.14" Active ~queued_at:(Some 1234576.)
@@ -388,11 +392,12 @@ let test_build_created_at_mangled =
 
 let test_total_of_run_times =
   let analysis_step =
-    Client.create_job_info "(analysis)" Passed ~queued_at:(Some 1234567.)
-      ~started_at:(Some 1234570.) ~finished_at:(Some 1234575.)
+    Client.create_job_info Variant.analysis_label Passed
+      ~queued_at:(Some 1234567.) ~started_at:(Some 1234570.)
+      ~finished_at:(Some 1234575.)
   in
   let lint_step =
-    Client.create_job_info "(lint-fmt)" Passed ~queued_at:(Some 1234576.)
+    Client.create_job_info Variant.fmt_label Passed ~queued_at:(Some 1234576.)
       ~started_at:(Some 1234579.) ~finished_at:(Some 1234585.)
   in
   let build_step =
@@ -407,12 +412,13 @@ let test_total_of_run_times =
 let test_build_run_time =
   (* run-time of analysis step is 3 + 5 = 8 *)
   let analysis_step =
-    Client.create_job_info "(analysis)" Passed ~queued_at:(Some 1234567.)
-      ~started_at:(Some 1234570.) ~finished_at:(Some 1234575.)
+    Client.create_job_info Variant.analysis_label Passed
+      ~queued_at:(Some 1234567.) ~started_at:(Some 1234570.)
+      ~finished_at:(Some 1234575.)
   in
   (* run-time of lint step is 3 + 6 = 9 *)
   let lint_step =
-    Client.create_job_info "(lint-fmt)" Passed ~queued_at:(Some 1234576.)
+    Client.create_job_info Variant.fmt_label Passed ~queued_at:(Some 1234576.)
       ~started_at:(Some 1234579.) ~finished_at:(Some 1234585.)
   in
   (* run-time of build_step is 3 + 11 = 14 -- this is the longest running step *)

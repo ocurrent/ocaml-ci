@@ -206,7 +206,7 @@ module TimeList = struct
   let partition_build_steps build =
     let analysis_steps, rest =
       List.partition
-        (fun (variant, _) -> String.equal variant "(analysis)")
+        (fun (variant, _) -> String.equal variant Variant.analysis_label)
         build
     in
     let analysis_steps = List.map snd analysis_steps in

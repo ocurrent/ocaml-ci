@@ -2,6 +2,7 @@ module Build = Representation.Build
 module Step = Representation.Step
 module Client = Ocaml_ci_api.Client
 module Run_time = Ocaml_ci.Run_time
+module Variant = Ocaml_ci.Variant
 
 let test_to_json (jobs, build_status, build_created_at, expected) =
   let result =
@@ -15,8 +16,9 @@ let test_to_json (jobs, build_status, build_created_at, expected) =
    by adding timedesc-tzlocal.utc to the dune file. See the README for timedesc *)
 let test_simple () =
   let step_info_1 =
-    Client.create_job_info "(analysis)" Passed ~queued_at:(Some 1666210392.)
-      ~started_at:(Some 1666210434.) ~finished_at:(Some 1666210490.)
+    Client.create_job_info Variant.analysis_label Passed
+      ~queued_at:(Some 1666210392.) ~started_at:(Some 1666210434.)
+      ~finished_at:(Some 1666210490.)
   in
   let expected_1 =
     {|{"version":"1.0","status":"passed","created_at":"Oct 19 20:13 +00:00","finished_at":"Oct 19 20:14 +00:00","queued_for":"42s","ran_for":"56s","can_rebuild":false,"can_cancel":false,"variant":"(analysis)","is_experimental":false}|}

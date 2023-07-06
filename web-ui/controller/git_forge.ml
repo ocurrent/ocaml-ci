@@ -2,6 +2,7 @@ module type View = View.Git_forge.View
 
 module Client = Ocaml_ci_api.Client
 module Run_time = Ocaml_ci.Run_time
+module Variant = Ocaml_ci.Variant
 
 module type Controller = sig
   val list_repos : org:string -> Backend.t -> Dream.server Dream.message Lwt.t
@@ -281,7 +282,7 @@ module Make (View : View) : Controller = struct
     let rebuild_many commit job_infos =
       let go job_info commit success failed =
         let variant = job_info.Client.variant in
-        if variant = "(analysis)" then
+        if variant = Variant.analysis_label then
           (* Do not rebuild analysis -- this triggers other jobs *)
           Lwt.return (success, failed)
         else

@@ -25,6 +25,12 @@ module Ocaml_version = struct
     | _ -> Error "unknown json for ocaml version"
 end
 
+let analysis_label = "(analysis)"
+let lower_bound_label = "(lower-bound)"
+let fmt_label = "(lint-fmt)"
+let doc_label = "(lint-doc)"
+let opam_label = "(lint-opam)"
+
 type t = {
   distro : string;
   ocaml_version : Ocaml_version.t;
