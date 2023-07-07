@@ -224,7 +224,16 @@ module Analysis = struct
           Hashtbl.add solver_cache version (selections, platforms);
           selections
     in
-    let selection = List.hd selections in
+    let selection =
+      List.find_opt
+        (fun x ->
+          Variant.arch x.Selection.variant == `X86_64
+          && Variant.os x.Selection.variant == `linux)
+        selections
+    in
+    let selection =
+      match selection with None -> List.hd selections | Some s -> s
+    in
     (selection.Selection.commit, selection)
 
   let of_dir ~solver ~job ~platforms ~opam_repository_commit root =
