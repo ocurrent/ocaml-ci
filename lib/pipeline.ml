@@ -102,11 +102,12 @@ let build_with_docker ?ocluster ?on_cancel ~(repo : Repo_id.t Current.t)
                       (Variant.ocaml_version y.Selection.variant))
                   selections
               in
-              List.find
+              List.find_opt
                 (fun x ->
                   Variant.arch x.Selection.variant == `X86_64
                   && Variant.os x.Selection.variant == `linux)
                 sorted
+              |> Option.value ~default:(List.hd selections)
             in
             let lint_ocamlformat =
               match Analyse.Analysis.ocamlformat_selection analysis with
