@@ -92,7 +92,11 @@ let build_with_docker ?ocluster ?on_cancel ~(repo : Repo_id.t Current.t)
               ~analysis (`Lint `Fmt)
             :: Spec.opam_monorepo builds
         | `Opam_build selections ->
-            let lint_selection = List.hd selections in
+           let lint_selection =
+             (* Sort by OCaml version and take the first Linux x86_64 selection. *)
+             let sorted = List.sort (fun x y -> Ocaml_version.compare (Variant.ocaml_version x.Selection.variant) (Variant.ocaml_version y.Selection.variant)) selections in
+             List.find (fun x -> (Variant.arch x.Selection.variant) == `X86_64 &&
+                                   Variant.os x.Selection.variant ==  `linux) sorted in
             let lint_ocamlformat =
               match Analyse.Analysis.ocamlformat_selection analysis with
               | None -> lint_selection
