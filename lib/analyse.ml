@@ -198,6 +198,27 @@ module Analysis = struct
     |> String.concat "\n"
 
   let exactly v = Printf.sprintf {|{ = "%s" }|} v
+
+  (** Choose the platform that linting steps will be run on. Currently the Linux
+      x86 platform with the lowest OCaml version *)
+  let lint_selection selections =
+    let selections =
+      List.sort
+        (fun x y ->
+          Ocaml_version.compare
+            (Variant.ocaml_version x.Selection.variant)
+            (Variant.ocaml_version y.Selection.variant))
+        selections
+    in
+    (* If there is for some reason no Linux x86 platform,
+       fallback to whatever else there is *)
+    List.find_opt
+      (fun x ->
+        Variant.arch x.Selection.variant == `X86_64
+        && Variant.os x.Selection.variant == `linux)
+      selections
+    |> Option.value ~default:(List.hd selections)
+
   let solver_cache = Hashtbl.create 128
 
   let find_opam_repo_commit_for_ocamlformat ~solve ~platforms version =
@@ -224,16 +245,7 @@ module Analysis = struct
           Hashtbl.add solver_cache version (selections, platforms);
           selections
     in
-    let selection =
-      List.find_opt
-        (fun x ->
-          Variant.arch x.Selection.variant == `X86_64
-          && Variant.os x.Selection.variant == `linux)
-        selections
-    in
-    let selection =
-      match selection with None -> List.hd selections | Some s -> s
-    in
+    let selection = lint_selection selections in
     (selection.Selection.commit, selection)
 
   let of_dir ~solver ~job ~platforms ~opam_repository_commit root =
