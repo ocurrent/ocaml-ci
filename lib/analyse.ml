@@ -198,27 +198,6 @@ module Analysis = struct
     |> String.concat "\n"
 
   let exactly v = Printf.sprintf {|{ = "%s" }|} v
-
-  (** Choose the platform that linting steps will be run on. Currently the Linux
-      x86 platform with the lowest OCaml version *)
-  let lint_selection selections =
-    let selections =
-      List.sort
-        (fun x y ->
-          Ocaml_version.compare
-            (Variant.ocaml_version x.Selection.variant)
-            (Variant.ocaml_version y.Selection.variant))
-        selections
-    in
-    (* If there is for some reason no Linux x86 platform,
-       fallback to whatever else there is *)
-    List.find_opt
-      (fun x ->
-        Variant.arch x.Selection.variant == `X86_64
-        && Variant.os x.Selection.variant == `linux)
-      selections
-    |> Option.value ~default:(List.hd selections)
-
   let solver_cache = Hashtbl.create 128
 
   let find_opam_repo_commit_for_ocamlformat ~solve ~platforms version =
@@ -245,8 +224,16 @@ module Analysis = struct
           Hashtbl.add solver_cache version (selections, platforms);
           selections
     in
-    let selection = lint_selection selections in
+    let selection = List.hd selections in
     (selection.Selection.commit, selection)
+
+  let filter_linux_x86_64_platforms platforms =
+    List.filter
+      (fun (v, _) -> Variant.arch v == `X86_64 && Variant.os v == `linux)
+      platforms
+    |> List.sort (fun (v0, _) (v1, _) ->
+           Ocaml_version.compare (Variant.ocaml_version v0)
+             (Variant.ocaml_version v1))
 
   let of_dir ~solver ~job ~platforms ~opam_repository_commit root =
     let cancelled = Atomic.make None in
@@ -302,7 +289,8 @@ module Analysis = struct
     Lwt_preemptive.detach fold_on_opam_files () >>!= fun opam_files ->
     let solve = solve ~opam_repository_commit ~job ~solver in
     let find_opam_repo_commit =
-      find_opam_repo_commit_for_ocamlformat ~solve ~platforms
+      find_opam_repo_commit_for_ocamlformat ~solve
+        ~platforms:(filter_linux_x86_64_platforms platforms)
     in
     Analyse_ocamlformat.get_ocamlformat_source job ~opam_files ~root
       ~find_opam_repo_commit
