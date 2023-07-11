@@ -227,6 +227,14 @@ module Analysis = struct
     let selection = List.hd selections in
     (selection.Selection.commit, selection)
 
+  let filter_linux_x86_64_platforms platforms =
+    List.filter
+      (fun (v, _) -> Variant.arch v == `X86_64 && Variant.os v == `linux)
+      platforms
+    |> List.sort (fun (v0, _) (v1, _) ->
+           Ocaml_version.compare (Variant.ocaml_version v0)
+             (Variant.ocaml_version v1))
+
   let of_dir ~solver ~job ~platforms ~opam_repository_commit root =
     let cancelled = Atomic.make None in
     let fold_on_opam_files () =
@@ -281,7 +289,8 @@ module Analysis = struct
     Lwt_preemptive.detach fold_on_opam_files () >>!= fun opam_files ->
     let solve = solve ~opam_repository_commit ~job ~solver in
     let find_opam_repo_commit =
-      find_opam_repo_commit_for_ocamlformat ~solve ~platforms
+      find_opam_repo_commit_for_ocamlformat ~solve
+        ~platforms:(filter_linux_x86_64_platforms platforms)
     in
     Analyse_ocamlformat.get_ocamlformat_source job ~opam_files ~root
       ~find_opam_repo_commit
