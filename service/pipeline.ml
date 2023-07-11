@@ -151,7 +151,8 @@ let v ?ocluster ~app ~solver ~migrations () =
           set_active_refs ~repo refs default
         in
         refs
-        |> Current.list_iter (module Github.Api.Commit) @@ fun head ->
+        |> Current.list_iter ~collapse_key:"ref" (module Github.Api.Commit)
+           @@ fun head ->
            let src = Git.fetch (Current.map Github.Api.Commit.id head) in
            let analysis =
              Analyse.examine ~solver ~platforms ~opam_repository_commit src
