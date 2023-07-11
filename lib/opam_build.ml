@@ -159,6 +159,7 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   @ [
       run "%s -f %s/bin/opam-%s %s/bin/opam" ln prefix opam_version_str prefix;
       run "opam init --reinit%s -ni" opamrc;
+      run "opam exec -- ocaml --version && opam --version";
     ]
   @ (match home_dir with
     | Some home_dir -> [ workdir home_dir; run "sudo chown opam /src" ]
@@ -206,7 +207,6 @@ let spec ~base ~opam_version ~opam_files ~selection =
   in
   stage ~from:base
     (comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant)
-     :: run "opam exec -- ocaml --version && opam --version"
      :: user_unix ~uid:1000 ~gid:1000
      :: install_project_deps ~opam_version ~opam_files ~selection
     @ [ copy [ "." ] ~dst:home_dir; run_build ])
