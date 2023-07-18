@@ -19,6 +19,12 @@ let opam ~label ~selection ~analysis op =
   in
   { label; variant; ty }
 
+(** [lint_specs ~analysis selections] returns a list of valid linting specs,
+    which may contain any combination of:
+
+    - [(lint-fmt)]
+    - [(lint-doc)]
+    - [(lint-opam)] *)
 let lint_specs ~analysis selections =
   (* Sort by OCaml version *)
   let sorted_selections =
@@ -26,32 +32,33 @@ let lint_specs ~analysis selections =
       (fun x y ->
         Ocaml_version.compare
           (Variant.ocaml_version x.Selection.variant)
-          (Variant.ocaml_version y.Selection.variant))
+          (Variant.ocaml_version y.variant))
       selections
   in
-  let lint_selection =
+  let lint_doc =
     (* Take the first Linux x86_64 selection *)
     List.find_opt
       (fun x ->
         Variant.arch x.Selection.variant == `X86_64
-        && Variant.os x.Selection.variant == `linux)
+        && Variant.os x.variant == `linux)
       sorted_selections
   in
-  let lint_ocamlformat =
+  let lint_fmt =
+    (* Allow fallback if an ocamlformat selection doesn't exist,
+       as [dune build @fmt] can also format dune files *)
     match Analyse.Analysis.ocamlformat_selection analysis with
-    | None -> lint_selection
-    | Some selection -> Some selection
+    | None -> lint_doc
+    | spec -> spec
   in
   let lint_opam =
-    (* Take the first Linux x86_64 selection with an OCaml version >= 4.14.0 *)
+    (* Take the first Linux x86_64 selection with an OCaml version >= 4.14.0,
+       as this is the lower-bound of [opam-dune-lint] *)
     List.find_opt
       (fun x ->
         Variant.arch x.Selection.variant == `X86_64
-        && Variant.os x.Selection.variant == `linux
+        && Variant.os x.variant == `linux
         && Ocaml_version.(
-             compare
-               (Variant.ocaml_version x.Selection.variant)
-               Releases.v4_14_0)
+             compare (Variant.ocaml_version x.variant) Releases.v4_14_0)
            >= 0)
       sorted_selections
   in
@@ -61,8 +68,8 @@ let lint_specs ~analysis selections =
       selection
     |> Option.value ~default:[]
   in
-  f ~label:Variant.fmt_label ~selection:lint_ocamlformat ~lint_ty:`Fmt
-  @ f ~label:Variant.doc_label ~selection:lint_selection ~lint_ty:`Doc
+  f ~label:Variant.fmt_label ~selection:lint_fmt ~lint_ty:`Fmt
+  @ f ~label:Variant.doc_label ~selection:lint_doc ~lint_ty:`Doc
   @ f ~label:Variant.opam_label ~selection:lint_opam ~lint_ty:`Opam
 
 let opam_monorepo builds =
