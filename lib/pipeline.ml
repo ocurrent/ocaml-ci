@@ -73,80 +73,51 @@ let get_job_id x =
   let+ md = Current.Analysis.metadata x in
   match md with Some { Current.Metadata.job_id; _ } -> job_id | None -> None
 
+let docker_specs ~analysis =
+  let+ analysis = Current.state ~hidden:true analysis in
+  match analysis with
+  | Error _ ->
+      (* If we don't have the analysis yet, just use the empty list. *)
+      []
+  | Ok analysis -> (
+      match Analyse.Analysis.selections analysis with
+      | `Opam_monorepo builds ->
+          let lint_selection =
+            Opam_monorepo.selection_of_config (List.hd builds)
+          in
+          Spec.opam ~label:Variant.analysis_label ~selection:lint_selection
+            ~analysis (`Lint `Fmt)
+          :: Spec.opam_monorepo builds
+      | `Opam_build selections ->
+          (* For lower-bound, take only the lowest version of OCaml that has a solution *)
+          let selections =
+            let lower_bound, other =
+              List.partition
+                (fun s ->
+                  s.Selection.lower_bound
+                  && Variant.arch s.Selection.variant == `X86_64
+                  && Variant.os s.Selection.variant == `linux)
+                selections
+            in
+            take_lowest_bound_selection lower_bound @ other
+          in
+          let builds s =
+            Selection.filter_duplicate_opam_versions s
+            |> List.map (fun selection ->
+                   let label =
+                     if selection.Selection.lower_bound then
+                       Variant.lower_bound_label
+                     else Variant.to_string selection.Selection.variant
+                   in
+                   Spec.opam ~label ~selection ~analysis `Build)
+          in
+          let lint = Spec.lint_specs ~analysis selections in
+          lint @ builds selections)
+
 let build_with_docker ?ocluster ?on_cancel ~(repo : Repo_id.t Current.t)
     ~analysis ~platforms source =
   Current.with_context analysis @@ fun () ->
-  let specs =
-    let+ analysis = Current.state ~hidden:true analysis in
-    match analysis with
-    | Error _ ->
-        (* If we don't have the analysis yet, just use the empty list. *)
-        []
-    | Ok analysis -> (
-        match Analyse.Analysis.selections analysis with
-        | `Opam_monorepo builds ->
-            let lint_selection =
-              Opam_monorepo.selection_of_config (List.hd builds)
-            in
-            Spec.opam ~label:Variant.analysis_label ~selection:lint_selection
-              ~analysis (`Lint `Fmt)
-            :: Spec.opam_monorepo builds
-        | `Opam_build selections ->
-            let lint_selection =
-              (* Sort by OCaml version and take the first Linux x86_64 selection. *)
-              let sorted =
-                List.sort
-                  (fun x y ->
-                    Ocaml_version.compare
-                      (Variant.ocaml_version x.Selection.variant)
-                      (Variant.ocaml_version y.Selection.variant))
-                  selections
-              in
-              List.find_opt
-                (fun x ->
-                  Variant.arch x.Selection.variant == `X86_64
-                  && Variant.os x.Selection.variant == `linux)
-                sorted
-              |> Option.value ~default:(List.hd selections)
-            in
-            let lint_ocamlformat =
-              match Analyse.Analysis.ocamlformat_selection analysis with
-              | None -> lint_selection
-              | Some selection -> selection
-            in
-            (* For lower-bound, take only the lowest version of OCaml that has a solution *)
-            let selections =
-              let lower_bound, other =
-                List.partition
-                  (fun s ->
-                    s.Selection.lower_bound
-                    && Variant.arch s.Selection.variant == `X86_64
-                    && Variant.os s.Selection.variant == `linux)
-                  selections
-              in
-              take_lowest_bound_selection lower_bound @ other
-            in
-            let builds s =
-              Selection.filter_duplicate_opam_versions s
-              |> List.map (fun selection ->
-                     let label =
-                       if selection.Selection.lower_bound then
-                         Variant.lower_bound_label
-                       else Variant.to_string selection.Selection.variant
-                     in
-                     Spec.opam ~label ~selection ~analysis `Build)
-            and lint =
-              [
-                Spec.opam ~label:Variant.fmt_label ~selection:lint_ocamlformat
-                  ~analysis (`Lint `Fmt);
-                Spec.opam ~label:Variant.doc_label ~selection:lint_selection
-                  ~analysis (`Lint `Doc);
-                Spec.opam ~label:Variant.opam_label ~selection:lint_selection
-                  ~analysis (`Lint `Opam);
-              ]
-            in
-            lint @ builds selections)
-  in
+  let specs = docker_specs ~analysis in
   let builds =
     specs
     |> Current.list_map

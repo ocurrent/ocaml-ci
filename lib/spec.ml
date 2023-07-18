@@ -19,6 +19,52 @@ let opam ~label ~selection ~analysis op =
   in
   { label; variant; ty }
 
+let lint_specs ~analysis selections =
+  (* Sort by OCaml version *)
+  let sorted_selections =
+    List.sort
+      (fun x y ->
+        Ocaml_version.compare
+          (Variant.ocaml_version x.Selection.variant)
+          (Variant.ocaml_version y.Selection.variant))
+      selections
+  in
+  let lint_selection =
+    (* Take the first Linux x86_64 selection *)
+    List.find_opt
+      (fun x ->
+        Variant.arch x.Selection.variant == `X86_64
+        && Variant.os x.Selection.variant == `linux)
+      sorted_selections
+  in
+  let lint_ocamlformat =
+    match Analyse.Analysis.ocamlformat_selection analysis with
+    | None -> lint_selection
+    | Some selection -> Some selection
+  in
+  let lint_opam =
+    (* Take the first Linux x86_64 selection with an OCaml version >= 4.14.0 *)
+    List.find_opt
+      (fun x ->
+        Variant.arch x.Selection.variant == `X86_64
+        && Variant.os x.Selection.variant == `linux
+        && Ocaml_version.(
+             compare
+               (Variant.ocaml_version x.Selection.variant)
+               Releases.v4_14_0)
+           >= 0)
+      sorted_selections
+  in
+  let f ~label ~selection ~lint_ty =
+    Option.map
+      (fun selection -> [ opam ~label ~selection ~analysis (`Lint lint_ty) ])
+      selection
+    |> Option.value ~default:[]
+  in
+  f ~label:Variant.fmt_label ~selection:lint_ocamlformat ~lint_ty:`Fmt
+  @ f ~label:Variant.doc_label ~selection:lint_selection ~lint_ty:`Doc
+  @ f ~label:Variant.opam_label ~selection:lint_opam ~lint_ty:`Opam
+
 let opam_monorepo builds =
   let multi = List.compare_length_with builds 2 >= 0 in
   List.map
