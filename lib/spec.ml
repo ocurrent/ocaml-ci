@@ -19,6 +19,55 @@ let opam ~label ~selection ~analysis op =
   in
   { label; variant; ty }
 
+(** [lint_specs ~analysis selections] returns a list of valid linting specs,
+    which may contain combinations of:
+
+    - [(lint-fmt)]
+    - [(lint-doc)]
+    - [(lint-opam)] *)
+let lint_specs ~analysis selections =
+  (* Filter only linux-x86_64 and sort by OCaml version ascending *)
+  let sorted_linux_x86_64_selections =
+    List.filter
+      (fun x ->
+        Variant.arch x.Selection.variant == `X86_64
+        && Variant.os x.variant == `linux)
+      selections
+    |> List.sort (fun x y ->
+           Ocaml_version.compare
+             (Variant.ocaml_version x.Selection.variant)
+             (Variant.ocaml_version y.variant))
+  in
+  let lint_doc = List.hd sorted_linux_x86_64_selections in
+  let lint_fmt =
+    (* Allow fallback if an ocamlformat selection doesn't exist,
+       as [dune build @fmt] can also format dune files *)
+    match Analyse.Analysis.ocamlformat_selection analysis with
+    | None -> lint_doc
+    | Some spec -> spec
+  in
+  let lint_opam =
+    (* Take the first selection with an OCaml version >= 4.14.0,
+       as this is the lower-bound of [opam-dune-lint] *)
+    List.find_opt
+      (fun x ->
+        Ocaml_version.(
+          compare (Variant.ocaml_version x.Selection.variant) Releases.v4_14_0)
+        >= 0)
+      sorted_linux_x86_64_selections
+  in
+  let optional_spec ~label ~selection ~lint_ty =
+    Option.map
+      (fun selection -> [ opam ~label ~selection ~analysis (`Lint lint_ty) ])
+      selection
+    |> Option.value ~default:[]
+  in
+  [
+    opam ~label:Variant.fmt_label ~selection:lint_fmt ~analysis (`Lint `Fmt);
+    opam ~label:Variant.doc_label ~selection:lint_doc ~analysis (`Lint `Doc);
+  ]
+  @ optional_spec ~label:Variant.opam_label ~selection:lint_opam ~lint_ty:`Opam
+
 let opam_monorepo builds =
   let multi = List.compare_length_with builds 2 >= 0 in
   List.map

@@ -15,6 +15,7 @@ val opam :
   [ `Build | `Lint of [ `Doc | `Fmt | `Opam ] ] ->
   t
 
+val lint_specs : analysis:Analyse.Analysis.t -> Selection.t list -> t list
 val opam_monorepo : Opam_monorepo.config list -> t list
 val pp : t Fmt.t
 val compare : t -> t -> int
