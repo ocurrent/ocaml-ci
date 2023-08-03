@@ -112,12 +112,9 @@ let install_opam_dune_lint ~cache ~network ~base =
       user_unix ~uid:1000 ~gid:1000;
       run ~cache ~network
         "git -C ~/opam-repository pull origin master && opam update && opam \
-         pin add -yn dune.dev  \
-         https://github.com/moyodiallo/dune.git#opam-dune-lint-testing && opam \
          pin add -yn opam-dune-lint.dev \
-         https://github.com/moyodiallo/opam-dune-lint.git#ocaml-ci-testing";
+         https://github.com/moyodiallo/opam-dune-lint.git#f59878ceb42c7bed5b593e53f4fb073461bb7c18";
       run ~cache ~network "opam depext -i opam-dune-lint";
-      run "sudo cp $(opam exec -- which dune-lint) /usr/local/bin/";
       run "sudo cp $(opam exec -- which opam-dune-lint) /usr/local/bin/";
     ]
 
@@ -140,9 +137,6 @@ let opam_dune_lint_spec ~base ~opam_files ~selection =
   @ [
       workdir "/src";
       copy [ "." ] ~dst:"/src/";
-      copy
-        [ "/usr/local/bin/dune-lint" ]
-        ~from:(`Build "opam-dune-lint") ~dst:"/usr/local/bin/";
       copy
         [ "/usr/local/bin/opam-dune-lint" ]
         ~from:(`Build "opam-dune-lint") ~dst:"/usr/local/bin/";
