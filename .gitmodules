@@ -13,7 +13,7 @@
 [submodule "solver-service"]
 	path = solver-service
 	url = https://github.com/ocurrent/solver-service.git
-	branch = solver-ci
+	branch = main
 [submodule "ocaml-gitlab"]
 	path = ocaml-gitlab
 	url = https://github.com/tmcgilchrist/ocaml-gitlab.git
