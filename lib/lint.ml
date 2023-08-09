@@ -105,20 +105,7 @@ let doc_spec ~base ~opam_files ~selection =
         only_packages;
     ]
 
-let install_opam_dune_lint ~cache ~network ~base =
-  let open Obuilder_spec in
-  stage ~from:base
-    [
-      user_unix ~uid:1000 ~gid:1000;
-      run ~cache ~network
-        "git -C ~/opam-repository pull origin master && opam update && opam \
-         pin add -yn opam-dune-lint.dev \
-         https://github.com/moyodiallo/opam-dune-lint.git#f59878ceb42c7bed5b593e53f4fb073461bb7c18";
-      run ~cache ~network "opam depext -i opam-dune-lint";
-      run "sudo cp $(opam exec -- which opam-dune-lint) /usr/local/bin/";
-    ]
-
-let opam_dune_lint_spec ~base ~opam_files ~selection =
+let opam_dune_lint_spec ~base ~selection =
   let cache =
     [
       Obuilder_spec.Cache.v Opam_build.download_cache
@@ -127,19 +114,22 @@ let opam_dune_lint_spec ~base ~opam_files ~selection =
   in
   let network = [ "host" ] in
   let open Obuilder_spec in
-  stage
-    ~child_builds:
-      [ ("opam-dune-lint", install_opam_dune_lint ~cache ~network ~base) ]
-    ~from:base
+  stage ~from:base
   @@ comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant)
      :: user_unix ~uid:1000 ~gid:1000
-     :: Opam_build.install_project_deps ~opam_version ~opam_files ~selection
+     :: [
+          run ~cache ~network
+            "git -C ~/opam-repository pull origin master && opam update && \
+             opam pin add -yn opam-dune-lint.dev \
+             https://github.com/moyodiallo/opam-dune-lint.git#f59878ceb42c7bed5b593e53f4fb073461bb7c18";
+          run ~cache ~network "opam depext -i opam-dune-lint";
+        ]
   @ [
+      env "CI" "true";
+      env "OCAMLCI" "true";
       workdir "/src";
       copy [ "." ] ~dst:"/src/";
-      copy
-        [ "/usr/local/bin/opam-dune-lint" ]
-        ~from:(`Build "opam-dune-lint") ~dst:"/usr/local/bin/";
+      run "opam lint";
       run "opam exec -- opam-dune-lint";
     ]
 
