@@ -189,7 +189,9 @@ let platforms ~ci_profile ~include_macos opam_version =
       lower_bound;
     }
   in
+
   let master_distro = DD.resolve_alias DD.master_distro in
+  (* TODO This DD.master_distro implies Linux. *)
   (* Make platforms for all arches and desired variants using [distro] *)
   let make_platform distro =
     let distro = DD.resolve_alias distro in
@@ -345,4 +347,7 @@ let fetch_platforms ~include_macos () =
   let v2_1 =
     platforms ~ci_profile `V2_1 ~include_macos |> merge_lower_bound_platforms
   in
-  Current.list_seq (List.map v v2_1) |> Current.map List.flatten
+  (* Build on Linux with opam 2.2 for testing. *)
+  let v2_2 : platform list = platforms ~ci_profile `V2_2 ~include_macos:false in
+  Current.list_seq (List.map v (List.append v2_1 v2_2))
+  |> Current.map List.flatten
