@@ -62,7 +62,7 @@ let trunk_compiler = OV.(Sources.trunk |> without_patch)
 type platform = {
   label : string;
   builder : Ocaml_ci.Builder.t;
-  pool : string;
+  pool : Ocaml_ci.Platform.Pool_name.t;
   distro : string;
   ocaml_version : OV.t;
   arch : OV.arch;
@@ -78,7 +78,7 @@ let macos_distros =
     {
       label = "macos-homebrew";
       builder = Builders.local;
-      pool = "macos-x86_64";
+      pool = `Macos_x86_64;
       distro = "macos-homebrew";
       ocaml_version = OV.Releases.v4_14;
       arch = `X86_64;
@@ -88,7 +88,7 @@ let macos_distros =
     {
       label = "macos-homebrew";
       builder = Builders.local;
-      pool = "macos-x86_64";
+      pool = `Macos_x86_64;
       distro = "macos-homebrew";
       ocaml_version = OV.Releases.v5_0;
       arch = `X86_64;
@@ -99,7 +99,7 @@ let macos_distros =
     {
       label = "macos-homebrew";
       builder = Builders.local;
-      pool = "macos-arm64";
+      pool = `Macos_ARM64;
       distro = "macos-homebrew";
       ocaml_version = OV.Releases.v4_14;
       arch = `Aarch64;
@@ -109,7 +109,7 @@ let macos_distros =
     {
       label = "macos-homebrew";
       builder = Builders.local;
-      pool = "macos-arm64";
+      pool = `Macos_ARM64;
       distro = "macos-homebrew";
       ocaml_version = OV.Releases.v5_0;
       arch = `Aarch64;
@@ -123,7 +123,7 @@ let macos_distros_experimental =
     {
       label = "macos-homebrew";
       builder = Builders.local;
-      pool = "macos-x86_64";
+      pool = `Macos_x86_64;
       distro = "macos-homebrew";
       ocaml_version = OV.v 5 1 ~patch:0 ~prerelease:"rc1";
       arch = `X86_64;
@@ -133,7 +133,7 @@ let macos_distros_experimental =
     {
       label = "macos-homebrew";
       builder = Builders.local;
-      pool = "macos-arm64";
+      pool = `Macos_x86_64;
       distro = "macos-homebrew";
       ocaml_version = OV.v 5 1 ~patch:0 ~prerelease:"rc1";
       arch = `Aarch64;
@@ -143,13 +143,13 @@ let macos_distros_experimental =
   ]
 
 let pool_of_arch = function
-  | `X86_64 | `I386 -> "linux-x86_64"
-  | `Aarch32 | `Aarch64 -> "linux-arm64"
-  | `S390x -> "linux-s390x"
-  | `Ppc64le -> "linux-ppc64"
-  | `Riscv64 -> "linux-riscv64"
+  | `X86_64 | `I386 -> `Linux_x86_64
+  | `Aarch32 | `Aarch64 -> `Linux_ARM64
+  | `S390x -> `Linux_s390x
+  | `Ppc64le -> `Linux_ppc64
+  | `Riscv64 -> `Linux_riscv64
 
-let platforms ~ci_profile ~include_macos opam_version =
+let platforms ~ci_profile:_ ~include_macos opam_version =
   let v ?(arch = `X86_64) ?(lower_bound = false) label distro ocaml_version =
     {
       arch;
@@ -216,10 +216,7 @@ let platforms ~ci_profile ~include_macos opam_version =
       let macos_distros = if include_macos then macos_distros else [] in
       let ovs = [ latest; previous ] in
       let releases = List.map make_release ovs in
-      let lower_bounds =
-        List.map (make_release ~lower_bound:true) OV.Releases.recent
-      in
-      releases @ macos_distros @ lower_bounds
+      releases @ macos_distros
 
 (** When we have the same platform differing only in [lower_bound], for the
     purposes of Docker pulls, take only the platform with [lower_bound = true].

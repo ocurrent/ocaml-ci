@@ -19,10 +19,35 @@ let base_pp f = function
   | `Docker image -> Fmt.pf f "%a" Raw.Image.pp image
   | `MacOS s -> Fmt.pf f "%s" s
 
+(* OCluster pool name *)
+module Pool_name = struct
+  type t = [`Linux_x86_64 | `Linux_ARM64 | `Linux_ppc64 | `Linux_s390x | `Linux_riscv64 | `Macos_x86_64 | `Macos_ARM64]
+
+  let to_string = function
+    | `Linux_x86_64 -> "linux-x86_64"
+    | `Linux_ARM64 -> "linux-arm64"
+    | `Linux_ppc64 -> "linux-ppc64"
+    | `Linux_s390x -> "linux-s390x"
+    | `Linux_riscv64 -> "linux-riscv64"
+    | `Macos_x86_64 -> "macos-x86_64"
+    | `Macos_ARM64 -> "macos-arm64"
+
+  let of_string = function
+    | "linux-x86_64" -> Ok `Linux_x86_64
+    | "linux-arm64" -> Ok `Linux_ARM64
+    | "linux-ppc64" -> Ok `Linux_ppc64
+    | "linux-s390x" -> Ok `Linux_s390x
+    | "linux-riscv64" -> Ok `Linux_riscv64
+    | "macos-x86_64" -> Ok `Macos_x86_64
+    | "macos-arm64" -> Ok `Macos_ARM64
+    | s -> Error (`Msg (s ^ ": invalid pool name"))
+
+end
+
 type t = {
   label : string;
   builder : Builder.t;
-  pool : string; (* OCluster pool *)
+  pool : Pool_name.t; (* OCluster pool *)
   variant : Variant.t;
   base : base;
   vars : Worker.Vars.t;

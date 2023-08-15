@@ -6,10 +6,17 @@ val to_yojson : base -> Yojson.Safe.t
 val to_string : base -> string
 val base_pp : Format.formatter -> base -> unit
 
+module Pool_name : sig
+  type t = [`Linux_x86_64 | `Linux_ARM64 | `Linux_ppc64 | `Linux_s390x | `Linux_riscv64 | `Macos_x86_64 | `Macos_ARM64]
+
+  val to_string : t -> string
+  val of_string : string -> (t, [ `Msg of string ]) result
+end
+
 type t = {
   label : string;
   builder : Builder.t;
-  pool : string; (* OCluster pool *)
+  pool : Pool_name.t; (* OCluster pool *)
   variant : Variant.t; (* e.g. "debian-10-ocaml-4.08" *)
   base : base; (* Base image to use *)
   vars : Ocaml_ci_api.Worker.Vars.t;
@@ -33,7 +40,7 @@ val get :
   arch:Ocaml_version.arch ->
   label:string ->
   builder:Builder.t ->
-  pool:string ->
+  pool:Pool_name.t ->
   distro:string ->
   ocaml_version:Ocaml_version.t ->
   host_base:Current_docker.Raw.Image.t Current.t ->
@@ -59,7 +66,7 @@ val get_macos :
   arch:Ocaml_version.arch ->
   label:string ->
   builder:Builder.t ->
-  pool:string ->
+  pool:Pool_name.t ->
   distro:string ->
   ocaml_version:Ocaml_version.t ->
   opam_version:Opam_version.t ->
