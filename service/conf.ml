@@ -71,6 +71,33 @@ type platform = {
 }
 
 (* TODO Hardcoding the versions for now, this should expand to OV.Releases.recent.
+   Currently we only have base images for these 2 compiler variants. See ocurrent/freebsd-infra playbook.yml.
+*)
+let freebsd_distros =
+  [
+    {
+      label = "freebsd";
+      builder = Builders.local;
+      pool = `FreeBSD_x86_64;
+      distro = "freebsd";
+      ocaml_version = OV.Releases.v4_14;
+      arch = `X86_64;
+      opam_version = `V2_1;
+      lower_bound = false;
+    };
+    {
+      label = "freebsd";
+      builder = Builders.local;
+      pool = `FreeBSD_x86_64;
+      distro = "freebsd";
+      ocaml_version = OV.Releases.v5_0;
+      arch = `X86_64;
+      opam_version = `V2_1;
+      lower_bound = false;
+    };
+  ]
+
+(* TODO Hardcoding the versions for now, this should expand to OV.Releases.recent.
    Currently we only have base images for these 2 compiler variants. See ocurrent/macos-infra playbook.yml.
 *)
 let macos_distros =
@@ -149,7 +176,7 @@ let pool_of_arch = function
   | `Ppc64le -> `Linux_ppc64
   | `Riscv64 -> `Linux_riscv64
 
-let platforms ~ci_profile:_ ~include_macos opam_version =
+let platforms ~ci_profile ~include_macos opam_version =
   let v ?(arch = `X86_64) ?(lower_bound = false) label distro ocaml_version =
     {
       arch;
@@ -194,8 +221,8 @@ let platforms ~ci_profile:_ ~include_macos opam_version =
       in
       let distros =
         if include_macos then
-          macos_distros @ macos_distros_experimental @ distros
-        else distros
+          macos_distros @ macos_distros_experimental @ distros @ freebsd_distros
+        else distros @ freebsd_distros
       in
       (* The first one in this list is used for lint actions *)
       let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas in
@@ -216,7 +243,7 @@ let platforms ~ci_profile:_ ~include_macos opam_version =
       let macos_distros = if include_macos then macos_distros else [] in
       let ovs = [ latest; previous ] in
       let releases = List.map make_release ovs in
-      releases @ macos_distros
+      releases @ macos_distros @ freebsd_distros
 
 (** When we have the same platform differing only in [lower_bound], for the
     purposes of Docker pulls, take only the platform with [lower_bound = true].
@@ -276,7 +303,7 @@ let fetch_platforms ~include_macos () =
       } =
     match distro with
     | "macos-homebrew" ->
-        (* TODO No docker images for macos yet, lets pretend. *)
+        (* MacOS uses ZFS snapshots rather than docker images, hardcoding values here for now. *)
         let docker_image_name =
           Fmt.str "%s-ocaml-%d.%d" distro (OV.major ocaml_version)
             (OV.minor ocaml_version)
@@ -287,7 +314,20 @@ let fetch_platforms ~include_macos () =
         let base = Current.return ~label (`MacOS docker_image_name) in
         Platform.get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version
           ~opam_version ~lower_bound base
+    | "freebsd" ->
+        (* FreeBSD uses ZFS snapshots rather than docker images, hardcoding values here for now. *)
+        let docker_image_name =
+          Fmt.str "%s-ocaml-%d.%d" distro (OV.major ocaml_version)
+            (OV.minor ocaml_version)
+        in
+        let label =
+          Fmt.str "pull %s %s" docker_image_name (OV.string_of_arch arch)
+        in
+        let base = Current.return ~label (`FreeBSD docker_image_name) in
+        Platform.get_freebsd ~arch ~label ~builder ~pool ~distro ~ocaml_version
+          ~opam_version ~lower_bound base
     | _ ->
+        (* All Linux distros *)
         let base =
           Platform.pull ~arch ~schedule ~builder ~distro ~ocaml_version
             ~opam_version

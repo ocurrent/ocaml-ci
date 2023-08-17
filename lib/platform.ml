@@ -3,25 +3,39 @@ open Current.Syntax
 module Raw = Current_docker.Raw
 module Worker = Ocaml_ci_api.Worker
 
-type base = [ `Docker of Current_docker.Raw.Image.t | `MacOS of string ]
+type base =
+  [ `Docker of Current_docker.Raw.Image.t
+  | `MacOS of string
+  | `FreeBSD of string ]
 (* TODO Use docker images for bundling macos binaries. *)
 
 let to_yojson = function
   | `Docker image ->
       `List [ `String "docker"; `String (Raw.Image.digest image) ]
   | `MacOS s -> `List [ `String "macos"; `String s ]
+  | `FreeBSD s -> `List [ `String "freebsd"; `String s ]
 
 let to_string = function
   | `Docker image -> Raw.Image.hash image
   | `MacOS s -> "macos-" ^ s
+  | `FreeBSD s -> "freebsd-" ^ s
 
 let base_pp f = function
   | `Docker image -> Fmt.pf f "%a" Raw.Image.pp image
   | `MacOS s -> Fmt.pf f "%s" s
+  | `FreeBSD s -> Fmt.pf f "%s" s
 
 (* OCluster pool name *)
 module Pool_name = struct
-  type t = [`Linux_x86_64 | `Linux_ARM64 | `Linux_ppc64 | `Linux_s390x | `Linux_riscv64 | `Macos_x86_64 | `Macos_ARM64]
+  type t =
+    [ `Linux_x86_64
+    | `Linux_ARM64
+    | `Linux_ppc64
+    | `Linux_s390x
+    | `Linux_riscv64
+    | `Macos_x86_64
+    | `Macos_ARM64
+    | `FreeBSD_x86_64 ]
 
   let to_string = function
     | `Linux_x86_64 -> "linux-x86_64"
@@ -31,6 +45,7 @@ module Pool_name = struct
     | `Linux_riscv64 -> "linux-riscv64"
     | `Macos_x86_64 -> "macos-x86_64"
     | `Macos_ARM64 -> "macos-arm64"
+    | `FreeBSD_x86_64 -> "freebsd-x86_64"
 
   let of_string = function
     | "linux-x86_64" -> Ok `Linux_x86_64
@@ -40,8 +55,8 @@ module Pool_name = struct
     | "linux-riscv64" -> Ok `Linux_riscv64
     | "macos-x86_64" -> Ok `Macos_x86_64
     | "macos-arm64" -> Ok `Macos_ARM64
+    | "freebsd-x86_64 " -> Ok `FreeBSD_x86_64
     | s -> Error (`Msg (s ^ ": invalid pool name"))
-
 end
 
 type t = {
@@ -108,10 +123,15 @@ module Query = struct
       "opam-" ^ Opam_version.to_string (Variant.opam_version variant)
     in
     let prefix =
-      match Variant.os variant with `macOS -> "~/local" | `linux -> "/usr"
+      match Variant.os variant with
+      | `macOS -> "~/local"
+      | `linux -> "/usr"
+      | `freeBSD -> "/usr/local"
     in
     let ln =
-      match Variant.os variant with `macOS -> "ln" | `linux -> "sudo ln"
+      match Variant.os variant with
+      | `macOS -> "ln"
+      | `linux | `freeBSD -> "sudo ln"
     in
     (* XXX: don't overwrite default config? *)
     let opamrc = "" in
@@ -289,6 +309,30 @@ let get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
          in
          Current.return
            [ { label; builder; pool; variant; base = `MacOS s; vars } ]
+
+let get_freebsd ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
+    ~lower_bound base =
+  (* Hardcoding opam-vars for FreeBSD 13.2. *)
+  match Variant.v ~arch ~distro ~ocaml_version ~opam_version with
+  | Error (`Msg m) -> Current.fail m
+  | Ok variant ->
+      Current.component "opam-vars"
+      |> let** (`FreeBSD s) = base in
+         let vars =
+           {
+             Worker.Vars.arch = Ocaml_version.to_opam_arch arch;
+             os = "freebsd";
+             os_family = "freebsd";
+             os_distribution = "freebsd";
+             os_version = "13.2";
+             ocaml_package = "ocaml-base-compiler";
+             ocaml_version = Fmt.str "%a" Ocaml_version.pp ocaml_version;
+             opam_version = Opam_version.to_string_with_patch opam_version;
+             lower_bound;
+           }
+         in
+         Current.return
+           [ { label; builder; pool; variant; base = `FreeBSD s; vars } ]
 
 let pull ~arch ~schedule ~builder ~distro ~ocaml_version ~opam_version =
   match Variant.v ~arch ~distro ~ocaml_version ~opam_version with

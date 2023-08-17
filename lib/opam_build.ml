@@ -84,10 +84,15 @@ let install_project_deps ~opam_version ~opam_files ~selection =
     selection
   in
   let prefix =
-    match Variant.os variant with `macOS -> "~/local" | `linux -> "/usr"
+    match Variant.os variant with
+    | `macOS -> "~/local"
+    | `linux -> "/usr"
+    | `freeBSD -> "/usr/local"
   in
   let ln =
-    match Variant.os variant with `macOS -> "ln" | `linux -> "sudo ln"
+    match Variant.os variant with
+    | `macOS -> "ln"
+    | `linux | `freeBSD -> "sudo ln"
   in
   let groups = group_opam_files opam_files in
   let root_pkgs = get_root_opam_packages groups in
@@ -112,6 +117,11 @@ let install_project_deps ~opam_version ~opam_files ~selection =
           Obuilder_spec.Cache.v "homebrew"
             ~target:"/Users/mac1000/Library/Caches/Homebrew";
         ]
+    | `freeBSD ->
+        [
+          Obuilder_spec.Cache.v download_cache
+            ~target:"/usr/home/opam/.opam/download-cache";
+        ]
   in
   let network = [ "host" ] in
   let distro_extras =
@@ -125,11 +135,13 @@ let install_project_deps ~opam_version ~opam_files ~selection =
     match Variant.os selection.Selection.variant with
     | `macOS -> None
     | `linux -> Some "/src"
+    | `freeBSD -> Some "/src"
   in
   let work_dir =
     match Variant.os selection.Selection.variant with
     | `macOS -> Some (Fpath.v "./src/")
     | `linux -> None
+    | `freeBSD -> None
   in
   (* XXX: don't overwrite default config? *)
   let opamrc = "" in
@@ -187,6 +199,7 @@ let spec ~base ~opam_version ~opam_files ~selection =
     match Variant.os selection.Selection.variant with
     | `macOS -> "./src"
     | `linux -> "/src"
+    | `freeBSD -> "/src"
   in
   let only_packages =
     match selection.Selection.only_packages with
@@ -200,7 +213,7 @@ let spec ~base ~opam_version ~opam_files ~selection =
           "cd ./src && opam exec -- dune build%s @install @check @runtest && \
            rm -rf _build"
           only_packages
-    | `linux ->
+    | `linux | `freeBSD ->
         run
           "opam exec -- dune build%s @install @check @runtest && rm -rf _build"
           only_packages
