@@ -14,10 +14,6 @@
 	path = solver-service
 	url = https://github.com/ocurrent/solver-service.git
 	branch = main
-[submodule "ocaml-gitlab"]
-	path = ocaml-gitlab
-	url = https://github.com/tmcgilchrist/ocaml-gitlab.git
-	branch = master
 [submodule "ocaml-version"]
 	path = ocaml-version
 	url = https://github.com/ocurrent/ocaml-version.git
