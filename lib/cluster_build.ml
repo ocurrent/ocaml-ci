@@ -24,7 +24,8 @@ module Op = struct
 
   module Key = struct
     type t = {
-      pool : string; (* The build pool to use (e.g. "linux-arm64") *)
+      pool : Platform.Pool_name.t;
+          (* The build pool to use (e.g. "linux-arm64") *)
       commit : Current_git.Commit_id.t; (* The source code to build and test *)
       repo : Repo_id.t; (* Used to choose a build cache *)
       label : string; (* A unique ID for this build within the commit *)
@@ -33,7 +34,7 @@ module Op = struct
     let to_json { pool; commit; label; repo } =
       `Assoc
         [
-          ("pool", `String pool);
+          ("pool", `String (Platform.Pool_name.to_string pool));
           ("commit", `String (Current_git.Commit_id.hash commit));
           ("repo", `String (Fmt.to_to_string Repo_id.pp repo));
           ("label", `String label);
@@ -103,8 +104,9 @@ module Op = struct
     Current.Job.log job "Using cache hint %S" cache_hint;
     Current.Job.log job "Using OBuilder spec:@.%s@." spec_str;
     let build_pool =
-      Current_ocluster.Connection.pool ~job ~pool ~action ~cache_hint ~src
-        t.connection
+      Current_ocluster.Connection.pool ~job
+        ~pool:(Platform.Pool_name.to_string pool)
+        ~action ~cache_hint ~src t.connection
     in
     Current.Job.start_with ~pool:build_pool job ?timeout:t.timeout
       ~level:Current.Level.Average
@@ -114,7 +116,9 @@ module Op = struct
 
   let pp f ({ Key.pool; repo; commit; label }, _) =
     Fmt.pf f "test %a %a (%s:%s)" Repo_id.pp repo Current_git.Commit_id.pp
-      commit pool label
+      commit
+      (Platform.Pool_name.to_string pool)
+      label
 
   let auto_cancel = true
   let latched = true

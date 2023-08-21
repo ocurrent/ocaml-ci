@@ -26,7 +26,10 @@ let rec with_commit_lock ~job commit variant fn =
 
 let make_build_spec ~base ~repo ~variant ~ty =
   let base =
-    match base with `Docker base -> Raw.Image.hash base | `MacOS s -> s
+    match base with
+    | `Docker base -> Raw.Image.hash base
+    | `MacOS s -> s
+    | `FreeBSD s -> s
   in
   let opam_version = Variant.opam_version variant in
   match ty with
@@ -75,6 +78,7 @@ module Op = struct
       let to_s = function
         | `Docker image -> Raw.Image.digest image
         | `MacOS s -> s
+        | `FreeBSD s -> s
       in
       `Assoc
         [
@@ -94,6 +98,7 @@ module Op = struct
       { Key.commit; label = _; repo } { Value.base; variant; ty } =
     match base with
     | `MacOS _s -> failwith "local macos docker not supported"
+    | `FreeBSD _s -> failwith "local freebsd docker not supported"
     | `Docker base ->
         let build_spec =
           make_build_spec ~base:(`Docker base) ~repo ~variant ~ty
