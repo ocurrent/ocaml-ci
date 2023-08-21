@@ -96,11 +96,6 @@ let gitlab_repos : Gitlab.Repo_id.t list =
       Gitlab.Repo_id.name = "tezt";
       project_id = 41852995;
     };
-    {
-      Gitlab.Repo_id.owner = "maiste";
-      Gitlab.Repo_id.name = "ocaml-ci-experiment";
-      project_id = 40839423;
-    };
   ]
 
 (* Fake Installation module, we don't have this in GitLab. *)
