@@ -21,8 +21,8 @@ COPY --chown=opam \
 	solver-service/solver-service.opam \
 	/src/solver-service/
 COPY --chown=opam \
-	ocaml-gitlab/gitlab.opam \
-	ocaml-gitlab/gitlab-unix.opam \
+        ocurrent/vendor/ocaml-gitlab/gitlab.opam \
+        ocurrent/vendor/ocaml-gitlab/gitlab-unix.opam \
 	/src/ocaml-gitlab/
 COPY --chown=opam \
 	ocaml-dockerfile/dockerfile*.opam \
