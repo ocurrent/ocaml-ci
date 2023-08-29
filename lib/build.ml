@@ -37,8 +37,8 @@ let make_build_spec ~base ~repo ~variant ~ty =
       Opam_build.spec ~base ~opam_files ~selection ~opam_version
   | `Opam (`Lint `Doc, selection, opam_files) ->
       Lint.doc_spec ~base ~opam_files ~selection
-  | `Opam (`Lint `Opam, selection, opam_files) ->
-      Lint.opam_dune_lint_spec ~base ~opam_files ~selection
+  | `Opam (`Lint `Opam, selection, _) ->
+      Lint.opam_dune_lint_spec ~base ~selection
   | `Opam_fmt (selection, ocamlformat_source) ->
       Lint.fmt_spec ~base ~ocamlformat_source ~selection
   | `Opam_monorepo config -> Opam_monorepo.spec ~base ~repo ~config ~variant
