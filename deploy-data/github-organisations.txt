@@ -37,7 +37,7 @@ ocsigen
 dinosaure
 hannesm
 mirleft
-roburio
+robur-coop
 MisterDA
 ocaml-multicore
 cdaringe
