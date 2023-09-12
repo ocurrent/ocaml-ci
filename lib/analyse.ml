@@ -292,9 +292,16 @@ module Analysis = struct
       find_opam_repo_commit_for_ocamlformat ~solve
         ~platforms:(filter_linux_x86_64_platforms platforms)
     in
-    Analyse_ocamlformat.get_ocamlformat_source job ~opam_files ~root
-      ~find_opam_repo_commit
-    >>!= fun (ocamlformat_source, ocamlformat_selection) ->
+    let analysed_ocamlformat =
+      Analyse_ocamlformat.get_ocamlformat_source job ~opam_files ~root
+        ~find_opam_repo_commit
+      >>= function
+      | Error (`Msg msg) ->
+          Current.Job.log job "%s@." msg;
+          Lwt_result.return (None, None)
+      | Ok x -> Lwt_result.return x
+    in
+    analysed_ocamlformat >>!= fun (ocamlformat_source, ocamlformat_selection) ->
     if opam_files = [] then Lwt_result.fail (`Msg "No opam files found!")
     else if List.filter Fpath.is_seg opam_files = [] then
       Lwt_result.fail (`Msg "No top-level opam files found!")
