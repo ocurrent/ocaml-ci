@@ -102,7 +102,9 @@ let docker_specs ~analysis =
             take_lowest_bound_selection lower_bound @ other
           in
           let builds s =
-            Selection.filter_duplicate_opam_versions s
+            (* TODO Remove temporarily while we test opam 2.2. *)
+            (* Selection.filter_duplicate_opam_versions s *)
+            s
             |> List.map (fun selection ->
                    let label =
                      if selection.Selection.lower_bound then

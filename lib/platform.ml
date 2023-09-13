@@ -169,7 +169,7 @@ module Query = struct
     Raw.Cmd.docker ~docker_context
       [ "run"; "-i"; image; "opam"; "config"; "expand"; opam_template arch ]
 
-  let get_ocaml_package ~docker_context image =
+  let get_ocaml_package ~docker_context opam_version image =
     Raw.Cmd.docker ~docker_context
       [
         "run";
@@ -178,7 +178,8 @@ module Query = struct
         "opam";
         "list";
         "-s";
-        "--base";
+        (match opam_version with `V2_2 -> "--invariant" | _ -> "--base");
+        (* opam-2.1 uses --base *)
         "--roots";
         "--all-versions";
         "ocaml-base-compiler";
@@ -194,7 +195,11 @@ module Query = struct
     in
     prepare_image ~job ~docker_context ~tag:prep_image variant host_image
     >>!= fun host_image ->
-    let cmd = get_ocaml_package ~docker_context host_image in
+    let cmd =
+      get_ocaml_package ~docker_context
+        (Variant.opam_version variant)
+        host_image
+    in
     Current.Process.check_output ~cancellable:false ~job cmd
     >>!= fun ocaml_package ->
     let ocaml_package = String.trim ocaml_package in
