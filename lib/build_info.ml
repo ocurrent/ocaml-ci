@@ -23,13 +23,6 @@ let experimental_variant s =
     | Some v ->
         Astring.String.equal "freebsd" (Variant.distro v)
         || Astring.String.equal "macos-homebrew" (Variant.distro v)
-        || Ocaml_version.(equal (v 5 1 ~patch:0)) (Variant.ocaml_version v)
-        || Ocaml_version.(equal (v 5 1 ~patch:0 ~prerelease:"alpha1"))
-             (Variant.ocaml_version v)
-        || Ocaml_version.(equal (v 5 1 ~patch:0 ~prerelease:"alpha2"))
-             (Variant.ocaml_version v)
-        || Ocaml_version.(equal (v 5 1 ~patch:0 ~prerelease:"beta1"))
-             (Variant.ocaml_version v)
 
 (** Like [experimental_variant], but takes strings for when a [build_info]
     record is unavailable.
@@ -41,10 +34,4 @@ let experimental_variant_str s =
     is_prefix ~affix:Variant.lower_bound_label s
     || is_prefix ~affix:Variant.opam_label s
     || is_prefix ~affix:"freebsd" s
-    || is_prefix ~affix:"macos-homebrew" s
-    || is_infix ~affix:"-5.1" s
-    || is_infix ~affix:"-5.1~alpha1" s
-    || is_infix ~affix:"-5.1.0~alpha1" s
-    || is_infix ~affix:"-5.1~alpha2" s
-    || is_infix ~affix:"-5.1.0~alpha2" s
-    || is_infix ~affix:"-5.1.0~beta1" s)
+    || is_prefix ~affix:"macos-homebrew" s)

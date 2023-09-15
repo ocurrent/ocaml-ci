@@ -62,8 +62,8 @@ let test_macos_platforms () =
   in
   let exists =
     [
-      (true, ("macos-homebrew", OVR.v5_0, `Aarch64));
-      (true, ("macos-homebrew", OVR.v5_0, `X86_64));
+      (true, ("macos-homebrew", OVR.v5_1, `Aarch64));
+      (true, ("macos-homebrew", OVR.v5_1, `X86_64));
       (true, ("macos-homebrew", OVR.v4_14, `Aarch64));
       (true, ("macos-homebrew", OVR.v4_14, `X86_64));
     ]

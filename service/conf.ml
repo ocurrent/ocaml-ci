@@ -90,7 +90,7 @@ let freebsd_distros =
       builder = Builders.local;
       pool = `FreeBSD_x86_64;
       distro = "freebsd";
-      ocaml_version = OV.Releases.v5_0;
+      ocaml_version = OV.Releases.v5_1;
       arch = `X86_64;
       opam_version = `V2_1;
       lower_bound = false;
@@ -117,7 +117,7 @@ let macos_distros =
       builder = Builders.local;
       pool = `Macos_x86_64;
       distro = "macos-homebrew";
-      ocaml_version = OV.Releases.v5_0;
+      ocaml_version = OV.Releases.v5_1;
       arch = `X86_64;
       opam_version = `V2_1;
       lower_bound = false;
@@ -138,31 +138,7 @@ let macos_distros =
       builder = Builders.local;
       pool = `Macos_ARM64;
       distro = "macos-homebrew";
-      ocaml_version = OV.Releases.v5_0;
-      arch = `Aarch64;
-      opam_version = `V2_1;
-      lower_bound = false;
-    };
-  ]
-
-let macos_distros_experimental =
-  [
-    {
-      label = "macos-homebrew";
-      builder = Builders.local;
-      pool = `Macos_x86_64;
-      distro = "macos-homebrew";
-      ocaml_version = OV.v 5 1 ~patch:0 ~prerelease:"rc3";
-      arch = `X86_64;
-      opam_version = `V2_1;
-      lower_bound = false;
-    };
-    {
-      label = "macos-homebrew";
-      builder = Builders.local;
-      pool = `Macos_ARM64;
-      distro = "macos-homebrew";
-      ocaml_version = OV.v 5 1 ~patch:0 ~prerelease:"rc3";
+      ocaml_version = OV.Releases.v5_1;
       arch = `Aarch64;
       opam_version = `V2_1;
       lower_bound = false;
@@ -220,8 +196,7 @@ let platforms ~ci_profile ~include_macos opam_version =
         |> List.concat_map make_platform
       in
       let distros =
-        if include_macos then
-          macos_distros @ macos_distros_experimental @ distros @ freebsd_distros
+        if include_macos then macos_distros @ distros @ freebsd_distros
         else distros @ freebsd_distros
       in
       (* The first one in this list is used for lint actions *)
