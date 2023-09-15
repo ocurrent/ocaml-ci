@@ -101,15 +101,7 @@ let test_experimental () =
           ( true,
             {
               label = "";
-              variant = Some (variant "distro" Ocaml_version.Releases.v5_1);
-            } );
-          ( true,
-            {
-              label = "";
-              variant =
-                Some
-                  (variant "distro"
-                     (Ocaml_version.v 5 1 ~patch:0 ~prerelease:"alpha1"));
+              variant = Some (variant "freebsd" Ocaml_version.Releases.v5_1);
             } );
           ( false,
             {
