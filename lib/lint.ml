@@ -27,7 +27,7 @@ let commit_from_ocamlformat_source ocamlformat_source =
   let open Analyse_ocamlformat in
   match ocamlformat_source with
   | None | Some (Vendored _) -> None
-  | Some (Opam { opam_repo_commit; _ }) -> Some opam_repo_commit
+  | Some (Opam { opam_repo_commit; _ }) -> opam_repo_commit
 
 let fmt_spec ~base ~ocamlformat_source ~selection =
   let open Obuilder_spec in

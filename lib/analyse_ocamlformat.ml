@@ -1,7 +1,7 @@
 let ( >>!= ) = Lwt_result.Infix.( >>= )
 
 type source =
-  | Opam of { version : string; opam_repo_commit : string }
+  | Opam of { version : string; opam_repo_commit : string option }
   | Vendored of { path : string }
 [@@deriving yojson, eq, ord]
 
@@ -74,6 +74,7 @@ let ocamlformat_version_from_file ~root job path =
         Lwt.return (Error (`Msg "Multiple 'version=' lines in .ocamlformat"))
 
 let get_ocamlformat_source job ~opam_files ~root ~find_opam_repo_commit =
+  let open Lwt.Infix in
   let ( let* ) = Lwt_result.Infix.( >>= ) in
   let proj_is_ocamlformat p =
     String.equal (Filename.basename p) "ocamlformat.opam"
@@ -88,14 +89,14 @@ let get_ocamlformat_source job ~opam_files ~root ~find_opam_repo_commit =
           Fpath.(to_string (root / ".ocamlformat"))
       in
       match version_in_dot_ocamlformat with
-      | None ->
-          Lwt_result.return (None, None)
-          (* This case happens when the ocamlformat file doesn't specify a version.
-             It will try to get the latest version for the last platform. *)
-      | Some version ->
-          let* opam_repo_commit, ocamlformat_selection =
-            find_opam_repo_commit version
-          in
-          Lwt_result.return
-            ( Some (Opam { version; opam_repo_commit }),
-              Some ocamlformat_selection ))
+      | None -> Lwt_result.return (None, None)
+      | Some version -> (
+          find_opam_repo_commit version >>= function
+          | Error (`Msg msg) ->
+              Current.Job.log job "%s@." msg;
+              Lwt_result.return
+                (Some (Opam { version; opam_repo_commit = None }), None)
+          | Ok (x, ocamlformat_selection) ->
+              Lwt_result.return
+                ( Some (Opam { version; opam_repo_commit = Some x }),
+                  Some ocamlformat_selection )))

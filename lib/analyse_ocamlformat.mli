@@ -1,7 +1,7 @@
 (** Detect the required version of OCamlFormat used in a source repository. *)
 
 type source =
-  | Opam of { version : string; opam_repo_commit : string }
+  | Opam of { version : string; opam_repo_commit : string option }
       (** Should install OCamlFormat from opam. *)
   | Vendored of { path : string }
       (** OCamlFormat is vendored. [path] is relative to the project's root. *)

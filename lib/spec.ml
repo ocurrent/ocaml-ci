@@ -42,9 +42,21 @@ let lint_specs ~analysis selections =
   let lint_fmt =
     (* Allow fallback if an ocamlformat selection doesn't exist,
        as [dune build @fmt] can also format dune files *)
-    match Analyse.Analysis.ocamlformat_selection analysis with
-    | None -> lint_doc
-    | Some spec -> spec
+    (* match Analyse.Analysis.ocamlformat_selection analysis with *)
+    let selection =
+      let ocamlformat_selection =
+        Analyse.Analysis.ocamlformat_selection analysis
+      in
+      let ocamlformat_source = Analyse.Analysis.ocamlformat_source analysis in
+      match (ocamlformat_selection, ocamlformat_source) with
+      | _, None -> Some lint_doc
+      | Some _, Some _ -> ocamlformat_selection
+      | None, Some _ -> None
+    in
+    match selection with
+    | None -> []
+    | Some selection ->
+        [ opam ~label:Variant.fmt_label ~selection ~analysis (`Lint `Fmt) ]
   in
   let lint_opam =
     (* Take the first selection with an OCaml version >= 4.14.0,
@@ -62,10 +74,8 @@ let lint_specs ~analysis selections =
       selection
     |> Option.value ~default:[]
   in
-  [
-    opam ~label:Variant.fmt_label ~selection:lint_fmt ~analysis (`Lint `Fmt);
-    opam ~label:Variant.doc_label ~selection:lint_doc ~analysis (`Lint `Doc);
-  ]
+  lint_fmt
+  @ [ opam ~label:Variant.doc_label ~selection:lint_doc ~analysis (`Lint `Doc) ]
   @ optional_spec ~label:Variant.opam_label ~selection:lint_opam ~lint_ty:`Opam
 
 let opam_monorepo builds =
