@@ -26,12 +26,13 @@ let opam ~label ~selection ~analysis op =
     - [(lint-doc)]
     - [(lint-opam)] *)
 let lint_specs ~analysis selections =
-  (* Filter only linux-x86_64 and sort by OCaml version ascending *)
+  (* Filter only upper-bound linux-x86_64 and sort by OCaml version ascending *)
   let sorted_linux_x86_64_selections =
     List.filter
       (fun x ->
         Variant.arch x.Selection.variant == `X86_64
-        && Variant.os x.variant == `linux)
+        && Variant.os x.variant == `linux
+        && not x.lower_bound)
       selections
     |> List.sort (fun x y ->
            Ocaml_version.compare
