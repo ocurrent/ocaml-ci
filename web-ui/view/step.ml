@@ -577,6 +577,8 @@ module Make (M : Git_forge_intf.Forge) = struct
           last_line_blank := log_line = "";
           line_number := !line_number + 1;
           let line_number_id = Printf.sprintf "L%d" !line_number in
+          (* Ensure empty lines appear in copy-pastes *)
+          let log_line = if log_line = "" then "\n" else log_line in
           let line =
             Fmt.str "%a" (pp_elt ())
               (span
