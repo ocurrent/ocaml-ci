@@ -121,7 +121,7 @@ let opam_dune_lint_spec ~base ~selection =
           run ~cache ~network
             "git -C ~/opam-repository pull origin master && opam update && \
              opam pin add -yn opam-dune-lint.dev \
-             https://github.com/moyodiallo/opam-dune-lint.git#f59878ceb42c7bed5b593e53f4fb073461bb7c18";
+             https://github.com/ocurrent/opam-dune-lint.git#d96423160e9e14db2ab16100d54af51d93e98b93";
           run ~cache ~network "opam depext -i opam-dune-lint";
         ]
   @ [
