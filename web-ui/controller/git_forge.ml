@@ -30,6 +30,7 @@ module type Controller = sig
     repo:string ->
     hash:string ->
     variant:string ->
+    show_raw_logs:bool ->
     Dream.client Dream.message ->
     Backend.t ->
     Dream.server Dream.message Lwt.t
@@ -152,7 +153,7 @@ module Make (View : View) : Controller = struct
     in
     Dream.respond @@ View.list_history ~org ~repo ~gref ~head_commit ~history
 
-  let show_step ~org ~repo ~hash ~variant request ci =
+  let show_step ~org ~repo ~hash ~variant ~show_raw_logs request ci =
     Backend.ci ci >>= fun ci ->
     Capability.with_ref (Client.CI.org ci org) @@ fun org_cap ->
     Capability.with_ref (Client.Org.repo org_cap repo) @@ fun repo_cap ->
@@ -178,6 +179,12 @@ module Make (View : View) : Controller = struct
     in
     let filter (j : Client.job_info) = j.variant = variant in
 
+    let view =
+      match show_raw_logs with
+      | true -> View.show_step_raw
+      | false -> View.show_step
+    in
+
     match List.find_opt filter jobs with
     | None ->
         (* Dream.log "Error - No step-info for variant: %s hash: %s" variant hash; *)
@@ -191,7 +198,7 @@ module Make (View : View) : Controller = struct
         let can_rebuild = status.Current_rpc.Job.can_rebuild in
         let can_cancel = status.can_cancel in
 
-        View.show_step ~org ~repo ~refs ~hash ~variant ~status:step_info.outcome
+        view ~org ~repo ~refs ~hash ~variant ~status:step_info.outcome
           ~csrf_token ~flash_messages ~timestamps ~build_created_at
           ~step_created_at ~step_finished_at ~can_rebuild ~can_cancel
           ~job:job_cap chunk

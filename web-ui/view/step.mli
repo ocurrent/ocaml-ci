@@ -33,4 +33,23 @@ module Make : functor (_ : Git_forge_intf.Forge) -> sig
     ?flash_messages:(string * string) list ->
     string * int64 ->
     Dream.response Lwt.t
+
+  val show_raw :
+    org:string ->
+    repo:string ->
+    refs:string list ->
+    hash:string ->
+    variant:string ->
+    job:Current_rpc.Job.t ->
+    status:Git_forge_intf.Client.State.t ->
+    csrf_token:string ->
+    timestamps:Git_forge_intf.Run_time.Timestamp.t option ->
+    build_created_at:float option ->
+    step_created_at:float option ->
+    step_finished_at:float option ->
+    can_rebuild:bool ->
+    can_cancel:bool ->
+    ?flash_messages:(string * string) list ->
+    string * int64 ->
+    Dream.response Lwt.t
 end
