@@ -216,7 +216,7 @@ pre.code span.tr {
 }
 
 pre.code span.th { /* used for line numbers */
-  @apply table-cell select-none;
+  @apply table-cell;
   width: 4em;
 }
 
