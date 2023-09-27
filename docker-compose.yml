@@ -1,0 +1,121 @@
+version: '3.1'
+volumes:
+  data:
+  capnp-secrets:
+  worker-data:
+  scheduler-data:
+  caddy_data:
+  caddy_config:
+
+secrets:
+  ocaml-ci-github-key:
+    file: $HOME/ci_secrets/benmandrew-ci.2022-10-05.private-key.pem
+  ocaml-ci-submission.cap:
+    file: $HOME/ci_secrets/ben.cap
+  ocaml-ci-webhook-secret:
+    file: $HOME/ci_secrets/benmandrew-ci-webhook-secret
+  ocaml-ci-solver.cap:
+    file: $HOME/ci_secrets/solver.cap
+
+services:
+  caddy:
+    image: caddy
+    ports:
+      - 80:80
+      - 443:443
+      - 8100:8100
+    volumes:
+      - /etc/caddy:/etc/caddy:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  service:
+    # image: ocurrent/ocaml-ci-service:live
+    image: ocaml-ci-service
+    # For local deploys using docker build -t ocaml-ci-service -f Dockerfile .
+    command: >
+      --github-app-id 244548
+      --github-private-key-file /run/secrets/ocaml-ci-github-key
+      --github-webhook-secret-file /run/secrets/ocaml-ci-webhook-secret
+      --confirm above-average
+      --confirm-auto-release 120
+      --capnp-public-address=tcp:service:8102
+      --capnp-listen-address=tcp:0.0.0.0:9000
+      --submission-service /run/secrets/ocaml-ci-submission.cap
+      --submission-solver-service /run/secrets/ocaml-ci-solver.cap 
+      --migration-path /migrations
+      --verbosity info
+      --github-account-allowlist 'benmandrew'
+    # Wait for the default network to be created
+    restart: on-failure
+    environment:
+      - "CAPNP_PROFILE=production"
+      - "PLATFORMS=minimal"
+      - "DOCKER_BUILDKIT=1"
+      - "PROGRESS_NO_TRUNC=1"
+    volumes:
+      - 'data:/var/lib/ocurrent'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+      - 'capnp-secrets:/capnp-secrets'
+    secrets:
+      - 'ocaml-ci-github-key'
+      - 'ocaml-ci-submission.cap'
+      - 'ocaml-ci-solver.cap'
+      - 'ocaml-ci-webhook-secret'
+    sysctls:
+      - 'net.ipv4.tcp_keepalive_time=60'
+
+  web:
+    # image: ocurrent/ocaml-ci-web:live
+    image: ocaml-ci-web
+    # For local deploys using docker build -t ocaml-ci-web -f Dockerfile.web .
+    command: >
+      --backend /capnp-secrets/ocaml-ci-admin.cap
+      --listen-prometheus=9090
+    # Wait for the default network to be created
+    restart: on-failure
+    volumes:
+      - 'capnp-secrets:/capnp-secrets:ro'
+    sysctls:
+      - 'net.ipv4.tcp_keepalive_time=60'
+
+  scheduler:
+    image: ocurrent/ocluster-scheduler:live
+    command:
+      - --secrets-dir=/capnp-secrets
+      - --capnp-secret-key-file=/capnp-secrets/key.pem
+      - --capnp-listen-address=tcp:0.0.0.0:9000
+      - --capnp-public-address=tcp:scheduler:9000
+      - --pools=macos-arm64
+      - --state-dir=/var/lib/ocluster-scheduler
+    # Wait for the default network to be created
+    restart: on-failure
+    volumes:
+      - 'scheduler-data:/var/lib/ocluster-scheduler'
+      - 'capnp-secrets:/capnp-secrets'
+
+  worker:
+    image: ocurrent/ocluster-worker:live
+    build:
+      dockerfile: docker/worker/Dockerfile
+      context: .
+    command:
+      - --connect=/capnp-secrets/pool-macos-arm64.cap
+      - --name=ocluster-worker
+      # - --allow-push=ocurrentbuilder/staging,ocurrent/opam-staging
+      - --capacity=1
+      - --state-dir=/var/lib/ocluster
+      - --obuilder-store=docker:/var/cache/obuilder
+      - --obuilder-healthcheck=0
+      - --verbose
+    # Required for the Docker in Docker container to work
+    privileged: true
+    # Wait for the scheduler to write the pool cap
+    restart: on-failure
+    volumes:
+      - 'worker-data:/var/lib/ocluster'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+      - 'capnp-secrets:/capnp-secrets:ro'
+    environment:
+      - DOCKER_BUILDKIT=1
+      - DOCKER_CLI_EXPERIMENTAL=enabled
