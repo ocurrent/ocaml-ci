@@ -191,6 +191,96 @@ module Make (M : Git_forge_intf.Forge) = struct
         Build.tabulate_steps steps_table;
       ]
 
+  let show_raw ~org ~repo ~refs ~hash ~variant ~job ~status ~csrf_token
+      ~timestamps ~build_created_at ~step_created_at ~step_finished_at
+      ~can_rebuild ~can_cancel ?(flash_messages = []) (data, next) =
+    let show_rebuild = (not can_cancel) && can_rebuild in
+    let header, footer =
+      let buttons =
+        [
+          Common.form_cancel_step ~variant ~csrf_token ~show:can_cancel ();
+          Common.form_rebuild_step ~variant ~csrf_token ~show:show_rebuild ();
+        ]
+      in
+      let branch =
+        if refs = [] then ""
+        else
+          match Astring.String.cuts ~sep:"/" (List.hd refs) with
+          | "refs" :: "heads" :: branch -> Astring.String.concat ~sep:"/" branch
+          | _ -> ""
+      in
+      let build_created_at = Option.value ~default:0. build_created_at in
+      let run_time =
+        Option.map (Run_time.TimeInfo.of_timestamp ~build_created_at) timestamps
+      in
+      let title_card =
+        title_card ~status ~card_title:variant
+          ~hash_link:
+            (link_forge_commit ~org ~repo ~hash:(Common.short_hash hash))
+          ~created_at:(Run_time.Duration.pp_readable_opt step_created_at)
+          ~finished_at:(Run_time.Duration.pp_readable_opt step_finished_at)
+          ~queued_for:
+            (Run_time.Duration.pp_opt
+               (Option.map Run_time.TimeInfo.queued_for run_time))
+          ~ran_for:
+            (Run_time.Duration.pp_opt
+               (Option.map Run_time.TimeInfo.ran_for run_time))
+          ~buttons
+      in
+      let body =
+        Template.instance ~full:true
+          [
+            (* Tyxml.Html.script ~a:[ a_src "/js/log-highlight.js" ] (txt ""); *)
+            Tyxml.Html.script ~a:[ a_src "/js/step-page-poll.js" ] (txt "");
+            Common.breadcrumbs
+              [
+                ("Organisations", M.prefix);
+                (org, org);
+                (repo, repo);
+                ( Printf.sprintf "%s (%s)" (Common.short_hash hash) branch,
+                  Printf.sprintf "commit/%s" hash );
+              ]
+              variant;
+            title_card;
+            Common.flash_messages flash_messages;
+            div
+              ~a:
+                [
+                  a_class
+                    [ "flex space-x-6 border-b border-gray-200 mb-6 text-sm" ];
+                ]
+              [ h3 ~a:[ a_class [ "font-medium pb-2" ] ] [ txt "Logs" ] ];
+            div
+              ~a:[ a_class [ "flex flex-row-reverse mb-6" ] ]
+              [ Common.show_logs_button false ];
+            div [ pre [ txt "@@@" ] ];
+          ]
+      in
+      Astring.String.cut ~sep:"@@@" body |> Option.get
+    in
+    let ansi = Ansi.create () in
+    let open Lwt.Infix in
+    Dream.stream
+      ~headers:[ ("Content-type", "text/html; charset=utf-8") ]
+      (fun response_stream ->
+        Dream.write response_stream header >>= fun () ->
+        Dream.write response_stream (Ansi.process ansi data) >>= fun () ->
+        let rec loop next =
+          Current_rpc.Job.log job ~start:next >>= function
+          | Ok ("", _) ->
+              Dream.write response_stream footer >>= fun () ->
+              Dream.close response_stream
+          | Ok (data, next) ->
+              Dream.log "Fetching logs";
+              Dream.write response_stream (Ansi.process ansi data) >>= fun () ->
+              Dream.flush response_stream >>= fun () -> loop next
+          | Error (`Capnp ex) ->
+              Dream.log "Error fetching logs: %a" Capnp_rpc.Error.pp ex;
+              Dream.write response_stream
+                (Fmt.str "ocaml-ci error: %a@." Capnp_rpc.Error.pp ex)
+        in
+        loop next)
+
   let show ~org ~repo ~refs ~hash ~variant ~job ~status ~csrf_token ~timestamps
       ~build_created_at ~step_created_at ~step_finished_at ~can_rebuild
       ~can_cancel ?(flash_messages = []) (data, next) =
@@ -541,6 +631,9 @@ module Make (M : Git_forge_intf.Forge) = struct
                         ];
                     ]
                   [ h3 ~a:[ a_class [ "font-medium pb-2" ] ] [ txt "Logs" ] ];
+                div
+                  ~a:[ a_class [ "flex flex-row-reverse mb-6" ] ]
+                  [ Common.show_logs_button true ];
                 div
                   ~a:
                     [

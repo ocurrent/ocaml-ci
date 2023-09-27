@@ -41,12 +41,17 @@ struct
       Printf.sprintf "/%s/:org/:repo/commit/:hash/variant/:variant" F.prefix
     in
     Dream.get url (fun request ->
+        let show_raw_logs =
+          match Dream.query request "show_raw" with
+          | None -> false
+          | Some message -> message = "true"
+        in
         F.Controller.show_step
           ~org:(Dream.param request "org")
           ~repo:(Dream.param request "repo")
           ~hash:(Dream.param request "hash")
           ~variant:(Dream.param request "variant")
-          request F.backend)
+          ~show_raw_logs request F.backend)
 
   let branch_history =
     let url = Printf.sprintf "/%s/:org/:repo/history/branch/**" F.prefix in

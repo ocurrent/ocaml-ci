@@ -640,3 +640,19 @@ let logo_unsafe =
 </linearGradient>
 </defs>
 </svg>|})
+
+let show_logs_button show_raw =
+  let href, text =
+    match show_raw with
+    | true -> ("?show_raw=true", "Show raw logs")
+    | false -> ("?show_raw=false", "Show full logs")
+  in
+  Tyxml.Html.(
+    a
+      ~a:
+        [
+          a_class [ "btn btn-secondary btn-xs rounded-full" ];
+          a_rel [ `Alternate ];
+          a_href href;
+        ]
+      [ txt text ])

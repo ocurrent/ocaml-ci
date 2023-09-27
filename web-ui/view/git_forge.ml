@@ -13,6 +13,7 @@ module Make (F : Forge) : View = struct
   let list_refs = Ref.list
   let list_steps = Step.list
   let show_step = Step.show
+  let show_step_raw = Step.show_raw
 
   include Message
 end
