@@ -5,7 +5,7 @@ module Git = Current_git
 module Github = Current_github
 module Docker = Current_docker.Default
 
-let platforms = Conf.fetch_platforms ~include_macos:true ()
+let platforms = Conf.fetch_platforms ~include_macos:true  ~include_freebsd:true ()
 
 (* Link for GitHub statuses. *)
 let url ~owner ~name ~hash ~gref =
@@ -112,7 +112,7 @@ let set_active_refs ~repo refs default_ref =
   xs
 
 let local_test ~solver repo () =
-  let platforms = Conf.fetch_platforms ~include_macos:false () in
+  let platforms = Conf.fetch_platforms ~include_macos:false ~include_freebsd:false () in
   let src = Git.Local.head_commit repo in
   let repo = Current.return { Repo_id.owner = "local"; name = "test" }
   and analysis =

@@ -68,11 +68,15 @@ end
 module OV = Ocaml_version
 module DD = Dockerfile_opam.Distro
 
+(** Default supported compilers. Defined as 4.14 Long Term Support and latest 5.* release. *)
 let default_compilers =
   OV.(List.map with_just_major_and_minor Releases.[ v4_14; latest ])
 
 let trunk_compiler = OV.(Sources.trunk |> without_patch)
 
+(* Local type representing a Platform to run a build on.
+   Where platform is operating system, architecture, OCaml version and opam version.
+ *)
 type platform = {
   label : string;
   builder : Ocaml_ci.Builder.t;
@@ -84,80 +88,44 @@ type platform = {
   lower_bound : bool;
 }
 
-(* TODO Hardcoding the versions for now, this should expand to OV.Releases.recent.
-   Currently we only have base images for these 2 compiler variants. See ocurrent/freebsd-infra playbook.yml.
-*)
+(* Support OCaml default compilers on FreeBSD platform. *)
 let freebsd_distros =
-  [
-    {
-      label = "freebsd";
-      builder = Builders.local;
-      pool = `FreeBSD_x86_64;
-      distro = "freebsd";
-      ocaml_version = OV.Releases.v4_14;
-      arch = `X86_64;
-      opam_version = `V2_1;
-      lower_bound = false;
-    };
-    {
-      label = "freebsd";
-      builder = Builders.local;
-      pool = `FreeBSD_x86_64;
-      distro = "freebsd";
-      ocaml_version = OV.Releases.v5_1;
-      arch = `X86_64;
-      opam_version = `V2_1;
-      lower_bound = false;
-    };
-  ]
+  List.map (fun ocaml_version ->
+      {
+        label = "freebsd";
+        builder = Builders.local;
+        pool = `FreeBSD_x86_64;
+        distro = "freebsd";
+        ocaml_version;
+        arch = `X86_64;
+        opam_version = `V2_1;
+        lower_bound = false;
+    }) default_compilers
 
-(* TODO Hardcoding the versions for now, this should expand to OV.Releases.recent.
-   Currently we only have base images for these 2 compiler variants. See ocurrent/macos-infra playbook.yml.
-*)
+(* Support OCaml default compilers on MacOS platform. *)
 let macos_distros =
-  [
-    {
-      label = "macos-homebrew";
-      builder = Builders.local;
-      pool = `Macos_x86_64;
-      distro = "macos-homebrew";
-      ocaml_version = OV.Releases.v4_14;
-      arch = `X86_64;
-      opam_version = `V2_1;
-      lower_bound = false;
-    };
-    {
-      label = "macos-homebrew";
-      builder = Builders.local;
-      pool = `Macos_x86_64;
-      distro = "macos-homebrew";
-      ocaml_version = OV.Releases.v5_1;
-      arch = `X86_64;
-      opam_version = `V2_1;
-      lower_bound = false;
-    };
-    (* Apple Silicon *)
-    {
-      label = "macos-homebrew";
-      builder = Builders.local;
-      pool = `Macos_ARM64;
-      distro = "macos-homebrew";
-      ocaml_version = OV.Releases.v4_14;
-      arch = `Aarch64;
-      opam_version = `V2_1;
-      lower_bound = false;
-    };
-    {
-      label = "macos-homebrew";
-      builder = Builders.local;
-      pool = `Macos_ARM64;
-      distro = "macos-homebrew";
-      ocaml_version = OV.Releases.v5_1;
-      arch = `Aarch64;
-      opam_version = `V2_1;
-      lower_bound = false;
-    };
-  ]
+  List.map (fun ocaml_version ->
+      {
+        label = "macos-homebrew";
+        builder = Builders.local;
+        pool = `Macos_x86_64;
+        distro = "macos-homebrew";
+        ocaml_version;
+        arch = `X86_64;
+        opam_version = `V2_1;
+        lower_bound = false;
+    }) default_compilers @
+  List.map (fun ocaml_version ->
+      {
+        label = "macos-homebrew";
+        builder = Builders.local;
+        pool = `Macos_ARM64;
+        distro = "macos-homebrew";
+        ocaml_version;
+        arch = `Aarch64;
+        opam_version = `V2_1;
+        lower_bound = false;
+    } ) default_compilers
 
 let pool_of_arch = function
   | `X86_64 | `I386 -> `Linux_x86_64
@@ -166,7 +134,7 @@ let pool_of_arch = function
   | `Ppc64le -> `Linux_ppc64
   | `Riscv64 -> `Linux_riscv64
 
-let platforms ~profile ~include_macos opam_version =
+let platforms ~profile ~include_macos ~include_freebsd opam_version =
   let v ?(arch = `X86_64) ?(lower_bound = false) label distro ocaml_version =
     {
       arch;
@@ -210,8 +178,9 @@ let platforms ~profile ~include_macos opam_version =
         |> List.concat_map make_platform
       in
       let distros =
-        if include_macos then macos_distros @ distros @ freebsd_distros
-        else distros @ freebsd_distros
+        distros
+        |> List.append (if include_macos then macos_distros else [])
+        |> List.append (if include_freebsd then freebsd_distros else [])
       in
       (* The first one in this list is used for lint actions *)
       let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas in
@@ -229,14 +198,12 @@ let platforms ~profile ~include_macos opam_version =
       let[@warning "-8"] (latest :: previous :: _) =
         List.rev OV.Releases.recent
       in
-      let macos_distros = if include_macos then macos_distros else [] in
-      let ovs = [ latest; previous ] in
-      let releases = List.map make_release ovs in
-      releases @ macos_distros @ freebsd_distros
+      List.map make_release [ latest; previous ]
 
 (** When we have the same platform differing only in [lower_bound], for the
     purposes of Docker pulls, take only the platform with [lower_bound = true].
-    The non-lower-bound platform will be regenerated in the "opam-vars" step *)
+    The non-lower-bound platform will be regenerated in the "opam-vars" step 
+*)
 let merge_lower_bound_platforms platforms =
   let eq_without_lower_bound
       {
@@ -276,7 +243,7 @@ let merge_lower_bound_platforms platforms =
   in
   upper_bound @ lower_bound
 
-let fetch_platforms ~include_macos () =
+let fetch_platforms ~include_macos ~include_freebsd () =
   let open Ocaml_ci in
   let schedule = Current_cache.Schedule.v ~valid_for:(Duration.of_day 30) () in
   let v
@@ -332,7 +299,6 @@ let fetch_platforms ~include_macos () =
           ~host_base ~opam_version ~lower_bound base
   in
   let v2_1 =
-    platforms ~profile:platforms_profile `V2_1 ~include_macos
-    |> merge_lower_bound_platforms
+    platforms ~profile:platforms_profile `V2_1 ~include_macos ~include_freebsd |> merge_lower_bound_platforms
   in
   Current.list_seq (List.map v v2_1) |> Current.map List.flatten
