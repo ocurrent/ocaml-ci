@@ -46,9 +46,12 @@ let setup_log default_level =
   Prometheus_unix.Logging.init ?default_level ();
   Mirage_crypto_rng_unix.initialize (module Mirage_crypto_rng.Fortuna);
   Prometheus.CollectorRegistry.(register_pre_collect default) Metrics.update;
-  match Conf.ci_profile with
-  | `Production -> Logs.info (fun f -> f "Using production configuration")
-  | `Dev -> Logs.info (fun f -> f "Using dev configuration")
+  (match Conf.capnp_profile with
+  | `Production -> Logs.info (fun f -> f "Using production capnp configuration")
+  | `Dev -> Logs.info (fun f -> f "Using dev capnp configuration"));
+  match Conf.platforms_profile with
+  | `All -> Logs.info (fun f -> f "Testing all platforms")
+  | `Minimal -> Logs.info (fun f -> f "Testing minimal platforms")
 
 let or_die = function Ok x -> x | Error (`Msg m) -> failwith m
 

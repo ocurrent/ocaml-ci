@@ -2,11 +2,11 @@
 
 let website_scheme_and_domain = "https://ocaml.ci.dev"
 
-let ci_profile =
-  match Sys.getenv_opt "CI_PROFILE" with
+let capnp_profile =
+  match Sys.getenv_opt "CAPNP_PROFILE" with
   | Some "production" -> `Production
   | Some "dev" | None -> `Dev
-  | Some x -> Fmt.failwith "Unknown $CI_PROFILE setting %S." x
+  | Some x -> Fmt.failwith "Unknown $CAPNP_PROFILE setting %S." x
 
 let platforms_profile =
   match Sys.getenv_opt "PLATFORMS" with
@@ -15,7 +15,7 @@ let platforms_profile =
   | Some x -> Fmt.failwith "Unknown $PLATFORMS setting %S." x
 
 let cmdliner_envs =
-  let ci_profile_doc =
+  let capnp_doc =
     let values = [ "production"; "dev" ] in
     Printf.sprintf "CI profile settings, must be %s."
       (Cmdliner.Arg.doc_alts values)
@@ -26,7 +26,7 @@ let cmdliner_envs =
       (Cmdliner.Arg.doc_alts values)
   in
   [
-    Cmdliner.Cmd.Env.info "CI_PROFILE" ~doc:ci_profile_doc;
+    Cmdliner.Cmd.Env.info "CAPNP_PROFILE" ~doc:capnp_doc;
     Cmdliner.Cmd.Env.info "PLATFORMS" ~doc:platforms_doc;
   ]
 
@@ -39,7 +39,7 @@ module Capnp = struct
      (because they're just internal to the Docker container). *)
 
   let cap_secrets =
-    match ci_profile with
+    match capnp_profile with
     | `Production -> "/capnp-secrets"
     | `Dev -> "./capnp-secrets"
 
