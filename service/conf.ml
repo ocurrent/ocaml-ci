@@ -8,13 +8,27 @@ let ci_profile =
   | Some "dev" | None -> `Dev
   | Some x -> Fmt.failwith "Unknown $CI_PROFILE setting %S." x
 
+let platforms_profile =
+  match Sys.getenv_opt "PLATFORMS" with
+  | Some "all" -> `All
+  | Some "minimal" | None -> `Minimal
+  | Some x -> Fmt.failwith "Unknown $PLATFORMS setting %S." x
+
 let cmdliner_envs =
-  let values = [ "production"; "dev" ] in
-  let doc =
+  let ci_profile_doc =
+    let values = [ "production"; "dev" ] in
     Printf.sprintf "CI profile settings, must be %s."
       (Cmdliner.Arg.doc_alts values)
   in
-  [ Cmdliner.Cmd.Env.info "CI_PROFILE" ~doc ]
+  let platforms_doc =
+    let values = [ "all"; "minimal" ] in
+    Printf.sprintf "Platforms profile settings, must be %s."
+      (Cmdliner.Arg.doc_alts values)
+  in
+  [
+    Cmdliner.Cmd.Env.info "CI_PROFILE" ~doc:ci_profile_doc;
+    Cmdliner.Cmd.Env.info "PLATFORMS" ~doc:platforms_doc;
+  ]
 
 (* GitHub defines a stale branch as more than 3 months old.
    Don't bother testing these. *)
@@ -152,7 +166,7 @@ let pool_of_arch = function
   | `Ppc64le -> `Linux_ppc64
   | `Riscv64 -> `Linux_riscv64
 
-let platforms ~ci_profile ~include_macos opam_version =
+let platforms ~profile ~include_macos opam_version =
   let v ?(arch = `X86_64) ?(lower_bound = false) label distro ocaml_version =
     {
       arch;
@@ -187,8 +201,8 @@ let platforms ~ci_profile ~include_macos opam_version =
     let ov = OV.with_just_major_and_minor ov in
     v ?arch ~lower_bound (OV.to_string ov) distro ov
   in
-  match ci_profile with
-  | `Production ->
+  match profile with
+  | `All ->
       let distros =
         DD.active_tier1_distros `X86_64 @ DD.active_tier2_distros `X86_64
         |> List.filter (( <> ) (`OpenSUSE `Tumbleweed :> DD.t))
@@ -204,14 +218,14 @@ let platforms ~ci_profile ~include_macos opam_version =
       let releases = List.map make_release ovs in
       let lower_bounds = List.map (make_release ~lower_bound:true) ovs in
       releases @ lower_bounds @ distros
-  | `Dev when Sys.win32 ->
+  | `Minimal when Sys.win32 ->
       (* Assume we're building using native Windows images. *)
       let distro =
         DD.tag_of_distro (`Windows (`Mingw, DD.win10_latest_image) :> DD.t)
       in
       let ov = OV.with_just_major_and_minor OV.Releases.latest in
       [ v (OV.to_string ov) distro ov ]
-  | `Dev ->
+  | `Minimal ->
       let[@warning "-8"] (latest :: previous :: _) =
         List.rev OV.Releases.recent
       in
@@ -318,6 +332,7 @@ let fetch_platforms ~include_macos () =
           ~host_base ~opam_version ~lower_bound base
   in
   let v2_1 =
-    platforms ~ci_profile `V2_1 ~include_macos |> merge_lower_bound_platforms
+    platforms ~profile:platforms_profile `V2_1 ~include_macos
+    |> merge_lower_bound_platforms
   in
   Current.list_seq (List.map v v2_1) |> Current.map List.flatten
