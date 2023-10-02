@@ -34,12 +34,14 @@ services:
       --github-webhook-secret-file /run/secrets/ocaml-ci-webhook-secret
       --confirm above-average
       --confirm-auto-release 120
-      --capnp-public-address=tcp:service:8102
+      --capnp-public-address=tcp:service:9000
       --capnp-listen-address=tcp:0.0.0.0:9000
       --submission-service /capnp-secrets/user.cap
       --submission-solver-service /capnp-secrets/user.cap
       --migration-path /migrations
       --github-account-allowlist 'benmandrew'
+    depends_on:
+      - scheduler
     restart: on-failure
     environment:
       - "CAPNP_PROFILE=production"
@@ -47,7 +49,7 @@ services:
       - "DOCKER_BUILDKIT=1"
       - "PROGRESS_NO_TRUNC=1"
     ports:
-      - '8102:9000'
+      - ':9000'
     volumes:
       - 'data:/var/lib/ocurrent'
       - '/var/run/docker.sock:/var/run/docker.sock'
@@ -58,18 +60,20 @@ services:
     sysctls:
       - 'net.ipv4.tcp_keepalive_time=60'
 
-  # web:
-  #   image: ocaml-ci-web
-  #   # For local deploys using docker build -t ocaml-ci-web -f Dockerfile.web .
-  #   command: >
-  #     --backend /capnp-secrets/ocaml-ci-admin.cap
-  #     --listen-prometheus=9090
-  #   # Wait for the default network to be created
-  #   restart: on-failure
-  #   volumes:
-  #     - 'capnp-secrets:/capnp-secrets:ro'
-  #   sysctls:
-  #     - 'net.ipv4.tcp_keepalive_time=60'
+  web:
+    image: ocaml-ci-web
+    # For local deploys using docker build -t ocaml-ci-web -f Dockerfile.web .
+    command: >
+      --backend /capnp-secrets/ocaml-ci-admin.cap
+      --listen-prometheus=9090
+    depends_on:
+      - service
+    # Wait for the default network to be created
+    restart: on-failure
+    volumes:
+      - 'capnp-secrets:/capnp-secrets:ro'
+    sysctls:
+      - 'net.ipv4.tcp_keepalive_time=60'
 
   scheduler:
     image: ocurrent/ocluster-scheduler:live
@@ -109,7 +113,6 @@ services:
       --obuilder-store=rsync:/rsync
       --rsync-mode=copy
       --obuilder-healthcheck=0
-      --verbose
     # Required for the Docker in Docker container to work
     privileged: true
     # Wait for the scheduler to write pool-linux-x86_64.cap
@@ -130,7 +133,6 @@ services:
         --capacity=1
         --internal-workers=1
         --state-dir=/var/lib/ocluster
-        --verbose
       # Wait for the scheduler to write pool-solver.cap
       restart: on-failure
       volumes:
