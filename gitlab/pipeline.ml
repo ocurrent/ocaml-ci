@@ -18,7 +18,9 @@ module Metrics = struct
       "repositories_total"
 end
 
-let platforms = Conf.fetch_platforms ~include_macos:true ~include_freebsd:true ()
+let platforms =
+  Conf.fetch_platforms ~include_macos:true ~include_freebsd:true ()
+
 let program_name = "ocaml-ci"
 
 (* Link for GitLab statuses. *)
@@ -181,7 +183,9 @@ let gitlab_status_of_state head result =
       Gitlab.Api.Status.v ~url `Failure ~description:m ~name:program_name
 
 let local_test ~solver repo () =
-  let platforms = Conf.fetch_platforms ~include_macos:false ~include_freebsd:false () in
+  let platforms =
+    Conf.fetch_platforms ~include_macos:false ~include_freebsd:false ()
+  in
   let src = Git.Local.head_commit repo in
   let repo = Current.return { Repo_id.owner = "local"; name = "test" }
   and analysis =

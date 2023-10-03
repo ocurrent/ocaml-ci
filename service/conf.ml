@@ -68,7 +68,8 @@ end
 module OV = Ocaml_version
 module DD = Dockerfile_opam.Distro
 
-(** Default supported compilers. Defined as 4.14 Long Term Support and latest 5.* release. *)
+(** Default supported compilers. Defined as 4.14 Long Term Support and latest
+    5.* release. *)
 let default_compilers =
   OV.(List.map with_just_major_and_minor Releases.[ v4_14; latest ])
 
@@ -76,7 +77,7 @@ let trunk_compiler = OV.(Sources.trunk |> without_patch)
 
 (* Local type representing a Platform to run a build on.
    Where platform is operating system, architecture, OCaml version and opam version.
- *)
+*)
 type platform = {
   label : string;
   builder : Ocaml_ci.Builder.t;
@@ -90,7 +91,8 @@ type platform = {
 
 (* Support OCaml default compilers on FreeBSD platform. *)
 let freebsd_distros =
-  List.map (fun ocaml_version ->
+  List.map
+    (fun ocaml_version ->
       {
         label = "freebsd";
         builder = Builders.local;
@@ -100,11 +102,13 @@ let freebsd_distros =
         arch = `X86_64;
         opam_version = `V2_1;
         lower_bound = false;
-    }) default_compilers
+      })
+    default_compilers
 
 (* Support OCaml default compilers on MacOS platform. *)
 let macos_distros =
-  List.map (fun ocaml_version ->
+  List.map
+    (fun ocaml_version ->
       {
         label = "macos-homebrew";
         builder = Builders.local;
@@ -114,18 +118,21 @@ let macos_distros =
         arch = `X86_64;
         opam_version = `V2_1;
         lower_bound = false;
-    }) default_compilers @
-  List.map (fun ocaml_version ->
-      {
-        label = "macos-homebrew";
-        builder = Builders.local;
-        pool = `Macos_ARM64;
-        distro = "macos-homebrew";
-        ocaml_version;
-        arch = `Aarch64;
-        opam_version = `V2_1;
-        lower_bound = false;
-    } ) default_compilers
+      })
+    default_compilers
+  @ List.map
+      (fun ocaml_version ->
+        {
+          label = "macos-homebrew";
+          builder = Builders.local;
+          pool = `Macos_ARM64;
+          distro = "macos-homebrew";
+          ocaml_version;
+          arch = `Aarch64;
+          opam_version = `V2_1;
+          lower_bound = false;
+        })
+      default_compilers
 
 let pool_of_arch = function
   | `X86_64 | `I386 -> `Linux_x86_64
@@ -202,8 +209,7 @@ let platforms ~profile ~include_macos ~include_freebsd opam_version =
 
 (** When we have the same platform differing only in [lower_bound], for the
     purposes of Docker pulls, take only the platform with [lower_bound = true].
-    The non-lower-bound platform will be regenerated in the "opam-vars" step 
-*)
+    The non-lower-bound platform will be regenerated in the "opam-vars" step *)
 let merge_lower_bound_platforms platforms =
   let eq_without_lower_bound
       {
@@ -299,6 +305,7 @@ let fetch_platforms ~include_macos ~include_freebsd () =
           ~host_base ~opam_version ~lower_bound base
   in
   let v2_1 =
-    platforms ~profile:platforms_profile `V2_1 ~include_macos ~include_freebsd |> merge_lower_bound_platforms
+    platforms ~profile:platforms_profile `V2_1 ~include_macos ~include_freebsd
+    |> merge_lower_bound_platforms
   in
   Current.list_seq (List.map v v2_1) |> Current.map List.flatten
