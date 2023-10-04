@@ -1,10 +1,10 @@
 # Local development
 
-This document sets you up to use locally running instances of `ocaml-ci-service` and `ocaml-ci-web` to build an OCaml project that is in a repository owned by your GitHub user.
+This document sets you up to use local instances of `ocaml-ci-service` and `ocaml-ci-web` running in Docker containers to build an OCaml project that is in a repository owned by your GitHub user.
 
-### Setting up a GitHub App
+## Setting up a GitHub App
 
-Since `ocaml-ci` is a GitHub App, create a GitHub App ([settings/apps](https://github.com/settings/apps)) under your own user and point it to localhost via a webhook payload delivery service like [smee.io](https://smee.io).
+`ocaml-ci` uses the functionality of a GitHub App to interact with GitHub. To use `ocaml-ci` yourself you must create your own. You can create a GitHub App ([settings/apps](https://github.com/settings/apps)) under your own user and point it to localhost via a webhook payload delivery service like [smee.io](https://smee.io).
 
 To do this, follow the instructions in [Setting up your development environment to create a GitHub App](https://docs.github.com/en/developers/apps/getting-started-with-apps/setting-up-your-development-environment-to-create-a-github-app) but when it comes to setting permissions for your app, set the following as the "Repository permissions":
 
@@ -24,68 +24,46 @@ Pull request
 Push
 ```
 
-### Running the GitHub pipeline locally
+## Running the GitHub pipeline locally
 
-You will need the following:
+In `docker-compose.yml` change the following:
 
-1. The GitHub App ID of the app you created
-2. The `pem` file containing the private key associated to the app
-3. A comma separated list of GitHub accounts to allow - this could start out as just your GitHub account
-4. A capability file for submitting jobs to a cluster, in this case the main ocaml-ci cluster as documented in https://github.com/ocurrent/ocluster#admin
-5. The app webhook secret that is used to authenticate to the app
+1. Under `services`, then `service`, change the argument to `--github-app-id` to the GitHub App ID of the app you created
+2. Under the same `service` tag, change the argument to `--github-account-allowlist` to a comma-separated list of GitHub accounts to allow—this could start out as just your GitHub account
+3. Under `secrets`, set `ocaml-ci-github-key` to the `pem` file containing the private key associated to the app, and `ocaml-ci-webhook-secret` to a file containing the webhook secret that is used to authenticate to the app
 
+Create a file `/etc/caddy/Caddyfile` containing:
 ```
-dune exec -- ocaml-ci-service \
-  --github-app-id <your-github-app-id> \
-  --github-private-key-file <path-to/private-key.pem> \
-  --github-account-allowlist <your-github-username> \
-  --submission-service <path-to-the-submission-capability-file> \
-  --github-webhook-secret-file <path-to-the-app-secret> \
-  --capnp-listen-address tcp:127.0.0.1:9001
-  --migration-path "$PWD/migrations"
-```
+{
+	log default {
+		level WARN
+	}
+}
 
-This will generate a capability file. See the logs for `Wrote capability reference to "./capnp-secrets/ocaml-ci-admin.cap"`
+http://localhost:8100 {
+	reverse_proxy service:8080
+}
 
-You should see the admin site on `localhost:8080`
-
-### Running the GitLab pipeline locally
-
-You will need the following:
-
-1. The GitLab API token with permissions to the repositories to build
-2. GitLab secret associated with webhooks
-3. A capability file for submitting jobs to a cluster, in this case the main ocaml-ci cluster as documented in https://github.com/ocurrent/ocluster#admin
-
-``` shell
-dune exec -- ocaml-ci-gitlab \
-  --gitlab-token-file <your-gitlab-token> \
-  --gitlab-webhook-secret-file <your-gitlab-secret> \
-  --submission-service <path-to-the-submission-capability-file> \
-  --capnp-listen-address tcp:127.0.0.1:9800
-  --migration-path "$PWD/migrations"
+http://localhost {
+	reverse_proxy web:8090
+}
 ```
 
-This will generate a capability file. See the logs for `Wrote capability reference to "./capnp-secrets/ocaml-ci-gitlab-admin.cap"`
-
-### Running the web client locally
-
-Using the capability file written out by the service, run the web client as follows:
+You can then start the services with:
 
 ```
-dune exec -- ocaml-ci-web \
-  --backend ./capnp-secrets/ocaml-ci-admin.cap \
-  --gitlab-backend ./capnp-secrets/ocaml-ci-gitlab-admin.cap
+docker compose up
 ```
 
-You should see the client site on `localhost:8090` note that both backends are optional so you can run just the github or gitlab pipelines.
+You should see the admin site on [`http://localhost:8100`](http://localhost:8100) and the user site on [`http://localhost`](http://localhost).
 
-### Running a scheduler and a worker (OPTIONAL)
+If you want webhooks to be redirected to your application, start `smee` in another terminal, replacing the argument to `--url` with the URL you generated before on [smee.io](https://smee.io):
 
-You can run a scheduler and a worker to connect it to the CI.
-Follow the instruction from [ocurrent/ocluster](https://github.com/ocurrent/ocluster#the-scheduler-service).
+```
+smee --url https://smee.io/xxxxxxxxxxxxxxxx --path /webhooks/github --port 8100
+```
 
-### Migrations
+## Migrations
 
 Migrations are managed using `omigrate.` If you are using an opam switch for ocaml-ci then `omigrate` should be installed and you can create a new migration by doing this from the project root:
 
