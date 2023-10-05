@@ -32,6 +32,12 @@ In `docker-compose.yml` change the following:
 2. Under the same `service` tag, change the argument to `--github-account-allowlist` to a comma-separated list of GitHub accounts to allow—this could start out as just your GitHub account
 3. Under `secrets`, set `ocaml-ci-github-key` to the `pem` file containing the private key associated to the app, and `ocaml-ci-webhook-secret` to a file containing the webhook secret that is used to authenticate to the app
 
+Build the docker containers for `service` and `web`:
+```
+docker build -t ocaml-ci-service -f Dockerfile .
+docker build -t ocaml-ci-web -f Dockerfile.web .
+```
+
 Create a file `/etc/caddy/Caddyfile` containing:
 ```
 {
@@ -50,7 +56,6 @@ http://localhost {
 ```
 
 You can then start the services with:
-
 ```
 docker compose up
 ```
@@ -58,7 +63,6 @@ docker compose up
 You should see the admin site on [`http://localhost:8100`](http://localhost:8100) and the user site on [`http://localhost`](http://localhost).
 
 If you want webhooks to be redirected to your application, start `smee` in another terminal, replacing the argument to `--url` with the URL you generated before on [smee.io](https://smee.io):
-
 ```
 smee --url https://smee.io/xxxxxxxxxxxxxxxx --path /webhooks/github --port 8100
 ```
