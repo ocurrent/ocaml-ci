@@ -73,9 +73,8 @@ let ocamlformat_version_from_file ~root job path =
     | _ :: _ :: _ ->
         Lwt.return (Error (`Msg "Multiple 'version=' lines in .ocamlformat"))
 
-let get_ocamlformat_source job ~opam_files ~root ~find_opam_repo_commit =
+let get_ocamlformat_source job ~opam_files ~version ~find_opam_repo_commit =
   let open Lwt.Infix in
-  let ( let* ) = Lwt_result.Infix.( >>= ) in
   let proj_is_ocamlformat p =
     String.equal (Filename.basename p) "ocamlformat.opam"
   in
@@ -84,11 +83,7 @@ let get_ocamlformat_source job ~opam_files ~root ~find_opam_repo_commit =
       let path = Filename.dirname opam_file in
       Lwt_result.return (Some (Vendored { path }), None)
   | None -> (
-      let* version_in_dot_ocamlformat =
-        ocamlformat_version_from_file ~root job
-          Fpath.(to_string (root / ".ocamlformat"))
-      in
-      match version_in_dot_ocamlformat with
+      match version with
       | None -> Lwt_result.return (None, None)
       | Some version -> (
           find_opam_repo_commit version >>= function

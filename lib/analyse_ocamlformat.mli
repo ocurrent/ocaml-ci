@@ -10,10 +10,17 @@ type source =
 val pp_source : source Fmt.t
 (** Pretty print [source]. *)
 
+val ocamlformat_version_from_file :
+  root:Fpath.t ->
+  Current.Job.t ->
+  string ->
+  (string option, [ `Msg of string ]) Lwt_result.t
+(** Extract the version in .ocamlformat file if the file exists in the project *)
+
 val get_ocamlformat_source :
   Current.Job.t ->
   opam_files:string list ->
-  root:Fpath.t ->
+  version:string option ->
   find_opam_repo_commit:
     (string -> (string * Selection.t, [ `Msg of string ]) Lwt_result.t) ->
   (source option * Selection.t option, [ `Msg of string ]) Lwt_result.t

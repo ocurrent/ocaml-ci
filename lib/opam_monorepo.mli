@@ -1,6 +1,6 @@
 (** Generate obuilder specs for building opam packages with opam-monorepo. *)
 
-type info
+type info [@@deriving yojson]
 
 val detect : dir:Fpath.t -> info list option
 (** Detect whether a project uses opam-monorepo or something else. *)
