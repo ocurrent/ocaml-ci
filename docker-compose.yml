@@ -9,27 +9,29 @@ volumes:
 
 secrets:
   ocaml-ci-github-key:
-    file: $HOME/ci_secrets/new-test-ci.2022-11-08.private-key.pem
+    file: ${SECRETS_DIR}/private-key.pem
   ocaml-ci-webhook-secret:
-    file: $HOME/ci_secrets/benmandrew-ci-webhook-secret
+    file: ${SECRETS_DIR}/webhook-secret
 
 services:
   caddy:
     image: caddy
     ports:
-      - 80:80
-      - 443:443
-      - 8100:8100
+      - '80:80'
+      - '443:443'
+      - '8100:8100'
     volumes:
       - /etc/caddy:/etc/caddy:ro
       - caddy_data:/data
       - caddy_config:/config
 
   service:
-    image: ocaml-ci-service
+    build:
+      context: .
+      dockerfile: Dockerfile
     # For local deploys using docker build -t ocaml-ci-service -f Dockerfile .
     command: >
-      --github-app-id 244548
+      --github-app-id ${APP_ID}
       --github-private-key-file /run/secrets/ocaml-ci-github-key
       --github-webhook-secret-file /run/secrets/ocaml-ci-webhook-secret
       --confirm above-average
@@ -39,7 +41,7 @@ services:
       --submission-service /capnp-secrets/user.cap
       --submission-solver-service /capnp-secrets/user.cap
       --migration-path /migrations
-      --github-account-allowlist 'benmandrew'
+      --github-account-allowlist '${ALLOW_LIST}'
     depends_on:
       - scheduler
     restart: on-failure
@@ -48,8 +50,6 @@ services:
       - "PLATFORMS=minimal"
       - "DOCKER_BUILDKIT=1"
       - "PROGRESS_NO_TRUNC=1"
-    ports:
-      - ':9000'
     volumes:
       - 'data:/var/lib/ocurrent'
       - '/var/run/docker.sock:/var/run/docker.sock'
@@ -61,7 +61,9 @@ services:
       - 'net.ipv4.tcp_keepalive_time=60'
 
   web:
-    image: ocaml-ci-web
+    build:
+      context: .
+      dockerfile: Dockerfile.web
     # For local deploys using docker build -t ocaml-ci-web -f Dockerfile.web .
     command: >
       --backend /capnp-secrets/ocaml-ci-admin.cap

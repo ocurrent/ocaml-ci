@@ -8,3 +8,5 @@ var
 .vscode
 /capnp-secrets/
 .DS_Store
+
+.env
