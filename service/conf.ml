@@ -206,6 +206,7 @@ let platforms ~profile ~include_macos ~include_freebsd opam_version =
         List.rev OV.Releases.recent
       in
       List.map make_release [ latest; previous ]
+      @ [ make_release ~arch:`I386 OV.Releases.v4_14_1 ]
 
 (** When we have the same platform differing only in [lower_bound], for the
     purposes of Docker pulls, take only the platform with [lower_bound = true].

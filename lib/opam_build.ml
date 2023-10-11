@@ -143,6 +143,24 @@ let install_project_deps ~opam_version ~opam_files ~selection =
     | `linux -> None
     | `freeBSD -> None
   in
+  let capnproto =
+    [
+      run ~network ~cache
+        "sudo apt update && sudo apt install autoconf automake libtool -y";
+      run ~network ~cache
+        "git clone https://github.com/moyodiallo/capnproto.git && cd capnproto \
+         && git reset --hard 37032615f1948327d7def94671a4335c251581b3";
+      run
+        "cd capnproto/c++ && autoupdate && autoreconf -i && ./configure && \
+         make -j6 check && sudo make install";
+      run "rm -fr capnproto";
+    ]
+    (* TODO: Will be removed when until a new version of debian in which capnproto has this fix
+     * "https://github.com/capnproto/capnproto/pull/1824" or similar.
+     *
+     * related to this bug "https://github.com/mirage/capnp-rpc/issues/273"
+     * *)
+  in
   (* XXX: don't overwrite default config? *)
   let opamrc = "" in
   let opam_version_str = Opam_version.to_string opam_version in
@@ -184,13 +202,10 @@ let install_project_deps ~opam_version ~opam_files ~selection =
         commit commit;
     ]
   @ pin_opam_files ~network ?work_dir groups
-  @ [
-      env "DEPS" non_root_pkgs;
-      env "CI" "true";
-      env "OCAMLCI" "true";
-      opam_depext;
-      run ~network ~cache "opam install $DEPS";
-    ]
+  @ [ env "DEPS" non_root_pkgs; env "CI" "true"; env "OCAMLCI" "true" ]
+  @ (if Variant.arch variant |> Ocaml_version.arch_is_32bit then capnproto
+     else [])
+  @ [ opam_depext; run ~network ~cache "opam install $DEPS" ]
 
 let spec ~base ~opam_version ~opam_files ~selection =
   let open Obuilder_spec in
