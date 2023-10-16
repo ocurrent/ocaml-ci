@@ -144,17 +144,27 @@ let install_project_deps ~opam_version ~opam_files ~selection =
     | `freeBSD -> None
   in
   let capnproto =
-    [
-      run ~network ~cache
-        "sudo apt update && sudo apt install autoconf automake libtool -y";
-      run ~network ~cache
-        "git clone https://github.com/moyodiallo/capnproto.git && cd capnproto \
-         && git reset --hard 37032615f1948327d7def94671a4335c251581b3";
-      run
-        "cd capnproto/c++ && autoupdate && autoreconf -i && ./configure && \
-         make -j6 check && sudo make install";
-      run "rm -fr capnproto";
-    ]
+    List.find_map
+      (fun pkg ->
+        match Astring.String.cut ~sep:"." pkg with
+        | Some (pkg, _) when pkg = "conf-capnproto" ->
+            Some
+              [
+                run ~network ~cache
+                  "sudo apt update && sudo apt install autoconf automake \
+                   libtool -y";
+                run ~network ~cache
+                  "git clone https://github.com/moyodiallo/capnproto.git && cd \
+                   capnproto && git reset --hard \
+                   37032615f1948327d7def94671a4335c251581b3";
+                run
+                  "cd capnproto/c++ && autoupdate && autoreconf -i && \
+                   ./configure && make -j6 && sudo make install";
+                run "rm -fr capnproto";
+              ]
+        | Some (_, _) | None -> None)
+      non_root_pkgs
+    |> Option.value ~default:[]
     (* TODO: Will be removed when until a new version of debian in which capnproto has this fix
      * "https://github.com/capnproto/capnproto/pull/1824" or similar.
      *
