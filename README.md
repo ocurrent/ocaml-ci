@@ -24,7 +24,7 @@ To add the CI to your own project:
 1. Go to https://github.com/apps/ocaml-ci and install the app for your GitHub user.
 2. Configure just the repositories you want to test (start with one!). If you select `All Repositories` we won't build anything.
 3. Ask us to add you to the alpha-testers list by submitting a PR against this
-   repository adding yourself to `--github-account-allowlist` in `stack.yml`. eg https://github.com/ocurrent/ocaml-ci/pull/346. Additionally, please add yourself to `deploy-data/github-organisations.txt`.
+   repository adding yourself to `deploy-data/github-organisations.txt`.
 4. Add a status badge from the OCaml-CI endpoint with:
    ```
    [![OCaml-CI Build Status](https://img.shields.io/endpoint?url=https://ocaml.ci.dev/badge/<user>/<repo>/<branch>&logo=ocaml)](https://ocaml.ci.dev/github/<user>/<repo>)
@@ -150,6 +150,7 @@ To deploy code changes either from `master` or a branch:
 To deploy changes to `stack.yml` run (assuming a docker context with sufficient access):
 
 ``` bash
+make deploy-stack
 docker -c ocaml.ci.dev stack deploy -c stack.yml ocaml-ci
 ```
 
