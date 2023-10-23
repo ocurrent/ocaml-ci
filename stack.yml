@@ -24,7 +24,7 @@ secrets:
     external: true
 
 services:
-  service-github:
+  ci:
     image: ocurrent/ocaml-ci-service:live
     # image: ocaml-ci-service
     # For local deploys using docker -c ocaml.ci.dev build -t ocaml-ci-service -f Dockerfile .
@@ -61,7 +61,7 @@ services:
     sysctls:
       - 'net.ipv4.tcp_keepalive_time=60'
 
-  service-gitlab:
+  gitlab:
     image: ocurrent/ocaml-ci-gitlab-service:live
     # image: ocaml-ci-gitlab-service
     # For local deploys using docker -c ocaml.ci.dev build -t ocaml-ci-gitlab-service -f Dockerfile.gitlab .
