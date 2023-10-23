@@ -151,7 +151,6 @@ To deploy changes to `stack.yml` run (assuming a docker context with sufficient 
 
 ``` bash
 make deploy-stack
-docker -c ocaml.ci.dev stack deploy -c stack.yml ocaml-ci
 ```
 
 ## Opam repository updates
