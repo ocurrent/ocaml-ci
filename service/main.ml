@@ -13,6 +13,11 @@ module Metrics = struct
     Gauge.v_label ~label_name:"state" ~help ~namespace ~subsystem
       "master_state_total"
 
+  let variant_family =
+    let help = "Number of statuses by variant" in
+    Gauge.v_labels ~label_names:[ "variant"; "state" ] ~help ~namespace
+      ~subsystem "variant_state_total"
+
   type stats = { ok : int; failed : int; active : int }
 
   let count_repo ~owner name (acc : stats) =
@@ -30,7 +35,7 @@ module Metrics = struct
   let count_owner owner (acc : stats) =
     Index.Repo_set.fold (count_repo ~owner) (Index.get_active_repos ~owner) acc
 
-  let update () =
+  let update_master () =
     let owners = Index.get_active_owners () in
     let { ok; failed; active } =
       Index.Owner_set.fold count_owner owners { ok = 0; failed = 0; active = 0 }
@@ -38,6 +43,31 @@ module Metrics = struct
     Gauge.set (master "ok") (float_of_int ok);
     Gauge.set (master "failed") (float_of_int failed);
     Gauge.set (master "active") (float_of_int active)
+
+  let update_variant_family () =
+    let variant_states = Index.get_statuses_per_variant () in
+    let f variant stats =
+      Gauge.set
+        (Gauge.labels variant_family [ variant; "ok" ])
+        (float_of_int stats.Index.passed);
+      Gauge.set
+        (Gauge.labels variant_family [ variant; "failed" ])
+        (float_of_int stats.failed);
+      Gauge.set
+        (Gauge.labels variant_family [ variant; "active" ])
+        (float_of_int stats.active);
+      Gauge.set
+        (Gauge.labels variant_family [ variant; "not_started" ])
+        (float_of_int stats.not_started);
+      Gauge.set
+        (Gauge.labels variant_family [ variant; "aborted" ])
+        (float_of_int stats.aborted)
+    in
+    Index.Variant_map.iter f variant_states
+
+  let update () =
+    update_master ();
+    update_variant_family ()
 end
 
 open Ocaml_ci_service

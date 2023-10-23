@@ -90,6 +90,7 @@ type t = {
   record_job_summary : Sqlite3.stmt;
   get_build_summary_by_commit : Sqlite3.stmt;
   get_build_summary_by_gref : Sqlite3.stmt;
+  get_statuses_per_variant : Sqlite3.stmt;
 }
 
 type job_state =
@@ -150,6 +151,11 @@ let db =
           MAX(build_number) FROM ci_build_summary c2 WHERE c1.owner = c2.owner \
           AND c1.name = c2.name AND c1.hash = c2.hash AND c1.gref = c2.gref) \
           ORDER BY created_at DESC"
+     and get_statuses_per_variant =
+       Sqlite3.prepare db
+         "SELECT ci_build_index.variant, ci_build_index.job_id, cache.ok FROM \
+          ci_build_index LEFT JOIN cache ON ci_build_index.job_id = \
+          cache.job_id"
      in
      {
        record_job;
@@ -161,6 +167,7 @@ let db =
        record_job_summary;
        get_build_summary_by_commit;
        get_build_summary_by_gref;
+       get_statuses_per_variant;
      })
 
 let init () = Lwt.map (fun () -> ignore (Lazy.force db)) (Migration.init ())
@@ -680,3 +687,49 @@ let get_job ~owner ~name ~hash ~variant =
 let get_job_ids ~owner ~name ~hash =
   let t = Lazy.force db in
   get_job_ids_with_variant t ~owner ~name ~hash |> List.filter_map snd
+
+module Variant_map = Map.Make (String)
+
+type stats = {
+  passed : int;
+  failed : int;
+  active : int;
+  not_started : int;
+  aborted : int;
+}
+
+let stats_empty =
+  { passed = 0; failed = 0; active = 0; not_started = 0; aborted = 0 }
+
+let get_statuses_per_variant () =
+  let t = Lazy.force db in
+  let get_variant_status = function
+    | Sqlite3.Data.[ TEXT variant; TEXT job_id; NULL ] ->
+        let outcome =
+          if Current.Job.lookup_running job_id = None then `Aborted else `Active
+        in
+        (variant, outcome)
+    | Sqlite3.Data.[ TEXT variant; TEXT _; INT ok ] ->
+        let outcome = if ok = 1L then `Passed else `Failed in
+        (variant, outcome)
+    | Sqlite3.Data.[ TEXT variant; NULL; NULL ] -> (variant, `Not_started)
+    | row -> Fmt.failwith "get_jobs: invalid result: %a" Db.dump_row row
+  in
+  let incr_state_map stats = function
+    | `Passed -> { stats with passed = stats.passed + 1 }
+    | `Failed -> { stats with failed = stats.failed + 1 }
+    | `Active -> { stats with active = stats.active + 1 }
+    | `Not_started -> { stats with active = stats.active + 1 }
+    | `Aborted -> { stats with active = stats.active + 1 }
+  in
+  Db.query t.get_statuses_per_variant []
+  |> List.fold_left
+       (fun acc data ->
+         let variant, state = get_variant_status data in
+         let stats =
+           match Variant_map.find_opt variant acc with
+           | None -> stats_empty
+           | Some stats -> stats
+         in
+         Variant_map.add variant (incr_state_map stats state) acc)
+       Variant_map.empty
