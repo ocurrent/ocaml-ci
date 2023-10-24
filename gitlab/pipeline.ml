@@ -187,9 +187,10 @@ let local_test ~solver repo () =
     Conf.fetch_platforms ~include_macos:false ~include_freebsd:false ()
   in
   let src = Git.Local.head_commit repo in
+  let src_content = Repo_content.extract src in
   let repo = Current.return { Repo_id.owner = "local"; name = "test" }
   and analysis =
-    Analyse.examine ~solver ~platforms ~opam_repository_commit src
+    Analyse.examine ~solver ~platforms ~opam_repository_commit src src_content
   in
   Current.component "summarise"
   |> let> results = build_with_docker ~repo ~analysis ~platforms src in
@@ -227,8 +228,10 @@ let v ?ocluster ~app ~solver ~migrations () =
         refs
         |> Current.list_iter (module Gitlab.Api.Commit) @@ fun head ->
            let src = Git.fetch (Current.map Gitlab.Api.Commit.id head) in
+           let src_content = Repo_content.extract src in
            let analysis =
              Analyse.examine ~solver ~platforms ~opam_repository_commit src
+               src_content
            in
            let* on_cancel =
              match ocluster with

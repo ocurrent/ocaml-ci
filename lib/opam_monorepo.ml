@@ -1,4 +1,4 @@
-type info = string * OpamFile.OPAM.t
+type info = string * string [@@deriving yojson]
 type lock_file_version = V0_2 | V0_3 [@@deriving yojson, ord]
 
 (** The kind of switch the package will be built in. *)
@@ -58,7 +58,7 @@ let detect ~dir =
         OpamFile.OPAM.read (OpamFile.make (OpamFilename.of_string full_path))
       in
       let* _ = x_opam_monorepo_version lock_file_contents in
-      Some (lock_file_path, lock_file_contents))
+      Some (lock_file_path, OpamFile.OPAM.write_to_string lock_file_contents))
 
 let packages_in_depends f =
   let get_atom = function OpamFormula.Atom a -> a | _ -> assert false in
@@ -124,6 +124,7 @@ let adjust_ocaml_version platform ~version =
 
 let selection ~info:(lock_file_path, lock_file) ~platforms ~solve =
   let open Lwt_result.Infix in
+  let lock_file = OpamFile.OPAM.read_from_string lock_file in
   let ocaml_version = opam_monorepo_dep_version ~lock_file ~package:"ocaml" in
   let dune_version = opam_monorepo_dep_version ~lock_file ~package:"dune" in
   let lock_file_version =

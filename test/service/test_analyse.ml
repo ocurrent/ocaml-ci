@@ -1,4 +1,5 @@
 open Lwt.Infix
+module Content = Ocaml_ci.Repo_content.Content
 
 let () =
   Logs.(set_level (Some Info));
@@ -54,9 +55,9 @@ module Analysis = struct
   }
   [@@deriving eq, yojson]
 
-  let of_dir ~job ~platforms ~opam_repository_commit d =
+  let of_content ~job ~platforms ~opam_repository_commit d =
     let solver = Ocaml_ci.Backend_solver.v None in
-    of_dir ~solver ~job ~platforms ~opam_repository_commit d
+    of_content ~solver ~job ~platforms ~opam_repository_commit d
     |> Lwt_result.map (fun t ->
            {
              opam_files = opam_files t;
@@ -146,8 +147,10 @@ let expect_test name ~project ~expected =
         Current_git.Commit_id.v ~repo:"opam-repository" ~hash:(String.trim hash)
           ~gref:"master"
       in
-      Analysis.of_dir ~job ~platforms:Test_platforms.v ~opam_repository_commit
-        (Fpath.v root)
+      Content.of_dir ~job (Fpath.v root) >|= unwrap_result ~job
+      >>= fun content ->
+      Analysis.of_content ~job ~platforms:Test_platforms.v
+        ~opam_repository_commit content
       >|= fun result ->
       (match (result, expected) with
       | Error _, Ok _ ->
