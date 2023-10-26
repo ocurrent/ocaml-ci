@@ -153,9 +153,10 @@ let db =
           ORDER BY created_at DESC"
      and get_statuses_per_variant =
        Sqlite3.prepare db
-         "SELECT ci_build_index.variant, ci_build_index.job_id, cache.ok FROM \
-          ci_build_index LEFT JOIN cache ON ci_build_index.job_id = \
-          cache.job_id"
+         "SELECT cbi.variant, cbi.job_id, cbs.status FROM ci_build_index cbi \
+          INNER JOIN (SELECT owner, name, hash, status, MAX(build_number) FROM \
+          ci_build_summary GROUP BY owner, name, hash) cbs ON cbi.owner = \
+          cbs.owner AND cbi.name = cbs.name AND cbi.hash = cbs.hash"
      in
      {
        record_job;
@@ -706,30 +707,34 @@ let get_statuses_per_variant () =
   let get_variant_status = function
     | Sqlite3.Data.[ TEXT variant; TEXT job_id; NULL ] ->
         let outcome =
-          if Current.Job.lookup_running job_id = None then `Aborted else `Active
+          if Current.Job.lookup_running job_id = None then `Aborted
+          else `Pending
         in
-        (variant, outcome)
-    | Sqlite3.Data.[ TEXT variant; TEXT _; INT ok ] ->
-        let outcome = if ok = 1L then `Passed else `Failed in
-        (variant, outcome)
-    | Sqlite3.Data.[ TEXT variant; NULL; NULL ] -> (variant, `Not_started)
+        Some (variant, outcome)
+    | Sqlite3.Data.[ TEXT variant; TEXT _; INT status ] ->
+        let outcome = int_to_status (Int64.to_int status) in
+        Result.to_option outcome
+        |> Option.map (fun outcome -> (variant, outcome))
+    | Sqlite3.Data.[ TEXT variant; NULL; _ ] -> Some (variant, `Not_started)
     | row -> Fmt.failwith "get_jobs: invalid result: %a" Db.dump_row row
   in
   let incr_state_map stats = function
     | `Passed -> { stats with passed = stats.passed + 1 }
     | `Failed -> { stats with failed = stats.failed + 1 }
-    | `Active -> { stats with active = stats.active + 1 }
+    | `Pending -> { stats with active = stats.active + 1 }
     | `Not_started -> { stats with active = stats.active + 1 }
     | `Aborted -> { stats with active = stats.active + 1 }
   in
   Db.query t.get_statuses_per_variant []
   |> List.fold_left
        (fun acc data ->
-         let variant, state = get_variant_status data in
-         let stats =
-           match Variant_map.find_opt variant acc with
-           | None -> stats_empty
-           | Some stats -> stats
-         in
-         Variant_map.add variant (incr_state_map stats state) acc)
+         match get_variant_status data with
+         | None -> acc
+         | Some (variant, state) ->
+             let stats =
+               match Variant_map.find_opt variant acc with
+               | None -> stats_empty
+               | Some stats -> stats
+             in
+             Variant_map.add variant (incr_state_map stats state) acc)
        Variant_map.empty
