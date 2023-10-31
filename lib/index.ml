@@ -153,10 +153,11 @@ let db =
           ORDER BY created_at DESC"
      and get_statuses_per_variant =
        Sqlite3.prepare db
-         "SELECT cbi.variant, cbi.job_id, cbs.status FROM ci_build_index cbi \
+         "SELECT cbi.variant, cbs.status, COUNT(*) FROM ci_build_index cbi \
           INNER JOIN (SELECT owner, name, hash, status, MAX(build_number) FROM \
           ci_build_summary GROUP BY owner, name, hash) cbs ON cbi.owner = \
-          cbs.owner AND cbi.name = cbs.name AND cbi.hash = cbs.hash"
+          cbs.owner AND cbi.name = cbs.name AND cbi.hash = cbs.hash GROUP BY \
+          cbi.variant, cbs.status"
      in
      {
        record_job;
@@ -658,21 +659,23 @@ let get_full_hash ~owner ~name short_hash =
 let get_jobs ~owner ~name hash =
   let t = Lazy.force db in
   Db.query t.get_jobs Sqlite3.Data.[ TEXT owner; TEXT name; TEXT hash ]
-  |> List.map @@ function
+  |> List.filter_map @@ function
      | Sqlite3.Data.[ TEXT variant; TEXT job_id; NULL; NULL ] ->
          let outcome =
            if Current.Job.lookup_running job_id = None then `Aborted
            else `Active
          in
          let ts = Run_time.Timestamp.of_job_id_opt job_id in
-         (variant, outcome, ts)
+         Some (variant, outcome, ts)
      | Sqlite3.Data.[ TEXT variant; TEXT job_id; INT ok; BLOB outcome ] ->
          let outcome = if ok = 1L then `Passed else `Failed outcome in
          let ts = Run_time.Timestamp.of_job_id_opt job_id in
-         (variant, outcome, ts)
+         Some (variant, outcome, ts)
      | Sqlite3.Data.[ TEXT variant; NULL; NULL; NULL ] ->
-         (variant, `Not_started, None)
-     | row -> Fmt.failwith "get_jobs: invalid result: %a" Db.dump_row row
+         Some (variant, `Not_started, None)
+     | row ->
+         ignore row;
+         None (* Fmt.failwith "get_jobs: invalid result: %a" Db.dump_row row *)
 
 let get_job ~owner ~name ~hash ~variant =
   let t = Lazy.force db in
@@ -691,50 +694,31 @@ let get_job_ids ~owner ~name ~hash =
 
 module Variant_map = Map.Make (String)
 
-type stats = {
-  passed : int;
-  failed : int;
-  active : int;
-  not_started : int;
-  aborted : int;
-}
+type stats = { passed : int; failed : int; active : int; not_started : int }
 
-let stats_empty =
-  { passed = 0; failed = 0; active = 0; not_started = 0; aborted = 0 }
+let stats_empty = { passed = 0; failed = 0; active = 0; not_started = 0 }
 
 let get_statuses_per_variant () =
   let t = Lazy.force db in
-  let get_variant_status = function
-    | Sqlite3.Data.[ TEXT variant; TEXT job_id; NULL ] ->
-        let outcome =
-          if Current.Job.lookup_running job_id = None then `Aborted
-          else `Pending
-        in
-        Some (variant, outcome)
-    | Sqlite3.Data.[ TEXT variant; TEXT _; INT status ] ->
+  let parse_sql = function
+    | Sqlite3.Data.[ TEXT variant; INT status; INT n ] ->
         let outcome = int_to_status (Int64.to_int status) in
         Result.to_option outcome
-        |> Option.map (fun outcome -> (variant, outcome))
-    | Sqlite3.Data.[ TEXT variant; NULL; _ ] -> Some (variant, `Not_started)
+        |> Option.map (fun outcome -> (variant, outcome, Int64.to_int n))
     | row -> Fmt.failwith "get_jobs: invalid result: %a" Db.dump_row row
   in
-  let incr_state_map stats = function
-    | `Passed -> { stats with passed = stats.passed + 1 }
-    | `Failed -> { stats with failed = stats.failed + 1 }
-    | `Pending -> { stats with active = stats.active + 1 }
-    | `Not_started -> { stats with active = stats.active + 1 }
-    | `Aborted -> { stats with active = stats.active + 1 }
+  let set_state_map stats n = function
+    | `Passed -> { stats with passed = n }
+    | `Failed -> { stats with failed = n }
+    | `Pending -> { stats with active = n }
+    | `Not_started -> { stats with not_started = n }
   in
   Db.query t.get_statuses_per_variant []
+  |> List.filter_map parse_sql
   |> List.fold_left
-       (fun acc data ->
-         match get_variant_status data with
-         | None -> acc
-         | Some (variant, state) ->
-             let stats =
-               match Variant_map.find_opt variant acc with
-               | None -> stats_empty
-               | Some stats -> stats
-             in
-             Variant_map.add variant (incr_state_map stats state) acc)
+       (fun acc (variant, status, n) ->
+         let stats =
+           Variant_map.find_opt variant acc |> Option.value ~default:stats_empty
+         in
+         Variant_map.add variant (set_state_map stats n status) acc)
        Variant_map.empty

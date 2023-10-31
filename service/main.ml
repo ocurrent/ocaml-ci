@@ -45,8 +45,10 @@ module Metrics = struct
     Gauge.set (master "active") (float_of_int active)
 
   let update_variant_family () =
+    Logs.err (fun m -> m "Please update god");
     let variant_states = Index.get_statuses_per_variant () in
     let f variant stats =
+      Logs.err (fun m -> m "Thank you");
       Gauge.set
         (Gauge.labels variant_family [ variant; "ok" ])
         (float_of_int stats.Index.passed);
@@ -58,16 +60,19 @@ module Metrics = struct
         (float_of_int stats.active);
       Gauge.set
         (Gauge.labels variant_family [ variant; "not_started" ])
-        (float_of_int stats.not_started);
-      Gauge.set
-        (Gauge.labels variant_family [ variant; "aborted" ])
-        (float_of_int stats.aborted)
+        (float_of_int stats.not_started)
     in
     Index.Variant_map.iter f variant_states
 
+  let variant_family_counter = ref 10
+
   let update () =
     update_master ();
-    update_variant_family ()
+    (* Expensive query, so only run once every 10 requests *)
+    if !variant_family_counter = 10 then (
+      variant_family_counter := 0;
+      update_variant_family ());
+    variant_family_counter := !variant_family_counter + 1
 end
 
 open Ocaml_ci_service
