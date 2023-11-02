@@ -3,7 +3,6 @@
 _build
 _opam
 var
-var_backup
 *.cap
 .*.swp
 .vscode

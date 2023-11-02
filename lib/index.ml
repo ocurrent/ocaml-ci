@@ -90,7 +90,8 @@ type t = {
   record_job_summary : Sqlite3.stmt;
   get_build_summary_by_commit : Sqlite3.stmt;
   get_build_summary_by_gref : Sqlite3.stmt;
-  get_statuses_per_variant : Sqlite3.stmt;
+  init_variant_metrics : Sqlite3.stmt;
+  get_variant_status_by_job_ids : Sqlite3.stmt;
 }
 
 type job_state =
@@ -151,13 +152,15 @@ let db =
           MAX(build_number) FROM ci_build_summary c2 WHERE c1.owner = c2.owner \
           AND c1.name = c2.name AND c1.hash = c2.hash AND c1.gref = c2.gref) \
           ORDER BY created_at DESC"
-     and get_statuses_per_variant =
+     and init_variant_metrics =
        Sqlite3.prepare db
-         "SELECT cbi.variant, cbs.status, COUNT(*) FROM ci_build_index cbi \
-          INNER JOIN (SELECT owner, name, hash, status, MAX(build_number) FROM \
-          ci_build_summary GROUP BY owner, name, hash) cbs ON cbi.owner = \
-          cbs.owner AND cbi.name = cbs.name AND cbi.hash = cbs.hash GROUP BY \
-          cbi.variant, cbs.status"
+         "SELECT a.variant, b.ok, COUNT(*) FROM ci_build_index a INNER JOIN \
+          (SELECT job_id, ok, MAX(build) FROM cache GROUP BY job_id) b ON \
+          a.job_id = b.job_id GROUP BY a.variant, b.ok"
+     and get_variant_status_by_job_ids =
+       Sqlite3.prepare db
+         "SELECT a.variant, b.ok FROM ci_build_index a INNER JOIN (SELECT \
+          job_id, ok FROM cache WHERE job_id IN (?)) b ON a.job_id = b.job_id"
      in
      {
        record_job;
@@ -169,7 +172,8 @@ let db =
        record_job_summary;
        get_build_summary_by_commit;
        get_build_summary_by_gref;
-       get_statuses_per_variant;
+       init_variant_metrics;
+       get_variant_status_by_job_ids;
      })
 
 let init () = Lwt.map (fun () -> ignore (Lazy.force db)) (Migration.init ())
@@ -573,13 +577,101 @@ let record_summary_on_cancel ~repo ~gref ~hash =
                  for owner %s repo %s. Error: %s"
                 hash owner name a))
 
+module Variant_map = Map.Make (String)
+
+type stats = {
+  passed : int;
+  failed : int;
+  active : int;
+  not_started : int;
+  aborted : int;
+}
+
+let stats_empty =
+  { passed = 0; failed = 0; active = 0; not_started = 0; aborted = 0 }
+
+let variant_metrics : stats Variant_map.t ref = ref Variant_map.empty
+let get_variant_metric () = !variant_metrics
+
+let init_variant_metrics () =
+  let t = Lazy.force db in
+  let parse_sql = function
+    | Sqlite3.Data.[ TEXT variant; INT ok; INT n ] ->
+        let outcome = if ok = 1L then `Passed else `Failed in
+        (variant, outcome, Int64.to_int n)
+    | row -> Fmt.failwith "get_jobs: invalid result: %a" Db.dump_row row
+  in
+  let set_state_map stats n = function
+    | `Passed -> { stats with passed = n }
+    | `Failed -> { stats with failed = n }
+  in
+  variant_metrics :=
+    Db.query t.init_variant_metrics []
+    |> List.map parse_sql
+    |> List.fold_left
+         (fun acc (variant, status, n) ->
+           let stats =
+             Variant_map.find_opt variant acc
+             |> Option.value ~default:stats_empty
+           in
+           Variant_map.add variant (set_state_map stats n status) acc)
+         !variant_metrics
+
+let update_variant_metric ~prev_jobs ~curr_jobs =
+  let comma_separate xs =
+    Astring.String.concat ~sep:"," (List.map snd xs |> List.filter_map Fun.id)
+  in
+  let t = Lazy.force db in
+  let get_variant_status_by_job_ids jobs =
+    Db.query t.get_variant_status_by_job_ids
+      Sqlite3.Data.[ TEXT (comma_separate jobs) ]
+  in
+  let parse_sql =
+    List.filter_map @@ function
+    | Sqlite3.Data.[ TEXT variant; TEXT job_id; NULL ] ->
+        let outcome =
+          if Current.Job.lookup_running job_id = None then `Aborted else `Active
+        in
+        Some (variant, outcome)
+    | Sqlite3.Data.[ TEXT variant; TEXT _; INT ok ] ->
+        let outcome = if ok = 1L then `Passed else `Failed in
+        Some (variant, outcome)
+    | Sqlite3.Data.[ TEXT variant; NULL; NULL ] -> Some (variant, `Not_started)
+    | row ->
+        ignore row;
+        None (* Fmt.failwith "get_jobs: invalid result: %a" Db.dump_row row *)
+  in
+  let modify_state_map op s = function
+    | `Passed -> { s with passed = op s.passed }
+    | `Failed -> { s with failed = op s.failed }
+    | `Active -> { s with active = op s.active }
+    | `Not_started -> { s with not_started = op s.not_started }
+    | `Aborted -> { s with aborted = op s.aborted }
+  in
+  let modify_variant_stats op jobs variant_stats =
+    parse_sql jobs
+    |> List.fold_left
+         (fun acc (variant, status) ->
+           let stats =
+             Variant_map.find_opt variant acc
+             |> Option.value ~default:stats_empty
+           in
+           Variant_map.add variant (modify_state_map op stats status) acc)
+         variant_stats
+  in
+  let prev = get_variant_status_by_job_ids prev_jobs in
+  let current = get_variant_status_by_job_ids curr_jobs in
+  variant_metrics :=
+    modify_variant_stats (Int.add 1) prev !variant_metrics
+    |> modify_variant_stats (fun x -> Int.sub x 1) current
+
 let record ~repo ~hash ~status ~gref jobs =
   let { Repo_id.owner; name } = repo in
   let t = Lazy.force db in
   let jobs_m = Job_map.of_list jobs in
-  let previous =
-    get_job_ids_with_variant t ~owner ~name ~hash |> Job_map.of_list
-  in
+  let prev_jobs = get_job_ids_with_variant t ~owner ~name ~hash in
+  let prev_jobs_m = Job_map.of_list prev_jobs in
+  update_variant_metric ~prev_jobs ~curr_jobs:jobs;
   let merge variant prev job =
     let set job_id =
       Log.info (fun f ->
@@ -628,7 +720,7 @@ let record ~repo ~hash ~status ~gref jobs =
     | None, None -> assert false);
     None
   in
-  let (_ : [ `Empty ] Job_map.t) = Job_map.merge merge previous jobs_m in
+  let (_ : [ `Empty ] Job_map.t) = Job_map.merge merge prev_jobs_m jobs_m in
   let variants_timestamps =
     List.map
       (fun (variant, job_id) ->
@@ -691,34 +783,3 @@ let get_job ~owner ~name ~hash ~variant =
 let get_job_ids ~owner ~name ~hash =
   let t = Lazy.force db in
   get_job_ids_with_variant t ~owner ~name ~hash |> List.filter_map snd
-
-module Variant_map = Map.Make (String)
-
-type stats = { passed : int; failed : int; active : int; not_started : int }
-
-let stats_empty = { passed = 0; failed = 0; active = 0; not_started = 0 }
-
-let get_statuses_per_variant () =
-  let t = Lazy.force db in
-  let parse_sql = function
-    | Sqlite3.Data.[ TEXT variant; INT status; INT n ] ->
-        let outcome = int_to_status (Int64.to_int status) in
-        Result.to_option outcome
-        |> Option.map (fun outcome -> (variant, outcome, Int64.to_int n))
-    | row -> Fmt.failwith "get_jobs: invalid result: %a" Db.dump_row row
-  in
-  let set_state_map stats n = function
-    | `Passed -> { stats with passed = n }
-    | `Failed -> { stats with failed = n }
-    | `Pending -> { stats with active = n }
-    | `Not_started -> { stats with not_started = n }
-  in
-  Db.query t.get_statuses_per_variant []
-  |> List.filter_map parse_sql
-  |> List.fold_left
-       (fun acc (variant, status, n) ->
-         let stats =
-           Variant_map.find_opt variant acc |> Option.value ~default:stats_empty
-         in
-         Variant_map.add variant (set_state_map stats n status) acc)
-       Variant_map.empty

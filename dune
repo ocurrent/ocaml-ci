@@ -11,7 +11,7 @@
     %{workspace_root}
     (run tailwindcss -m -c %{config} -i %{input} -o %{target})))))
 
-(dirs :standard \ var var_backup)
+(dirs :standard \ var)
 
 (vendored_dirs
  capnp-ocaml

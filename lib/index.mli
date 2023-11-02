@@ -196,6 +196,13 @@ val get_full_hash :
 
 module Variant_map : Map.S with type key = string
 
-type stats = { passed : int; failed : int; active : int; not_started : int }
+type stats = {
+  passed : int;
+  failed : int;
+  active : int;
+  not_started : int;
+  aborted : int;
+}
 
-val get_statuses_per_variant : unit -> stats Variant_map.t
+val get_variant_metric : unit -> stats Variant_map.t
+val init_variant_metrics : unit -> unit
