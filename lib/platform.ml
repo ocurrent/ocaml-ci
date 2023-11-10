@@ -288,7 +288,7 @@ let get ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base
 
 let get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
     ~lower_bound base =
-  (* Hardcoding opam-vars for macos 13.6 Ventura. *)
+  (* Hardcoding opam-vars for macos 14.1 Sonoma *)
   match Variant.v ~arch ~distro ~ocaml_version ~opam_version with
   | Error (`Msg m) -> Current.fail m
   | Ok variant ->
@@ -300,7 +300,7 @@ let get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
              os = "macos";
              os_family = "homebrew";
              os_distribution = "homebrew";
-             os_version = "13.4";
+             os_version = "14.1";
              ocaml_package = "ocaml-base-compiler";
              ocaml_version = Fmt.str "%a" Ocaml_version.pp ocaml_version;
              opam_version = Opam_version.to_string_with_patch opam_version;
