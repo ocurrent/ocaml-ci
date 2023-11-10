@@ -302,11 +302,16 @@ let get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
              os_distribution = "homebrew";
              os_version = "14.1";
              ocaml_package = "ocaml-base-compiler";
-             ocaml_version = Fmt.str "%a" Ocaml_version.pp ocaml_version;
+             ocaml_version =
+               (match Ocaml_version.major ocaml_version with
+               | 4 -> "4.14.1"
+               | 5 -> "5.1.0"
+               | _ -> "5.2.0");
              opam_version = Opam_version.to_string_with_patch opam_version;
              lower_bound;
            }
          in
+let () = print_endline vars.ocaml_version in
          Current.return
            [ { label; builder; pool; variant; base = `MacOS s; vars } ]
 
@@ -326,7 +331,11 @@ let get_freebsd ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
              os_distribution = "freebsd";
              os_version = "1302001";
              ocaml_package = "ocaml-base-compiler";
-             ocaml_version = Fmt.str "%a" Ocaml_version.pp ocaml_version;
+             ocaml_version =
+               (match Ocaml_version.major ocaml_version with
+               | 4 -> "4.14.1"
+               | 5 -> "5.1.0"
+               | _ -> "5.2.0");
              opam_version = Opam_version.to_string_with_patch opam_version;
              lower_bound;
            }
