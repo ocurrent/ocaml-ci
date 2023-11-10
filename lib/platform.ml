@@ -311,7 +311,6 @@ let get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
              lower_bound;
            }
          in
-let () = print_endline vars.ocaml_version in
          Current.return
            [ { label; builder; pool; variant; base = `MacOS s; vars } ]
 
