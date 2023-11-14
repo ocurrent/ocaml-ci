@@ -287,10 +287,12 @@ let get ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base
       else Current.list_seq [ upper_bound ]
 
 let latest_ocaml_version ~ocaml_version =
-  match Ocaml_version.major ocaml_version, Ocaml_version.minor ocaml_version with
-  | (4, 14) -> Ocaml_version.to_string (Ocaml_version.Releases.v4_14)
-  | (5, 1) -> Ocaml_version.to_string (Ocaml_version.Releases.v5_1)
-  | _ -> Ocaml_version.to_string (Ocaml_version.Releases.v5_2)
+  match
+    (Ocaml_version.major ocaml_version, Ocaml_version.minor ocaml_version)
+  with
+  | 4, 14 -> Ocaml_version.to_string Ocaml_version.Releases.v4_14
+  | 5, 1 -> Ocaml_version.to_string Ocaml_version.Releases.v5_1
+  | _ -> Ocaml_version.to_string Ocaml_version.Releases.v5_2
 
 let get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
     ~lower_bound base =
