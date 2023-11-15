@@ -67,7 +67,7 @@ let lint_specs ~analysis selections =
         Ocaml_version.(
           compare (Variant.ocaml_version x.Selection.variant) Releases.v4_14_0)
         >= 0)
-      sorted_linux_x86_64_selections
+      (Analyse.Analysis.opam_dune_lint_selections analysis)
   in
   let optional_spec ~label ~selection ~lint_ty =
     Option.map
