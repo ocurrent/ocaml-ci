@@ -89,6 +89,23 @@ let docker_specs ~analysis =
             ~analysis (`Lint `Fmt)
           :: Spec.opam_monorepo builds
       | `Opam_build selections ->
+          let selections =
+            (* TODO: This filter will be removed when a new version of debian in which capnproto has this fix "https://github.com/capnproto/capnproto/pull/1830".
+               * Related to this issue "https://github.com/mirage/capnp-rpc/issues/273" *)
+            List.filter
+              (fun s ->
+                not
+                  (Variant.arch s.Selection.variant == `I386
+                  && Variant.arch s.Selection.variant == `Aarch32
+                  && List.find_opt
+                       (fun pkg ->
+                         Astring.String.cut ~sep:"." pkg
+                         |> Option.map fst
+                         |> Option.equal String.equal (Some "conf-capnproto"))
+                       s.Selection.packages
+                     |> Option.is_some))
+              selections
+          in
           (* For lower-bound, take only the lowest version of OCaml that has a solution *)
           let selections =
             let lower_bound, other =
