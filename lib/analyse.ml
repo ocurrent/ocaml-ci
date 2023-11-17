@@ -3,7 +3,7 @@ open Current.Syntax
 module Worker = Ocaml_ci_api.Worker
 module Content = Repo_content.Content
 
-let pool = Current.Pool.create ~label:"analyse" 150
+let pool = Current.Pool.create ~label:"analyse" 400
 let ( >>!= ) = Lwt_result.bind
 
 (* A logging service that logs to [job]. *)
