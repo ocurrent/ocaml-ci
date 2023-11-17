@@ -105,25 +105,12 @@ let doc_spec ~base ~opam_files ~selection =
         only_packages;
     ]
 
-let opam_dune_lint_spec ~base ~selection =
-  let cache =
-    [
-      Obuilder_spec.Cache.v Opam_build.download_cache
-        ~target:"/home/opam/.opam/download-cache";
-    ]
-  in
-  let network = [ "host" ] in
+let opam_dune_lint_spec ~base ~opam_files ~selection =
   let open Obuilder_spec in
   stage ~from:base
   @@ comment "%s" (Fmt.str "%a" Variant.pp selection.Selection.variant)
      :: user_unix ~uid:1000 ~gid:1000
-     :: [
-          run ~cache ~network
-            "git -C ~/opam-repository pull origin master && opam update && \
-             opam pin add -yn opam-dune-lint.dev \
-             https://github.com/ocurrent/opam-dune-lint.git#2c33c7bd4e5d57be7ac7b0230b33cae542b4cbec";
-          run ~cache ~network "opam depext -i opam-dune-lint";
-        ]
+     :: Opam_build.install_project_deps ~opam_version ~opam_files ~selection
   @ [
       env "CI" "true";
       env "OCAMLCI" "true";

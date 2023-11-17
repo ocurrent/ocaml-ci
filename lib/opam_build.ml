@@ -97,7 +97,12 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   let groups = group_opam_files opam_files in
   let root_pkgs = get_root_opam_packages groups in
   let non_root_pkgs =
-    packages |> List.filter (fun pkg -> not (List.mem pkg root_pkgs))
+    packages
+    |> List.filter (fun pkg ->
+           (not (List.mem pkg root_pkgs))
+           && not
+                (Astring.String.take ~rev:true ~sat:(( <> ) '.') pkg
+                |> String.equal "opam"))
   in
   let compatible_root_pkgs =
     if only_packages = [] then root_pkgs else only_packages

@@ -25,6 +25,7 @@ module Analysis = struct
   type t = {
     opam_files : string list;
     ocamlformat_selection : Selection.t option;
+    opam_dune_lint_selections : Selection.t list;
     ocamlformat_source : Analyse_ocamlformat.source option;
     selections :
       [ `Opam_build of Selection.t list
@@ -43,6 +44,7 @@ module Analysis = struct
   let ocamlformat_selection t = t.ocamlformat_selection
   let ocamlformat_source t = t.ocamlformat_source
   let selections t = t.selections
+  let opam_dune_lint_selections t = t.opam_dune_lint_selections
 
   (** Call the solver with a request containing these packages. When it returns
       a list, it is nonempty. *)
@@ -63,8 +65,6 @@ module Analysis = struct
         root_pkgs;
         pinned_pkgs;
         platforms;
-        (* TODO ocamlformat in the request (option)*)
-        (* TODO opam_monorepo in the request (option)*)
       }
     in
     Current.Job.log job "Solving with opam-repository commit: %a"
@@ -139,6 +139,19 @@ module Analysis = struct
     let selection = List.hd selections in
     (selection.Selection.commit, selection)
 
+  let find_opam_dune_lint_selections ~solve ~job ~root_pkgs ~pinned_pkgs
+      ~platforms =
+    let _pinned_pkgs = pinned_pkgs in
+    let deps_for_opam_dune_lint =
+      ("deps_for_opam_dune_lint.opam", opam_dep_file [ ("opam-dune-lint", "") ])
+    in
+    let root_pkgs = deps_for_opam_dune_lint :: root_pkgs in
+    solve ~root_pkgs ~pinned_pkgs ~platforms >>= function
+    | Error (`Msg msg) ->
+        Current.Job.log job "%s@." msg;
+        Lwt_result.return []
+    | Ok selections -> Lwt_result.return selections
+
   let filter_linux_x86_64_platforms platforms =
     List.filter
       (fun (v, _) -> Variant.arch v == `X86_64 && Variant.os v == `linux)
@@ -155,6 +168,10 @@ module Analysis = struct
       find_opam_repo_commit_for_ocamlformat ~solve
         ~platforms:(filter_linux_x86_64_platforms platforms)
     in
+    find_opam_dune_lint_selections ~solve ~job
+      ~root_pkgs:(Content.root_pkgs src) ~pinned_pkgs:(Content.pinned_pkgs src)
+      ~platforms:(filter_linux_x86_64_platforms platforms)
+    >>!= fun opam_dune_lint_selections ->
     Analyse_ocamlformat.get_ocamlformat_source job ~opam_files ~version
       ~find_opam_repo_commit
     >>!= fun (ocamlformat_source, ocamlformat_selection) ->
@@ -175,7 +192,13 @@ module Analysis = struct
             (solve ~root_pkgs ~pinned_pkgs ~platforms))
       >>!= fun selections ->
       let r =
-        { opam_files; ocamlformat_selection; ocamlformat_source; selections }
+        {
+          opam_files;
+          ocamlformat_selection;
+          ocamlformat_source;
+          selections;
+          opam_dune_lint_selections;
+        }
       in
       Current.Job.log job "@[<v2>Results:@,%a@]"
         Yojson.Safe.(pretty_print ~std:true)

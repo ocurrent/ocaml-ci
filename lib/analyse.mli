@@ -5,6 +5,7 @@ module Analysis : sig
 
   val opam_files : t -> string list
   val ocamlformat_selection : t -> Selection.t option
+  val opam_dune_lint_selections : t -> Selection.t list
   val ocamlformat_source : t -> Analyse_ocamlformat.source option
 
   val selections :
