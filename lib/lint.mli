@@ -2,7 +2,8 @@
 
 val fmt_spec :
   base:string ->
-  ocamlformat_source:Analyse_ocamlformat.source option ->
+  ocamlformat_source:
+    (Analyse_ocamlformat.source option, [ `Msg of string ]) result ->
   selection:Selection.t ->
   Obuilder_spec.t
 (** A build spec that checks the formatting. *)

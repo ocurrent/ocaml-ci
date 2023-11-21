@@ -2,7 +2,8 @@
 
 type ty =
   [ `Opam of [ `Build | `Lint of [ `Doc | `Opam ] ] * Selection.t * string list
-  | `Opam_fmt of Selection.t * Analyse_ocamlformat.source option
+  | `Opam_fmt of
+    Selection.t * (Analyse_ocamlformat.source option, [ `Msg of string ]) result
   | `Opam_monorepo of Opam_monorepo.config ]
 [@@deriving to_yojson, ord]
 
