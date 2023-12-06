@@ -70,8 +70,8 @@ let fmt_spec ~base ~ocamlformat_source ~selection =
   @ [
       copy [ "." ] ~dst:"/src/";
       run
-        "opam exec -- dune build @fmt || (echo \"dune build @fmt failed\"; \
-         exit 2)";
+        "opam exec -- dune build @fmt --ignore-promoted-rules || (echo \"dune \
+         build @fmt failed\"; exit 2)";
     ]
 
 let doc_spec ~base ~opam_files ~selection =
