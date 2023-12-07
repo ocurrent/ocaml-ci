@@ -286,9 +286,17 @@ let get ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base
         Current.list_seq [ upper_bound; lower_bound ]
       else Current.list_seq [ upper_bound ]
 
+let latest_ocaml_version ~ocaml_version =
+  match
+    (Ocaml_version.major ocaml_version, Ocaml_version.minor ocaml_version)
+  with
+  | 4, 14 -> Ocaml_version.to_string Ocaml_version.Releases.v4_14
+  | 5, 1 -> Ocaml_version.to_string Ocaml_version.Releases.v5_1
+  | _ -> Ocaml_version.to_string Ocaml_version.Releases.v5_2
+
 let get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
     ~lower_bound base =
-  (* Hardcoding opam-vars for macos 13.6 Ventura. *)
+  (* Hardcoding opam-vars for macos 14.1 Sonoma *)
   match Variant.v ~arch ~distro ~ocaml_version ~opam_version with
   | Error (`Msg m) -> Current.fail m
   | Ok variant ->
@@ -300,9 +308,9 @@ let get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
              os = "macos";
              os_family = "homebrew";
              os_distribution = "homebrew";
-             os_version = "13.4";
+             os_version = "14.1";
              ocaml_package = "ocaml-base-compiler";
-             ocaml_version = Fmt.str "%a" Ocaml_version.pp ocaml_version;
+             ocaml_version = latest_ocaml_version ~ocaml_version;
              opam_version = Opam_version.to_string_with_patch opam_version;
              lower_bound;
            }
@@ -326,7 +334,7 @@ let get_freebsd ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
              os_distribution = "freebsd";
              os_version = "1302001";
              ocaml_package = "ocaml-base-compiler";
-             ocaml_version = Fmt.str "%a" Ocaml_version.pp ocaml_version;
+             ocaml_version = latest_ocaml_version ~ocaml_version;
              opam_version = Opam_version.to_string_with_patch opam_version;
              lower_bound;
            }
