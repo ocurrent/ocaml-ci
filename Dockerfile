@@ -1,6 +1,6 @@
 FROM ocaml/opam:debian-12-ocaml-4.14@sha256:45b04e2a4c933c57549382045dfac12cb7e872cace0456f92f4b022066e48111 AS build
 RUN sudo ln -f /usr/bin/opam-2.1 /usr/bin/opam && opam init --reinit -ni
-RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libsqlite3-dev libgmp-dev graphviz -y --no-install-recommends
+RUN sudo apt-get update && sudo apt-get install libcapnp-dev libffi-dev libev-dev capnproto m4 pkg-config libsqlite3-dev libgmp-dev graphviz -y --no-install-recommends
 RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard cf93548ddc4f36b87b006f4858fac7ae73ccaa0f && opam update
 COPY --chown=opam \
 	ocurrent/current_docker.opam \

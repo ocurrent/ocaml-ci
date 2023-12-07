@@ -130,11 +130,12 @@ services:
   solver-worker:
       image: ocurrent/solver-service:live
       command: >
+        run-cluster
         --connect=/capnp-secrets/pool-solver.cap
         --name=solver-worker
         --capacity=1
         --internal-workers=1
-        --state-dir=/var/lib/ocluster
+        --cache-dir=/var/lib/ocluster
       # Wait for the scheduler to write pool-solver.cap
       restart: on-failure
       volumes:
