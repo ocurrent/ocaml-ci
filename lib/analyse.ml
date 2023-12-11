@@ -179,7 +179,7 @@ module Analysis = struct
       match Content.ocamlformat_version src with
       | Error (`Msg msg) -> Lwt_result.fail (`Msg msg)
       | Ok version ->
-          Analyse_ocamlformat.get_ocamlformat_source job ~opam_files ~version
+          Analyse_ocamlformat.get_ocamlformat_source ~opam_files ~version
             ~find_opam_repo_commit
     in
     ocamlformat src >>= fun ocamlformat ->
