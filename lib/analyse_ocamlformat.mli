@@ -18,7 +18,6 @@ val ocamlformat_version_from_file :
 (** Extract the version in .ocamlformat file if the file exists in the project *)
 
 val get_ocamlformat_source :
-  Current.Job.t ->
   opam_files:string list ->
   version:string option ->
   find_opam_repo_commit:

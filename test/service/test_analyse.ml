@@ -14,13 +14,15 @@ module Analysis = struct
   [@@deriving yojson, eq]
 
   let ocamlformat_source_type (t : t) =
-    let osrc = ocamlformat_source t in
-    Option.map
-      (fun (osrc : Ocaml_ci.Analyse_ocamlformat.source) ->
-        match osrc with
-        | Opam { version; opam_repo_commit = _ } -> Opam { version }
-        | Vendored { path } -> Vendored { path })
-      osrc
+    match ocamlformat t with
+    | Error (`Msg msg) -> Fmt.failwith "%s" msg
+    | Ok (osrc, _) ->
+        Option.map
+          (fun (osrc : Ocaml_ci.Analyse_ocamlformat.source) ->
+            match osrc with
+            | Opam { version; opam_repo_commit = _ } -> Opam { version }
+            | Vendored { path } -> Vendored { path })
+          osrc
 
   let set_equality = Alcotest.(equal (slist string String.compare))
 

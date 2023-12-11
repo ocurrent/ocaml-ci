@@ -23,11 +23,14 @@ let read_file ~max_len path =
       Lwt_io.read_into_exactly ch buf 0 len >|= fun () -> Bytes.to_string buf)
 
 module Content = struct
+  type ('a, 'b) result = ('a, 'b) Stdlib.result = Ok of 'a | Error of 'b
+  [@@deriving yojson]
+
   type t = {
     opam_files : string list;
     root_pkgs : (string * string) list;
     pinned_pkgs : (string * string) list;
-    ocamlformat_version : string option;
+    ocamlformat_version : (string option, [ `Msg of string ]) result;
     dir_type : [ `Opam_monorepo of Opam_monorepo.info list | `Ocaml_repo ];
   }
   [@@deriving yojson]
@@ -175,10 +178,12 @@ module Content = struct
         Lwt.return_unit)
     >>= fun () ->
     Lwt_preemptive.detach fold_on_opam_files () >>!= fun opam_files ->
-    get_ocamlformat_version job ~root >>!= fun ocamlformat_version ->
-    get_all_pinned_pkgs job opam_files root >>!= fun (root_pkgs, pinned_pkgs) ->
-    Lwt_result.return
-      { root_pkgs; pinned_pkgs; ocamlformat_version; opam_files; dir_type }
+    get_ocamlformat_version job ~root >>= function
+    | ocamlformat_version ->
+        get_all_pinned_pkgs job opam_files root
+        >>!= fun (root_pkgs, pinned_pkgs) ->
+        Lwt_result.return
+          { root_pkgs; pinned_pkgs; ocamlformat_version; opam_files; dir_type }
 end
 
 module Extract = struct

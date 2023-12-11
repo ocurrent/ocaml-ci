@@ -40,39 +40,44 @@ let fmt_spec ~base ~ocamlformat_source ~selection =
   } =
     selection
   in
-  let commit =
-    Option.value ~default:commit
-      (commit_from_ocamlformat_source ocamlformat_source)
-  in
   let cache =
     [
       Obuilder_spec.Cache.v Opam_build.download_cache
         ~target:"/home/opam/.opam/download-cache";
     ]
   in
-  let network = [ "host" ] in
-  stage ~from:base
-  @@ [
-       user_unix ~uid:1000 ~gid:1000;
-       run ~network ~cache
-         "cd ~/opam-repository && (git cat-file -e %s || git fetch origin \
-          master) && git reset -q --hard %s && git log --no-decorate -n1 \
-          --oneline && opam update -u"
-         commit commit;
-       run ~network ~cache "opam depext -i dune";
-       (* Necessary in case current compiler < 4.08 *)
-       (* Not necessarily the dune version used by the project *)
-       workdir "/src";
-     ]
-  @ (match ocamlformat_source with
-    | Some src -> install_ocamlformat src
-    | None -> [])
-  @ [
-      copy [ "." ] ~dst:"/src/";
-      run
-        "opam exec -- dune build @fmt --ignore-promoted-rules || (echo \"dune \
-         build @fmt failed\"; exit 2)";
-    ]
+  match ocamlformat_source with
+  | Error (`Msg msg) ->
+      stage ~from:base
+      @@ [ user_unix ~uid:1000 ~gid:1000; run "echo Error: %s; exit 2" msg ]
+  | Ok ocamlformat_source ->
+      let commit =
+        Option.value ~default:commit
+          (commit_from_ocamlformat_source ocamlformat_source)
+      in
+      let network = [ "host" ] in
+      stage ~from:base
+      @@ [
+           user_unix ~uid:1000 ~gid:1000;
+           run ~network ~cache
+             "cd ~/opam-repository && (git cat-file -e %s || git fetch origin \
+              master) && git reset -q --hard %s && git log --no-decorate -n1 \
+              --oneline && opam update -u"
+             commit commit;
+           run ~network ~cache "opam depext -i dune";
+           (* Necessary in case current compiler < 4.08 *)
+           (* Not necessarily the dune version used by the project *)
+           workdir "/src";
+         ]
+      @ (match ocamlformat_source with
+        | Some src -> install_ocamlformat src
+        | None -> [])
+      @ [
+          copy [ "." ] ~dst:"/src/";
+          run
+            "opam exec -- dune build @fmt --ignore-promoted-rules || (echo \
+             \"dune build @fmt failed\"; exit 2)";
+        ]
 
 let doc_spec ~base ~opam_files ~selection =
   let cache =

@@ -22,11 +22,16 @@ let job_log job =
      end
 
 module Analysis = struct
+  type ('a, 'b) result = ('a, 'b) Stdlib.result = Ok of 'a | Error of 'b
+  [@@deriving yojson]
+
   type t = {
     opam_files : string list;
-    ocamlformat_selection : Selection.t option;
     opam_dune_lint_selections : Selection.t list;
-    ocamlformat_source : Analyse_ocamlformat.source option;
+    ocamlformat :
+      ( Analyse_ocamlformat.source option * Selection.t option,
+        [ `Msg of string ] )
+      result;
     selections :
       [ `Opam_build of Selection.t list
       | `Opam_monorepo of Opam_monorepo.config list ];
@@ -41,8 +46,7 @@ module Analysis = struct
     | Error e -> failwith e
 
   let opam_files t = t.opam_files
-  let ocamlformat_selection t = t.ocamlformat_selection
-  let ocamlformat_source t = t.ocamlformat_source
+  let ocamlformat t = t.ocamlformat
   let selections t = t.selections
   let opam_dune_lint_selections t = t.opam_dune_lint_selections
 
@@ -162,7 +166,6 @@ module Analysis = struct
 
   let of_content ~solver ~job ~platforms ~opam_repository_commit src =
     let opam_files = Content.opam_files src in
-    let version = Content.ocamlformat_version src in
     let solve = solve ~opam_repository_commit ~job ~solver in
     let find_opam_repo_commit =
       find_opam_repo_commit_for_ocamlformat ~solve
@@ -172,9 +175,14 @@ module Analysis = struct
       ~root_pkgs:(Content.root_pkgs src) ~pinned_pkgs:(Content.pinned_pkgs src)
       ~platforms:(filter_linux_x86_64_platforms platforms)
     >>!= fun opam_dune_lint_selections ->
-    Analyse_ocamlformat.get_ocamlformat_source job ~opam_files ~version
-      ~find_opam_repo_commit
-    >>!= fun (ocamlformat_source, ocamlformat_selection) ->
+    let ocamlformat src =
+      match Content.ocamlformat_version src with
+      | Error (`Msg msg) -> Lwt_result.fail (`Msg msg)
+      | Ok version ->
+          Analyse_ocamlformat.get_ocamlformat_source ~opam_files ~version
+            ~find_opam_repo_commit
+    in
+    ocamlformat src >>= fun ocamlformat ->
     if opam_files = [] then Lwt_result.fail (`Msg "No opam files found!")
     else if List.filter Fpath.is_seg opam_files = [] then
       Lwt_result.fail (`Msg "No top-level opam files found!")
@@ -192,13 +200,7 @@ module Analysis = struct
             (solve ~root_pkgs ~pinned_pkgs ~platforms))
       >>!= fun selections ->
       let r =
-        {
-          opam_files;
-          ocamlformat_selection;
-          ocamlformat_source;
-          selections;
-          opam_dune_lint_selections;
-        }
+        { opam_files; ocamlformat; selections; opam_dune_lint_selections }
       in
       Current.Job.log job "@[<v2>Results:@,%a@]"
         Yojson.Safe.(pretty_print ~std:true)

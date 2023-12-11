@@ -1,8 +1,12 @@
 type opam_files = string list [@@deriving to_yojson, ord]
 
+type ('a, 'b) result = ('a, 'b) Stdlib.result = Ok of 'a | Error of 'b
+[@@deriving yojson]
+
 type ty =
   [ `Opam of [ `Build | `Lint of [ `Doc | `Opam ] ] * Selection.t * opam_files
-  | `Opam_fmt of Selection.t * Analyse_ocamlformat.source option
+  | `Opam_fmt of
+    Selection.t * (Analyse_ocamlformat.source option, [ `Msg of string ]) result
   | `Opam_monorepo of Opam_monorepo.config ]
 [@@deriving to_yojson, ord]
 
@@ -15,7 +19,8 @@ let opam ~label ~selection ~analysis op =
     | (`Build | `Lint (`Doc | `Opam)) as x ->
         `Opam (x, selection, Analyse.Analysis.opam_files analysis)
     | `Lint `Fmt ->
-        `Opam_fmt (selection, Analyse.Analysis.ocamlformat_source analysis)
+        `Opam_fmt
+          (selection, Result.map fst (Analyse.Analysis.ocamlformat analysis))
   in
   { label; variant; ty }
 
@@ -45,14 +50,13 @@ let lint_specs ~analysis selections =
        as [dune build @fmt] can also format dune files *)
     (* match Analyse.Analysis.ocamlformat_selection analysis with *)
     let selection =
-      let ocamlformat_selection =
-        Analyse.Analysis.ocamlformat_selection analysis
-      in
-      let ocamlformat_source = Analyse.Analysis.ocamlformat_source analysis in
-      match (ocamlformat_selection, ocamlformat_source) with
-      | _, None -> Some lint_doc
-      | Some _, Some _ -> ocamlformat_selection
-      | None, Some _ -> None
+      match Analyse.Analysis.ocamlformat analysis with
+      | Error _ -> Some lint_doc
+      | Ok (ocamlformat_source, ocamlformat_selection) -> (
+          match (ocamlformat_selection, ocamlformat_source) with
+          | _, None -> Some lint_doc
+          | Some _, Some _ -> ocamlformat_selection
+          | None, Some _ -> None)
     in
     match selection with
     | None -> []
@@ -97,8 +101,11 @@ let pp_summary f = function
   | `Opam (`Build, _, _) -> Fmt.string f "Opam project build"
   | `Opam (`Lint `Doc, _, _) -> Fmt.string f "Opam project lint documentation"
   | `Opam (`Lint `Opam, _, _) -> Fmt.string f "Opam files lint"
-  | `Opam_fmt (_, v) ->
-      Fmt.pf f "ocamlformat version: %a"
-        Fmt.(option ~none:(any "none") Analyse_ocamlformat.pp_source)
-        v
+  | `Opam_fmt (_, ocamlformat_source) -> (
+      match ocamlformat_source with
+      | Error _ -> Fmt.pf f "ocamlformat version: none"
+      | Ok v ->
+          Fmt.pf f "ocamlformat version: %a"
+            Fmt.(option ~none:(any "none") Analyse_ocamlformat.pp_source)
+            v)
   | `Opam_monorepo _ -> Fmt.string f "opam-monorepo build"

@@ -1,12 +1,14 @@
 (** Extract from a source repository the informations that needed to analyse the
     opam packages. *)
 module Content : sig
+  (* type ('a, 'b) result = ('a, 'b) Stdlib.result = Ok of 'a | Error of 'b *)
+
   type t [@@deriving yojson]
 
   val opam_files : t -> string list
   val root_pkgs : t -> (string * string) list
   val pinned_pkgs : t -> (string * string) list
-  val ocamlformat_version : t -> string option
+  val ocamlformat_version : t -> (string option, [ `Msg of string ]) result
   val dir_type : t -> [ `Opam_monorepo of Opam_monorepo.info list | `Ocaml_repo ]
   val marshal : t -> string
   val unmarshal : string -> t
