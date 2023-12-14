@@ -1,2 +1,0 @@
-FROM ocurrent/ocluster-worker:live
-RUN apt-get -qq update && apt-get -qq --yes install rsync
