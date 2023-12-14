@@ -14,17 +14,6 @@ secrets:
     file: ${SECRETS_DIR}/webhook-secret
 
 services:
-  caddy:
-    image: caddy
-    ports:
-      - '80:80'
-      - '443:443'
-      - '8100:8100'
-    volumes:
-      - $PWD/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-
   service:
     build:
       context: .
@@ -45,6 +34,8 @@ services:
     depends_on:
       - scheduler
     restart: on-failure
+    ports:
+      - '8080:8080'
     environment:
       - "CAPNP_PROFILE=production"
       - "PLATFORMS=minimal"
@@ -72,6 +63,8 @@ services:
       - service
     # Wait for the default network to be created
     restart: on-failure
+    ports:
+      - '8090:8090'
     volumes:
       - 'capnp-secrets:/capnp-secrets:ro'
     sysctls:
