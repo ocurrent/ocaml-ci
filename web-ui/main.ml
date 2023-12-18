@@ -12,8 +12,9 @@ module Middleware = struct
     else Dream.redirect request target
 end
 
-let setup_logs default_level =
-  Prometheus_unix.Logging.init ?default_level ();
+let setup_logs level =
+  Prometheus_unix.Logging.init ?default_level:level ();
+  Logs.set_level level;
   Dream.initialize_log ()
 
 let main interface port github_pipeline_cap gitlab_pipeline_cap

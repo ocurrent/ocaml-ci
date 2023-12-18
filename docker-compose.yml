@@ -14,22 +14,10 @@ secrets:
     file: ${SECRETS_DIR}/webhook-secret
 
 services:
-  caddy:
-    image: caddy
-    ports:
-      - '80:80'
-      - '443:443'
-      - '8100:8100'
-    volumes:
-      - /etc/caddy:/etc/caddy:ro
-      - caddy_data:/data
-      - caddy_config:/config
-
   service:
     build:
       context: .
       dockerfile: Dockerfile
-    # For local deploys using docker build -t ocaml-ci-service -f Dockerfile .
     command: >
       --github-app-id ${APP_ID}
       --github-private-key-file /run/secrets/ocaml-ci-github-key
@@ -42,9 +30,12 @@ services:
       --submission-solver-service /capnp-secrets/user.cap
       --migration-path /migrations
       --github-account-allowlist '${ALLOW_LIST}'
+      --verbosity=warning
     depends_on:
       - scheduler
     restart: on-failure
+    ports:
+      - '8080:8080'
     environment:
       - "CAPNP_PROFILE=production"
       - "PLATFORMS=minimal"
@@ -64,14 +55,16 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.web
-    # For local deploys using docker build -t ocaml-ci-web -f Dockerfile.web .
     command: >
       --backend /capnp-secrets/ocaml-ci-admin.cap
       --listen-prometheus=9090
+      --verbosity=warning
     depends_on:
       - service
     # Wait for the default network to be created
     restart: on-failure
+    ports:
+      - '8090:8090'
     volumes:
       - 'capnp-secrets:/capnp-secrets:ro'
     sysctls:
@@ -103,18 +96,11 @@ services:
       - 'capnp-secrets:/capnp-secrets'
 
   worker:
-    # image: ocurrent/ocluster-worker:live
-    build:
-      context: .
-      dockerfile: Dockerfile.rsync-worker
-    command: >
-      --connect=/capnp-secrets/pool-linux-x86_64.cap
-      --name=ocluster-worker
-      --capacity=1
-      --state-dir=/var/lib/ocluster
-      --obuilder-store=rsync:/rsync
-      --rsync-mode=copy
-      --obuilder-healthcheck=0
+    image: ocurrent/ocluster-worker:live
+    entrypoint: >
+      bash -c "apt-get -qq update > /dev/null
+      && apt-get -qqy install rsync > /dev/null
+      && /usr/local/bin/ocluster-worker --connect=/capnp-secrets/pool-linux-x86_64.cap --name=ocluster-worker --capacity=1 --state-dir=/var/lib/ocluster --obuilder-store=rsync:/rsync --rsync-mode=hardlink_unsafe --obuilder-healthcheck=0"
     # Required for the Docker in Docker container to work
     privileged: true
     # Wait for the scheduler to write pool-linux-x86_64.cap
