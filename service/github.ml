@@ -6,7 +6,7 @@ let has_role user = function
       | Some
           ( "github:talex5" | "github:avsm" | "github:kit-ty-kate"
           | "github:mtelvers" | "github:samoht" | "github:tmcgilchrist"
-          | "github:dra27" | "github:benmandrew" ) ->
+          | "github:dra27" | "github:benmandrew" | "github:moyodiallo" ) ->
           true
       | Some _ | None -> false)
 
