@@ -193,3 +193,16 @@ val get_full_hash :
   (string, [> `Ambiguous | `Unknown | `Invalid ]) result
 (** [get_full_hash ~owner ~name short_hash] returns the full hash for
     [short_hash]. *)
+
+module Variant_map : Map.S with type key = string
+
+type stats = {
+  passed : int;
+  failed : int;
+  active : int;
+  not_started : int;
+  aborted : int;
+}
+
+val get_variant_metric : unit -> stats Variant_map.t
+val init_variant_metrics : unit -> unit
