@@ -64,8 +64,8 @@ let id { distro; ocaml_version; _ } =
 
 let docker_tag { distro; ocaml_version; _ } =
   Fmt.str "%s-ocaml-%s" distro
-    (Ocaml_version.to_string ~sep:'-' ocaml_version
-    |> String.map (function '+' -> '-' | x -> x))
+    (Ocaml_version.to_string ~prerelease_sep:'-' ~sep:'-' ocaml_version
+    |> String.map (function '+' | '~' -> '-' | x -> x))
 
 let id_of_string s =
   match Astring.String.cut ~rev:true ~sep:"-" s with
