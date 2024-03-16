@@ -110,6 +110,7 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   let open Obuilder_spec in
   let cache =
     match Variant.os variant with
+    | `freeBSD
     | `linux ->
         [
           Obuilder_spec.Cache.v download_cache
@@ -121,11 +122,6 @@ let install_project_deps ~opam_version ~opam_files ~selection =
             ~target:"/Users/mac1000/.opam/download-cache";
           Obuilder_spec.Cache.v "homebrew"
             ~target:"/Users/mac1000/Library/Caches/Homebrew";
-        ]
-    | `freeBSD ->
-        [
-          Obuilder_spec.Cache.v download_cache
-            ~target:"/usr/home/opam/.opam/download-cache";
         ]
   in
   let network = [ "host" ] in
@@ -176,7 +172,7 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   @ [
       run "%s -f %s/bin/opam-%s %s/bin/opam" ln prefix opam_version_str prefix;
       run "opam init --reinit%s -ni" opamrc;
-      run "opam exec -- ocaml -version && opam --version";
+      run "uname -rs && opam exec -- ocaml -version && opam --version";
     ]
   @ (match home_dir with
     | Some home_dir -> [ workdir home_dir; run "sudo chown opam /src" ]
