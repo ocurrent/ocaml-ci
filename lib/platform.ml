@@ -320,7 +320,7 @@ let get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
 
 let get_freebsd ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
     ~lower_bound base =
-  (* Hardcoding opam-vars for FreeBSD 13.2. *)
+  (* Hardcoding opam-vars for FreeBSD 14.0. *)
   match Variant.v ~arch ~distro ~ocaml_version ~opam_version with
   | Error (`Msg m) -> Current.fail m
   | Ok variant ->
@@ -332,7 +332,7 @@ let get_freebsd ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
              os = "freebsd";
              os_family = "bsd";
              os_distribution = "freebsd";
-             os_version = "1302001";
+             os_version = "1400097";
              ocaml_package = "ocaml-base-compiler";
              ocaml_version = latest_ocaml_version ~ocaml_version;
              opam_version = Opam_version.to_string_with_patch opam_version;
