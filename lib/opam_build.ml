@@ -110,8 +110,7 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   let open Obuilder_spec in
   let cache =
     match Variant.os variant with
-    | `freeBSD
-    | `linux ->
+    | `freeBSD | `linux ->
         [
           Obuilder_spec.Cache.v download_cache
             ~target:"/home/opam/.opam/download-cache";
