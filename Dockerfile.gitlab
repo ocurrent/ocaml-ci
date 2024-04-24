@@ -21,17 +21,11 @@ COPY --chown=opam \
 	solver-service/solver-service.opam \
 	/src/solver-service/
 COPY --chown=opam \
-        ocurrent/vendor/ocaml-gitlab/gitlab.opam \
-        ocurrent/vendor/ocaml-gitlab/gitlab-unix.opam \
-	/src/ocaml-gitlab/
-COPY --chown=opam \
 	ocaml-dockerfile/dockerfile*.opam \
 	/src/ocaml-dockerfile/
 WORKDIR /src
 RUN opam pin add -yn current_docker.dev "./ocurrent" && \
     opam pin add -yn current_github.dev "./ocurrent" && \
-    opam pin add -yn gitlab.dev "./ocaml-gitlab/" && \
-    opam pin add -yn gitlab-unix.dev "./ocaml-gitlab/" && \
     opam pin add -yn current_gitlab.dev "./ocurrent" && \
     opam pin add -yn current_git.dev "./ocurrent" && \
     opam pin add -yn current.dev "./ocurrent" && \
