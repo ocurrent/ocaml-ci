@@ -73,6 +73,27 @@ let get_job_id x =
   let+ md = Current.Analysis.metadata x in
   match md with Some { Current.Metadata.job_id; _ } -> job_id | None -> None
 
+(* Identifies "selections" on which we don't want to run the CI, e.g., due to
+   platforms unsupported by some required package. *)
+let excluded_selection =
+  let is_debian_12_x86_32 (v : Variant.t) =
+    match Variant.distro v, Variant.arch v with
+    | "debian-12", `X86_64 -> true
+    | _ -> false
+  in
+  let is_conf_capnproto package_name =
+    match Astring.String.cut ~sep:"." package_name with
+    | Some ("conf-capnproto", _) -> true
+    | _ -> false
+  in
+  fun (s : Selection.t) ->
+    (* TODO Remove when (a) we stop building on 32bit Debian 12 or (b) Debian
+       bookworm backports the need fix to capnproto to support large files on 32
+       bit systems.
+
+       See https://github.com/ocurrent/ocaml-ci/issues/931 *)
+    is_debian_12_x86_32 s.variant && List.exists is_conf_capnproto s.packages
+
 let docker_specs ~analysis =
   let+ analysis = Current.state ~hidden:true analysis in
   match analysis with
@@ -89,22 +110,8 @@ let docker_specs ~analysis =
             ~analysis (`Lint `Fmt)
           :: Spec.opam_monorepo builds
       | `Opam_build selections ->
-          let selections =
-            (* TODO: This filter will be removed when a new version of debian in which capnproto has this fix "https://github.com/capnproto/capnproto/pull/1830".
-               * Related to this issue "https://github.com/mirage/capnp-rpc/issues/273" *)
-            List.filter
-              (fun s ->
-                not
-                  (Variant.arch s.Selection.variant == `I386
-                  && Variant.arch s.Selection.variant == `Aarch32
-                  && List.find_opt
-                       (fun pkg ->
-                         Astring.String.cut ~sep:"." pkg
-                         |> Option.map fst
-                         |> Option.equal String.equal (Some "conf-capnproto"))
-                       s.Selection.packages
-                     |> Option.is_some))
-              selections
+          let included_selections =
+            List.filter (fun s -> not (excluded_selection s)) selections
           in
           (* For lower-bound, take only the lowest version of OCaml that has a solution *)
           let selections =
@@ -114,7 +121,7 @@ let docker_specs ~analysis =
                   s.Selection.lower_bound
                   && Variant.arch s.Selection.variant == `X86_64
                   && Variant.os s.Selection.variant == `linux)
-                selections
+                included_selections
             in
             take_lowest_bound_selection lower_bound @ other
           in
