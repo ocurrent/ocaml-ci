@@ -77,7 +77,7 @@ let get_job_id x =
    platforms unsupported by some required package. *)
 let excluded_selection =
   let is_debian_12_x86_32 (v : Variant.t) =
-    match Variant.distro v, Variant.arch v with
+    match (Variant.distro v, Variant.arch v) with
     | "debian-12", `X86_64 -> true
     | _ -> false
   in
