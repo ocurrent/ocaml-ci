@@ -26,8 +26,8 @@ let install_ocamlformat =
 let commit_from_ocamlformat_source ocamlformat_source =
   let open Analyse_ocamlformat in
   match ocamlformat_source with
-  | None | Some (Vendored _) -> None
-  | Some (Opam { opam_repo_commit; _ }) -> opam_repo_commit
+  | Vendored _ -> None
+  | Opam { opam_repo_commit; _ } -> opam_repo_commit
 
 let fmt_spec ~base ~ocamlformat_source ~selection =
   let open Obuilder_spec in
@@ -46,38 +46,43 @@ let fmt_spec ~base ~ocamlformat_source ~selection =
         ~target:"/home/opam/.opam/download-cache";
     ]
   in
-  match ocamlformat_source with
-  | Error (`Msg msg) ->
-      stage ~from:base
-      @@ [ user_unix ~uid:1000 ~gid:1000; run "echo Error: %s; exit 2" msg ]
-  | Ok ocamlformat_source ->
-      let commit =
-        Option.value ~default:commit
-          (commit_from_ocamlformat_source ocamlformat_source)
-      in
-      let network = [ "host" ] in
-      stage ~from:base
-      @@ [
-           user_unix ~uid:1000 ~gid:1000;
-           run ~network ~cache
-             "cd ~/opam-repository && (git cat-file -e %s || git fetch origin \
-              master) && git reset -q --hard %s && git log --no-decorate -n1 \
-              --oneline && opam update -u"
-             commit commit;
-           run ~network ~cache "opam depext -i dune";
-           (* Necessary in case current compiler < 4.08 *)
-           (* Not necessarily the dune version used by the project *)
-           workdir "/src";
-         ]
-      @ (match ocamlformat_source with
-        | Some src -> install_ocamlformat src
-        | None -> [])
-      @ [
-          copy [ "." ] ~dst:"/src/";
+  let actions =
+    match ocamlformat_source with
+    | Error (`Msg msg) ->
+        [ user_unix ~uid:1000 ~gid:1000; run "echo Error: %s; exit 2" msg ]
+    | Ok None ->
+        (* TODO This is a workaround for https://github.com/ocaml/dune/issues/10578
+           Once [dune build @fmt] allows clean exits even when ocamlformat is not installed,
+           we should remove this case, so that we still have the benefit of running other
+           formatting lints that may be associated with the @fmt alias. *)
+        [
           run
-            "opam exec -- dune build @fmt --ignore-promoted-rules || (echo \
-             \"dune build @fmt failed\"; exit 2)";
+            {| echo "skipping format lint because ocamlformat is not configured" |};
         ]
+    | Ok (Some source) ->
+        let commit =
+          Option.value ~default:commit (commit_from_ocamlformat_source source)
+        in
+        let network = [ "host" ] in
+        install_ocamlformat source
+        @ [
+            user_unix ~uid:1000 ~gid:1000;
+            run ~network ~cache
+              "cd ~/opam-repository && (git cat-file -e %s || git fetch origin \
+               master) && git reset -q --hard %s && git log --no-decorate -n1 \
+               --oneline && opam update -u"
+              commit commit;
+            run ~network ~cache "opam depext -i dune";
+            (* Necessary in case current compiler < 4.08 *)
+            (* Not necessarily the dune version used by the project *)
+            workdir "/src";
+            copy [ "." ] ~dst:"/src/";
+            run
+              "opam exec -- dune build @fmt --ignore-promoted-rules || (echo \
+               \"dune build @fmt failed\"; exit 2)";
+          ]
+  in
+  stage ~from:base actions
 
 let doc_spec ~base ~opam_files ~selection =
   let cache =
@@ -99,11 +104,9 @@ let doc_spec ~base ~opam_files ~selection =
      :: user_unix ~uid:1000 ~gid:1000
      :: Opam_build.install_project_deps ~opam_version ~opam_files ~selection
   @ [
-      (* Warnings-as-errors was introduced in Odoc.1.5.0 *)
-      (* conf-m4 is a work-around for https://github.com/ocaml-opam/opam-depext/pull/132 *)
-      run ~network ~cache
-        "opam depext -i conf-m4 && opam depext -i dune 'odoc>=1.5.0'";
+      run ~network ~cache "opam install --yes dune 'odoc>=1.5.0'";
       copy [ "." ] ~dst:"/src/";
+      (* Warnings-as-errors was introduced in Odoc.1.5.0 *)
       run
         "ODOC_WARN_ERROR=false opam exec -- dune build%s @doc || (echo \"dune \
          build @doc failed\"; exit 2)"
