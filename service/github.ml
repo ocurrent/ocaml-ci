@@ -4,9 +4,10 @@ let has_role user = function
   | `Builder | `Admin -> (
       match Option.map Current_web.User.id user with
       | Some
-          ( "github:talex5" | "github:avsm" | "github:kit-ty-kate"
-          | "github:mtelvers" | "github:samoht" | "github:tmcgilchrist"
-          | "github:dra27" | "github:benmandrew" | "github:moyodiallo" ) ->
+          ( "github:talex5" | "github:avsm" | "github:mtelvers"
+          | "github:samoht" | "github:tmcgilchrist" | "github:dra27"
+          | "github:benmandrew" | "github:moyodiallo" | "github:shonfeder"
+          | "github:punchagan" ) ->
           true
       | Some _ | None -> false)
 
