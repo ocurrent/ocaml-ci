@@ -127,6 +127,12 @@ let local_test ~solver repo () =
      let result = results |> summarise in
      Current_incr.const (result, None)
 
+let init_metrics () =
+  let t = Sys.time () in
+  Index.init_variant_metrics ();
+  Logs.app (fun m ->
+      m "Initialised variant metrics in %.2fs" (Sys.time () -. t))
+
 let v ?ocluster ~app ~solver ~migrations () =
   let ocluster =
     Option.map (Cluster_build.config ~timeout:(Duration.of_hour 1)) ocluster
@@ -139,6 +145,7 @@ let v ?ocluster ~app ~solver ~migrations () =
   Current.with_context migrations @@ fun () ->
   Current.with_context opam_repository_commit @@ fun () ->
   Current.with_context platforms @@ fun () ->
+  init_metrics ();
   Github.App.installations app
   |> set_active_installations
   |> Current.list_iter ~collapse_key:"org" (module Github.Installation)
