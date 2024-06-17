@@ -12,12 +12,9 @@ let of_label label = { label; variant = None }
     If it is experimental we allow those builds to fail without failing the
     overall build for a commit. *)
 let experimental_variant s =
-  if
-    Astring.String.(
-      is_prefix ~affix:Variant.lower_bound_label s.label
-      || is_prefix ~affix:Variant.opam_label s.label)
-  then true
-  else false
+  Astring.String.(
+    is_prefix ~affix:Variant.lower_bound_label s.label
+    || is_prefix ~affix:Variant.opam_label s.label)
 
 (** Like [experimental_variant], but takes strings for when a [build_info]
     record is unavailable.
