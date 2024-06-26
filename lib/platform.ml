@@ -87,9 +87,7 @@ let set_compiler_version vars ~version =
 module Query = struct
   let id = "opam-vars"
 
-  type t = {
-    pool : unit Current.Pool.t;
-  }
+  type t = { pool : unit Current.Pool.t }
 
   module Key = struct
     type t = {
@@ -190,7 +188,8 @@ module Query = struct
 
   let run { pool } job { Key.docker_context; variant; lower_bound }
       { Value.image; host_image } =
-    Current.Job.start job ~pool ~level:Current.Level.Mostly_harmless >>= fun () ->
+    Current.Job.start job ~pool ~level:Current.Level.Mostly_harmless
+    >>= fun () ->
     let prep_image =
       Fmt.str "ocurrent/ocaml-ci:%s" (Variant.docker_tag variant)
     in
