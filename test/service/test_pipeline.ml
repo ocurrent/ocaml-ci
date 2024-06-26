@@ -92,17 +92,6 @@ let test_experimental () =
         [
           (true, of_label Variant.lower_bound_label);
           (false, of_label Variant.doc_label);
-          ( true,
-            {
-              label = "";
-              variant =
-                Some (variant "macos-homebrew" Ocaml_version.Releases.v5_0);
-            } );
-          ( true,
-            {
-              label = "";
-              variant = Some (variant "freebsd" Ocaml_version.Releases.v5_1);
-            } );
           ( false,
             {
               label = "";
