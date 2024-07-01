@@ -196,9 +196,7 @@ let platforms ~profile ~include_macos ~include_freebsd opam_version =
       releases @ lower_bounds @ distros
   | `Minimal when Sys.win32 ->
       (* Assume we're building using native Windows images. *)
-      let distro =
-        DD.tag_of_distro (`Windows (`Mingw, DD.win10_latest_image) :> DD.t)
-      in
+      let distro = DD.tag_of_distro (`Windows (`Mingw, `Latest) :> DD.t) in
       let ov = OV.with_just_major_and_minor OV.Releases.latest in
       [ v (OV.to_string ov) distro ov ]
   | `Minimal ->

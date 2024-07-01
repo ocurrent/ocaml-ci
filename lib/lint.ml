@@ -64,18 +64,20 @@ let fmt_spec ~base ~ocamlformat_source ~selection =
           Option.value ~default:commit (commit_from_ocamlformat_source source)
         in
         let network = [ "host" ] in
-        install_ocamlformat source
+        [
+          user_unix ~uid:1000 ~gid:1000;
+          run ~network ~cache
+            "cd ~/opam-repository && (git cat-file -e %s || git fetch origin \
+             master) && git reset -q --hard %s && git log --no-decorate -n1 \
+             --oneline && opam update -u"
+            commit commit;
+          run ~network ~cache "opam depext -i dune";
+          (* Necessary in case current compiler < 4.08 *)
+          (* Not necessarily the dune version used by the project *)
+          workdir "/src";
+        ]
+        @ install_ocamlformat source
         @ [
-            user_unix ~uid:1000 ~gid:1000;
-            run ~network ~cache
-              "cd ~/opam-repository && (git cat-file -e %s || git fetch origin \
-               master) && git reset -q --hard %s && git log --no-decorate -n1 \
-               --oneline && opam update -u"
-              commit commit;
-            run ~network ~cache "opam depext -i dune";
-            (* Necessary in case current compiler < 4.08 *)
-            (* Not necessarily the dune version used by the project *)
-            workdir "/src";
             copy [ "." ] ~dst:"/src/";
             run
               "opam exec -- dune build @fmt --ignore-promoted-rules || (echo \
