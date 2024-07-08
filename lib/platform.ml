@@ -178,7 +178,6 @@ module Query = struct
         "opam";
         "list";
         "-s";
-        "--base";
         "--roots";
         "--all-versions";
         "ocaml-base-compiler";
