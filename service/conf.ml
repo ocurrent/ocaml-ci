@@ -247,7 +247,7 @@ let merge_lower_bound_platforms platforms =
   in
   upper_bound @ lower_bound
 
-let fetch_platforms ~include_macos ~include_freebsd () =
+let fetch_platforms ~conn ~include_macos ~include_freebsd () =
   let open Ocaml_ci in
   let schedule = Current_cache.Schedule.v ~valid_for:(Duration.of_day 30) () in
   let v
@@ -299,7 +299,7 @@ let fetch_platforms ~include_macos ~include_freebsd () =
               Platform.pull ~arch:`X86_64 ~schedule ~builder ~distro
                 ~ocaml_version ~opam_version
         in
-        Platform.get ~arch ~label ~builder ~pool ~distro ~ocaml_version
+        Platform.get ~arch ~label ~conn ~builder ~pool ~distro ~ocaml_version
           ~host_base ~opam_version ~lower_bound base
   in
   let v2_1 =

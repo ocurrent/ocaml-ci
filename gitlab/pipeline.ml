@@ -18,9 +18,6 @@ module Metrics = struct
       "repositories_total"
 end
 
-let platforms =
-  Conf.fetch_platforms ~include_macos:true ~include_freebsd:true ()
-
 let program_name = "ocaml-ci"
 
 (* Link for GitLab statuses. *)
@@ -182,9 +179,9 @@ let gitlab_status_of_state head result =
   | Error (`Msg m) ->
       Gitlab.Api.Status.v ~url `Failure ~description:m ~name:program_name
 
-let local_test ~solver repo () =
+let local_test ~conn ~solver repo () =
   let platforms =
-    Conf.fetch_platforms ~include_macos:false ~include_freebsd:false ()
+    Conf.fetch_platforms ~conn ~include_macos:false ~include_freebsd:false ()
   in
   let src = Git.Local.head_commit repo in
   let src_content = Repo_content.extract src in
@@ -197,7 +194,9 @@ let local_test ~solver repo () =
      let result = summarise results in
      Current_incr.const (result, None)
 
-let v ?ocluster ~app ~solver ~migrations () =
+let v ?ocluster ~app ~conn ~solver ~migrations () =
+  let platforms =
+    Conf.fetch_platforms ~conn ~include_macos:true ~include_freebsd:true () in
   let ocluster =
     Option.map (Cluster_build.config ~timeout:(Duration.of_hour 1)) ocluster
   in

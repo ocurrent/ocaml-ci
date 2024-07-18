@@ -113,6 +113,12 @@ let main () config mode app capnp_public_address capnp_listen_address
   let open Ocaml_ci_gitlab in
   Lwt_main.run
     (let solver = Ocaml_ci.Backend_solver.v solver_uri in
+     let conn = match solver_uri with
+       | None -> assert false
+       | Some ur ->
+           let vat = Capnp_rpc_unix.client_only_vat () in
+           let sr = Capnp_rpc_unix.Vat.import_exn vat ur in
+           (Current_ocluster.Connection.create sr) in
      run_capnp capnp_public_address capnp_listen_address
      >>= fun (vat, rpc_engine_resolver) ->
      let ocluster =
@@ -120,7 +126,7 @@ let main () config mode app capnp_public_address capnp_listen_address
      in
      let engine =
        Current.Engine.create ~config
-         (Pipeline.v ?ocluster ~app ~solver ~migrations)
+         (Pipeline.v ?ocluster ~app ~conn ~solver ~migrations)
      in
      rpc_engine_resolver
      |> Option.iter (fun r ->

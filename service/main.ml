@@ -115,6 +115,12 @@ let main () config mode app capnp_public_address capnp_listen_address
     ('a, [ `Msg of string ]) result =
   Lwt_main.run
     (let solver = Backend_solver.v solve_uri in
+     let conn = match solve_uri with
+       | None -> assert false
+       | Some ur ->
+           let vat = Capnp_rpc_unix.client_only_vat () in
+           let sr = Capnp_rpc_unix.Vat.import_exn vat ur in
+           (Current_ocluster.Connection.create sr) in
      run_capnp capnp_public_address capnp_listen_address
      >>= fun (vat, rpc_engine_resolver) ->
      let ocluster =
@@ -122,7 +128,7 @@ let main () config mode app capnp_public_address capnp_listen_address
      in
      let engine =
        Current.Engine.create ~config
-         (Pipeline.v ?ocluster ~app ~solver ~migrations)
+         (Pipeline.v ?ocluster ~app ~conn ~solver ~migrations)
      in
      rpc_engine_resolver
      |> Option.iter (fun r ->

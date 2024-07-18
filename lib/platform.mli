@@ -50,6 +50,7 @@ val set_compiler_version :
 val get :
   arch:Ocaml_version.arch ->
   label:string ->
+  conn:Current_ocluster.Connection.t ->
   builder:Builder.t ->
   pool:Pool_name.t ->
   distro:string ->

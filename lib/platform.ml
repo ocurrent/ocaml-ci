@@ -87,7 +87,10 @@ let set_compiler_version vars ~version =
 module Query = struct
   let id = "opam-vars"
 
-  type t = { pool : unit Current.Pool.t }
+  type t = {
+    conn : Current_ocluster.Connection.t;
+    pool : unit Current.Pool.t
+  }
 
   module Key = struct
     type t = {
@@ -118,6 +121,7 @@ module Query = struct
   end
 
   (* This is needed iff the opam used isn't the image default opam. *)
+  (*
   let prepare_image ~job ~docker_context ~tag variant image =
     let opam =
       "opam-" ^ Opam_version.to_string (Variant.opam_version variant)
@@ -149,6 +153,31 @@ module Query = struct
     in
     Current.Process.exec ~stdin:spec ~cancellable:false ~job cmd >>!= fun () ->
     Lwt_result.ok (Lwt.return tag)
+     *)
+
+  (* This is needed iff the opam used isn't the image default opam. *)
+  let prepare_image2 ~variant =
+    let opam =
+      "opam-" ^ Opam_version.to_string (Variant.opam_version variant)
+    in
+    let prefix =
+      match Variant.os variant with
+      | `macOS -> "~/local"
+      | `linux -> "/usr"
+      | `freeBSD -> "/usr/local"
+    in
+    let ln =
+      match Variant.os variant with
+      | `macOS -> "ln"
+      | `linux | `freeBSD -> "sudo ln"
+    in
+    (* XXX: don't overwrite default config? *)
+    let opamrc = "" in
+    let open Obuilder_spec in
+        [
+          run "%s -f %s/bin/%s %s/bin/opam" ln prefix opam prefix;
+          run "opam init --reinit%s -ni" opamrc;
+        ]
 
   let opam_template arch =
     let arch = Option.value ~default:"%{arch}%" arch in
@@ -165,10 +194,13 @@ module Query = struct
   |}
       arch
 
+  (*
   let get_vars ~arch ~docker_context image =
     Raw.Cmd.docker ~docker_context
       [ "run"; "-i"; image; "opam"; "config"; "expand"; opam_template arch ]
+     *)
 
+(*
   let get_ocaml_package ~docker_context image =
     Raw.Cmd.docker ~docker_context
       [
@@ -185,9 +217,78 @@ module Query = struct
         "ocaml-variants";
         "ocaml-system";
       ]
+   *)
 
-  let run { pool } job { Key.docker_context; variant; lower_bound }
+  let tail ~buffer ~job build_job =
+    let rec aux start =
+      Cluster_api.Job.log build_job start >>= function
+      | Error (`Capnp e) -> Lwt.return @@ Fmt.error_msg "%a" Capnp_rpc.Error.pp e
+      | Ok ("", _) -> Lwt_result.return ()
+      | Ok (data, next) ->
+        Buffer.add_string buffer data;
+        Current.Job.write job data;
+        aux next
+    in aux 0L
+
+  let run_job ~buffer ~job build_job =
+    let on_cancel _ =
+      Cluster_api.Job.cancel build_job >|= function
+      | Ok () -> ()
+      | Error (`Capnp e) -> Current.Job.log job "Cancel failed: %a" Capnp_rpc.Error.pp e
+    in
+    Current.Job.with_handler job ~on_cancel @@ fun () ->
+    let result = Cluster_api.Job.result build_job in
+    tail ~buffer ~job build_job >>!= fun () ->
+    result >>= function
+    | Error (`Capnp e) -> Lwt_result.fail (`Msg (Fmt.to_to_string Capnp_rpc.Error.pp e))
+    | Ok _ as x -> Lwt.return x
+
+  let parse_output job build_job =
+    let buffer = Buffer.create 1024 in
+    Capnp_rpc_lwt.Capability.with_ref build_job (run_job ~buffer ~job) >>!= fun (_ : string) ->
+      match Astring.String.cuts ~sep:"\n@@@OUTPUT\n" (Buffer.contents buffer) with
+      | [_; output; _; output2; _] ->
+        Current.Job.log job "@[<v2>Result:@,%s,%s@]" output output2;
+        Lwt_result.return (Some (output, output2))
+      | [_; rest ] when Astring.String.is_prefix ~affix:"@@@OUTPUT\n" rest -> Lwt_result.return None
+      | _ -> Lwt_result.fail (`Msg "Missing output from command\n")
+
+  let set_personality ~variant =
+    if Variant.arch variant |> Ocaml_version.arch_is_32bit then
+      [Obuilder_spec.shell ["/usr/bin/linux32"; "/bin/sh"; "-c"]]
+    else
+      []
+
+  let run { conn; pool } job { Key.docker_context; variant; lower_bound }
       { Value.image; host_image } =
+    let open Obuilder_spec in
+    let _ = pool in
+    let _ = docker_context in
+    let arch =
+      Variant.arch variant |> fun v ->
+      if Ocaml_version.arch_is_32bit v then Some (Ocaml_version.to_opam_arch v)
+      else None
+    in
+    let spec = Obuilder_spec.stage ~from:host_image (
+      user_unix ~uid:1000 ~gid:1000 ::
+      set_personality ~variant @
+      prepare_image2 ~variant @ [
+        run "echo '@@@OUTPUT' && \
+             opam list -s --color=never --base --roots --all-versions ocaml-base-compiler ocaml-variants ocaml-system && \
+             echo '@@@OUTPUT'";
+        run "echo '@@@OUTPUT' && \
+             opam config expand '%s' && \
+             echo '@@@OUTPUT'" (opam_template arch)
+      ]) in
+    let spec_str = Fmt.to_to_string Obuilder_spec.pp (spec) in
+    let action = Cluster_api.Submission.obuilder_build spec_str in
+    let foo_pool = Current_ocluster.Connection.pool ~job ~pool:"linux-x86_64" ~cache_hint:"foo" ~action conn in
+    Current.Job.start_with ~pool:foo_pool job ~level:Current.Level.Mostly_harmless >>=
+    parse_output job >>!= fun s ->
+    let (ocaml_package, vars) = match s with
+      | Some (a, b) -> a, b 
+      | None -> assert false in
+    (*
     Current.Job.start job ~pool ~level:Current.Level.Mostly_harmless
     >>= fun () ->
     let prep_image =
@@ -198,19 +299,17 @@ module Query = struct
     let cmd = get_ocaml_package ~docker_context host_image in
     Current.Process.check_output ~cancellable:false ~job cmd
     >>!= fun ocaml_package ->
+       *)
     let ocaml_package = String.trim ocaml_package in
     let ocaml_package_name, ocaml_version =
       match Astring.String.cut ~sep:"." ocaml_package with
       | Some (name, version) -> (name, version)
       | None -> Fmt.failwith "Unexpected opam package name: %s" ocaml_package
     in
-    let arch =
-      Variant.arch variant |> fun v ->
-      if Ocaml_version.arch_is_32bit v then Some (Ocaml_version.to_opam_arch v)
-      else None
-    in
+    (*
     let cmd = get_vars ~arch ~docker_context host_image in
     Current.Process.check_output ~cancellable:false ~job cmd >>!= fun vars ->
+       *)
     let json =
       match Yojson.Safe.from_string vars with
       | `Assoc items ->
@@ -241,7 +340,7 @@ end
 
 module QC = Current_cache.Generic (Query)
 
-let query builder ~variant ~lower_bound ~host_image image =
+let query conn builder ~variant ~lower_bound ~host_image image =
   let label = if lower_bound then "opam-vars (lower-bound)" else "opam-vars" in
   Current.component "%s" label
   |> let> host_image and> image in
@@ -249,14 +348,14 @@ let query builder ~variant ~lower_bound ~host_image image =
      let host_image = Raw.Image.hash host_image in
      let docker_context = builder.Builder.docker_context in
      let pool = builder.Builder.pool in
-     QC.run { pool }
+     QC.run { conn; pool }
        { Query.Key.docker_context; variant; lower_bound }
        { Query.Value.image; host_image }
 
-let get_docker builder variant ~lower_bound host_base base arch opam_version
+let get_docker conn builder variant ~lower_bound host_base base arch opam_version
     label pool =
   let+ { Query.Outcome.vars; image } =
-    query builder ~variant ~lower_bound ~host_image:host_base base
+    query conn builder ~variant ~lower_bound ~host_image:host_base base
   in
   (* It would be better to run the opam query on the platform itself, but for
      now we run everything on x86_64 and then assume that the other
@@ -271,18 +370,18 @@ let get_docker builder variant ~lower_bound host_base base arch opam_version
   let base = Raw.Image.of_hash image in
   { label; builder; pool; variant; base = `Docker base; vars }
 
-let get ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base
+let get ~arch ~label ~conn ~builder ~pool ~distro ~ocaml_version ~host_base
     ~opam_version ~lower_bound base =
   match Variant.v ~arch ~distro ~ocaml_version ~opam_version with
   | Error (`Msg m) -> Current.fail m
   | Ok variant ->
       let upper_bound =
-        get_docker builder variant ~lower_bound:false host_base base arch
+        get_docker conn builder variant ~lower_bound:false host_base base arch
           opam_version label pool
       in
       if lower_bound then
         let lower_bound =
-          get_docker builder variant ~lower_bound:true host_base base arch
+          get_docker conn builder variant ~lower_bound:true host_base base arch
             opam_version label pool
         in
         Current.list_seq [ upper_bound; lower_bound ]
