@@ -1,7 +1,7 @@
 (** Pipeline for testing GitLab hosted repositories. *)
 
 val local_test :
-  conn:Current_ocluster.Connection.t ->
+  query_uri:Uri.t option ->
   solver:Ocaml_ci.Backend_solver.t ->
   Current_git.Local.t ->
   unit ->
@@ -12,7 +12,7 @@ val local_test :
 val v :
   ?ocluster:Cluster_api.Raw.Client.Submission.t Capnp_rpc_lwt.Sturdy_ref.t ->
   app:Current_gitlab.Api.t ->
-  conn:Current_ocluster.Connection.t ->
+  query_uri:Uri.t option ->
   solver:Ocaml_ci.Backend_solver.t ->
   migrations:string option ->
   unit ->

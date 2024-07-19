@@ -7,16 +7,10 @@ let setup_log default_level =
 
 let main () config mode repo : ('a, [ `Msg of string ]) result =
   let solver = Ocaml_ci.Backend_solver.v None in
-  let conn = match None with
-    | None -> assert false
-    | Some ur ->
-        let vat = Capnp_rpc_unix.client_only_vat () in
-        let sr = Capnp_rpc_unix.Vat.import_exn vat ur in
-        (Current_ocluster.Connection.create sr) in
   let repo = Current_git.Local.v (Fpath.v repo) in
   let engine =
     Current.Engine.create ~config
-      (Ocaml_ci_gitlab.Pipeline.local_test ~conn ~solver repo)
+      (Ocaml_ci_gitlab.Pipeline.local_test ~query_uri:None ~solver repo)
   in
   let site =
     Current_web.Site.(v ~has_role:allow_all)

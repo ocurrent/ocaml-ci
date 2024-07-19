@@ -179,9 +179,9 @@ let gitlab_status_of_state head result =
   | Error (`Msg m) ->
       Gitlab.Api.Status.v ~url `Failure ~description:m ~name:program_name
 
-let local_test ~conn ~solver repo () =
+let local_test ~query_uri ~solver repo () =
   let platforms =
-    Conf.fetch_platforms ~conn ~include_macos:false ~include_freebsd:false ()
+    Conf.fetch_platforms ~query_uri ~include_macos:false ~include_freebsd:false ()
   in
   let src = Git.Local.head_commit repo in
   let src_content = Repo_content.extract src in
@@ -194,9 +194,9 @@ let local_test ~conn ~solver repo () =
      let result = summarise results in
      Current_incr.const (result, None)
 
-let v ?ocluster ~app ~conn ~solver ~migrations () =
+let v ?ocluster ~app ~query_uri ~solver ~migrations () =
   let platforms =
-    Conf.fetch_platforms ~conn ~include_macos:true ~include_freebsd:true () in
+    Conf.fetch_platforms ~query_uri ~include_macos:true ~include_freebsd:true () in
   let ocluster =
     Option.map (Cluster_build.config ~timeout:(Duration.of_hour 1)) ocluster
   in

@@ -10,15 +10,9 @@ let setup_log style_renderer default_level =
 let main () config mode repo solve_uri : ('a, [ `Msg of string ]) result =
   let open Ocaml_ci_service in
   let solver = Ocaml_ci.Backend_solver.v solve_uri in
-  let conn = match solve_uri with
-    | None -> assert false
-    | Some ur ->
-        let vat = Capnp_rpc_unix.client_only_vat () in
-        let sr = Capnp_rpc_unix.Vat.import_exn vat ur in
-        (Current_ocluster.Connection.create sr) in
   let repo = Current_git.Local.v (Fpath.v repo) in
   let engine =
-    Current.Engine.create ~config (Pipeline.local_test ~conn ~solver repo)
+    Current.Engine.create ~config (Pipeline.local_test ~solver ~query_uri:None repo)
   in
   let site =
     Current_web.Site.(v ~has_role:allow_all)
