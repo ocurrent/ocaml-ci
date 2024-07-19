@@ -89,7 +89,6 @@ module Query = struct
 
   type t = {
     conn : Current_ocluster.Connection.t;
-    pool : unit Current.Pool.t
   }
 
   module Key = struct
@@ -97,6 +96,7 @@ module Query = struct
       docker_context : string option;
       variant : Variant.t;
       lower_bound : bool;
+      pool : string;
     }
     [@@deriving to_yojson]
 
@@ -259,10 +259,9 @@ module Query = struct
     else
       []
 
-  let run { conn; pool } job { Key.docker_context; variant; lower_bound }
+  let run { conn } job { Key.docker_context; variant; lower_bound; pool }
       { Value.image; host_image } =
     let open Obuilder_spec in
-    let _ = pool in
     let _ = docker_context in
     let arch =
       Variant.arch variant |> fun v ->
@@ -282,7 +281,7 @@ module Query = struct
       ]) in
     let spec_str = Fmt.to_to_string Obuilder_spec.pp (spec) in
     let action = Cluster_api.Submission.obuilder_build spec_str in
-    let foo_pool = Current_ocluster.Connection.pool ~job ~pool:"linux-x86_64" ~cache_hint:"foo" ~action conn in
+    let foo_pool = Current_ocluster.Connection.pool ~job ~pool ~cache_hint:"foo" ~action conn in
     Current.Job.start_with ~pool:foo_pool job ~level:Current.Level.Mostly_harmless >>=
     parse_output job >>!= fun s ->
     let (ocaml_package, vars) = match s with
@@ -340,22 +339,19 @@ end
 
 module QC = Current_cache.Generic (Query)
 
-let query conn builder ~variant ~lower_bound ~host_image image =
+let query schedule conn builder ~variant ~lower_bound ~pool image =
   let label = if lower_bound then "opam-vars (lower-bound)" else "opam-vars" in
   Current.component "%s" label
-  |> let> host_image and> image in
-     let image = Raw.Image.hash image in
-     let host_image = Raw.Image.hash host_image in
+  |> let> image in
      let docker_context = builder.Builder.docker_context in
-     let pool = builder.Builder.pool in
-     QC.run { conn; pool }
-       { Query.Key.docker_context; variant; lower_bound }
-       { Query.Value.image; host_image }
+     QC.run ~schedule { conn }
+       { Query.Key.docker_context; variant; lower_bound; pool }
+       { Query.Value.image; host_image = image }
 
-let get_docker conn builder variant ~lower_bound host_base base arch opam_version
+let get_docker schedule conn builder variant ~lower_bound tag arch opam_version
     label pool =
   let+ { Query.Outcome.vars; image } =
-    query conn builder ~variant ~lower_bound ~host_image:host_base base
+    query schedule conn builder ~variant ~lower_bound ~pool:(Pool_name.to_string pool) tag
   in
   (* It would be better to run the opam query on the platform itself, but for
      now we run everything on x86_64 and then assume that the other
@@ -370,87 +366,29 @@ let get_docker conn builder variant ~lower_bound host_base base arch opam_versio
   let base = Raw.Image.of_hash image in
   { label; builder; pool; variant; base = `Docker base; vars }
 
-let get ~arch ~label ~conn ~builder ~pool ~distro ~ocaml_version ~host_base
-    ~opam_version ~lower_bound base =
+let get ~schedule ~arch ~label ~conn ~builder ~pool ~distro ~ocaml_version
+    ~opam_version ~lower_bound tag =
   match Variant.v ~arch ~distro ~ocaml_version ~opam_version with
   | Error (`Msg m) -> Current.fail m
   | Ok variant ->
       let upper_bound =
-        get_docker conn builder variant ~lower_bound:false host_base base arch
-          opam_version label pool
+        get_docker schedule conn builder variant ~lower_bound:false tag arch opam_version label pool
       in
       if lower_bound then
         let lower_bound =
-          get_docker conn builder variant ~lower_bound:true host_base base arch
-            opam_version label pool
+          get_docker schedule conn builder variant ~lower_bound:true tag arch opam_version label pool
         in
         Current.list_seq [ upper_bound; lower_bound ]
       else Current.list_seq [ upper_bound ]
 
-let latest_ocaml_version ~ocaml_version =
-  match
-    (Ocaml_version.major ocaml_version, Ocaml_version.minor ocaml_version)
-  with
-  | 4, 14 -> Ocaml_version.to_string Ocaml_version.Releases.v4_14
-  | 5, 1 -> Ocaml_version.to_string Ocaml_version.Releases.v5_1
-  | _ -> Ocaml_version.to_string Ocaml_version.Releases.v5_2
-
-let get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
-    ~lower_bound base =
-  (* Hardcoding opam-vars for macos 14.1 Sonoma *)
-  match Variant.v ~arch ~distro ~ocaml_version ~opam_version with
-  | Error (`Msg m) -> Current.fail m
-  | Ok variant ->
-      Current.component "opam-vars"
-      |> let** (`MacOS s) = base in
-         let vars =
-           {
-             Worker.Vars.arch = Ocaml_version.to_opam_arch arch;
-             os = "macos";
-             os_family = "homebrew";
-             os_distribution = "homebrew";
-             os_version = "14.1";
-             ocaml_package = "ocaml-base-compiler";
-             ocaml_version = latest_ocaml_version ~ocaml_version;
-             opam_version = Opam_version.to_string_with_patch opam_version;
-             lower_bound;
-           }
-         in
-         Current.return
-           [ { label; builder; pool; variant; base = `MacOS s; vars } ]
-
-let get_freebsd ~arch ~label ~builder ~pool ~distro ~ocaml_version ~opam_version
-    ~lower_bound base =
-  (* Hardcoding opam-vars for FreeBSD 14.0. *)
-  match Variant.v ~arch ~distro ~ocaml_version ~opam_version with
-  | Error (`Msg m) -> Current.fail m
-  | Ok variant ->
-      Current.component "opam-vars"
-      |> let** (`FreeBSD s) = base in
-         let vars =
-           {
-             Worker.Vars.arch = Ocaml_version.to_opam_arch arch;
-             os = "freebsd";
-             os_family = "bsd";
-             os_distribution = "freebsd";
-             os_version = "1400097";
-             ocaml_package = "ocaml-base-compiler";
-             ocaml_version = latest_ocaml_version ~ocaml_version;
-             opam_version = Opam_version.to_string_with_patch opam_version;
-             lower_bound;
-           }
-         in
-         Current.return
-           [ { label; builder; pool; variant; base = `FreeBSD s; vars } ]
-
-let pull ~arch ~schedule ~builder ~distro ~ocaml_version ~opam_version =
+let peek ~arch ~schedule ~builder ~distro ~ocaml_version ~opam_version =
   match Variant.v ~arch ~distro ~ocaml_version ~opam_version with
   | Error (`Msg m) -> Current.fail m
   | Ok variant ->
       let archl = Ocaml_version.to_opam_arch arch in
       let opam_version = Opam_version.to_string opam_version in
-      Current.component "pull@,%s %a %s opam-%s" distro Ocaml_version.pp
+      Current.component "peek@,%s %a %s opam-%s" distro Ocaml_version.pp
         ocaml_version archl opam_version
       |> let> () = Current.return () in
          let tag = Variant.docker_tag variant in
-         Builder.pull ~schedule ~arch builder @@ "ocaml/opam:" ^ tag
+         Builder.peek ~schedule ~arch builder @@ "ocaml/opam:" ^ tag

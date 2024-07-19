@@ -262,45 +262,27 @@ let fetch_platforms ~conn ~include_macos ~include_freebsd () =
         lower_bound;
       } =
     match distro with
-    | "macos-homebrew" ->
-        (* MacOS uses ZFS snapshots rather than docker images, hardcoding values here for now. *)
-        let docker_image_name =
-          Fmt.str "%s-ocaml-%d.%d" distro (OV.major ocaml_version)
-            (OV.minor ocaml_version)
-        in
-        let label =
-          Fmt.str "pull %s %s" docker_image_name (OV.string_of_arch arch)
-        in
-        let base = Current.return ~label (`MacOS docker_image_name) in
-        Platform.get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version
-          ~opam_version ~lower_bound base
+    | "macos-homebrew"
     | "freebsd" ->
-        (* FreeBSD uses ZFS snapshots rather than docker images, hardcoding values here for now. *)
+        (* FreeBSD and MacOS uses ZFS snapshots rather than docker images. *)
         let docker_image_name =
           Fmt.str "%s-ocaml-%d.%d" distro (OV.major ocaml_version)
             (OV.minor ocaml_version)
         in
         let label =
-          Fmt.str "pull %s %s" docker_image_name (OV.string_of_arch arch)
+          Fmt.str "%s %s" docker_image_name (OV.string_of_arch arch)
         in
-        let base = Current.return ~label (`FreeBSD docker_image_name) in
-        Platform.get_freebsd ~arch ~label ~builder ~pool ~distro ~ocaml_version
+        let base = Current.return ~label docker_image_name in
+        Platform.get ~schedule ~arch ~label ~conn ~builder ~pool ~distro ~ocaml_version
           ~opam_version ~lower_bound base
     | _ ->
         (* All Linux distros *)
         let base =
-          Platform.pull ~arch ~schedule ~builder ~distro ~ocaml_version
+          Platform.peek ~arch ~schedule ~builder ~distro ~ocaml_version
             ~opam_version
         in
-        let host_base =
-          match arch with
-          | `X86_64 -> base
-          | _ ->
-              Platform.pull ~arch:`X86_64 ~schedule ~builder ~distro
-                ~ocaml_version ~opam_version
-        in
-        Platform.get ~arch ~label ~conn ~builder ~pool ~distro ~ocaml_version
-          ~host_base ~opam_version ~lower_bound base
+        Platform.get ~schedule ~arch ~label ~conn ~builder ~pool ~distro ~ocaml_version
+          ~opam_version ~lower_bound base
   in
   let v2_1 =
     platforms ~profile:platforms_profile `V2_1 ~include_macos ~include_freebsd

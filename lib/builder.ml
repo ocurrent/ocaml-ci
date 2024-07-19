@@ -16,5 +16,9 @@ let pull { docker_context; pool = _; build_timeout = _ } ~arch tag =
   in
   Current_docker.Raw.pull ?arch tag ~docker_context
 
+let peek { docker_context; pool = _; build_timeout = _ } ~arch tag =
+  let arch = Ocaml_version.to_docker_arch arch in
+  Current_docker.Raw.peek ~arch tag ~docker_context
+
 let run { docker_context; pool; build_timeout = _ } ~args img =
   Current_docker.Raw.run img ~docker_context ~pool ~args
