@@ -25,12 +25,7 @@ let rec with_commit_lock ~job commit variant fn =
           Lwt.return_unit)
 
 let make_build_spec ~base ~repo ~variant ~ty =
-  let base =
-    match base with
-    | `Docker base -> Raw.Image.hash base
-    | `MacOS s -> s
-    | `FreeBSD s -> s
-  in
+  let base = Raw.Image.hash base in
   let opam_version = Variant.opam_version variant in
   match ty with
   | `Opam (`Build, selection, opam_files) ->
@@ -70,19 +65,14 @@ module Op = struct
   module Value = struct
     type t = {
       ty : Spec.ty;
-      base : Platform.base; (* The image with the OCaml compiler to use. *)
+      base : Current_docker.Raw.Image.t; (* The image with the OCaml compiler to use. *)
       variant : Variant.t; (* Added as a comment in the Dockerfile *)
     }
 
     let to_json { base; ty; variant } =
-      let to_s = function
-        | `Docker image -> Raw.Image.digest image
-        | `MacOS s -> s
-        | `FreeBSD s -> s
-      in
       `Assoc
         [
-          ("base", `String (to_s base));
+          ("base", `String (Raw.Image.hash base));
           ("op", Spec.ty_to_yojson ty);
           ("variant", Variant.to_yojson variant);
         ]
@@ -96,12 +86,8 @@ module Op = struct
 
   let run { Builder.docker_context; pool; build_timeout } job
       { Key.commit; label = _; repo } { Value.base; variant; ty } =
-    match base with
-    | `MacOS _s -> failwith "local macos docker not supported"
-    | `FreeBSD _s -> failwith "local freebsd docker not supported"
-    | `Docker base ->
         let build_spec =
-          make_build_spec ~base:(`Docker base) ~repo ~variant ~ty
+          make_build_spec ~base ~repo ~variant ~ty
         in
         let make_dockerfile ~for_user =
           (if for_user then "" else Buildkit_syntax.add (Variant.arch variant))

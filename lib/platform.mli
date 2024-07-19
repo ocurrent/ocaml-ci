@@ -1,14 +1,5 @@
 (** A platform on which we wish to perform test builds. *)
 
-type base =
-  [ `Docker of Current_docker.Raw.Image.t
-  | `MacOS of string
-  | `FreeBSD of string ]
-
-val to_yojson : base -> Yojson.Safe.t
-val to_string : base -> string
-val base_pp : Format.formatter -> base -> unit
-
 module Pool_name : sig
   type t =
     [ `Linux_x86_64
@@ -29,7 +20,7 @@ type t = {
   builder : Builder.t;
   pool : Pool_name.t; (* OCluster pool *)
   variant : Variant.t; (* e.g. "debian-10-ocaml-4.08" *)
-  base : base; (* Base image to use *)
+  base : Current_docker.Raw.Image.t; (* Base image to use *)
   vars : Ocaml_ci_api.Worker.Vars.t;
 }
 

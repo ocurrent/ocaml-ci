@@ -21,7 +21,7 @@ module Key = struct
 end
 
 module Value = struct
-  type t = { image : string; host_image : string } [@@deriving to_yojson]
+  type t = { image : string } [@@deriving to_yojson]
 
   let digest t = Yojson.Safe.to_string (to_yojson t)
 end
@@ -117,14 +117,14 @@ let set_personality ~variant =
     []
 
 let run { conn } job { Key.variant; lower_bound; pool }
-    { Value.image; host_image } =
+    { Value.image } =
   let open Obuilder_spec in
   let arch =
     Variant.arch variant |> fun v ->
     if Ocaml_version.arch_is_32bit v then Some (Ocaml_version.to_opam_arch v)
     else None
   in
-  let spec = Obuilder_spec.stage ~from:host_image (
+  let spec = Obuilder_spec.stage ~from:image (
     user_unix ~uid:1000 ~gid:1000 ::
     set_personality ~variant @
     prepare_image ~variant @ [
@@ -137,8 +137,8 @@ let run { conn } job { Key.variant; lower_bound; pool }
     ]) in
   let spec_str = Fmt.to_to_string Obuilder_spec.pp (spec) in
   let action = Cluster_api.Submission.obuilder_build spec_str in
-  let foo_pool = Current_ocluster.Connection.pool ~job ~pool ~cache_hint:"foo" ~action conn in
-  Current.Job.start_with ~pool:foo_pool job ~level:Current.Level.Mostly_harmless >>=
+  let pool = Current_ocluster.Connection.pool ~job ~pool ~cache_hint:("opam-vars-" ^ image) ~action conn in
+  Current.Job.start_with ~pool job ~level:Current.Level.Mostly_harmless >>=
   parse_output job >>!= fun s ->
   let (ocaml_package, vars) = match s with
     | Some (a, b) -> a, b 

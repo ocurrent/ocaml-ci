@@ -2,28 +2,6 @@ open Current.Syntax
 module Raw = Current_docker.Raw
 module Worker = Ocaml_ci_api.Worker
 
-type base =
-  [ `Docker of Current_docker.Raw.Image.t
-  | `MacOS of string
-  | `FreeBSD of string ]
-(* TODO Use docker images for bundling macos binaries. *)
-
-let to_yojson = function
-  | `Docker image ->
-      `List [ `String "docker"; `String (Raw.Image.digest image) ]
-  | `MacOS s -> `List [ `String "macos"; `String s ]
-  | `FreeBSD s -> `List [ `String "freebsd"; `String s ]
-
-let to_string = function
-  | `Docker image -> Raw.Image.hash image
-  | `MacOS s -> "macos-" ^ s
-  | `FreeBSD s -> "freebsd-" ^ s
-
-let base_pp f = function
-  | `Docker image -> Fmt.pf f "%a" Raw.Image.pp image
-  | `MacOS s -> Fmt.pf f "%s" s
-  | `FreeBSD s -> Fmt.pf f "%s" s
-
 (* OCluster pool name *)
 module Pool_name = struct
   type t =
@@ -63,7 +41,7 @@ type t = {
   builder : Builder.t;
   pool : Pool_name.t; (* OCluster pool *)
   variant : Variant.t;
-  base : base;
+  base : Current_docker.Raw.Image.t; (* Base image to use *)
   vars : Worker.Vars.t;
 }
 
@@ -90,7 +68,7 @@ let query conn ~variant ~lower_bound ~pool image =
   |> let> image in
      QC.run { conn }
        { Query.Key.variant; lower_bound; pool }
-       { Query.Value.image; host_image = image }
+       { Query.Value.image }
 
 module QCL = Current_cache.Generic (Query_local)
 
@@ -111,14 +89,14 @@ let get_docker conn builder variant ~lower_bound tag label pool =
     query conn ~variant ~lower_bound ~pool:(Pool_name.to_string pool) tag
   in
   let base = Raw.Image.of_hash image in
-  { label; builder; pool; variant; base = `Docker base; vars }
+  { label; builder; pool; variant; base; vars }
 
 let get_docker_local builder variant ~lower_bound host_base base label pool =
   let+ { Query_local.Outcome.vars; image } =
     query_local builder ~variant ~lower_bound ~host_image:host_base base
   in
   let base = Raw.Image.of_hash image in
-  { label; builder; pool; variant; base = `Docker base; vars }
+  { label; builder; pool; variant; base; vars }
 
 let get ~arch ~label ~conn ~builder ~pool ~distro ~ocaml_version
     ~opam_version ~lower_bound tag =
