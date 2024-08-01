@@ -249,10 +249,14 @@ let merge_lower_bound_platforms platforms =
 
 let fetch_platforms ~query_uri ~include_macos ~include_freebsd () =
   let open Ocaml_ci in
-  let conn = Option.map (fun ur ->
-      let vat = Capnp_rpc_unix.client_only_vat () in
-      let sr = Capnp_rpc_unix.Vat.import_exn vat ur in
-      (Current_ocluster.Connection.create sr)) query_uri in
+  let conn =
+    Option.map
+      (fun ur ->
+        let vat = Capnp_rpc_unix.client_only_vat () in
+        let sr = Capnp_rpc_unix.Vat.import_exn vat ur in
+        Current_ocluster.Connection.create sr)
+      query_uri
+  in
   let schedule = Current_cache.Schedule.v ~valid_for:(Duration.of_day 30) () in
   let v
       {
@@ -265,9 +269,8 @@ let fetch_platforms ~query_uri ~include_macos ~include_freebsd () =
         opam_version;
         lower_bound;
       } =
-    match conn, distro with
-    | Some conn, "macos-homebrew"
-    | Some conn, "freebsd" ->
+    match (conn, distro) with
+    | Some conn, "macos-homebrew" | Some conn, "freebsd" ->
         (* FreeBSD and MacOS uses ZFS snapshots rather than docker images. *)
         let docker_image_name =
           Fmt.str "%s-ocaml-%d.%d" distro (OV.major ocaml_version)

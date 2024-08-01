@@ -46,7 +46,8 @@ module Op = struct
   module Value = struct
     type t = {
       ty : Spec.ty;
-      base : Current_docker.Raw.Image.t; (* The image with the OCaml compiler to use. *)
+      base : Current_docker.Raw.Image.t;
+          (* The image with the OCaml compiler to use. *)
       variant : Variant.t; (* Added as a comment in the Dockerfile *)
     }
 
@@ -75,8 +76,8 @@ module Op = struct
       | `Opam_fmt (selection, _) -> "ocamlformat-" ^ selection.Selection.commit
       | `Opam_monorepo _ -> "opam-monorepo-" ^ Variant.to_string variant
     in
-    Fmt.str "%s/%s-%s-%a-%s" owner name (Image.hash base) Variant.pp
-      variant deps
+    Fmt.str "%s/%s-%s-%a-%s" owner name (Image.hash base) Variant.pp variant
+      deps
 
   let run t job { Key.pool; commit; label = _; repo } spec =
     Current.Job.on_cancel job (fun reason ->

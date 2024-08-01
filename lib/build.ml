@@ -65,7 +65,8 @@ module Op = struct
   module Value = struct
     type t = {
       ty : Spec.ty;
-      base : Current_docker.Raw.Image.t; (* The image with the OCaml compiler to use. *)
+      base : Current_docker.Raw.Image.t;
+          (* The image with the OCaml compiler to use. *)
       variant : Variant.t; (* Added as a comment in the Dockerfile *)
     }
 
@@ -86,41 +87,37 @@ module Op = struct
 
   let run { Builder.docker_context; pool; build_timeout } job
       { Key.commit; label = _; repo } { Value.base; variant; ty } =
-        let build_spec =
-          make_build_spec ~base ~repo ~variant ~ty
-        in
-        let make_dockerfile ~for_user =
-          (if for_user then "" else Buildkit_syntax.add (Variant.arch variant))
-          ^ Obuilder_spec.Docker.dockerfile_of_spec ~buildkit:(not for_user)
-              ~os:`Unix build_spec
-        in
-        Current.Job.write job
-          (Fmt.str "@[<v>Base: %a@,%a@]@." Raw.Image.pp base Spec.pp_summary ty);
-        Current.Job.write job
-          (Fmt.str
-             "@.To reproduce locally:@.@.cd $(mktemp -d)@.%a@.cat > Dockerfile \
-              <<'END-OF-DOCKERFILE'@.\o033[34m%s\o033[0mEND-OF-DOCKERFILE@.docker \
-              build .@.END-REPRO-BLOCK@.@."
-             Current_git.Commit_id.pp_user_clone
-             (Current_git.Commit.id commit)
-             (make_dockerfile ~for_user:true));
-        let dockerfile = make_dockerfile ~for_user:false in
-        Current.Job.start ~timeout:build_timeout ~pool job
-          ~level:Current.Level.Average
-        >>= fun () ->
-        with_commit_lock ~job commit variant @@ fun () ->
-        Current_git.with_checkout ~pool:checkout_pool ~job commit @@ fun dir ->
-        Current.Job.write job
-          (Fmt.str "Writing BuildKit Dockerfile:@.%s@." dockerfile);
-        Bos.OS.File.write Fpath.(dir / "Dockerfile") (dockerfile ^ "\n")
-        |> or_raise;
-        Bos.OS.File.write Fpath.(dir / ".dockerignore") dockerignore |> or_raise;
-        let cmd =
-          Raw.Cmd.docker ~docker_context
-          @@ [ "build"; "--"; Fpath.to_string dir ]
-        in
-        let pp_error_command f = Fmt.string f "Docker build" in
-        Current.Process.exec ~cancellable:true ~pp_error_command ~job cmd
+    let build_spec = make_build_spec ~base ~repo ~variant ~ty in
+    let make_dockerfile ~for_user =
+      (if for_user then "" else Buildkit_syntax.add (Variant.arch variant))
+      ^ Obuilder_spec.Docker.dockerfile_of_spec ~buildkit:(not for_user)
+          ~os:`Unix build_spec
+    in
+    Current.Job.write job
+      (Fmt.str "@[<v>Base: %a@,%a@]@." Raw.Image.pp base Spec.pp_summary ty);
+    Current.Job.write job
+      (Fmt.str
+         "@.To reproduce locally:@.@.cd $(mktemp -d)@.%a@.cat > Dockerfile \
+          <<'END-OF-DOCKERFILE'@.\o033[34m%s\o033[0mEND-OF-DOCKERFILE@.docker \
+          build .@.END-REPRO-BLOCK@.@."
+         Current_git.Commit_id.pp_user_clone
+         (Current_git.Commit.id commit)
+         (make_dockerfile ~for_user:true));
+    let dockerfile = make_dockerfile ~for_user:false in
+    Current.Job.start ~timeout:build_timeout ~pool job
+      ~level:Current.Level.Average
+    >>= fun () ->
+    with_commit_lock ~job commit variant @@ fun () ->
+    Current_git.with_checkout ~pool:checkout_pool ~job commit @@ fun dir ->
+    Current.Job.write job
+      (Fmt.str "Writing BuildKit Dockerfile:@.%s@." dockerfile);
+    Bos.OS.File.write Fpath.(dir / "Dockerfile") (dockerfile ^ "\n") |> or_raise;
+    Bos.OS.File.write Fpath.(dir / ".dockerignore") dockerignore |> or_raise;
+    let cmd =
+      Raw.Cmd.docker ~docker_context @@ [ "build"; "--"; Fpath.to_string dir ]
+    in
+    let pp_error_command f = Fmt.string f "Docker build" in
+    Current.Process.exec ~cancellable:true ~pp_error_command ~job cmd
 
   let pp f ({ Key.repo; commit; label }, _) =
     Fmt.pf f "test %a %a (%s)" Repo_id.pp repo Current_git.Commit.pp commit

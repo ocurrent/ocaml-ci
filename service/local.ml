@@ -12,7 +12,8 @@ let main () config mode repo solve_uri : ('a, [ `Msg of string ]) result =
   let solver = Ocaml_ci.Backend_solver.v solve_uri in
   let repo = Current_git.Local.v (Fpath.v repo) in
   let engine =
-    Current.Engine.create ~config (Pipeline.local_test ~solver ~query_uri:None repo)
+    Current.Engine.create ~config
+      (Pipeline.local_test ~solver ~query_uri:None repo)
   in
   let site =
     Current_web.Site.(v ~has_role:allow_all)

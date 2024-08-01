@@ -98,8 +98,8 @@ let get_docker_local builder variant ~lower_bound host_base base label pool =
   let base = Raw.Image.of_hash image in
   { label; builder; pool; variant; base; vars }
 
-let get ~arch ~label ~conn ~builder ~pool ~distro ~ocaml_version
-    ~opam_version ~lower_bound tag =
+let get ~arch ~label ~conn ~builder ~pool ~distro ~ocaml_version ~opam_version
+    ~lower_bound tag =
   match Variant.v ~arch ~distro ~ocaml_version ~opam_version with
   | Error (`Msg m) -> Current.fail m
   | Ok variant ->
@@ -119,11 +119,13 @@ let get_local ~arch ~label ~builder ~pool ~distro ~ocaml_version ~host_base
   | Error (`Msg m) -> Current.fail m
   | Ok variant ->
       let upper_bound =
-        get_docker_local builder variant ~lower_bound:false host_base base label pool
+        get_docker_local builder variant ~lower_bound:false host_base base label
+          pool
       in
       if lower_bound then
         let lower_bound =
-          get_docker_local builder variant ~lower_bound:true host_base base label pool
+          get_docker_local builder variant ~lower_bound:true host_base base
+            label pool
         in
         Current.list_seq [ upper_bound; lower_bound ]
       else Current.list_seq [ upper_bound ]

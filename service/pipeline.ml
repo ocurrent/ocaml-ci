@@ -111,7 +111,8 @@ let set_active_refs ~repo refs default_ref =
 
 let local_test ~query_uri ~solver repo () =
   let platforms =
-    Conf.fetch_platforms ~query_uri ~include_macos:false ~include_freebsd:false ()
+    Conf.fetch_platforms ~query_uri ~include_macos:false ~include_freebsd:false
+      ()
   in
   let src = Git.Local.head_commit repo in
   let src_content = Repo_content.extract src in

@@ -3,7 +3,6 @@ module Raw = Current_docker.Raw
 module Worker = Ocaml_ci_api.Worker
 
 let ( >>!= ) = Lwt_result.bind
-
 let id = "opam-vars-local"
 
 type t = { pool : unit Current.Pool.t }
@@ -38,9 +37,7 @@ end
 
 (* This is needed iff the opam used isn't the image default opam. *)
 let prepare_image ~job ~docker_context ~tag variant image =
-  let opam =
-    "opam-" ^ Opam_version.to_string (Variant.opam_version variant)
-  in
+  let opam = "opam-" ^ Opam_version.to_string (Variant.opam_version variant) in
   let prefix =
     match Variant.os variant with
     | `macOS -> "~/local"
@@ -107,8 +104,7 @@ let get_ocaml_package ~docker_context image =
 
 let run { pool } job { Key.docker_context; variant; lower_bound }
     { Value.image; host_image } =
-  Current.Job.start job ~pool ~level:Current.Level.Mostly_harmless
-  >>= fun () ->
+  Current.Job.start job ~pool ~level:Current.Level.Mostly_harmless >>= fun () ->
   let prep_image =
     Fmt.str "ocurrent/ocaml-ci:%s" (Variant.docker_tag variant)
   in
@@ -151,8 +147,7 @@ let run { pool } job { Key.docker_context; variant; lower_bound }
   | Ok vars -> Lwt_result.return { Outcome.vars; image }
 
 let pp f (key, value) =
-  Fmt.pf f "opam vars of %a@,(%s)" Variant.pp key.Key.variant
-    value.Value.image
+  Fmt.pf f "opam vars of %a@,(%s)" Variant.pp key.Key.variant value.Value.image
 
 let auto_cancel = false
 let latched = true

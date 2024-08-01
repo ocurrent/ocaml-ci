@@ -205,7 +205,8 @@ let submission_query_service =
   @@ Arg.opt Arg.(some Capnp_rpc_unix.sturdy_uri) None
   @@ Arg.info
        ~doc:
-         "The query-solve.cap file which handles building opam variables for various platforms. The cap file could be the same as \
+         "The query-solve.cap file which handles building opam variables for \
+          various platforms. The cap file could be the same as \
           $(b,--submission-service) or omitted to use the local system."
        ~docv:"FILE"
        [ "submission-query-service" ]

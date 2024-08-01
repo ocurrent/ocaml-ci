@@ -89,4 +89,3 @@ val peek :
   string Current.t
 (** [peek ~schedule ~builder ~distro ~ocaml_version] pulls
     "ocaml/opam:\{distro\}-ocaml-\{version\}" on [schedule]. *)
-
