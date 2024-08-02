@@ -1,5 +1,5 @@
-(* Use opam-2.1 to lint the packages *)
-let opam_version = `V2_1
+(* Use opam-2.2 to lint the packages *)
+let opam_version = `V2_2
 
 let install_ocamlformat =
   let open Obuilder_spec in

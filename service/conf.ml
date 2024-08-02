@@ -100,7 +100,7 @@ let freebsd_distros =
         distro = "freebsd";
         ocaml_version;
         arch = `X86_64;
-        opam_version = `V2_1;
+        opam_version = `V2_2;
         lower_bound = false;
       })
     default_compilers
@@ -116,7 +116,7 @@ let macos_distros =
         distro = "macos-homebrew";
         ocaml_version;
         arch = `X86_64;
-        opam_version = `V2_1;
+        opam_version = `V2_2;
         lower_bound = false;
       })
     default_compilers
@@ -129,7 +129,7 @@ let macos_distros =
           distro = "macos-homebrew";
           ocaml_version;
           arch = `Aarch64;
-          opam_version = `V2_1;
+          opam_version = `V2_2;
           lower_bound = false;
         })
       default_compilers
@@ -306,8 +306,8 @@ let fetch_platforms ~query_uri ~include_macos ~include_freebsd () =
         Platform.get_local ~arch ~label ~builder ~pool ~distro ~ocaml_version
           ~host_base ~opam_version ~lower_bound base
   in
-  let v2_1 =
-    platforms ~profile:platforms_profile `V2_1 ~include_macos ~include_freebsd
+  let v2_2 =
+    platforms ~profile:platforms_profile `V2_2 ~include_macos ~include_freebsd
     |> merge_lower_bound_platforms
   in
-  Current.list_seq (List.map v v2_1) |> Current.map List.flatten
+  Current.list_seq (List.map v v2_2) |> Current.map List.flatten

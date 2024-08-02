@@ -203,7 +203,7 @@ let spec ~base ~repo ~config ~variant =
   stage ~from:base
   @@ [ comment "%s" (Variant.to_string variant); user_unix ~uid:1000 ~gid:1000 ]
   @ initialize_switch ~network switch_type
-  @ Opam_build.install_project_deps ~opam_version:`V2_1 ~opam_files:[]
+  @ Opam_build.install_project_deps ~opam_version:`V2_2 ~opam_files:[]
       ~selection
   @ [
       workdir "/src";
