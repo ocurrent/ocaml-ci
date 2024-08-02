@@ -46,14 +46,15 @@ module Op = struct
   module Value = struct
     type t = {
       ty : Spec.ty;
-      base : Platform.base; (* The image with the OCaml compiler to use. *)
+      base : Current_docker.Raw.Image.t;
+          (* The image with the OCaml compiler to use. *)
       variant : Variant.t; (* Added as a comment in the Dockerfile *)
     }
 
     let to_json { base; ty; variant } =
       `Assoc
         [
-          ("base", Platform.to_yojson base);
+          ("base", `String (Image.hash base));
           ("op", Spec.ty_to_yojson ty);
           ("variant", Variant.to_yojson variant);
         ]
@@ -75,8 +76,8 @@ module Op = struct
       | `Opam_fmt (selection, _) -> "ocamlformat-" ^ selection.Selection.commit
       | `Opam_monorepo _ -> "opam-monorepo-" ^ Variant.to_string variant
     in
-    Fmt.str "%s/%s-%s-%a-%s" owner name (Platform.to_string base) Variant.pp
-      variant deps
+    Fmt.str "%s/%s-%s-%a-%s" owner name (Image.hash base) Variant.pp variant
+      deps
 
   let run t job { Key.pool; commit; label = _; repo } spec =
     Current.Job.on_cancel job (fun reason ->
@@ -88,7 +89,7 @@ module Op = struct
     let { Value.base; variant; ty } = spec in
     let build_spec = Build.make_build_spec ~base ~repo ~variant ~ty in
     Current.Job.write job
-      (Fmt.str "@[<v>Base: %a@,%a@]@." Platform.base_pp base Spec.pp_summary ty);
+      (Fmt.str "@[<v>Base: %a@,%a@]@." Image.pp base Spec.pp_summary ty);
     Current.Job.write job
       (Fmt.str
          "@.To reproduce locally:@.@.%a@.cat > Dockerfile \

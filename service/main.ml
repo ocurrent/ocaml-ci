@@ -111,7 +111,7 @@ let run_capnp capnp_public_address capnp_listen_address =
       Lwt.return (vat, Some rpc_engine_resolver)
 
 let main () config mode app capnp_public_address capnp_listen_address
-    github_auth submission_uri solve_uri migrations :
+    github_auth submission_uri solve_uri query_uri migrations :
     ('a, [ `Msg of string ]) result =
   Lwt_main.run
     (let solver = Backend_solver.v solve_uri in
@@ -122,7 +122,7 @@ let main () config mode app capnp_public_address capnp_listen_address
      in
      let engine =
        Current.Engine.create ~config
-         (Pipeline.v ?ocluster ~app ~solver ~migrations)
+         (Pipeline.v ?ocluster ~app ~solver ~query_uri ~migrations)
      in
      rpc_engine_resolver
      |> Option.iter (fun r ->
@@ -203,6 +203,17 @@ let submission_solver_service =
        ~docv:"FILE"
        [ "submission-solver-service" ]
 
+let submission_query_service =
+  Arg.value
+  @@ Arg.opt Arg.(some Capnp_rpc_unix.sturdy_uri) None
+  @@ Arg.info
+       ~doc:
+         "The query-solve.cap file which handles building opam variables for \
+          various platforms. The cap file could be the same as \
+          $(b,--submission-service) or omitted to use the local system."
+       ~docv:"FILE"
+       [ "submission-query-service" ]
+
 let cmd =
   let doc = "Build OCaml projects on GitHub" in
   let info = Cmd.info "ocaml-ci-service" ~doc ~envs:Conf.cmdliner_envs in
@@ -219,6 +230,7 @@ let cmd =
         $ Current_github.Auth.cmdliner
         $ submission_service
         $ submission_solver_service
+        $ submission_query_service
         $ migrations))
 
 let () = exit @@ Cmd.eval cmd

@@ -10,7 +10,7 @@ secrets:
     external: true
   ocaml-ci-oauth:
     external: true
-  ocaml-ci-submission.cap:
+  ocaml-ci-submission-cap:
     external: true
   ocaml-ci-webhook-secret:
     external: true
@@ -20,7 +20,7 @@ secrets:
     external: true
   ocaml-ci-gitlab-webhook-secret:
     external: true
-  ocaml-ci-solver.cap:
+  ocaml-ci-solver-cap:
     external: true
 
 services:
@@ -36,8 +36,8 @@ services:
       --confirm above-average
       --confirm-auto-release 120
       --capnp-public-address=tcp:ocaml.ci.dev:8102 --capnp-listen-address=tcp:0.0.0.0:9000
-      --submission-service /run/secrets/ocaml-ci-submission.cap
-      --submission-solver-service /run/secrets/ocaml-ci-solver.cap 
+      --submission-service /run/secrets/ocaml-ci-submission-cap
+      --submission-solver-service /run/secrets/ocaml-ci-solver-cap 
       --migration-path /migrations
       --verbosity info
       --github-account-allowlist GITHUB_ORGANISATIONS
@@ -55,8 +55,8 @@ services:
     secrets:
       - 'ocaml-ci-oauth'
       - 'ocaml-ci-github-key'
-      - 'ocaml-ci-submission.cap'
-      - 'ocaml-ci-solver.cap'
+      - 'ocaml-ci-submission-cap'
+      - 'ocaml-ci-solver-cap'
       - 'ocaml-ci-webhook-secret'
     sysctls:
       - 'net.ipv4.tcp_keepalive_time=60'
@@ -69,8 +69,8 @@ services:
       --gitlab-oauth /run/secrets/ocaml-ci-gitlab-oauth
       --gitlab-token-file /run/secrets/ocaml-ci-gitlab-token
       --gitlab-webhook-secret-file /run/secrets/ocaml-ci-gitlab-webhook-secret
-      --submission-service /run/secrets/ocaml-ci-submission.cap
-      --submission-solver-service /run/secrets/ocaml-ci-solver.cap
+      --submission-service /run/secrets/ocaml-ci-submission-cap
+      --submission-solver-service /run/secrets/ocaml-ci-solver-cap
       --capnp-public-address=tcp:ocaml.ci.dev:8202
       --capnp-listen-address=tcp:0.0.0.0:9000
       --migration-path /migrations
@@ -89,8 +89,8 @@ services:
     secrets:
       - 'ocaml-ci-gitlab-oauth'
       - 'ocaml-ci-gitlab-token'
-      - 'ocaml-ci-submission.cap'
-      - 'ocaml-ci-solver.cap'
+      - 'ocaml-ci-submission-cap'
+      - 'ocaml-ci-solver-cap'
       - 'ocaml-ci-gitlab-webhook-secret'
     sysctls:
       - 'net.ipv4.tcp_keepalive_time=60'

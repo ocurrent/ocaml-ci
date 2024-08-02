@@ -10,7 +10,7 @@ let main () config mode repo : ('a, [ `Msg of string ]) result =
   let repo = Current_git.Local.v (Fpath.v repo) in
   let engine =
     Current.Engine.create ~config
-      (Ocaml_ci_gitlab.Pipeline.local_test ~solver repo)
+      (Ocaml_ci_gitlab.Pipeline.local_test ~query_uri:None ~solver repo)
   in
   let site =
     Current_web.Site.(v ~has_role:allow_all)
