@@ -12,7 +12,7 @@ val v :
     (e.g. GitHub or GitLab). *)
 
 val make_build_spec :
-  base:Platform.base ->
+  base:Current_docker.Raw.Image.t ->
   repo:Repo_id.t ->
   variant:Variant.t ->
   ty:Spec.ty ->

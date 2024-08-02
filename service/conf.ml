@@ -247,8 +247,16 @@ let merge_lower_bound_platforms platforms =
   in
   upper_bound @ lower_bound
 
-let fetch_platforms ~include_macos ~include_freebsd () =
+let fetch_platforms ~query_uri ~include_macos ~include_freebsd () =
   let open Ocaml_ci in
+  let conn =
+    Option.map
+      (fun ur ->
+        let vat = Capnp_rpc_unix.client_only_vat () in
+        let sr = Capnp_rpc_unix.Vat.import_exn vat ur in
+        Current_ocluster.Connection.create sr)
+      query_uri
+  in
   let schedule = Current_cache.Schedule.v ~valid_for:(Duration.of_day 30) () in
   let v
       {
@@ -261,33 +269,29 @@ let fetch_platforms ~include_macos ~include_freebsd () =
         opam_version;
         lower_bound;
       } =
-    match distro with
-    | "macos-homebrew" ->
-        (* MacOS uses ZFS snapshots rather than docker images, hardcoding values here for now. *)
+    match (conn, distro) with
+    | Some conn, "macos-homebrew" | Some conn, "freebsd" ->
+        (* FreeBSD and MacOS uses ZFS snapshots rather than docker images. *)
         let docker_image_name =
           Fmt.str "%s-ocaml-%d.%d" distro (OV.major ocaml_version)
             (OV.minor ocaml_version)
         in
         let label =
-          Fmt.str "pull %s %s" docker_image_name (OV.string_of_arch arch)
+          Fmt.str "%s %s" docker_image_name (OV.string_of_arch arch)
         in
-        let base = Current.return ~label (`MacOS docker_image_name) in
-        Platform.get_macos ~arch ~label ~builder ~pool ~distro ~ocaml_version
+        let base = Current.return ~label docker_image_name in
+        Platform.get ~arch ~label ~conn ~builder ~pool ~distro ~ocaml_version
           ~opam_version ~lower_bound base
-    | "freebsd" ->
-        (* FreeBSD uses ZFS snapshots rather than docker images, hardcoding values here for now. *)
-        let docker_image_name =
-          Fmt.str "%s-ocaml-%d.%d" distro (OV.major ocaml_version)
-            (OV.minor ocaml_version)
+    | Some conn, _ ->
+        (* All Linux distros via Ocluster *)
+        let base =
+          Platform.peek ~arch ~schedule ~builder ~distro ~ocaml_version
+            ~opam_version
         in
-        let label =
-          Fmt.str "pull %s %s" docker_image_name (OV.string_of_arch arch)
-        in
-        let base = Current.return ~label (`FreeBSD docker_image_name) in
-        Platform.get_freebsd ~arch ~label ~builder ~pool ~distro ~ocaml_version
+        Platform.get ~arch ~label ~conn ~builder ~pool ~distro ~ocaml_version
           ~opam_version ~lower_bound base
-    | _ ->
-        (* All Linux distros *)
+    | None, _ ->
+        (* All Linux distros via local opam vars *)
         let base =
           Platform.pull ~arch ~schedule ~builder ~distro ~ocaml_version
             ~opam_version
@@ -299,7 +303,7 @@ let fetch_platforms ~include_macos ~include_freebsd () =
               Platform.pull ~arch:`X86_64 ~schedule ~builder ~distro
                 ~ocaml_version ~opam_version
         in
-        Platform.get ~arch ~label ~builder ~pool ~distro ~ocaml_version
+        Platform.get_local ~arch ~label ~builder ~pool ~distro ~ocaml_version
           ~host_base ~opam_version ~lower_bound base
   in
   let v2_2 =

@@ -22,6 +22,14 @@ val pull :
   Current_docker.Raw.Image.t Current.Primitive.t
 (** Docker [pull] an image for [arch] with a scheduled check. *)
 
+val peek :
+  t ->
+  arch:Ocaml_version.arch ->
+  string ->
+  schedule:Current_cache.Schedule.t ->
+  string Current.Primitive.t
+(** Docker [peek] an image for [arch] with a scheduled check. *)
+
 val run :
   t ->
   args:string list ->
