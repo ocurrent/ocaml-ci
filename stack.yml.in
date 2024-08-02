@@ -38,6 +38,7 @@ services:
       --capnp-public-address=tcp:ocaml.ci.dev:8102 --capnp-listen-address=tcp:0.0.0.0:9000
       --submission-service /run/secrets/ocaml-ci-submission-cap
       --submission-solver-service /run/secrets/ocaml-ci-solver-cap 
+      --submission-query-service /run/secrets/ocaml-ci-submission-cap
       --migration-path /migrations
       --verbosity info
       --github-account-allowlist GITHUB_ORGANISATIONS

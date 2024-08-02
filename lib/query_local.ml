@@ -94,12 +94,13 @@ let get_ocaml_package ~docker_context image =
       "opam";
       "list";
       "-s";
-      "--base";
-      "--roots";
-      "--all-versions";
+      "--color=never";
+      "--installed";
       "ocaml-base-compiler";
       "ocaml-variants";
       "ocaml-system";
+      "--column";
+      "package";
     ]
 
 let run { pool } job { Key.docker_context; variant; lower_bound }
