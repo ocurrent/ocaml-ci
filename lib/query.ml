@@ -124,9 +124,9 @@ let run { conn } job { Key.variant; lower_bound; pool } { Value.image } =
       @ prepare_image ~variant
       @ [
           run
-            "echo '@@@OUTPUT' && opam list -s --color=never --base --roots \
-             --all-versions ocaml-base-compiler ocaml-variants ocaml-system && \
-             echo '@@@OUTPUT'";
+            "echo '@@@OUTPUT' && opam list -s --color=never --installed \
+             ocaml-base-compiler ocaml-variants ocaml-system --column package \
+             && echo '@@@OUTPUT'";
           run "echo '@@@OUTPUT' && opam config expand '%s' && echo '@@@OUTPUT'"
             (opam_template arch);
         ])
