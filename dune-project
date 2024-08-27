@@ -44,8 +44,8 @@
   (opam-0install (>= 0.4.3))
   (ppx_deriving (>= 5.1))
   (ppx_deriving_yojson (>= 3.7))
-  (tar (>= 2.4.0))
-  (tar-unix (>= 2.4.0))
+  (tar (and (>= 2.4.0) (< 3.0.0)))
+  (tar-unix (and (>= 2.4.0) (< 3.0.0)))
   (timedesc (>= 0.9.0))))
 
 (package
