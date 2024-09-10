@@ -1,4 +1,4 @@
-(lang dune 3.7)
+(lang dune 3.16)
 (name ocaml-ci)
 
 (generate_opam_files true)
@@ -6,6 +6,7 @@
 (authors "talex5@gmail.com")
 (maintainers "Navin Keswani <navin@novemberkilo.com>" "Tim McGilchrist <timmcgil@gmail.com>")
 (documentation "https://ocaml.ci.dev/documentation")
+(license "MIT")
 
 (package
  (name ocaml-ci-api)
@@ -135,10 +136,10 @@
   (ansi (>= 0.6.0))
   (capnp-rpc-unix (>= 1.2))
   (crunch (and (>= 3.2.0) :build))
-  (dream (= 1.0.0~alpha5))
+  (dream (= 1.0.0~alpha6))
   (fmt (>= 0.8.9))
   (logs (>= 0.7.0))
-  (lwt (>= 5.6.1))
+  (lwt (>= 5.7.0))
   (prometheus-app (>= 1.2))
   (ppx_deriving_yojson (>= 3.7))
   (yojson (>= 2.1))

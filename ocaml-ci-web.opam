@@ -6,21 +6,22 @@ maintainer: [
   "Tim McGilchrist <timmcgil@gmail.com>"
 ]
 authors: ["talex5@gmail.com"]
+license: "MIT"
 homepage: "https://github.com/ocurrent/ocaml-ci"
 doc: "https://ocaml.ci.dev/documentation"
 bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
-  "dune" {>= "3.7"}
+  "dune" {>= "3.16"}
   "ocaml" {>= "4.14"}
   "ocaml-ci-api"
   "tailwindcss"
   "ansi" {>= "0.6.0"}
   "capnp-rpc-unix" {>= "1.2"}
   "crunch" {>= "3.2.0" & build}
-  "dream" {= "1.0.0~alpha5"}
+  "dream" {= "1.0.0~alpha6"}
   "fmt" {>= "0.8.9"}
   "logs" {>= "0.7.0"}
-  "lwt" {>= "5.6.1"}
+  "lwt" {>= "5.7.0"}
   "prometheus-app" {>= "1.2"}
   "ppx_deriving_yojson" {>= "3.7"}
   "yojson" {>= "2.1"}
@@ -44,5 +45,5 @@ build: [
 ]
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
 pin-depends: [
-  ["tailwindcss.dev" "https://github.com/tmattio/opam-tailwindcss/archive/3e60fc32bbcf82525999d83ad0f395e16107026b.tar.gz"]
+  ["tailwindcss.dev" "https://github.com/tmattio/opam-tailwindcss/archive/e5bb6361a50c7cc5cad802311e609336583ca08f.tar.gz"]
 ]

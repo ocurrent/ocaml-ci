@@ -7,11 +7,12 @@ maintainer: [
   "Tim McGilchrist <timmcgil@gmail.com>"
 ]
 authors: ["talex5@gmail.com"]
+license: "MIT"
 homepage: "https://github.com/ocurrent/ocaml-ci"
 doc: "https://ocaml.ci.dev/documentation"
 bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
-  "dune" {>= "3.7"}
+  "dune" {>= "3.16"}
   "ocaml" {>= "4.14"}
   "ocaml-ci"
   "ocaml-ci-service"
