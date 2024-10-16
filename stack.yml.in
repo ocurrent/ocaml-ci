@@ -72,6 +72,7 @@ services:
       --gitlab-webhook-secret-file /run/secrets/ocaml-ci-gitlab-webhook-secret
       --submission-service /run/secrets/ocaml-ci-submission-cap
       --submission-solver-service /run/secrets/ocaml-ci-solver-cap
+      --submission-query-service /run/secrets/ocaml-ci-submission-cap
       --capnp-public-address=tcp:ocaml.ci.dev:8202
       --capnp-listen-address=tcp:0.0.0.0:9000
       --migration-path /migrations
