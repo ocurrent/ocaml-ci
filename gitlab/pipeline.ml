@@ -95,6 +95,16 @@ let gitlab_repos : Gitlab.Repo_id.t list =
       Gitlab.Repo_id.name = "tezt";
       project_id = 41852995;
     };
+    {
+      Gitlab.Repo_id.owner = "raphael-proust";
+      Gitlab.Repo_id.name = "queenshead";
+      project_id = 50742201;
+    };
+    {
+      Gitlab.Repo_id.owner = "raphael-proust";
+      Gitlab.Repo_id.name = "entombed";
+      project_id = 30307357;
+    };
   ]
 
 (* Fake Installation module, we don't have this in GitLab. *)
