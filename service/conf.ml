@@ -89,6 +89,22 @@ type platform = {
   lower_bound : bool;
 }
 
+(* Support OCaml default compilers on OpenBSD platform. *)
+let openbsd_distros =
+  List.map
+    (fun ocaml_version ->
+      {
+        label = "openbsd";
+        builder = Builders.local;
+        pool = `OpenBSD_amd64;
+        distro = "openbsd-76-amd64";
+        ocaml_version;
+        arch = `X86_64;
+        opam_version = `V2_3;
+        lower_bound = false;
+      })
+    default_compilers
+
 (* Support OCaml default compilers on Windows platform. *)
 let windows_distros =
   List.map
@@ -158,7 +174,7 @@ let pool_of_arch = function
   | `Riscv64 -> `Linux_riscv64
 
 let platforms ~profile ~include_macos ~include_freebsd ~include_windows
-    opam_version =
+    ~include_openbsd opam_version =
   let v ?(arch = `X86_64) ?(lower_bound = false) label distro ocaml_version =
     {
       arch;
@@ -205,6 +221,7 @@ let platforms ~profile ~include_macos ~include_freebsd ~include_windows
         distros
         |> List.append (if include_macos then macos_distros else [])
         |> List.append (if include_freebsd then freebsd_distros else [])
+        |> List.append (if include_openbsd then openbsd_distros else [])
         |> List.append (if include_windows then windows_distros else [])
       in
       (* The first one in this list is used for lint actions *)
@@ -266,7 +283,7 @@ let merge_lower_bound_platforms platforms =
   upper_bound @ lower_bound
 
 let fetch_platforms ~query_uri ~include_macos ~include_freebsd ~include_windows
-    () =
+    ~include_openbsd () =
   let open Ocaml_ci in
   let conn =
     Option.map
@@ -291,6 +308,7 @@ let fetch_platforms ~query_uri ~include_macos ~include_freebsd ~include_windows
     match (conn, distro) with
     | Some conn, "windows-server-2022-amd64"
     | Some conn, "macos-homebrew"
+    | Some conn, "openbsd-76-amd64"
     | Some conn, "freebsd-14.1" ->
         (* FreeBSD and MacOS uses ZFS snapshots rather than docker images. *)
         let docker_image_name =
@@ -329,7 +347,7 @@ let fetch_platforms ~query_uri ~include_macos ~include_freebsd ~include_windows
   in
   let v2_3 =
     platforms ~profile:platforms_profile `V2_3 ~include_macos ~include_freebsd
-      ~include_windows
+      ~include_windows ~include_openbsd
     |> merge_lower_bound_platforms
   in
   Current.list_seq (List.map v v2_3) |> Current.map List.flatten

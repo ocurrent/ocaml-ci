@@ -13,6 +13,7 @@ module Pool_name = struct
     | `Macos_x86_64
     | `Macos_ARM64
     | `Windows_amd64
+    | `OpenBSD_amd64
     | `FreeBSD_x86_64 ]
 
   let to_string = function
@@ -24,6 +25,7 @@ module Pool_name = struct
     | `Macos_x86_64 -> "macos-x86_64"
     | `Macos_ARM64 -> "macos-arm64"
     | `Windows_amd64 -> "windows-amd64"
+    | `OpenBSD_amd64 -> "openbsd-amd64"
     | `FreeBSD_x86_64 -> "freebsd-x86_64"
 
   let of_string = function
@@ -35,6 +37,7 @@ module Pool_name = struct
     | "macos-x86_64" -> Ok `Macos_x86_64
     | "macos-arm64" -> Ok `Macos_ARM64
     | "windows-amd64" -> Ok `Windows_amd64
+    | "openbsd-amd64" -> Ok `OpenBSD_amd64
     | "freebsd-x86_64 " -> Ok `FreeBSD_x86_64
     | s -> Error (`Msg (s ^ ": invalid pool name"))
 end

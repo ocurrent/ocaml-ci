@@ -36,12 +36,13 @@ let prepare_image ~variant =
   let prefix =
     match Variant.os variant with
     | `macOS -> "~/local"
-    | `windows | `linux -> "/usr"
+    | `openBSD | `windows | `linux -> "/usr"
     | `freeBSD -> "/usr/local"
   in
   let ln =
     match Variant.os variant with
     | `windows | `macOS -> "ln"
+    | `openBSD -> "doas ln"
     | `linux | `freeBSD -> "sudo ln"
   in
   (* XXX: don't overwrite default config? *)

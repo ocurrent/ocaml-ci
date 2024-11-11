@@ -112,7 +112,7 @@ let set_active_refs ~repo refs default_ref =
 let local_test ~query_uri ~solver repo () =
   let platforms =
     Conf.fetch_platforms ~query_uri ~include_macos:false ~include_freebsd:false
-      ~include_windows:false ()
+      ~include_windows:false ~include_openbsd:false ()
   in
   let src = Git.Local.head_commit repo in
   let src_content = Repo_content.extract src in
@@ -131,7 +131,7 @@ let v ?ocluster ~app ~solver ~query_uri ~migrations () =
   in
   let platforms =
     Conf.fetch_platforms ~query_uri ~include_macos:true ~include_freebsd:true
-      ~include_windows:true ()
+      ~include_windows:true ~include_openbsd:true ()
   in
   let migrations =
     match migrations with
