@@ -86,13 +86,14 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   let prefix =
     match Variant.os variant with
     | `macOS -> "~/local"
-    | `linux -> "/usr"
+    | `openBSD | `windows | `linux -> "/usr"
     | `freeBSD -> "/usr/local"
   in
   let ln =
     match Variant.os variant with
-    | `macOS -> "ln"
+    | `windows | `macOS -> "ln"
     | `linux | `freeBSD -> "sudo ln"
+    | `openBSD -> "doas ln"
   in
   let groups = group_opam_files opam_files in
   let root_pkgs = get_root_opam_packages groups in
@@ -110,10 +111,15 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   let open Obuilder_spec in
   let cache =
     match Variant.os variant with
-    | `freeBSD | `linux ->
+    | `openBSD | `freeBSD | `linux ->
         [
           Obuilder_spec.Cache.v download_cache
             ~target:"/home/opam/.opam/download-cache";
+        ]
+    | `windows ->
+        [
+          Obuilder_spec.Cache.v download_cache
+            ~target:"c:\\Users\\opam\\AppData\\local\\opam\\download-cache";
         ]
     | `macOS ->
         [
@@ -129,16 +135,17 @@ let install_project_deps ~opam_version ~opam_files ~selection =
       [ run ~network "sudo dnf install -y findutils" ] (* (we need xargs) *)
     else []
   in
-  let network = [ "host" ] in
 
   let home_dir =
     match Variant.os selection.Selection.variant with
-    | `macOS -> None
+    | `openBSD | `windows | `macOS -> None
     | `linux -> Some "/src"
     | `freeBSD -> Some "/src"
   in
   let work_dir =
     match Variant.os selection.Selection.variant with
+    | `openBSD -> Some (Fpath.v "/home/opam/src")
+    | `windows -> Some (Fpath.v "/Users/opam/src")
     | `macOS -> Some (Fpath.v "./src/")
     | `linux -> None
     | `freeBSD -> None
@@ -207,6 +214,8 @@ let spec ~base ~opam_version ~opam_files ~selection =
   let to_name x = OpamPackage.of_string x |> OpamPackage.name_to_string in
   let home_dir =
     match Variant.os selection.Selection.variant with
+    | `openBSD -> "/home/opam/src"
+    | `windows -> "/Users/opam/src"
     | `macOS -> "./src"
     | `linux -> "/src"
     | `freeBSD -> "/src"
@@ -218,6 +227,16 @@ let spec ~base ~opam_version ~opam_files ~selection =
   in
   let run_build =
     match Variant.os selection.Selection.variant with
+    | `openBSD ->
+        run
+          "cd /home/opam/src && opam exec -- dune build%s @install @check \
+           @runtest && rm -rf _build"
+          only_packages
+    | `windows ->
+        run
+          "cd /cygdrive/c/Users/opam/src && opam exec -- dune build%s @install \
+           @check @runtest && rm -rf _build"
+          only_packages
     | `macOS ->
         run
           "cd ./src && opam exec -- dune build%s @install @check @runtest && \

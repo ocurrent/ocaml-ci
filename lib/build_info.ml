@@ -12,9 +12,17 @@ let of_label label = { label; variant = None }
     If it is experimental we allow those builds to fail without failing the
     overall build for a commit. *)
 let experimental_variant s =
-  Astring.String.(
-    is_prefix ~affix:Variant.lower_bound_label s.label
-    || is_prefix ~affix:Variant.opam_label s.label)
+  if
+    Astring.String.(
+      is_prefix ~affix:Variant.lower_bound_label s.label
+      || is_prefix ~affix:Variant.opam_label s.label)
+  then true
+  else
+    match s.variant with
+    | None -> false
+    | Some v ->
+        Astring.String.equal "windows-server-2022-amd64" (Variant.distro v)
+        || Astring.String.equal "openbsd-76-amd64" (Variant.distro v)
 
 (** Like [experimental_variant], but takes strings for when a [build_info]
     record is unavailable.
@@ -24,4 +32,6 @@ let experimental_variant s =
 let experimental_variant_str s =
   Astring.String.(
     is_prefix ~affix:Variant.lower_bound_label s
-    || is_prefix ~affix:Variant.opam_label s)
+    || is_prefix ~affix:Variant.opam_label s
+    || is_prefix ~affix:"openbsd-76-amd64" s
+    || is_prefix ~affix:"windows-server-2022-amd64" s)

@@ -9,6 +9,8 @@ module Pool_name : sig
     | `Linux_riscv64
     | `Macos_x86_64
     | `Macos_ARM64
+    | `Windows_amd64
+    | `OpenBSD_amd64
     | `FreeBSD_x86_64 ]
 
   val to_string : t -> string

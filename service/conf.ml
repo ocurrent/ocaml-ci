@@ -89,6 +89,38 @@ type platform = {
   lower_bound : bool;
 }
 
+(* Support OCaml default compilers on OpenBSD platform. *)
+let openbsd_distros =
+  List.map
+    (fun ocaml_version ->
+      {
+        label = "openbsd";
+        builder = Builders.local;
+        pool = `OpenBSD_amd64;
+        distro = "openbsd-76-amd64";
+        ocaml_version;
+        arch = `X86_64;
+        opam_version = `V2_3;
+        lower_bound = false;
+      })
+    default_compilers
+
+(* Support OCaml default compilers on Windows platform. *)
+let windows_distros =
+  List.map
+    (fun ocaml_version ->
+      {
+        label = "windows-server-2022";
+        builder = Builders.local;
+        pool = `Windows_amd64;
+        distro = "windows-server-2022-amd64";
+        ocaml_version;
+        arch = `X86_64;
+        opam_version = `V2_2;
+        lower_bound = false;
+      })
+    default_compilers
+
 (* Support OCaml default compilers on FreeBSD platform. *)
 let freebsd_distros =
   List.map
@@ -141,7 +173,8 @@ let pool_of_arch = function
   | `Ppc64le -> `Linux_ppc64
   | `Riscv64 -> `Linux_riscv64
 
-let platforms ~profile ~include_macos ~include_freebsd opam_version =
+let platforms ~profile ~include_macos ~include_freebsd ~include_windows
+    ~include_openbsd opam_version =
   let v ?(arch = `X86_64) ?(lower_bound = false) label distro ocaml_version =
     {
       arch;
@@ -188,6 +221,8 @@ let platforms ~profile ~include_macos ~include_freebsd opam_version =
         distros
         |> List.append (if include_macos then macos_distros else [])
         |> List.append (if include_freebsd then freebsd_distros else [])
+        |> List.append (if include_openbsd then openbsd_distros else [])
+        |> List.append (if include_windows then windows_distros else [])
       in
       (* The first one in this list is used for lint actions *)
       let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas in
@@ -247,7 +282,8 @@ let merge_lower_bound_platforms platforms =
   in
   upper_bound @ lower_bound
 
-let fetch_platforms ~query_uri ~include_macos ~include_freebsd () =
+let fetch_platforms ~query_uri ~include_macos ~include_freebsd ~include_windows
+    ~include_openbsd () =
   let open Ocaml_ci in
   let conn =
     Option.map
@@ -270,7 +306,10 @@ let fetch_platforms ~query_uri ~include_macos ~include_freebsd () =
         lower_bound;
       } =
     match (conn, distro) with
-    | Some conn, "macos-homebrew" | Some conn, "freebsd-14.1" ->
+    | Some conn, "windows-server-2022-amd64"
+    | Some conn, "macos-homebrew"
+    | Some conn, "openbsd-76-amd64"
+    | Some conn, "freebsd-14.1" ->
         (* FreeBSD and MacOS uses ZFS snapshots rather than docker images. *)
         let docker_image_name =
           Fmt.str "%s-ocaml-%d.%d" distro (OV.major ocaml_version)
@@ -308,6 +347,7 @@ let fetch_platforms ~query_uri ~include_macos ~include_freebsd () =
   in
   let v2_3 =
     platforms ~profile:platforms_profile `V2_3 ~include_macos ~include_freebsd
+      ~include_windows ~include_openbsd
     |> merge_lower_bound_platforms
   in
   Current.list_seq (List.map v v2_3) |> Current.map List.flatten

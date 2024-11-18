@@ -41,10 +41,14 @@ type t = {
 
 let macos_distributions = [ "macos-homebrew" ]
 let freebsd_distributions = [ "freebsd-14.1" ]
+let windows_distributions = [ "windows-server-2022-amd64" ]
+let openbsd_distributions = [ "openbsd-76-amd64" ]
 
 let os { distro; _ } =
   if List.exists (String.equal distro) macos_distributions then `macOS
+  else if List.exists (String.equal distro) windows_distributions then `windows
   else if List.exists (String.equal distro) freebsd_distributions then `freeBSD
+  else if List.exists (String.equal distro) openbsd_distributions then `openBSD
   else `linux
 
 let v ~arch ~distro ~ocaml_version ~opam_version =
