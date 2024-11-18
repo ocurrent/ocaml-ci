@@ -40,7 +40,7 @@ type t = {
 [@@deriving yojson, ord, eq]
 
 let macos_distributions = [ "macos-homebrew" ]
-let freebsd_distributions = [ "freebsd" ]
+let freebsd_distributions = [ "freebsd-14.1" ]
 
 let os { distro; _ } =
   if List.exists (String.equal distro) macos_distributions then `macOS

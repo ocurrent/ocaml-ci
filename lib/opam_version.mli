@@ -1,6 +1,6 @@
 (** Opam versions supported. *)
 
-type t = [ `V2_0 | `V2_1 | `V2_2 ] [@@deriving ord, yojson, eq]
+type t = [ `V2_0 | `V2_1 | `V2_2 | `V2_3 ] [@@deriving ord, yojson, eq]
 
 val pp : t Fmt.t
 val to_string : t -> string
