@@ -116,7 +116,7 @@ let windows_distros =
         distro = "windows-server-2022-amd64";
         ocaml_version;
         arch = `X86_64;
-        opam_version = `V2_2;
+        opam_version = `V2_3;
         lower_bound = false;
       })
     default_compilers
