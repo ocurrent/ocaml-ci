@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
-FROM ocaml/opam:debian-12-ocaml-4.14@sha256:aeed2457dc910827bacd43f1f7bcc0759d6c6e6c676c062fd0c9adf7989965c2 AS build
+FROM ocaml/opam:debian-12-ocaml-4.14@sha256:6246731ea5d2cd3a57669027aae33184d30d424e41ff8219d05a214726ef7426 AS build
 RUN sudo ln -f /usr/bin/opam-2.2 /usr/bin/opam && opam init --reinit -ni
 RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libgmp-dev libssl-dev libffi-dev libsqlite3-dev -y --no-install-recommends
-RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard 9048aac6300c8d05712e1840046eeff812969745 && opam update
+RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard 11bdbee61114a1cfa080b764e71c72a5760a93f0 && opam update
 COPY --chown=opam \
     ocurrent/current_rpc.opam \
     /src/ocurrent/
