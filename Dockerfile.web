@@ -1,12 +1,23 @@
 # syntax=docker/dockerfile:1
 FROM ocaml/opam:debian-12-ocaml-4.14@sha256:6246731ea5d2cd3a57669027aae33184d30d424e41ff8219d05a214726ef7426 AS build
 RUN sudo ln -sf /usr/bin/opam-2.3 /usr/bin/opam && opam init --reinit -ni
-RUN sudo apt-get update && sudo apt-get install libev-dev capnproto m4 pkg-config libgmp-dev libssl-dev libffi-dev libsqlite3-dev -y --no-install-recommends
+RUN sudo rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/keep-cache
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    sudo apt update && sudo apt-get --no-install-recommends install -y \
+    capnproto \
+    libev-dev \
+    libffi-dev \
+    libgmp-dev \
+    libsqlite3-dev \
+    libssl-dev \
+    m4 \
+    pkg-config
 RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard 11bdbee61114a1cfa080b764e71c72a5760a93f0 && opam update
-COPY --chown=opam \
+COPY --chown=opam --link \
     ocurrent/current_rpc.opam \
     /src/ocurrent/
-COPY --chown=opam \
+COPY --chown=opam --link \
     solver-service/solver-service.opam \
     solver-service/solver-worker.opam \
     solver-service/solver-service-api.opam \
@@ -14,24 +25,34 @@ COPY --chown=opam \
 WORKDIR /src
 RUN opam pin -yn add ./ocurrent
 RUN opam pin -yn add ./solver-service
-COPY --chown=opam ocaml-ci-api.opam ocaml-ci-web.opam ocaml-ci.opam /src/
-RUN opam install -y --deps-only .
+COPY --chown=opam --link ocaml-ci-api.opam ocaml-ci-web.opam ocaml-ci.opam /src/
+RUN --mount=type=cache,target=/home/opam/.opam/download-cache,sharing=locked,uid=1000,gid=1000 \
+    opam install -y --deps-only .
 ADD --chown=opam . .
 RUN opam config exec -- dune build ./_build/install/default/bin/ocaml-ci-web
 
 FROM debian:12
-RUN apt-get update && apt-get install libev4 libsqlite3-dev curl jq dumb-init -y --no-install-recommends
+RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
+# ca-certificates: https://github.com/mirage/ocaml-conduit/issues/388
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt update && apt-get --no-install-recommends install -y \
+    ca-certificates \
+    curl \
+    dumb-init \
+    jq \
+    libev4 \
+    libsqlite3-dev
 WORKDIR /
 ENTRYPOINT ["dumb-init", "/usr/local/bin/ocaml-ci-web"]
 
-RUN apt-get install ca-certificates -y  # https://github.com/mirage/ocaml-conduit/issues/388
-COPY --from=build /src/_build/install/default/bin/ocaml-ci-web /usr/local/bin/
+COPY --from=build --link /src/_build/install/default/bin/ocaml-ci-web /usr/local/bin/
 
 ## Load profile-pictures of registered organisations
 RUN mkdir -p /profile-pictures/github
 RUN mkdir -p /profile-pictures/gitlab
-COPY --from=build /src/bin/add-profile-picture /usr/local/bin
-COPY --from=build /src/deploy-data/github-organisations.txt /github-organisations.txt
-COPY --from=build /src/deploy-data/gitlab-organisations.txt /gitlab-organisations.txt
+COPY --from=build --link /src/bin/add-profile-picture /usr/local/bin
+COPY --from=build --link /src/deploy-data/github-organisations.txt /github-organisations.txt
+COPY --from=build --link /src/deploy-data/gitlab-organisations.txt /gitlab-organisations.txt
 RUN xargs -n 1 /usr/local/bin/add-profile-picture --github < /github-organisations.txt
 RUN xargs -n 1 /usr/local/bin/add-profile-picture --gitlab < /gitlab-organisations.txt
