@@ -78,7 +78,7 @@ let get_job_id x =
 let excluded_selection =
   let is_debian_12_x86_32 (v : Variant.t) =
     match (Variant.distro v, Variant.arch v) with
-    | "debian-12", `X86_64 -> true
+    | "debian-12", `I386 -> true
     | _ -> false
   in
   let is_conf_capnproto package_name =
