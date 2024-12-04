@@ -65,8 +65,10 @@ let pin_opam_files ~network ?work_dir groups =
                           work_dir
                         |> Option.value ~default:dir
                       in
-                      Printf.sprintf "opam pin add -yn %s %s" pkg
-                        (Filename.quote (Fpath.to_string dir))))
+                      Printf.sprintf "opam pin add -yn %s %s && echo '(lang dune 3.0)' > %s" pkg
+                        (Filename.quote (Fpath.to_string dir))
+                        (Filename.quote (Fpath.to_string (Fpath.( // ) dir (Fpath.v "dune-project"))))
+                 ))
         |> String.concat " && \n"
         |> run ~network "%s";
       ]
