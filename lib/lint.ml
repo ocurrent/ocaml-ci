@@ -106,8 +106,9 @@ let doc_spec ~base ~opam_files ~selection =
      :: user_unix ~uid:1000 ~gid:1000
      :: Opam_build.install_project_deps ~opam_version ~opam_files ~selection
   @ [
-      run ~network ~cache "opam install --yes dune 'odoc>=1.5.0'";
       copy [ "." ] ~dst:"/src/";
+      run "opam update --development";
+      run ~network ~cache "opam install --yes dune 'odoc>=1.5.0'";
       (* Warnings-as-errors was introduced in Odoc.1.5.0 *)
       run
         "ODOC_WARN_ERROR=false opam exec -- dune build%s @doc || (echo \"dune \
