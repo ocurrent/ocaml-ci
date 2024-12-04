@@ -192,9 +192,7 @@ let test_windows_spec () =
     |> Result.get_ok
   in
   let actual =
-    Opam_build.spec
-      ~base:
-        "windows-server-2022-amd64-ocaml-4.14"
+    Opam_build.spec ~base:"windows-server-2022-amd64-ocaml-4.14"
       ~opam_version:`V2_3 ~opam_files:[ "bondi.opam" ]
       ~selection:
         Selection.
@@ -203,7 +201,26 @@ let test_windows_spec () =
             packages =
               [
                 "bondi.dev";
-                "arch-x86_64.1"; "base-bigarray.base"; "base-threads.base"; "base-unix.base"; "conf-mingw-w64-gcc-x86_64.1"; "dune.3.17.0"; "flexdll.0.43"; "host-arch-x86_64.1"; "host-system-mingw.1"; "menhir.20240715"; "menhirCST.20240715"; "menhirLib.20240715"; "menhirSdk.20240715"; "mingw-w64-shims.0.2.0"; "ocaml.4.14.2"; "ocaml-base-compiler.4.14.2"; "ocaml-config.3"; "ocaml-env-mingw64.1"; "ocaml-options-vanilla.1"; "system-mingw.1";
+                "arch-x86_64.1";
+                "base-bigarray.base";
+                "base-threads.base";
+                "base-unix.base";
+                "conf-mingw-w64-gcc-x86_64.1";
+                "dune.3.17.0";
+                "flexdll.0.43";
+                "host-arch-x86_64.1";
+                "host-system-mingw.1";
+                "menhir.20240715";
+                "menhirCST.20240715";
+                "menhirLib.20240715";
+                "menhirSdk.20240715";
+                "mingw-w64-shims.0.2.0";
+                "ocaml.4.14.2";
+                "ocaml-base-compiler.4.14.2";
+                "ocaml-config.3";
+                "ocaml-env-mingw64.1";
+                "ocaml-options-vanilla.1";
+                "system-mingw.1";
               ];
             only_packages = [];
             commit = "f207d3f018d642d1fcddb2c118e7fa8e65f4e366";
