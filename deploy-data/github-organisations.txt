@@ -106,3 +106,4 @@ ahrefs
 ocaml-semver
 raphael-proust
 tiferrei
+deepmarker
