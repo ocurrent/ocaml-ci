@@ -126,10 +126,10 @@ let freebsd_distros =
   List.map
     (fun ocaml_version ->
       {
-        label = "freebsd-14.1";
+        label = "freebsd-14.2";
         builder = Builders.local;
         pool = `FreeBSD_x86_64;
-        distro = "freebsd-14.1";
+        distro = "freebsd-14.2";
         ocaml_version;
         arch = `X86_64;
         opam_version = `V2_3;
