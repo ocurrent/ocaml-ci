@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM ocaml/opam:debian-12-ocaml-4.14@sha256:6246731ea5d2cd3a57669027aae33184d30d424e41ff8219d05a214726ef7426 AS build
+FROM ocaml/opam:debian-12-ocaml-4.14 AS build
 RUN sudo ln -sf /usr/bin/opam-2.3 /usr/bin/opam && opam init --reinit -ni
 RUN sudo rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/keep-cache
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -14,7 +14,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     m4 \
     pkg-config \
     libcapnp-dev
-RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard 11bdbee61114a1cfa080b764e71c72a5760a93f0 && opam update
+RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard d7624eae68058be71701657e00ba2d124e55daaa && opam update
 COPY --chown=opam --link \
 	ocurrent/current_docker.opam \
 	ocurrent/current_github.opam \
