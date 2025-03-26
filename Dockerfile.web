@@ -26,6 +26,7 @@ WORKDIR /src
 RUN opam pin -yn add ./ocurrent
 RUN opam pin -yn add ./solver-service
 COPY --chown=opam --link ocaml-ci-api.opam ocaml-ci-web.opam ocaml-ci.opam /src/
+ENV OPAMSOLVERTIMEOUT=900
 RUN --mount=type=cache,target=/home/opam/.opam/download-cache,sharing=locked,uid=1000,gid=1000 \
     opam install -y --deps-only .
 ADD --chown=opam . .

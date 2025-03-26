@@ -50,6 +50,7 @@ RUN opam pin add -yn current_docker.dev "./ocurrent" && \
     opam pin add -yn solver-service.dev "./solver-service" && \
     opam pin add -yn ocluster-api.dev "./ocluster"
 COPY --chown=opam --link ocaml-ci.opam ocaml-ci-gitlab.opam ocaml-ci-service.opam ocaml-ci-api.opam /src/
+ENV OPAMSOLVERTIMEOUT=900
 RUN --mount=type=cache,target=/home/opam/.opam/download-cache,sharing=locked,uid=1000,gid=1000 \
     opam install -y --deps-only .
 ADD --chown=opam . .
