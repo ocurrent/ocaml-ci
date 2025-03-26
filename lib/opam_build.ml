@@ -71,6 +71,26 @@ let pin_opam_files ~network ?work_dir groups =
         |> run ~network "%s";
       ]
 
+let create_dune_project_files ~network ?dune_work_dir groups =
+  if groups = [] then []
+  else
+    let open Obuilder_spec in
+    [
+      groups
+      |> List.map (fun (dir, _, _) ->
+             let dir =
+               Option.map
+                 (fun work_dir -> Fpath.( // ) work_dir dir)
+                 dune_work_dir
+               |> Option.value ~default:dir
+             in
+             Printf.sprintf "echo '(lang dune 3.0)' > %s"
+               (Filename.quote
+                  (Fpath.to_string (Fpath.( // ) dir (Fpath.v "dune-project")))))
+      |> String.concat " && \n"
+      |> run ~network "%s";
+    ]
+
 (* Get the packages directly in "." *)
 let rec get_root_opam_packages = function
   | [] -> []
@@ -150,6 +170,11 @@ let install_project_deps ~opam_version ~opam_files ~selection =
     | `linux -> None
     | `freeBSD -> None
   in
+  let dune_work_dir =
+    match Variant.os selection.Selection.variant with
+    | `macOS | `linux | `freeBSD | `openBSD -> work_dir
+    | `windows -> Some (Fpath.v "/cygdrive/c/Users/opam/src")
+  in
   (* XXX: don't overwrite default config? *)
   let opamrc = "" in
   let opam_version_str = Opam_version.to_string opam_version in
@@ -201,6 +226,7 @@ let install_project_deps ~opam_version ~opam_files ~selection =
         commit commit;
     ]
   @ pin_opam_files ~network ?work_dir groups
+  @ create_dune_project_files ~network ?dune_work_dir groups
   @ [
       env "DEPS" non_root_pkgs;
       env "CI" "true";
