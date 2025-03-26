@@ -4,7 +4,7 @@
 (generate_opam_files true)
 (source (github ocurrent/ocaml-ci))
 (authors "talex5@gmail.com")
-(maintainers "Navin Keswani <navin@novemberkilo.com>" "Tim McGilchrist <timmcgil@gmail.com>")
+(maintainers "Mark.Elvers <mark.elvers@tunbury.org>")
 (documentation "https://ocaml.ci.dev/documentation")
 (license "MIT")
 
@@ -13,6 +13,7 @@
  (synopsis "Cap'n Proto API for ocaml-ci")
  (depends
   (ocaml (>= 4.14))
+  (dune (< 3.17))
   ; Provided by git submodules
   current_rpc
   ; Opam dependencies
@@ -26,6 +27,7 @@
  (synopsis "Core ocaml-ci")
  (depends
   (ocaml (>= 4.14))
+  (dune (< 3.17))
   ocaml-ci-api
   ; Provided by git submodules
   current
@@ -55,6 +57,7 @@
  (conflicts (ocaml-migrate-parsetree (= "1.7.1")))
  (depends
   (ocaml (>= 4.14))
+  (dune (< 3.17))
   ocaml-ci-api
   ; Provided by git submodules
   current_git
@@ -93,6 +96,7 @@
  (description "Test OCaml projects on GitLab")
  (depends
   (ocaml (>= 4.14))
+  (dune (< 3.17))
   ocaml-ci
   ocaml-ci-service
   ; Provided by git submodules
@@ -114,6 +118,7 @@
  (synopsis "Command-line client for ocaml-ci")
  (depends
   (ocaml (>= 4.14))
+  (dune (< 3.17))
   ocaml-ci-api
   ; Provided by git submodules
   current_rpc
@@ -129,6 +134,7 @@
  (synopsis "Web-server frontend for ocaml-ci")
  (depends
   (ocaml (>= 4.14))
+  (dune (< 3.17))
   ocaml-ci-api
   ; Provided by opam pin
   tailwindcss
