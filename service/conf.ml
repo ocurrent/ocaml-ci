@@ -309,7 +309,7 @@ let fetch_platforms ~query_uri ~include_macos ~include_freebsd ~include_windows
     | Some conn, "windows-server-2022-amd64"
     | Some conn, "macos-homebrew"
     | Some conn, "openbsd-76-amd64"
-    | Some conn, "freebsd-14.1" ->
+    | Some conn, "freebsd-14.2" ->
         (* FreeBSD and MacOS uses ZFS snapshots rather than docker images. *)
         let docker_image_name =
           Fmt.str "%s-ocaml-%d.%d" distro (OV.major ocaml_version)
