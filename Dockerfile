@@ -14,7 +14,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     m4 \
     pkg-config \
     libcapnp-dev
-RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard d7624eae68058be71701657e00ba2d124e55daaa && opam update
+RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard 0d013e603b5ebf0e9b404e10d5a6839f226e1739 && opam update
 COPY --chown=opam --link \
 	ocurrent/current_docker.opam \
 	ocurrent/current_github.opam \
