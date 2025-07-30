@@ -200,6 +200,11 @@ let install_project_deps ~opam_version ~opam_files ~selection =
           "opam update --depexts && opam install --cli=2.3 --depext-only -y %s \
            $DEPS"
           compatible_root_pkgs
+    | `V2_4 ->
+        run ~network ~cache
+          "opam update --depexts && opam install --cli=2.4 --depext-only -y %s \
+           $DEPS"
+          compatible_root_pkgs
   in
   (if Variant.arch variant |> Ocaml_version.arch_is_32bit then
      [ shell [ "/usr/bin/linux32"; "/bin/sh"; "-c" ] ]
