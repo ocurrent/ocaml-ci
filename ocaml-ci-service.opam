@@ -9,7 +9,7 @@ doc: "https://ocaml.ci.dev/documentation"
 bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
   "ocaml" {>= "4.14"}
-  "dune" {>= "3.16" & < "3.17"}
+  "dune" {>= "3.16"}
   "ocaml-ci-api"
   "current_git"
   "current_github"
