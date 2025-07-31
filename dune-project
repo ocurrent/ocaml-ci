@@ -13,7 +13,7 @@
  (synopsis "Cap'n Proto API for ocaml-ci")
  (depends
   (ocaml (>= 4.14))
-  (dune (< 3.17))
+  dune
   ; Provided by git submodules
   current_rpc
   ; Opam dependencies
@@ -27,7 +27,7 @@
  (synopsis "Core ocaml-ci")
  (depends
   (ocaml (>= 4.14))
-  (dune (< 3.17))
+  dune
   ocaml-ci-api
   ; Provided by git submodules
   current
@@ -57,7 +57,7 @@
  (conflicts (ocaml-migrate-parsetree (= "1.7.1")))
  (depends
   (ocaml (>= 4.14))
-  (dune (< 3.17))
+  dune
   ocaml-ci-api
   ; Provided by git submodules
   current_git
@@ -96,7 +96,7 @@
  (description "Test OCaml projects on GitLab")
  (depends
   (ocaml (>= 4.14))
-  (dune (< 3.17))
+  dune
   ocaml-ci
   ocaml-ci-service
   ; Provided by git submodules
@@ -118,7 +118,7 @@
  (synopsis "Command-line client for ocaml-ci")
  (depends
   (ocaml (>= 4.14))
-  (dune (< 3.17))
+  dune
   ocaml-ci-api
   ; Provided by git submodules
   current_rpc
@@ -134,7 +134,7 @@
  (synopsis "Web-server frontend for ocaml-ci")
  (depends
   (ocaml (>= 4.14))
-  (dune (< 3.17))
+  dune
   ocaml-ci-api
   ; Provided by opam pin
   tailwindcss

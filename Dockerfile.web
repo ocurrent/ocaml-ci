@@ -23,6 +23,10 @@ COPY --chown=opam --link \
     solver-service/solver-service-api.opam \
     /src/solver-service/
 WORKDIR /src
+RUN echo '(lang dune 3.0)' | \
+    tee solver-service/dune-project | \
+    tee ocurrent/dune-project | \
+    tee ./dune-project
 RUN opam pin -yn add ./ocurrent
 RUN opam pin -yn add ./solver-service
 COPY --chown=opam --link ocaml-ci-api.opam ocaml-ci-web.opam ocaml-ci.opam /src/
