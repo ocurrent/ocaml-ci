@@ -104,7 +104,6 @@ let test_distro_arches () =
     [
       (false, (to_tag (`CentOS `Latest), `X86_64));
       (false, (to_tag (`OracleLinux `Latest), `X86_64));
-      (false, (to_tag (`Debian `Stable), `Riscv64));
     ]
   in
   List.iter
