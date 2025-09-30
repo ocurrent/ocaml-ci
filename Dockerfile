@@ -37,6 +37,12 @@ COPY --chown=opam --link \
 	ocaml-dockerfile/dockerfile*.opam \
 	/src/ocaml-dockerfile/
 WORKDIR /src
+RUN echo '(lang dune 3.0)' | \
+    tee solver-service/dune-project | \
+    tee ocurrent/dune-project | \
+    tee ocluster/dune-project | \
+    tee ocaml-dockerfile/dune-project | \
+    tee ./dune-project
 RUN opam pin add -yn current_docker.dev "./ocurrent" && \
     opam pin add -yn current_github.dev "./ocurrent" && \
     opam pin add -yn current_git.dev "./ocurrent" && \
