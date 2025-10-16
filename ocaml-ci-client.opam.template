@@ -1,6 +1,3 @@
-pin-depends: [
-  ["tailwindcss.dev" "https://github.com/tmattio/opam-tailwindcss/archive/b50699e860bcc7a467eaa7a4e172fea57881a280.tar.gz"]
-]
 build: [
   ["dune" "subst"] {dev}
   [
@@ -17,9 +14,8 @@ build: [
   [
     "cmdliner" "install" "tool-support"
                "--update-opam-install=%{_:name}%.install"
-               "_build/install/default/bin/ocaml-ci-web" {os-family != "windows"}
-               "_build/install/default/bin/ocaml-ci-web.exe" {os-family = "windows"}
+               "_build/install/default/bin/ocaml-ci-client" {os-family != "windows"}
+               "_build/install/default/bin/ocaml-ci-client.exe" {os-family = "windows"}
                "_build/cmdliner-install"
   ]
 ]
-

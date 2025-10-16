@@ -1,0 +1,23 @@
+build: [
+  ["dune" "subst"] {dev}
+  [
+    "dune"
+    "build"
+    "-p"
+    name
+    "-j"
+    jobs
+    "@install"
+    "@runtest" {with-test}
+    "@doc" {with-doc}
+  ]
+  [
+    "cmdliner" "install" "tool-support"
+               "--update-opam-install=%{_:name}%.install"
+               "_build/install/default/bin/ocaml-ci-gitlab" {os-family != "windows"}
+               "_build/install/default/bin/ocaml-ci-gitlab.exe" {os-family = "windows"}
+               "_build/install/default/bin/ocaml-ci-gitlab-local" {os-family != "windows"}
+               "_build/install/default/bin/ocaml-ci-gitlab-local.exe" {os-family = "windows"}
+               "_build/cmdliner-install"
+  ]
+]
