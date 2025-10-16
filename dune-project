@@ -70,13 +70,13 @@
   ocluster-api
   obuilder-spec
   ; Opam dependencies
-  (alcotest (and (>= 1.7.0) :with-test))
-  (alcotest-lwt (and (>= 1.7.0) :with-test))
+  (alcotest (and (>= 1.9.1) :with-test))
+  (alcotest-lwt (and (>= 1.9.1) :with-test))
   (ansi (>= 0.6.0))
   (astring (>= 0.8.5))
   (bos (>= 0.2.1))
   (capnp-rpc-unix (>= 1.2))
-  (cmdliner (>= 1.1.1))
+  (cmdliner (>= 2.0.0))
   (conf-libev (<> :os "win32"))
   (dockerfile-opam (>= 8.2.1))
   (fmt (>= 0.8.9))
@@ -105,8 +105,8 @@
   current_gitlab
   current_docker
   ; Opam dependencies
-  (alcotest (and (>= 1.7.0) :with-test))
-  (cmdliner (>= 1.1.1))
+  (alcotest (and (>= 1.9.1) :with-test))
+  (cmdliner (>= 2.0.0))
   (fmt (>= 0.8.9))
   (gitlab-unix (>= 0.1.8))
   (logs (>= 0.7.0))

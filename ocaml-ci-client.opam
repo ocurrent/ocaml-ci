@@ -19,6 +19,7 @@ depends: [
   "timedesc" {>= "0.9.0"}
   "odoc" {with-doc}
 ]
+dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
 build: [
   ["dune" "subst"] {dev}
   [
@@ -32,5 +33,11 @@ build: [
     "@runtest" {with-test}
     "@doc" {with-doc}
   ]
+  [
+    "cmdliner" "install" "tool-support"
+               "--update-opam-install=%{_:name}%.install"
+               "_build/install/default/bin/ocaml-ci-client" {os-family != "windows"}
+               "_build/install/default/bin/ocaml-ci-client.exe" {os-family = "windows"}
+               "_build/cmdliner-install"
+  ]
 ]
-dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"

@@ -177,8 +177,8 @@ let gref =
       if String.length s < 6 then
         Error
           (`Msg
-            "Git reference should start 'refs/' or be a hash at least 6 \
-             characters long")
+             "Git reference should start 'refs/' or be a hash at least 6 \
+              characters long")
       else Ok (`Commit s)
     else if String.is_prefix ~affix:"refs/" s then make_ref s
     else make_ref ("refs/" ^ s)

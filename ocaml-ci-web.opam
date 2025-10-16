@@ -27,6 +27,10 @@ depends: [
   "timedesc" {>= "0.9.0"}
   "odoc" {with-doc}
 ]
+dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
+pin-depends: [
+  ["tailwindcss.dev" "https://github.com/tmattio/opam-tailwindcss/archive/b50699e860bcc7a467eaa7a4e172fea57881a280.tar.gz"]
+]
 build: [
   ["dune" "subst"] {dev}
   [
@@ -40,8 +44,12 @@ build: [
     "@runtest" {with-test}
     "@doc" {with-doc}
   ]
+  [
+    "cmdliner" "install" "tool-support"
+               "--update-opam-install=%{_:name}%.install"
+               "_build/install/default/bin/ocaml-ci-web" {os-family != "windows"}
+               "_build/install/default/bin/ocaml-ci-web.exe" {os-family = "windows"}
+               "_build/cmdliner-install"
+  ]
 ]
-dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
-pin-depends: [
-  ["tailwindcss.dev" "https://github.com/tmattio/opam-tailwindcss/archive/e5bb6361a50c7cc5cad802311e609336583ca08f.tar.gz"]
-]
+

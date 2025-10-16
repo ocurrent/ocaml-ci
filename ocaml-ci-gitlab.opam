@@ -17,14 +17,15 @@ depends: [
   "current_git"
   "current_gitlab"
   "current_docker"
-  "alcotest" {>= "1.7.0" & with-test}
-  "cmdliner" {>= "1.1.1"}
+  "alcotest" {>= "1.9.1" & with-test}
+  "cmdliner" {>= "2.0.0"}
   "fmt" {>= "0.8.9"}
   "gitlab-unix" {>= "0.1.8"}
   "logs" {>= "0.7.0"}
   "odoc" {with-doc}
   "prometheus-app" {>= "1.2"}
 ]
+dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
 build: [
   ["dune" "subst"] {dev}
   [
@@ -38,5 +39,13 @@ build: [
     "@runtest" {with-test}
     "@doc" {with-doc}
   ]
+  [
+    "cmdliner" "install" "tool-support"
+               "--update-opam-install=%{_:name}%.install"
+               "_build/install/default/bin/ocaml-ci-gitlab" {os-family != "windows"}
+               "_build/install/default/bin/ocaml-ci-gitlab.exe" {os-family = "windows"}
+               "_build/install/default/bin/ocaml-ci-gitlab-local" {os-family != "windows"}
+               "_build/install/default/bin/ocaml-ci-gitlab-local.exe" {os-family = "windows"}
+               "_build/cmdliner-install"
+  ]
 ]
-dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"

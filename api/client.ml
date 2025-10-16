@@ -331,13 +331,13 @@ module Commit = struct
     let open Raw.Client.Commit.Status in
     let request = Capability.Request.create_no_args () in
     Capability.call_for_value t method_id request
-    >>= (Results.status_get >> function
-         | NotStarted -> Ok `Not_started
-         | Passed -> Ok `Passed
-         | Failed -> Ok `Failed
-         | Pending -> Ok `Pending
-         | Undefined i ->
-             Error (`Msg (Fmt.str "client.states: undefined state %d" i)))
+    >>= ( Results.status_get >> function
+          | NotStarted -> Ok `Not_started
+          | Passed -> Ok `Passed
+          | Failed -> Ok `Failed
+          | Pending -> Ok `Pending
+          | Undefined i ->
+              Error (`Msg (Fmt.str "client.states: undefined state %d" i)) )
 
   let message t =
     let open Raw.Client.Commit.Message in
