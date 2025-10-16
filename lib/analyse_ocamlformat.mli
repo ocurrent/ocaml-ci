@@ -15,7 +15,8 @@ val ocamlformat_version_from_file :
   Current.Job.t ->
   string ->
   (string option, [ `Msg of string ]) Lwt_result.t
-(** Extract the version in .ocamlformat file if the file exists in the project *)
+(** Extract the version in .ocamlformat file if the file exists in the project
+*)
 
 val get_ocamlformat_source :
   opam_files:string list ->

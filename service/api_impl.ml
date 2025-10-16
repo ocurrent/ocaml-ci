@@ -93,11 +93,11 @@ let make_commit ~engine ~owner ~name hash =
          let open Commit.Status in
          release_param_caps ();
          let response, results = Service.Response.create Results.init_pointer in
-         (Index.Commit_cache.(find ~owner ~name ~hash |> get_status) |> function
-          | `Not_started -> Results.status_set results NotStarted
-          | `Pending -> Results.status_set results Pending
-          | `Failed -> Results.status_set results Failed
-          | `Passed -> Results.status_set results Passed);
+         ( Index.Commit_cache.(find ~owner ~name ~hash |> get_status) |> function
+           | `Not_started -> Results.status_set results NotStarted
+           | `Pending -> Results.status_set results Pending
+           | `Failed -> Results.status_set results Failed
+           | `Passed -> Results.status_set results Passed );
          Service.return response
 
        method message_impl _params release_param_caps =

@@ -216,10 +216,9 @@ module Make (M : Git_forge_intf.Forge) = struct
       Common.tabulate_div default_table;
     ]
     |> (fun content ->
-         if n_branches = 0 then content
-         else content @ [ Common.tabulate_div branch_table ])
+    if n_branches = 0 then content
+    else content @ [ Common.tabulate_div branch_table ])
     |> (fun content ->
-         if n_prs = 0 then content
-         else content @ [ Common.tabulate_div pr_table ])
+    if n_prs = 0 then content else content @ [ Common.tabulate_div pr_table ])
     |> Template.instance
 end

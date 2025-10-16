@@ -93,13 +93,15 @@ module Repo : sig
   (** [commit_of_hash t hash] is the commit [hash] in this repository. *)
 
   val commit_of_ref : t -> git_ref -> Commit.t
-  (** [commit_of_ref t gref] is the commit at the head of Git reference [gref]. *)
+  (** [commit_of_ref t gref] is the commit at the head of Git reference [gref].
+  *)
 
   val history_of_ref :
     t ->
     git_ref ->
     (ref_info list, [> `Capnp of Capnp_rpc.Error.t ]) Lwt_result.t
-  (** [history_of_ref t gref] is the list of builds for the Git reference [gref] *)
+  (** [history_of_ref t gref] is the list of builds for the Git reference [gref]
+  *)
 end
 
 module Org : sig

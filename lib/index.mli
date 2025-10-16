@@ -30,7 +30,7 @@ val set_active_owners : Owner_set.t -> unit
 
 val get_active_owners : unit -> Owner_set.t
 (** [get_active_owners ()] is the last value passed to [set_active_owners], or
-    [\[\]] if not known yet. *)
+    [[]] if not known yet. *)
 
 val set_active_repos : owner:string -> Repo_set.t -> unit
 (** [set_active_repos ~owner repos] records that [repos] is the set of active
