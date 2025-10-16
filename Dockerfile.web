@@ -4,7 +4,7 @@ RUN sudo ln -sf /usr/bin/opam-2.4 /usr/bin/opam && opam init --reinit -ni
 RUN sudo rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/keep-cache
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    sudo apt update && sudo apt-get --no-install-recommends install -y \
+    sudo apt-get update && sudo apt-get --no-install-recommends install -y \
     capnproto \
     libev-dev \
     libffi-dev \
@@ -41,7 +41,7 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloa
 # ca-certificates: https://github.com/mirage/ocaml-conduit/issues/388
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt update && apt-get --no-install-recommends install -y \
+    apt-get update && apt-get --no-install-recommends install -y \
     ca-certificates \
     curl \
     dumb-init \
