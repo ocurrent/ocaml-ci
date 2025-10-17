@@ -153,11 +153,11 @@ let selection ~info:(lock_file_path, lock_file) ~platforms ~solve =
     ]
   in
   solve ~root_pkgs ~pinned_pkgs:[] ~platforms >>= fun workers ->
-  (* Choose a linux distro (Debian-12 is the default) to run the build on. *)
+  (* Choose a linux distro (Debian-13 is the default) to run the build on. *)
   let debian_selection =
     List.find_opt
       (fun worker ->
-        String.equal (Variant.distro worker.Selection.variant) "debian-12"
+        String.equal (Variant.distro worker.Selection.variant) "debian-13"
         && Variant.arch worker.Selection.variant == `X86_64)
       workers
   in
@@ -170,7 +170,7 @@ let selection ~info:(lock_file_path, lock_file) ~platforms ~solve =
         { lock_file_path; selection; lock_file_version; switch_type }
   | None ->
       Lwt.return_error
-        (`Msg "No debian-12 solution found for this monorepo build.")
+        (`Msg "No debian-13 solution found for this monorepo build.")
 
 let initialize_switch ~network = function
   | Base -> []
