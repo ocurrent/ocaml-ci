@@ -68,8 +68,8 @@ let ocamlformat_version_from_file ~root job path =
             Lwt.return
               (Error
                  (`Msg
-                   "Missing 'version=' line in .ocamlformat (disabled, but \
-                    some .ocamlformat-enable files are present)")))
+                    "Missing 'version=' line in .ocamlformat (disabled, but \
+                     some .ocamlformat-enable files are present)")))
     | _ :: _ :: _ ->
         Lwt.return (Error (`Msg "Multiple 'version=' lines in .ocamlformat"))
 

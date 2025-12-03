@@ -20,13 +20,13 @@ depends: [
   "solver-service"
   "ocluster-api"
   "obuilder-spec"
-  "alcotest" {>= "1.7.0" & with-test}
-  "alcotest-lwt" {>= "1.7.0" & with-test}
+  "alcotest" {>= "1.9.1" & with-test}
+  "alcotest-lwt" {>= "1.9.1" & with-test}
   "ansi" {>= "0.6.0"}
   "astring" {>= "0.8.5"}
   "bos" {>= "0.2.1"}
   "capnp-rpc-unix" {>= "1.2"}
-  "cmdliner" {>= "1.1.1"}
+  "cmdliner" {>= "2.0.0"}
   "conf-libev" {os != "win32"}
   "dockerfile-opam" {>= "8.2.1"}
   "fmt" {>= "0.8.9"}
@@ -44,6 +44,7 @@ depends: [
 conflicts: [
   "ocaml-migrate-parsetree" {= "1.7.1"}
 ]
+dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
 build: [
   ["dune" "subst"] {dev}
   [
@@ -57,5 +58,13 @@ build: [
     "@runtest" {with-test}
     "@doc" {with-doc}
   ]
+  [
+    "cmdliner" "install" "tool-support"
+               "--update-opam-install=%{_:name}%.install"
+               "_build/install/default/bin/ocaml-ci-service" {os-family != "windows"}
+               "_build/install/default/bin/ocaml-ci-service.exe" {os-family = "windows"}
+               "_build/install/default/bin/ocaml-ci-local" {os-family != "windows"}
+               "_build/install/default/bin/ocaml-ci-local.exe" {os-family = "windows"}
+               "_build/cmdliner-install"
+  ]
 ]
-dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"

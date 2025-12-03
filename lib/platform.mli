@@ -53,7 +53,8 @@ val get :
   string Current.t ->
   t list Current.t
 (** [get ~label ~builder ~variant ~host_base base] creates a [t] by getting the
-    opam variables from [host_base] and returning [base] for subsequent builds. *)
+    opam variables from [host_base] and returning [base] for subsequent builds.
+*)
 
 val get_local :
   arch:Ocaml_version.arch ->
@@ -68,7 +69,8 @@ val get_local :
   Current_docker.Raw.Image.t Current.t ->
   t list Current.t
 (** [get ~label ~builder ~variant ~host_base base] creates a [t] by getting the
-    opam variables from [host_base] and returning [base] for subsequent builds. *)
+    opam variables from [host_base] and returning [base] for subsequent builds.
+*)
 
 val pull :
   arch:Ocaml_version.arch ->
