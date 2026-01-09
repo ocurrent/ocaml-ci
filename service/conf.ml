@@ -100,7 +100,7 @@ let openbsd_distros =
         distro = "openbsd-77-amd64";
         ocaml_version;
         arch = `X86_64;
-        opam_version = `V2_4;
+        opam_version = `V2_5;
         lower_bound = false;
       })
     default_compilers
@@ -116,7 +116,7 @@ let windows_distros =
         distro = "windows-server-2022-amd64";
         ocaml_version;
         arch = `X86_64;
-        opam_version = `V2_4;
+        opam_version = `V2_5;
         lower_bound = false;
       })
     default_compilers
@@ -132,7 +132,7 @@ let freebsd_distros =
         distro = "freebsd-14.3";
         ocaml_version;
         arch = `X86_64;
-        opam_version = `V2_4;
+        opam_version = `V2_5;
         lower_bound = false;
       })
     default_compilers
@@ -148,7 +148,7 @@ let macos_distros =
         distro = "macos-homebrew";
         ocaml_version;
         arch = `X86_64;
-        opam_version = `V2_4;
+        opam_version = `V2_5;
         lower_bound = false;
       })
     default_compilers
@@ -161,7 +161,7 @@ let macos_distros =
           distro = "macos-homebrew";
           ocaml_version;
           arch = `Aarch64;
-          opam_version = `V2_4;
+          opam_version = `V2_5;
           lower_bound = false;
         })
       default_compilers
@@ -345,9 +345,9 @@ let fetch_platforms ~query_uri ~include_macos ~include_freebsd ~include_windows
         Platform.get_local ~arch ~label ~builder ~pool ~distro ~ocaml_version
           ~host_base ~opam_version ~lower_bound base
   in
-  let v2_4 =
-    platforms ~profile:platforms_profile `V2_4 ~include_macos ~include_freebsd
+  let v2_5 =
+    platforms ~profile:platforms_profile `V2_5 ~include_macos ~include_freebsd
       ~include_windows ~include_openbsd
     |> merge_lower_bound_platforms
   in
-  Current.list_seq (List.map v v2_4) |> Current.map List.flatten
+  Current.list_seq (List.map v v2_5) |> Current.map List.flatten
