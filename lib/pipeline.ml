@@ -12,16 +12,16 @@ let list_errors ~ok errs =
   in
   Error
     (`Msg
-      (match groups with
-      | [] -> "No builds at all!"
-      | [ (msg, _) ] when ok = 0 ->
-          msg (* Everything failed with the same error *)
-      | [ (msg, ls) ] ->
-          Fmt.str "%a failed: %s" Fmt.(list ~sep:(any ", ") string) ls msg
-      | _ ->
-          (* Multiple error messages; just list everything that failed. *)
-          let pp_label f (_, l) = Fmt.string f l.Build_info.label in
-          Fmt.str "%a failed" Fmt.(list ~sep:(any ", ") pp_label) errs))
+       (match groups with
+       | [] -> "No builds at all!"
+       | [ (msg, _) ] when ok = 0 ->
+           msg (* Everything failed with the same error *)
+       | [ (msg, ls) ] ->
+           Fmt.str "%a failed: %s" Fmt.(list ~sep:(any ", ") string) ls msg
+       | _ ->
+           (* Multiple error messages; just list everything that failed. *)
+           let pp_label f (_, l) = Fmt.string f l.Build_info.label in
+           Fmt.str "%a failed" Fmt.(list ~sep:(any ", ") pp_label) errs))
 
 let summarise results =
   results

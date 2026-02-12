@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
-FROM ocaml/opam:debian-12-ocaml-4.14 AS build
-RUN sudo ln -sf /usr/bin/opam-2.3 /usr/bin/opam && opam init --reinit -ni
+FROM ocaml/opam:debian-13-ocaml-4.14 AS build
+RUN sudo ln -sf /usr/bin/opam-2.4 /usr/bin/opam && opam init --reinit -ni
 RUN sudo rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/keep-cache
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    sudo apt update && sudo apt-get --no-install-recommends install -y \
+    sudo apt-get update && sudo apt-get --no-install-recommends install -y \
     capnproto \
     libev-dev \
     libffi-dev \
@@ -13,7 +13,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     libssl-dev \
     m4 \
     pkg-config
-RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard 164308699cf74247b8ad3b002e88bd80a586c79e && opam update
+RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard 1abfcdbf14f12a32c14d0d6e078d94634fdcc07a && opam update
 COPY --chown=opam --link \
     ocurrent/current_rpc.opam \
     /src/ocurrent/
@@ -36,12 +36,12 @@ RUN --mount=type=cache,target=/home/opam/.opam/download-cache,sharing=locked,uid
 ADD --chown=opam . .
 RUN opam config exec -- dune build ./_build/install/default/bin/ocaml-ci-web
 
-FROM debian:12
+FROM debian:13
 RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 # ca-certificates: https://github.com/mirage/ocaml-conduit/issues/388
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt update && apt-get --no-install-recommends install -y \
+    apt-get update && apt-get --no-install-recommends install -y \
     ca-certificates \
     curl \
     dumb-init \

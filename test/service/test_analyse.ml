@@ -271,7 +271,7 @@ let test_filter_packages_no_solution =
   let expected =
     Error
       (`Msg
-        {|No solution found for "example-new.dev" on any supported platform|})
+         {|No solution found for "example-new.dev" on any supported platform|})
   in
   expect_test "filter_packages_no_solution" ~project ~expected
 
