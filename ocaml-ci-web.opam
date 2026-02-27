@@ -9,7 +9,7 @@ doc: "https://ocaml.ci.dev/documentation"
 bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
   "ocaml" {>= "4.14"}
-  "dune" {>= "3.16"}
+  "dune" {>= "3.20"}
   "ocaml-ci-api"
   "tailwindcss"
   "ansi" {>= "0.6.0"}
@@ -42,6 +42,7 @@ build: [
   ]
 ]
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
+x-maintenance-intent: ["(latest)"]
 pin-depends: [
   ["tailwindcss.dev" "https://github.com/tmattio/opam-tailwindcss/archive/e5bb6361a50c7cc5cad802311e609336583ca08f.tar.gz"]
 ]

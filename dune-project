@@ -1,4 +1,4 @@
-(lang dune 3.16)
+(lang dune 3.20)
 (name ocaml-ci)
 
 (generate_opam_files true)
