@@ -38,27 +38,19 @@ end
 (* This is needed iff the opam used isn't the image default opam. *)
 let prepare_image ~job ~docker_context ~tag variant image =
   let opam = "opam-" ^ Opam_version.to_string (Variant.opam_version variant) in
-  let prefix =
-    match Variant.os variant with
-    | `macOS -> "~/local"
-    | `openBSD | `windows | `linux -> "/usr"
-    | `freeBSD -> "/usr/local"
-  in
-  let ln =
-    match Variant.os variant with
-    | `windows | `macOS -> "ln"
-    | `openBSD -> "doas ln"
-    | `linux | `freeBSD -> "sudo ln"
-  in
   (* XXX: don't overwrite default config? *)
   let opamrc = "" in
   let spec =
     let open Obuilder_spec in
-    stage ~from:image
-      [
-        run "%s -f %s/bin/%s %s/bin/opam" ln prefix opam prefix;
-        run "opam init --reinit%s -ni" opamrc;
-      ]
+    let ln =
+      match Variant.os variant with
+      | `macOS -> run "ln -f ~/local/bin/%s ~/local/bin/opam" opam
+      | `openBSD -> run "doas ln -f /usr/bin/%s /usr/bin/opam" opam
+      | `linux -> run "sudo ln -f /usr/bin/%s /usr/bin/opam" opam
+      | `windows -> run "ln -f /usr/local/bin/%s.exe /usr/local/bin/opam.exe" opam
+      | `freeBSD -> run "sudo ln -f /usr/local/bin/%s /usr/local/bin/opam" opam
+    in
+    stage ~from:image (ln :: [ run "opam init --reinit%s -ni" opamrc ])
     |> Docker.dockerfile_of_spec ~buildkit:true ~os:`Unix
   in
   let cmd =

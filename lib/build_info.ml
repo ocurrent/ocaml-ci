@@ -21,7 +21,7 @@ let experimental_variant s =
     match s.variant with
     | None -> false
     | Some v ->
-        Astring.String.equal "windows-server-2022-amd64" (Variant.distro v)
+        Variant.os v = `windows
         || Astring.String.equal "openbsd-77-amd64" (Variant.distro v)
 
 (** Like [experimental_variant], but takes strings for when a [build_info]
@@ -34,4 +34,4 @@ let experimental_variant_str s =
     is_prefix ~affix:Variant.lower_bound_label s
     || is_prefix ~affix:Variant.opam_label s
     || is_prefix ~affix:"openbsd-77-amd64" s
-    || is_prefix ~affix:"windows-server-2022-amd64" s)
+    || is_prefix ~affix:"windows" s)

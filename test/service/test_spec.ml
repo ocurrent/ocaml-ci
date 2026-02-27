@@ -15,8 +15,7 @@ let expected_macos_spec =
  (copy (src bondi.opam) (dst ./src/./))
  (run (network host)
       (shell "opam pin add -yn bondi.dev './src/./'"))
- (run (network host)
-      (shell "echo '(lang dune 3.0)' > './src/./dune-project'"))
+ (run (shell "echo '(lang dune 3.0)' > './src/./dune-project'"))
  (env DEPS "base-bigarray.base base-threads.base base-unix.base dune.3.6.0 menhir.20220210 menhirLib.20220210 menhirSdk.20220210 ocaml.4.14.0 ocaml-base-compiler.4.14.0 ocaml-config.2 ocaml-options-vanilla.1")
  (env CI true)
  (env OCAMLCI true)
@@ -52,8 +51,7 @@ let expected_linux_spec =
  (copy (src bondi.opam) (dst ./))
  (run (network host)
       (shell "opam pin add -yn bondi.dev './'"))
- (run (network host)
-      (shell "echo '(lang dune 3.0)' > './dune-project'"))
+ (run (shell "echo '(lang dune 3.0)' > './dune-project'"))
  (env DEPS "base-bigarray.base base-threads.base base-unix.base dune.3.6.0 menhir.20220210 menhirLib.20220210 menhirSdk.20220210 ocaml.4.14.0 ocaml-base-compiler.4.14.0 ocaml-config.2 ocaml-options-vanilla.1")
  (env CI true)
  (env OCAMLCI true)
@@ -68,37 +66,34 @@ let expected_linux_spec =
 )
 |}
 
-(* Expected obuilder spec for windows server 2022 build of bondi. *)
+(* Expected obuilder spec for windows server build of bondi. *)
 let expected_windows_spec =
   {|
-((from windows-server-2022-amd64-ocaml-4.14)
- (comment windows-server-2022-4.14.0_opam-2.3)
+((from windows-server-mingw-ltsc2025-ocaml-4.14)
+ (comment windows-server-mingw-ltsc2025-4.14.0_opam-2.3)
  (user (uid 1000) (gid 1000)) (env CLICOLOR_FORCE 1)
  (env OPAMCOLOR always)
- (workdir /src)
- (run (shell "sudo ln -f /usr/bin/opam-2.3 /usr/bin/opam"))
+ (run (shell "ln -f /usr/local/bin/opam-2.3 /usr/local/bin/opam"))
  (run (shell "opam init --reinit -ni"))
  (run (shell "uname -rs && opam exec -- ocaml -version && opam --version"))
- (workdir /src)
- (run (shell "sudo chown opam /src"))
- (run (cache (opam-archives (target /home/opam/.opam/download-cache)))
-      (network host) (shell "cd ~/opam-repository && (git cat-file -e f207d3f018d642d1fcddb2c118e7fa8e65f4e366 || git fetch origin master) && git reset -q --hard f207d3f018d642d1fcddb2c118e7fa8e65f4e366 && git log --no-decorate -n1 --oneline && opam update -u"))
- (copy (src bondi.opam) (dst ./))
- (run (network host) (shell "opam pin add -yn bondi.dev './'"))
+ (run (cache (opam-archives (target "c:\\opam\\.opam\\download-cache")))
+      (network host)
+      (shell "cd ~/opam-repository && (git cat-file -e f207d3f018d642d1fcddb2c118e7fa8e65f4e366 || git fetch origin master) && git reset -q --hard f207d3f018d642d1fcddb2c118e7fa8e65f4e366 && git log --no-decorate -n1 --oneline && opam update -u"))
+ (copy (src bondi.opam) (dst /cygwin64/home/opam/src/./))
  (run (network host)
-      (shell "echo '(lang dune 3.0)' > './dune-project'"))
+      (shell "opam pin add -yn bondi.dev '/cygwin64/home/opam/src/./'"))
+ (run (shell "echo '(lang dune 3.0)' > '/home/opam/src/./dune-project'"))
  (env DEPS "arch-x86_64.1 base-bigarray.base base-threads.base base-unix.base conf-mingw-w64-gcc-x86_64.1 dune.3.17.0 flexdll.0.43 host-arch-x86_64.1 host-system-mingw.1 menhir.20240715 menhirCST.20240715 menhirLib.20240715 menhirSdk.20240715 mingw-w64-shims.0.2.0 ocaml.4.14.2 ocaml-base-compiler.4.14.2 ocaml-config.3 ocaml-env-mingw64.1 ocaml-options-vanilla.1 system-mingw.1")
  (env CI true)
  (env OCAMLCI true)
- (run (cache (opam-archives (target /home/opam/.opam/download-cache)))
+ (run (cache (opam-archives (target "c:\\opam\\.opam\\download-cache")))
       (network host)
       (shell "opam update --depexts && opam install --cli=2.3 --depext-only -y bondi.dev $DEPS"))
- (run (cache
-      (opam-archives (target /home/opam/.opam/download-cache)))
+ (run (cache (opam-archives (target "c:\\opam\\.opam\\download-cache")))
       (network host)
       (shell "opam install $DEPS"))
- (copy (src .) (dst /src))
- (run (shell "opam exec -- dune build @install @check @runtest && rm -rf _build"))
+ (copy (src .) (dst /cygwin64/home/opam/src))
+ (run (shell "cd /home/opam/src && opam exec -- dune build @install @check @runtest && rm -rf _build"))
 )
 |}
 
@@ -187,12 +182,12 @@ let test_windows_spec () =
   let open Ocaml_ci in
   let expected = Sexplib__Pre_sexp.of_string expected_windows_spec in
   let variant =
-    Variant.v ~arch:`X86_64 ~distro:"windows-server-2022"
+    Variant.v ~arch:`X86_64 ~distro:"windows-server-mingw-ltsc2025"
       ~ocaml_version:Ocaml_version.Releases.v4_14_0 ~opam_version:`V2_3
     |> Result.get_ok
   in
   let actual =
-    Opam_build.spec ~base:"windows-server-2022-amd64-ocaml-4.14"
+    Opam_build.spec ~base:"windows-server-mingw-ltsc2025-ocaml-4.14"
       ~opam_version:`V2_3 ~opam_files:[ "bondi.opam" ]
       ~selection:
         Selection.

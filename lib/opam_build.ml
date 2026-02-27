@@ -71,7 +71,7 @@ let pin_opam_files ~network ?work_dir groups =
         |> run ~network "%s";
       ]
 
-let create_dune_project_files ~network ?dune_work_dir groups =
+let create_dune_project_files ?dune_work_dir groups =
   if groups = [] then []
   else
     let open Obuilder_spec in
@@ -88,7 +88,7 @@ let create_dune_project_files ~network ?dune_work_dir groups =
                (Filename.quote
                   (Fpath.to_string (Fpath.( // ) dir (Fpath.v "dune-project")))))
       |> String.concat " && \n"
-      |> run ~network "%s";
+      |> run "%s"
     ]
 
 (* Get the packages directly in "." *)
@@ -106,8 +106,8 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   let prefix =
     match Variant.os variant with
     | `macOS -> "~/local"
-    | `openBSD | `windows | `linux -> "/usr"
-    | `freeBSD -> "/usr/local"
+    | `openBSD | `linux -> "/usr"
+    | `windows | `freeBSD -> "/usr/local"
   in
   let ln =
     match Variant.os variant with
@@ -139,7 +139,7 @@ let install_project_deps ~opam_version ~opam_files ~selection =
     | `windows ->
         [
           Obuilder_spec.Cache.v download_cache
-            ~target:"c:\\Users\\opam\\AppData\\local\\opam\\download-cache";
+            ~target:"c:\\opam\\.opam\\download-cache";
         ]
     | `macOS ->
         [
@@ -164,8 +164,8 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   in
   let work_dir =
     match Variant.os selection.Selection.variant with
+    | `windows -> Some (Fpath.v "/cygwin64/home/opam/src")
     | `openBSD -> Some (Fpath.v "/home/opam/src")
-    | `windows -> Some (Fpath.v "/Users/opam/src")
     | `macOS -> Some (Fpath.v "./src/")
     | `linux -> None
     | `freeBSD -> None
@@ -173,7 +173,7 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   let dune_work_dir =
     match Variant.os selection.Selection.variant with
     | `macOS | `linux | `freeBSD | `openBSD -> work_dir
-    | `windows -> Some (Fpath.v "/cygdrive/c/Users/opam/src")
+    | `windows -> Some (Fpath.v "/home/opam/src")
   in
   (* XXX: don't overwrite default config? *)
   let opamrc = "" in
@@ -236,7 +236,7 @@ let install_project_deps ~opam_version ~opam_files ~selection =
         commit commit;
     ]
   @ pin_opam_files ~network ?work_dir groups
-  @ create_dune_project_files ~network ?dune_work_dir groups
+  @ create_dune_project_files ?dune_work_dir groups
   @ [
       env "DEPS" non_root_pkgs;
       env "CI" "true";
@@ -250,8 +250,8 @@ let spec ~base ~opam_version ~opam_files ~selection =
   let to_name x = OpamPackage.of_string x |> OpamPackage.name_to_string in
   let home_dir =
     match Variant.os selection.Selection.variant with
+    | `windows -> "/cygwin64/home/opam/src"
     | `openBSD -> "/home/opam/src"
-    | `windows -> "/Users/opam/src"
     | `macOS -> "./src"
     | `linux -> "/src"
     | `freeBSD -> "/src"
@@ -263,15 +263,11 @@ let spec ~base ~opam_version ~opam_files ~selection =
   in
   let run_build =
     match Variant.os selection.Selection.variant with
+    | `windows
     | `openBSD ->
         run
           "cd /home/opam/src && opam exec -- dune build%s @install @check \
            @runtest && rm -rf _build"
-          only_packages
-    | `windows ->
-        run
-          "cd /cygdrive/c/Users/opam/src && opam exec -- dune build%s @install \
-           @check @runtest && rm -rf _build"
           only_packages
     | `macOS ->
         run
