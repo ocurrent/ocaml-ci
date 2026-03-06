@@ -110,16 +110,16 @@ let windows_distros =
   List.map
     (fun ocaml_version ->
       {
-        label = "windows-server-2022";
+        label = "windows-server-mingw-ltsc2025";
         builder = Builders.local;
-        pool = `Windows_amd64;
-        distro = "windows-server-2022-amd64";
+        pool = `Windows_x86_64;
+        distro = "windows-server-mingw-ltsc2025";
         ocaml_version;
         arch = `X86_64;
         opam_version = `V2_5;
         lower_bound = false;
       })
-    default_compilers
+    OV.(List.map with_just_major_and_minor Releases.[ latest ])
 
 (* Support OCaml default compilers on FreeBSD platform. *)
 let freebsd_distros =
@@ -306,7 +306,6 @@ let fetch_platforms ~query_uri ~include_macos ~include_freebsd ~include_windows
         lower_bound;
       } =
     match (conn, distro) with
-    | Some conn, "windows-server-2022-amd64"
     | Some conn, "macos-homebrew"
     | Some conn, "openbsd-77-amd64"
     | Some conn, "freebsd-14.3" ->
