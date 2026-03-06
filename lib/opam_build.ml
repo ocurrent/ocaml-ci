@@ -88,7 +88,7 @@ let create_dune_project_files ?dune_work_dir groups =
                (Filename.quote
                   (Fpath.to_string (Fpath.( // ) dir (Fpath.v "dune-project")))))
       |> String.concat " && \n"
-      |> run "%s"
+      |> run "%s";
     ]
 
 (* Get the packages directly in "." *)
@@ -263,8 +263,7 @@ let spec ~base ~opam_version ~opam_files ~selection =
   in
   let run_build =
     match Variant.os selection.Selection.variant with
-    | `windows
-    | `openBSD ->
+    | `windows | `openBSD ->
         run
           "cd /home/opam/src && opam exec -- dune build%s @install @check \
            @runtest && rm -rf _build"

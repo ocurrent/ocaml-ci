@@ -47,7 +47,8 @@ let prepare_image ~job ~docker_context ~tag variant image =
       | `macOS -> run "ln -f ~/local/bin/%s ~/local/bin/opam" opam
       | `openBSD -> run "doas ln -f /usr/bin/%s /usr/bin/opam" opam
       | `linux -> run "sudo ln -f /usr/bin/%s /usr/bin/opam" opam
-      | `windows -> run "ln -f /usr/local/bin/%s.exe /usr/local/bin/opam.exe" opam
+      | `windows ->
+          run "ln -f /usr/local/bin/%s.exe /usr/local/bin/opam.exe" opam
       | `freeBSD -> run "sudo ln -f /usr/local/bin/%s /usr/local/bin/opam" opam
     in
     stage ~from:image (ln :: [ run "opam init --reinit%s -ni" opamrc ])
