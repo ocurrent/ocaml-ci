@@ -12,13 +12,3 @@
     (run tailwindcss -m -c %{config} -i %{input} -o %{target})))))
 
 (dirs :standard \ var)
-
-(vendored_dirs
- capnp-ocaml
- capnp-rpc
- ocurrent
- opam-0install-solver
- ocluster
- ocaml-version
- solver-service
- ocaml-dockerfile)

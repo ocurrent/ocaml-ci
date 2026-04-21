@@ -14,9 +14,7 @@
  (depends
   (ocaml (>= 4.14))
   dune
-  ; Provided by git submodules
   current_rpc
-  ; Opam dependencies
   (capnp (>= 3.4.0))
   (capnp-rpc-lwt (>= 1.2))
   (ppx_deriving (>= 5.1))
@@ -29,7 +27,6 @@
   (ocaml (>= 4.14))
   dune
   ocaml-ci-api
-  ; Provided by git submodules
   current
   current_docker
   current_ocluster
@@ -37,8 +34,10 @@
   obuilder-spec
   ocluster-api
   solver-service
-  ; Opam dependencies
+  solver-service-api
+  solver-worker
   (bos (>= 0.2.1))
+  (dockerfile-opam (>= 8.2.1))
   (capnp-rpc-unix (>= 1.2))
   (cohttp-lwt-unix (>= 5.1.0))
   (logs (>= 0.7.0))
@@ -59,7 +58,6 @@
   (ocaml (>= 4.14))
   dune
   ocaml-ci-api
-  ; Provided by git submodules
   current_git
   current_github
   current_docker
@@ -69,7 +67,6 @@
   solver-service
   ocluster-api
   obuilder-spec
-  ; Opam dependencies
   (alcotest (and (>= 1.7.0) :with-test))
   (alcotest-lwt (and (>= 1.7.0) :with-test))
   (ansi (>= 0.6.0))
@@ -99,12 +96,10 @@
   dune
   ocaml-ci
   ocaml-ci-service
-  ; Provided by git submodules
   current
   current_git
   current_gitlab
   current_docker
-  ; Opam dependencies
   (alcotest (and (>= 1.7.0) :with-test))
   (cmdliner (>= 1.1.1))
   (fmt (>= 0.8.9))
@@ -120,9 +115,7 @@
   (ocaml (>= 4.14))
   dune
   ocaml-ci-api
-  ; Provided by git submodules
   current_rpc
-  ; Opam dependencies
   (capnp-rpc-unix (>= 1.2))
   (dockerfile (>= 8.2.1))
   (fmt (>= 0.8.9))
@@ -138,7 +131,6 @@
   ocaml-ci-api
   ; Provided by opam pin
   tailwindcss
-  ; Opam dependencies
   (ansi (>= 0.6.0))
   (capnp-rpc-unix (>= 1.2))
   (crunch (and (>= 3.2.0) :build))
