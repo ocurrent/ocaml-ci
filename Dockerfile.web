@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
-FROM ocaml/opam:debian-12-ocaml-4.14 AS build
-RUN sudo ln -sf /usr/bin/opam-2.3 /usr/bin/opam && opam init --reinit -ni
+FROM ocaml/opam:debian-13-ocaml-4.14 AS build
+RUN sudo ln -sf /usr/bin/opam-2.5 /usr/bin/opam && opam init --reinit -ni
 RUN sudo rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/keep-cache
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
@@ -13,30 +13,16 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     libssl-dev \
     m4 \
     pkg-config
-RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard a6b2f19780b2edfc4e5dba2566235c877dbf5acd && opam update
-COPY --chown=opam --link \
-    ocurrent/current_rpc.opam \
-    /src/ocurrent/
-COPY --chown=opam --link \
-    solver-service/solver-service.opam \
-    solver-service/solver-worker.opam \
-    solver-service/solver-service-api.opam \
-    /src/solver-service/
-WORKDIR /src
-RUN echo '(lang dune 3.0)' | \
-    tee solver-service/dune-project | \
-    tee ocurrent/dune-project | \
-    tee ./dune-project
-RUN opam pin -yn add ./ocurrent
-RUN opam pin -yn add ./solver-service
+RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard 4ae3c774e4a07972d8dc71ead3a8294779f6dada && opam update
 COPY --chown=opam --link ocaml-ci-api.opam ocaml-ci-web.opam ocaml-ci.opam /src/
+WORKDIR /src
 ENV OPAMSOLVERTIMEOUT=900
 RUN --mount=type=cache,target=/home/opam/.opam/download-cache,sharing=locked,uid=1000,gid=1000 \
     opam install -y --deps-only .
 ADD --chown=opam . .
 RUN opam config exec -- dune build ./_build/install/default/bin/ocaml-ci-web
 
-FROM debian:12
+FROM debian:13
 RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 # ca-certificates: https://github.com/mirage/ocaml-conduit/issues/388
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \

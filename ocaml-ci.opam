@@ -18,7 +18,10 @@ depends: [
   "obuilder-spec"
   "ocluster-api"
   "solver-service"
+  "solver-service-api"
+  "solver-worker"
   "bos" {>= "0.2.1"}
+  "dockerfile-opam" {>= "8.2.1"}
   "capnp-rpc-unix" {>= "1.2"}
   "cohttp-lwt-unix" {>= "5.1.0"}
   "logs" {>= "0.7.0"}
@@ -48,3 +51,8 @@ build: [
 ]
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
 x-maintenance-intent: ["(latest)"]
+pin-depends: [
+  ["solver-service.dev" "git+https://github.com/ocurrent/solver-service.git#f14bc6fdb22c1cef45bb3d3589bd778f4d6c8196"]
+  ["solver-service-api.dev" "git+https://github.com/ocurrent/solver-service.git#f14bc6fdb22c1cef45bb3d3589bd778f4d6c8196"]
+  ["solver-worker.dev" "git+https://github.com/ocurrent/solver-service.git#f14bc6fdb22c1cef45bb3d3589bd778f4d6c8196"]
+]
