@@ -37,11 +37,11 @@
   solver-service-api
   solver-worker
   (bos (>= 0.2.1))
-  (dockerfile-opam (>= 8.2.1))
+  (dockerfile-opam (>= 8.3.6))
   (capnp-rpc-unix (>= 1.2))
   (cohttp-lwt-unix (>= 5.1.0))
   (logs (>= 0.7.0))
-  (ocaml-version (>= 3.6.1))
+  (ocaml-version (>= 4.1.0))
   (omigrate (>= 0.3.2))
   (opam-0install (>= 0.4.3))
   (ppx_deriving (>= 5.1))
@@ -75,11 +75,11 @@
   (capnp-rpc-unix (>= 1.2))
   (cmdliner (>= 1.1.1))
   (conf-libev (<> :os "win32"))
-  (dockerfile-opam (>= 8.2.1))
+  (dockerfile-opam (>= 8.3.6))
   (fmt (>= 0.8.9))
   (logs (>= 0.7.0))
   (mirage-crypto-rng (>= 0.8.7))
-  (ocaml-version (>= 3.6.1))
+  (ocaml-version (>= 4.1.0))
   (opam-0install (>= 0.4.3))
   (ppx_deriving (>= 5.1))
   (ppx_deriving_yojson (>= 3.7))
@@ -117,7 +117,7 @@
   ocaml-ci-api
   current_rpc
   (capnp-rpc-unix (>= 1.2))
-  (dockerfile (>= 8.2.1))
+  (dockerfile (>= 8.3.6))
   (fmt (>= 0.8.9))
   (logs (>= 0.7.0))
   (timedesc (>= 0.9.0))))

@@ -31,14 +31,14 @@ let test_platforms () =
       (true, (to_tag (`Debian `Stable), OVR.latest, `Aarch64));
       (true, (to_tag (`Debian `Stable), OVR.latest, `S390x));
       (true, (to_tag (`Debian `Stable), OVR.latest, `Ppc64le));
-      (true, (to_tag (`Debian `Stable), OVR.latest, `I386));
-      (true, (to_tag (`Debian `Stable), OVR.latest, `Aarch32));
+      (false, (to_tag (`Debian `Stable), OVR.latest, `I386));
+      (false, (to_tag (`Debian `Stable), OVR.latest, `Aarch32));
       (true, (to_tag (`Debian `Stable), OVR.v4_14, `X86_64));
       (true, (to_tag (`Debian `Stable), OVR.v4_14, `Aarch64));
       (true, (to_tag (`Debian `Stable), OVR.v4_14, `S390x));
       (true, (to_tag (`Debian `Stable), OVR.v4_14, `Ppc64le));
-      (true, (to_tag (`Debian `Stable), OVR.v4_14, `I386));
-      (true, (to_tag (`Debian `Stable), OVR.v4_14, `Aarch32));
+      (false, (to_tag (`Debian `Stable), OVR.v4_14, `I386));
+      (false, (to_tag (`Debian `Stable), OVR.v4_14, `Aarch32));
       (true, (to_tag (`Fedora `Latest), OVR.latest, `X86_64));
       (true, (to_tag (`Fedora `Latest), OVR.v4_14, `X86_64));
       (true, (to_tag (`Alpine `Latest), OVR.latest, `X86_64));

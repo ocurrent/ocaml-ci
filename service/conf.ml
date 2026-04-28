@@ -195,10 +195,12 @@ let platforms ~profile ~include_macos ~include_freebsd ~include_windows
     let tag = DD.tag_of_distro (distro :> DD.t) in
     let f ov =
       if distro = master_distro then
+        let arches =
+          DD.distro_arches ov (distro :> DD.t)
+          |> List.filter (function `I386 | `Aarch32 -> false | _ -> true)
+        in
         v label tag (OV.with_variant ov (Some "flambda"))
-        :: List.map
-             (fun arch -> v ~arch label tag ov)
-             (DD.distro_arches ov (distro :> DD.t))
+        :: List.map (fun arch -> v ~arch label tag ov) arches
       else [ v label tag ov ]
     in
     List.fold_left (fun l ov -> f ov @ l) [] default_compilers
@@ -225,7 +227,9 @@ let platforms ~profile ~include_macos ~include_freebsd ~include_windows
         |> List.append (if include_windows then windows_distros else [])
       in
       (* The first one in this list is used for lint actions *)
-      let ovs = List.rev OV.Releases.recent @ OV.Releases.unreleased_betas in
+      let ovs =
+        List.rev OV.Releases.significant @ OV.Releases.unreleased_betas
+      in
       let releases = List.map make_release ovs in
       let lower_bounds = List.map (make_release ~lower_bound:true) ovs in
       releases @ lower_bounds @ distros
@@ -236,7 +240,7 @@ let platforms ~profile ~include_macos ~include_freebsd ~include_windows
       [ v (OV.to_string ov) distro ov ]
   | `Minimal ->
       let[@warning "-8"] (latest :: previous :: _) =
-        List.rev OV.Releases.recent
+        List.rev OV.Releases.significant
       in
       List.map make_release [ latest; previous ]
 
