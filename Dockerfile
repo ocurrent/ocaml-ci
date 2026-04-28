@@ -30,8 +30,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt update && apt-get --no-install-recommends install -y \
     ca-certificates \
     curl \
-    docker.io \
-    docker-buildx \
+    docker-cli \
     dumb-init \
     git \
     graphviz \
