@@ -227,7 +227,9 @@ let platforms ~profile ~include_macos ~include_freebsd ~include_windows
         |> List.append (if include_windows then windows_distros else [])
       in
       (* The first one in this list is used for lint actions *)
-      let ovs = List.rev OV.Releases.significant @ OV.Releases.unreleased_betas in
+      let ovs =
+        List.rev OV.Releases.significant @ OV.Releases.unreleased_betas
+      in
       let releases = List.map make_release ovs in
       let lower_bounds = List.map (make_release ~lower_bound:true) ovs in
       releases @ lower_bounds @ distros
