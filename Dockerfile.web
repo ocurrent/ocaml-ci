@@ -41,9 +41,6 @@ COPY --from=build --link /src/_build/install/default/bin/ocaml-ci-web /usr/local
 
 ## Load profile-pictures of registered organisations
 RUN mkdir -p /profile-pictures/github
-RUN mkdir -p /profile-pictures/gitlab
 COPY --from=build --link /src/bin/add-profile-picture /usr/local/bin
 COPY --from=build --link /src/deploy-data/github-organisations.txt /github-organisations.txt
-COPY --from=build --link /src/deploy-data/gitlab-organisations.txt /gitlab-organisations.txt
 RUN xargs -n 1 /usr/local/bin/add-profile-picture --github < /github-organisations.txt
-RUN xargs -n 1 /usr/local/bin/add-profile-picture --gitlab < /gitlab-organisations.txt

@@ -27,7 +27,6 @@ module Make (M : Forge_prefix) = struct
   let logo =
     match M.prefix with
     | "github" -> Common.github_logo
-    | "gitlab" -> Common.gitlab_logo
     | _ -> raise Not_found
 
   let git_forge_url org = Printf.sprintf "https://%s.com/%s" M.prefix org

@@ -8,7 +8,6 @@ module Make (M : Git_forge_intf.Forge) = struct
   let logo =
     match M.prefix with
     | "github" -> Common.github_logo
-    | "gitlab" -> Common.gitlab_logo
     | _ -> raise Not_found
 
   let row ~ref ~short_hash ~started_at ~ran_for ~status ~ref_uri ~message =
@@ -122,7 +121,6 @@ module Make (M : Git_forge_intf.Forge) = struct
     | _, "refs" :: "heads" :: branch ->
         Branch (Astring.String.concat ~sep:"/" branch)
     | "github", [ "refs"; "pull"; id; "head" ] -> PR { title; id }
-    | "gitlab", [ "refs"; "merge-requests"; id; "head" ] -> PR { title; id }
     | _ -> Branch (Printf.sprintf "Bad ref format %S" gref)
 
   let list ~org ~repo ~default_ref ~refs =
@@ -164,11 +162,6 @@ module Make (M : Git_forge_intf.Forge) = struct
         | "github" ->
             Client.Ref_map.filter
               (fun ref _ -> String.starts_with ~prefix:"refs/pull/" ref)
-              refs
-        | "gitlab" ->
-            Client.Ref_map.filter
-              (fun ref _ ->
-                String.starts_with ~prefix:"refs/merge-requests/" ref)
               refs
         | _ -> Client.Ref_map.empty (* FIXME: This should lead to an error. *)
       in
