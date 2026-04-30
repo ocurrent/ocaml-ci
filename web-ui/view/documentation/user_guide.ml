@@ -130,8 +130,8 @@ let concepts_and_terms =
       [
         strong [ txt "Git forge" ];
         txt
-          " : A service that hosts Git repositories. Currently GitHub and \
-           GitLab are supported.";
+          " : A service that hosts Git repositories. Currently GitHub is \
+           supported.";
       ];
     p
       [

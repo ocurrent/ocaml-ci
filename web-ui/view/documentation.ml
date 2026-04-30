@@ -278,7 +278,7 @@ let user_guide website_scheme_and_domain =
                   txt
                     " : An organisation that owns projects that they want to \
                      build. This typically corresponds to an account on GitHub \
-                     or GitLab for example.";
+                     for example.";
                 ];
               p
                 [
