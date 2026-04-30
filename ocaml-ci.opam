@@ -52,7 +52,7 @@ build: [
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
 x-maintenance-intent: ["(latest)"]
 pin-depends: [
-  ["solver-service.dev" "git+https://github.com/ocurrent/solver-service.git#f14bc6fdb22c1cef45bb3d3589bd778f4d6c8196"]
-  ["solver-service-api.dev" "git+https://github.com/ocurrent/solver-service.git#f14bc6fdb22c1cef45bb3d3589bd778f4d6c8196"]
-  ["solver-worker.dev" "git+https://github.com/ocurrent/solver-service.git#f14bc6fdb22c1cef45bb3d3589bd778f4d6c8196"]
+  ["solver-service.dev" "git+https://github.com/ocurrent/solver-service.git#98c04705bdd5511094364ba2549c1192bdd94c1c"]
+  ["solver-service-api.dev" "git+https://github.com/ocurrent/solver-service.git#98c04705bdd5511094364ba2549c1192bdd94c1c"]
+  ["solver-worker.dev" "git+https://github.com/ocurrent/solver-service.git#98c04705bdd5511094364ba2549c1192bdd94c1c"]
 ]
