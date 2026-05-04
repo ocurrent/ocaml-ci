@@ -182,9 +182,6 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   let non_root_pkgs = String.concat " " non_root_pkgs in
   let opam_depext =
     match opam_version with
-    | `V2_0 ->
-        run ~network ~cache "opam depext --update -y %s $DEPS"
-          compatible_root_pkgs
     | `V2_1 ->
         run ~network ~cache
           "opam update --depexts && opam install --cli=2.1 --depext-only -y %s \

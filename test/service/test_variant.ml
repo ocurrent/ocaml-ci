@@ -11,11 +11,7 @@ let test_error s =
 
 let test_simple () =
   List.iter test_one
-    [
-      "debian-11-4.13_x86_32_opam-2.1";
-      "debian-11-4.13_opam-2.1";
-      "debian-11-4.13_x86_32";
-    ]
+    [ "debian-11-4.13_x86_32_opam-2.1"; "debian-11-4.13_opam-2.1" ]
 
 let test_errors () =
   List.iter test_error
