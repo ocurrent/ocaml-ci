@@ -222,19 +222,25 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   @ distro_extras
   @ [
       run "%s -f %s/bin/opam-%s %s/bin/opam" ln prefix opam_version_str prefix;
+      (* Fetch/reset opam-repository to the solver-selected commit *before*
+         [opam init --reinit] so opam builds its repo state cache against the
+         target SHA. With opam >= 2.4 the format-upgrade init populates a
+         marshalled repo cache that a subsequent [opam update] does not
+         invalidate, so reversing this order silently leaves opam unable to
+         see packages added between the bundled base-image opam-repository
+         SHA and the target SHA. *)
+      run ~network ~cache
+        "cd ~/opam-repository && (git cat-file -e %s || git fetch origin \
+         master) && git reset -q --hard %s && git log --no-decorate -n1 \
+         --oneline"
+        commit commit;
       run "opam init --reinit%s -ni" opamrc;
       run "uname -rs && opam exec -- ocaml -version && opam --version";
     ]
   @ (match home_dir with
     | Some home_dir -> [ workdir home_dir; run "sudo chown opam /src" ]
     | None -> [])
-  @ [
-      run ~network ~cache
-        "cd ~/opam-repository && (git cat-file -e %s || git fetch origin \
-         master) && git reset -q --hard %s && git log --no-decorate -n1 \
-         --oneline && opam update -u"
-        commit commit;
-    ]
+  @ [ run ~network ~cache "opam update -u" ]
   @ pin_opam_files ~network ?work_dir groups
   @ create_dune_project_files ?dune_work_dir groups
   @ [
