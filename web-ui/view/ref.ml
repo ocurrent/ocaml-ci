@@ -6,9 +6,7 @@ module Make (M : Git_forge_intf.Forge) = struct
   type t = Branch of string | PR of { title : string; id : string }
 
   let logo =
-    match M.prefix with
-    | "github" -> Common.github_logo
-    | _ -> raise Not_found
+    match M.prefix with "github" -> Common.github_logo | _ -> raise Not_found
 
   let row ~ref ~short_hash ~started_at ~ran_for ~status ~ref_uri ~message =
     let ref_title =
