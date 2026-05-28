@@ -24,11 +24,12 @@ val pull :
 
 val peek :
   t ->
+  os:string ->
   arch:Ocaml_version.arch ->
   string ->
   schedule:Current_cache.Schedule.t ->
   string Current.Primitive.t
-(** Docker [peek] an image for [arch] with a scheduled check. *)
+(** Docker [peek] an image for [os]/[arch] with a scheduled check. *)
 
 val run :
   t ->
