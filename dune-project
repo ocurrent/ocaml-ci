@@ -88,27 +88,6 @@
   (timedesc (>= 0.9.0))))
 
 (package
- (name ocaml-ci-gitlab)
- (synopsis "Test OCaml projects on GitLab")
- (description "Test OCaml projects on GitLab")
- (depends
-  (ocaml (>= 4.14))
-  dune
-  ocaml-ci
-  ocaml-ci-service
-  current
-  current_git
-  current_gitlab
-  current_docker
-  (alcotest (and (>= 1.7.0) :with-test))
-  (cmdliner (>= 1.1.1))
-  (fmt (>= 0.8.9))
-  (gitlab-unix (>= 0.1.8))
-  (logs (>= 0.7.0))
-  (odoc :with-doc)
-  (prometheus-app (>= 1.2))))
-
-(package
  (name ocaml-ci-client)
  (synopsis "Command-line client for ocaml-ci")
  (depends

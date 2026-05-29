@@ -63,7 +63,6 @@ If you want to build the whole system, the easiest way is using Docker:
 
 ```sh
 docker build -f Dockerfile -t ocaml-ci-service .
-docker build -f Dockerfile.gitlab -t ocaml-ci-gitlab .
 docker build -f Dockerfile.web -t ocaml-ci-web .
 ```
 
@@ -136,7 +135,7 @@ $ ocaml-ci mirage/irmin pull/867 alpine-3.10-ocaml-4.08 cancel
 
 ## Deployment
 
-`ocaml-ci` is deployed as three docker images built from `Dockerfile`, `Dockerfile.gitlab` and `Dockerfile.web`, with
+`ocaml-ci` is deployed as two docker images built from `Dockerfile` and `Dockerfile.web`, with
 the live service following `live-engine` for the backend and `live-www` for the frontend.
 An ocurrent-deployer [pipeline](deploy.ci.dev) watches these branches, performing a docker build
 and deploy whenever it sees a new commit. The live branches should typically contain commits from `master` plus potentially

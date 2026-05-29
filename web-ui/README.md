@@ -13,7 +13,7 @@ These are some principles for `web-ui` that we will hold to:
     There should be no template or markup related code here.
   - Routes are in `web-ui/router.ml` -- these call controllers.
   - Concerns related to serialising and deserialising to JSON are in `representation`
-  - A `Git_forge` functorises controllers and views allowing for implementation of GitHub and GitLab git-forges.
+  - A `Git_forge` functorises controllers and views allowing for implementation of git-forges (currently GitHub).
 
 
 The dependencies in web-ui are described below:

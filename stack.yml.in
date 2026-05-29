@@ -2,8 +2,6 @@ version: '3.1'
 volumes:
   data:
   capnp-secrets:
-  gitlab-data:
-  gitlab-capnp-secrets:
 
 secrets:
   ocaml-ci-github-key:
@@ -13,12 +11,6 @@ secrets:
   ocaml-ci-submission-cap:
     external: true
   ocaml-ci-webhook-secret:
-    external: true
-  ocaml-ci-gitlab-oauth:
-    external: true
-  ocaml-ci-gitlab-token:
-    external: true
-  ocaml-ci-gitlab-webhook-secret:
     external: true
   ocaml-ci-solver-cap:
     external: true
@@ -62,51 +54,14 @@ services:
     sysctls:
       - 'net.ipv4.tcp_keepalive_time=60'
 
-  gitlab:
-    image: ocurrent/ocaml-ci-gitlab-service:live
-    # image: ocaml-ci-gitlab-service
-    # For local deploys using docker -c ocaml.ci.dev build -t ocaml-ci-gitlab-service -f Dockerfile.gitlab .
-    command: >
-      --gitlab-oauth /run/secrets/ocaml-ci-gitlab-oauth
-      --gitlab-token-file /run/secrets/ocaml-ci-gitlab-token
-      --gitlab-webhook-secret-file /run/secrets/ocaml-ci-gitlab-webhook-secret
-      --submission-service /run/secrets/ocaml-ci-submission-cap
-      --submission-solver-service /run/secrets/ocaml-ci-solver-cap
-      --submission-query-service /run/secrets/ocaml-ci-submission-cap
-      --capnp-public-address=tcp:ocaml.ci.dev:8202
-      --capnp-listen-address=tcp:0.0.0.0:9000
-      --migration-path /migrations
-      --verbosity info
-    environment:
-      - "CAPNP_PROFILE=production"
-      - "PLATFORMS=all"
-      - "DOCKER_BUILDKIT=1"
-      - "PROGRESS_NO_TRUNC=1"
-    ports:
-      - '8202:9000'
-    volumes:
-      - 'gitlab-data:/var/lib/ocurrent'
-      - '/var/run/docker.sock:/var/run/docker.sock'
-      - 'gitlab-capnp-secrets:/capnp-secrets'
-    secrets:
-      - 'ocaml-ci-gitlab-oauth'
-      - 'ocaml-ci-gitlab-token'
-      - 'ocaml-ci-submission-cap'
-      - 'ocaml-ci-solver-cap'
-      - 'ocaml-ci-gitlab-webhook-secret'
-    sysctls:
-      - 'net.ipv4.tcp_keepalive_time=60'
-
   web:
     image: ocurrent/ocaml-ci-web:live
     # image: ocaml-ci-web
     # For local deploys using docker -c ocaml.ci.dev build -t ocaml-ci-web -f Dockerfile.web .
     command: >
       --backend /capnp-secrets/ocaml-ci-admin.cap
-      --gitlab-backend /gitlab-capnp-secrets/ocaml-ci-gitlab-admin.cap
       --listen-prometheus=9090
     volumes:
       - 'capnp-secrets:/capnp-secrets:ro'
-      - 'gitlab-capnp-secrets:/gitlab-capnp-secrets:ro'
     sysctls:
       - 'net.ipv4.tcp_keepalive_time=60'

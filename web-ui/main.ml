@@ -17,12 +17,10 @@ let setup_logs level =
   Logs.set_level level;
   Dream.initialize_log ()
 
-let main interface port github_pipeline_cap gitlab_pipeline_cap
-    prometheus_config log_level =
+let main interface port github_pipeline_cap prometheus_config log_level =
   Lwt_main.run
     (let () = setup_logs log_level in
      let github = Option.map Backend.make github_pipeline_cap in
-     let gitlab = Option.map Backend.make gitlab_pipeline_cap in
      let web =
        Dream.serve ~interface ~port
          ~error_handler:
@@ -31,7 +29,7 @@ let main interface port github_pipeline_cap gitlab_pipeline_cap
        @@ Middleware.no_trailing_slash
        @@ Dream.memory_sessions
        @@ Dream.flash
-       @@ Router.create ~github ~gitlab
+       @@ Router.create ~github
      in
      Lwt.choose (web :: Prometheus_unix.serve prometheus_config))
 
@@ -57,13 +55,6 @@ let backend_cap =
        ~doc:"The capability file giving access to the GitHub backend service."
        ~docv:"CAP" [ "backend" ]
 
-let gitlab_backend_cap =
-  Arg.value
-  @@ Arg.opt (Arg.some Capnp_rpc_unix.sturdy_uri) None
-  @@ Arg.info
-       ~doc:"The capability file giving access to the GitLab backend service."
-       ~docv:"CAP" [ "gitlab-backend" ]
-
 let cmd =
   let doc = "A web front-end for OCaml-CI" in
   let info = Cmd.info "ocaml-ci-web" ~doc in
@@ -73,7 +64,6 @@ let cmd =
       $ interface
       $ port
       $ backend_cap
-      $ gitlab_backend_cap
       $ Prometheus_unix.opts
       $ Logs_cli.level ())
 

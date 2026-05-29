@@ -256,36 +256,17 @@ let documentation =
         @@ Controller.Documentation.user_guide website_scheme_and_domain);
   ]
 
-let root ~gitlab ~github =
+let root ~github =
   [
     Dream.get "/" (fun _ ->
-        match (github, gitlab) with
-        | None, None ->
+        match github with
+        | None ->
             Dream.log "No backend available";
             Dream.empty `Internal_Server_Error
-        | Some github, None ->
+        | Some github ->
             let orgs = [ ("github", "GitHub", github) ] in
-            Controller.Index.list_orgs ~orgs
-        | None, Some gitlab ->
-            Controller.Index.list_orgs ~orgs:[ ("gitlab", "GitLab", gitlab) ]
-        | Some github, Some gitlab ->
-            let orgs =
-              [ ("github", "GitHub", github); ("gitlab", "GitLab", gitlab) ]
-            in
             Controller.Index.list_orgs ~orgs);
   ]
-
-let build_gitlab_route gitlab =
-  let module Gitlab = Route (struct
-    let prefix = "gitlab"
-    let request = "merge-request"
-    let backend = gitlab
-    let extra_routes = []
-
-    module Api = Api_controller.Gitlab
-    module Controller = Controller.Gitlab
-  end) in
-  Gitlab.routes ()
 
 let build_github_route github =
   let module Github = Route (struct
@@ -322,12 +303,8 @@ let build_github_route github =
   end) in
   Github.routes ()
 
-let create ~github ~gitlab =
-  let gitlab_route =
-    match gitlab with None -> [] | Some gitlab -> build_gitlab_route gitlab
-  in
+let create ~github =
   let github_route =
     match github with None -> [] | Some github -> build_github_route github
   in
-  Dream.router
-    (root ~gitlab ~github @ static @ documentation @ gitlab_route @ github_route)
+  Dream.router (root ~github @ static @ documentation @ github_route)

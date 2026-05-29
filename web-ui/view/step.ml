@@ -142,7 +142,6 @@ module Make (M : Git_forge_intf.Forge) = struct
       Common.form_cancel ~hash ~csrf_token ~show:can_cancel ()
       :: Common.rebuild_button ~hash ~csrf_token ~show:show_rebuild ()
     in
-    (* FIXME: Remove below when we are ready to show history for Gitlab as well. *)
     let title_card =
       Build.title_card ~status:build_status ~card_title:message
         ~hash_link:(link_forge_commit ~org ~repo ~hash:(Common.short_hash hash))
