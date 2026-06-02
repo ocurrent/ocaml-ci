@@ -15,6 +15,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     pkg-config \
     libcapnp-dev
 RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard 94c943996066236b7203cad4027522be61e33f45 && opam update
+RUN opam pin add -yn current.dev         https://github.com/ocurrent/ocurrent.git#peek-os-param && \
+    opam pin add -yn current_web.dev     https://github.com/ocurrent/ocurrent.git#peek-os-param && \
+    opam pin add -yn current_git.dev     https://github.com/ocurrent/ocurrent.git#peek-os-param && \
+    opam pin add -yn current_github.dev  https://github.com/ocurrent/ocurrent.git#peek-os-param && \
+    opam pin add -yn current_docker.dev  https://github.com/ocurrent/ocurrent.git#peek-os-param && \
+    opam pin add -yn current_slack.dev   https://github.com/ocurrent/ocurrent.git#peek-os-param && \
+    opam pin add -yn current_rpc.dev     https://github.com/ocurrent/ocurrent.git#peek-os-param
 COPY --chown=opam --link ocaml-ci.opam ocaml-ci-service.opam ocaml-ci-api.opam /src/
 WORKDIR /src
 ENV OPAMSOLVERTIMEOUT=900
