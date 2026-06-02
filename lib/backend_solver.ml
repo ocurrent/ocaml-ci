@@ -6,7 +6,6 @@ type t =
   | Remote of Current_ocluster.Connection.t
   | Local of Solver_worker.Solver_request.t Lwt.t
 
-let switch = Current.Switch.create ~label:"solver-remote" ()
 let config = Current.Config.v ()
 
 let solve_to_custom req builder =
@@ -28,11 +27,22 @@ let remote_solve con job request =
     Current_ocluster.Connection.pool ~job ~pool:"solver" ~action ~cache_hint:""
       con
   in
+  (* Scope the dummy job's switch to the duration of this solve. The dummy
+     job only exists to satisfy [Current.Job.start_with]'s "I need a job to
+     attach the pool acquisition to" requirement; once [with_ref] returns,
+     the work is done and the switch should be turned off so the job's log
+     file is closed and Current marks it complete. Without this, every solve
+     leaks a perpetually-running "solver-job" in the UI. *)
+  let switch = Current.Switch.create ~label:"solver-remote" () in
   let dummy_job = Current.Job.create ~label:"solver-job" ~switch ~config () in
-  Current.Job.start_with ~pool:build_pool dummy_job ~level:Current.Level.Average
-  >>= fun build_job ->
-  Capnp_rpc_lwt.Capability.with_ref build_job
-    (Current_ocluster.Connection.run_job ~job)
+  Lwt.finalize
+    (fun () ->
+      Current.Job.start_with ~pool:build_pool dummy_job
+        ~level:Current.Level.Average
+      >>= fun build_job ->
+      Capnp_rpc_lwt.Capability.with_ref build_job
+        (Current_ocluster.Connection.run_job ~job))
+    (fun () -> Current.Switch.turn_off switch)
 
 let local () : t =
   Local (Lwt.return (Solver_worker.Solver_request.create ~n_workers:20 ()))
