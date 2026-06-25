@@ -109,7 +109,15 @@ module Op = struct
         ~pool:(Platform.Pool_name.to_string pool)
         ~action ~cache_hint ~src t.connection
     in
-    Current.Job.start_with ~pool:build_pool job ?timeout:t.timeout
+    (* HACK: riscv and windows builders are slow;
+       triple the per-job timeout there. *)
+    let timeout =
+      match (t.timeout, pool) with
+      | Some t, `Windows_x86_64 | Some t, `Linux_riscv64 ->
+          Some (Int64.mul t 3L)
+      | timeout, _ -> timeout
+    in
+    Current.Job.start_with ~pool:build_pool job ?timeout
       ~level:Current.Level.Average
     >>= fun build_job ->
     Capability.with_ref build_job (Current_ocluster.Connection.run_job ~job)
