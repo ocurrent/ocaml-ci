@@ -11,11 +11,11 @@ depends: [
   "ocaml" {>= "4.14"}
   "dune" {>= "3.20"}
   "ocaml-ci-api"
-  "current"
-  "current_docker"
+  "current" {>= "0.7.5"}
+  "current_docker" {>= "0.7.5"}
   "current_ocluster"
-  "current_rpc"
-  "obuilder-spec"
+  "current_rpc" {>= "0.7.5"}
+  "obuilder-spec" {>= "0.7.0"}
   "ocluster-api"
   "solver-service"
   "solver-service-api"
@@ -25,7 +25,7 @@ depends: [
   "capnp-rpc-unix" {>= "1.2"}
   "cohttp-lwt-unix" {>= "5.1.0"}
   "logs" {>= "0.7.0"}
-  "ocaml-version" {>= "4.1.0"}
+  "ocaml-version" {>= "4.1.3"}
   "omigrate" {>= "0.3.2"}
   "opam-0install" {>= "0.4.3"}
   "ppx_deriving" {>= "5.1"}
@@ -52,7 +52,7 @@ build: [
 dev-repo: "git+https://github.com/ocurrent/ocaml-ci.git"
 x-maintenance-intent: ["(latest)"]
 pin-depends: [
-  ["solver-service.dev" "git+https://github.com/ocurrent/solver-service.git#98c04705bdd5511094364ba2549c1192bdd94c1c"]
-  ["solver-service-api.dev" "git+https://github.com/ocurrent/solver-service.git#98c04705bdd5511094364ba2549c1192bdd94c1c"]
-  ["solver-worker.dev" "git+https://github.com/ocurrent/solver-service.git#98c04705bdd5511094364ba2549c1192bdd94c1c"]
+  ["solver-service.dev" "git+https://github.com/ocurrent/solver-service.git#ca9ef7e8a4097ed56ef6e2d9befa7ca0dc5997cb"]
+  ["solver-service-api.dev" "git+https://github.com/ocurrent/solver-service.git#ca9ef7e8a4097ed56ef6e2d9befa7ca0dc5997cb"]
+  ["solver-worker.dev" "git+https://github.com/ocurrent/solver-service.git#ca9ef7e8a4097ed56ef6e2d9befa7ca0dc5997cb"]
 ]
