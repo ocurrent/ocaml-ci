@@ -15,9 +15,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     pkg-config \
     libcapnp-dev
 RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard ceed23f9d33677f323a62325ad42599d14f46b98 && opam update
+RUN opam option --global solver=builtin-0install
 COPY --chown=opam --link ocaml-ci.opam ocaml-ci-service.opam ocaml-ci-api.opam /src/
 WORKDIR /src
-ENV OPAMSOLVERTIMEOUT=900
 RUN --mount=type=cache,target=/home/opam/.opam/download-cache,sharing=locked,uid=1000,gid=1000 \
     opam install -y --deps-only .
 ADD --chown=opam . .
