@@ -152,7 +152,9 @@ let peek ~arch ~schedule ~builder ~distro ~ocaml_version ~opam_version =
   match Variant.v ~arch ~distro ~ocaml_version ~opam_version with
   | Error (`Msg m) -> Current.fail m
   | Ok variant ->
-      let os = match Variant.os variant with `windows -> "windows" | _ -> "linux" in
+      let os =
+        match Variant.os variant with `windows -> "windows" | _ -> "linux"
+      in
       let archl = Ocaml_version.to_opam_arch arch in
       let opam_version = Opam_version.to_string opam_version in
       Current.component "peek@,%s %a %s opam-%s" distro Ocaml_version.pp

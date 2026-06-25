@@ -14,7 +14,8 @@
  (depends
   (ocaml (>= 4.14))
   dune
-  current_rpc
+  (current_rpc (>= 0.7.5))
+  (solver-service-api (>= dev))
   (capnp (>= 3.4.0))
   (capnp-rpc-lwt (>= 1.2))
   (ppx_deriving (>= 5.1))
@@ -27,11 +28,11 @@
   (ocaml (>= 4.14))
   dune
   ocaml-ci-api
-  current
-  current_docker
+  (current (>= 0.7.5))
+  (current_docker (>= 0.7.5))
   current_ocluster
-  current_rpc
-  obuilder-spec
+  (current_rpc (>= 0.7.5))
+  (obuilder-spec (>= 0.7.0))
   ocluster-api
   solver-service
   solver-service-api
@@ -41,7 +42,7 @@
   (capnp-rpc-unix (>= 1.2))
   (cohttp-lwt-unix (>= 5.1.0))
   (logs (>= 0.7.0))
-  (ocaml-version (>= 4.1.0))
+  (ocaml-version (>= 4.1.3))
   (omigrate (>= 0.3.2))
   (opam-0install (>= 0.4.3))
   (ppx_deriving (>= 5.1))
@@ -58,15 +59,16 @@
   (ocaml (>= 4.14))
   dune
   ocaml-ci-api
-  current_git
-  current_github
-  current_docker
-  current_web
-  current_rpc
+  (current (>= 0.7.5))
+  (current_git (>= 0.7.5))
+  (current_github (>= 0.7.5))
+  (current_docker (>= 0.7.5))
+  (current_web (>= 0.7.5))
+  (current_rpc (>= 0.7.5))
   current_ocluster
   solver-service
   ocluster-api
-  obuilder-spec
+  (obuilder-spec (>= 0.7.0))
   (alcotest (and (>= 1.7.0) :with-test))
   (alcotest-lwt (and (>= 1.7.0) :with-test))
   (ansi (>= 0.6.0))
@@ -79,7 +81,7 @@
   (fmt (>= 0.8.9))
   (logs (>= 0.7.0))
   (mirage-crypto-rng (>= 0.8.7))
-  (ocaml-version (>= 4.1.0))
+  (ocaml-version (>= 4.1.3))
   (opam-0install (>= 0.4.3))
   (ppx_deriving (>= 5.1))
   (ppx_deriving_yojson (>= 3.7))
@@ -94,7 +96,7 @@
   (ocaml (>= 4.14))
   dune
   ocaml-ci-api
-  current_rpc
+  (current_rpc (>= 0.7.5))
   (capnp-rpc-unix (>= 1.2))
   (dockerfile (>= 8.3.6))
   (fmt (>= 0.8.9))

@@ -10,7 +10,8 @@ bug-reports: "https://github.com/ocurrent/ocaml-ci/issues"
 depends: [
   "ocaml" {>= "4.14"}
   "dune" {>= "3.20"}
-  "current_rpc"
+  "current_rpc" {>= "0.7.5"}
+  "solver-service-api" {>= "dev"}
   "capnp" {>= "3.4.0"}
   "capnp-rpc-lwt" {>= "1.2"}
   "ppx_deriving" {>= "5.1"}
