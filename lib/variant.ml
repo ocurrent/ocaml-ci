@@ -81,9 +81,7 @@ let pp f t =
     (match t.arch with
     | `X86_64 -> ""
     | a -> "_" ^ Ocaml_version.to_opam_arch a)
-    (match t.opam_version with
-    | `V2_0 -> ""
-    | v -> "_opam-" ^ Opam_version.to_string v)
+    ("_opam-" ^ Opam_version.to_string t.opam_version)
 
 let to_string = Fmt.str "%a" pp
 let err_variant id = failwith ("internal error: unknown variant " ^ id)
@@ -101,7 +99,7 @@ let opam_version_of_string v =
 let of_string s =
   let s, opam_version =
     match Astring.String.cut ~rev:true ~sep:"_opam-" s with
-    | None -> (s, Opam_version.default)
+    | None -> err_opam_version s
     | Some (s, v) -> (s, opam_version_of_string v)
   in
   let id, arch =
