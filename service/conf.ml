@@ -126,10 +126,10 @@ let freebsd_distros =
   List.map
     (fun ocaml_version ->
       {
-        label = "freebsd-15.0";
+        label = "freebsd-15.1";
         builder = Builders.local;
         pool = `FreeBSD_x86_64;
-        distro = "freebsd-15.0";
+        distro = "freebsd-15.1";
         ocaml_version;
         arch = `X86_64;
         opam_version = `V2_5;
@@ -312,7 +312,7 @@ let fetch_platforms ~query_uri ~include_macos ~include_freebsd ~include_windows
     match (conn, distro) with
     | Some conn, "macos-homebrew"
     | Some conn, "openbsd-78-amd64"
-    | Some conn, "freebsd-15.0" ->
+    | Some conn, "freebsd-15.1" ->
         (* FreeBSD and MacOS uses ZFS snapshots rather than docker images. *)
         let docker_image_name =
           Fmt.str "%s-ocaml-%d.%d" distro (OV.major ocaml_version)
