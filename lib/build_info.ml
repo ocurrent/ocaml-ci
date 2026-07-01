@@ -22,7 +22,7 @@ let experimental_variant s =
     | None -> false
     | Some v ->
         Variant.os v = `windows
-        || Astring.String.equal "openbsd-78-amd64" (Variant.distro v)
+        || Astring.String.equal "openbsd-79-amd64" (Variant.distro v)
 
 (** Like [experimental_variant], but takes strings for when a [build_info]
     record is unavailable.
@@ -33,5 +33,5 @@ let experimental_variant_str s =
   Astring.String.(
     is_prefix ~affix:Variant.lower_bound_label s
     || is_prefix ~affix:Variant.opam_label s
-    || is_prefix ~affix:"openbsd-78-amd64" s
+    || is_prefix ~affix:"openbsd-79-amd64" s
     || is_prefix ~affix:"windows" s)
