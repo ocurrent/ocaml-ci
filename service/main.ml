@@ -140,9 +140,20 @@ let main () config mode app capnp_public_address capnp_listen_address
        :: Github.login_route github_auth
        :: Current_web.routes engine
      in
+     (* Proof-of-work gate on the expensive /job/ log pages, to keep
+        JavaScript-less scraper crawls off the engine. Override difficulty with
+        POW_DIFFICULTY. *)
+     let challenge =
+       let difficulty =
+         Option.bind (Sys.getenv_opt "POW_DIFFICULTY") int_of_string_opt
+         |> Option.value ~default:12
+       in
+       Current_web.Challenge.v ~difficulty
+         ~protect:(String.starts_with ~prefix:"/job/") ()
+     in
      let site =
-       Current_web.Site.v ?authn ~has_role ~secure_cookies ~name:"ocaml-ci"
-         routes
+       Current_web.Site.v ?authn ~has_role ~secure_cookies ~challenge
+         ~name:"ocaml-ci" routes
      in
      Lwt.choose [ Current.Engine.thread engine; Current_web.run ~mode site ])
 
