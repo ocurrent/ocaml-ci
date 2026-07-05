@@ -18,6 +18,15 @@ RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard 54482
 RUN opam option --global solver=builtin-0install
 COPY --chown=opam --link ocaml-ci.opam ocaml-ci-service.opam ocaml-ci-api.opam /src/
 WORKDIR /src
+# Pin current_* to the ocurrent branch carrying the proof-of-work challenge
+# (Current_web.Challenge). All current_* must come from one commit.
+RUN opam pin add -yn current.dev         "https://github.com/mtelvers/ocurrent.git#ca5cfef6fcd10aed438f096c448dc2f3747db1f3" && \
+    opam pin add -yn current_web.dev     "https://github.com/mtelvers/ocurrent.git#ca5cfef6fcd10aed438f096c448dc2f3747db1f3" && \
+    opam pin add -yn current_git.dev     "https://github.com/mtelvers/ocurrent.git#ca5cfef6fcd10aed438f096c448dc2f3747db1f3" && \
+    opam pin add -yn current_github.dev  "https://github.com/mtelvers/ocurrent.git#ca5cfef6fcd10aed438f096c448dc2f3747db1f3" && \
+    opam pin add -yn current_docker.dev  "https://github.com/mtelvers/ocurrent.git#ca5cfef6fcd10aed438f096c448dc2f3747db1f3" && \
+    opam pin add -yn current_slack.dev   "https://github.com/mtelvers/ocurrent.git#ca5cfef6fcd10aed438f096c448dc2f3747db1f3" && \
+    opam pin add -yn current_rpc.dev     "https://github.com/mtelvers/ocurrent.git#ca5cfef6fcd10aed438f096c448dc2f3747db1f3"
 RUN --mount=type=cache,target=/home/opam/.opam/download-cache,sharing=locked,uid=1000,gid=1000 \
     opam install -y --deps-only .
 ADD --chown=opam . .
