@@ -23,6 +23,8 @@ let experimental_variant s =
     | Some v ->
         Variant.os v = `windows
         || Astring.String.equal "openbsd-79-amd64" (Variant.distro v)
+        (* RISC-V builds run experimentally via day10; don't fail the commit. *)
+        || Variant.arch v = `Riscv64
 
 (** Like [experimental_variant], but takes strings for when a [build_info]
     record is unavailable.

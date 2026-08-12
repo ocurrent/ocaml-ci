@@ -15,6 +15,10 @@ type t = {
   connection : Current_ocluster.Connection.t;
   timeout : Duration.t option;
   on_cancel : string -> unit;
+  enable_day10 : bool;
+      (* When set, project builds on day10-capable variants (see
+         [day10_supported]) are submitted as day10 custom jobs instead of
+         OBuilder jobs. Sourced from the OCAML_CI_USE_DAY10 env var. *)
 }
 
 module Op = struct
@@ -79,6 +83,65 @@ module Op = struct
     Fmt.str "%s/%s-%s-%a-%s" owner name (Image.hash base) Variant.pp variant
       deps
 
+  (* Variants routed through day10 instead of OBuilder. For now this is the
+     RISC-V path: OBuilder RISC-V builds are so slow that most users don't wait
+     for them, so we run them via day10 (served by the carpenter worker). The
+     RISC-V variant is also marked experimental (see Build_info) so a day10
+     failure does not fail the commit while the path is proven out. *)
+  let day10_supported variant =
+    (match Variant.os variant with `linux -> true | _ -> false)
+    && (match Variant.arch variant with `Riscv64 -> true | _ -> false)
+
+  (* Build a Custom "day10" job for a project build. The project source is
+     supplied out-of-band via [~src] (the checkout); day10 solves and builds
+     the dependencies against the opam-repository at [selection.commit],
+     reading it from the worker's git mirror. *)
+  let day10_action ~variant ~(selection : Selection.t) ~dune_args =
+    (* Prefer the fully-resolved compiler version from the selection (e.g.
+       "ocaml.5.3.0") over the variant's possibly major.minor version. *)
+    let ocaml_version =
+      match
+        List.find_opt
+          (fun p -> String.length p > 6 && String.sub p 0 6 = "ocaml.")
+          selection.Selection.packages
+      with
+      | Some p -> p
+      | None -> "ocaml." ^ Ocaml_version.to_string (Variant.ocaml_version variant)
+    in
+    let os =
+      match Variant.os variant with
+      | `linux -> "linux"
+      | `freeBSD -> "freebsd"
+      | `macOS -> "macos"
+      | `windows -> "windows"
+      | `openBSD -> "openbsd"
+    in
+    let arch = Ocaml_version.to_opam_arch (Variant.arch variant) in
+    (* [Variant.distro] is the ocaml-ci distro string (e.g. "debian-13"); split
+       into day10's --os-distribution and --os-version. *)
+    let os_distribution, os_version =
+      let d = Variant.distro variant in
+      match String.rindex_opt d '-' with
+      | Some i -> (String.sub d 0 i, String.sub d (i + 1) (String.length d - i - 1))
+      | None -> (d, "")
+    in
+    let payload builder =
+      let module B = Cluster_api.Raw.Builder.Day10 in
+      let day10 = B.init_pointer builder in
+      B.verb_set day10 "build";
+      B.opam_repository_commit_set day10 selection.Selection.commit;
+      B.ocaml_version_set day10 ocaml_version;
+      B.os_set day10 os;
+      B.arch_set day10 arch;
+      B.os_distribution_set day10 os_distribution;
+      B.os_version_set day10 os_version;
+      B.with_test_set day10 true;
+      let _ = B.dune_args_set_list day10 dune_args in
+      ()
+    in
+    Cluster_api.Submission.custom_build
+      (Cluster_api.Custom.v ~kind:"day10" payload)
+
   let run t job { Key.pool; commit; label = _; repo } spec =
     Current.Job.on_cancel job (fun reason ->
         Logs.debug (fun l ->
@@ -87,27 +150,48 @@ module Op = struct
         Lwt.return_unit)
     >>= fun () ->
     let { Value.base; variant; ty } = spec in
-    let build_spec = Build.make_build_spec ~base ~repo ~variant ~ty in
-    Current.Job.write job
-      (Fmt.str "@[<v>Base: %a@,%a@]@." Image.pp base Spec.pp_summary ty);
-    Current.Job.write job
-      (Fmt.str
-         "@.To reproduce locally:@.@.%a@.cat > Dockerfile \
-          <<'END-OF-DOCKERFILE'@.\o033[34m%s\o033[0m@.END-OF-DOCKERFILE@.docker \
-          build .@.END-REPRO-BLOCK@.@."
-         Current_git.Commit_id.pp_user_clone commit
-         (Obuilder_spec.Docker.dockerfile_of_spec ~buildkit:false ~os:`Unix
-            build_spec));
-    let spec_str = Fmt.to_to_string Obuilder_spec.pp build_spec in
-    let action = Cluster_api.Submission.obuilder_build spec_str in
     let src = (Git.Commit_id.repo commit, [ Git.Commit_id.hash commit ]) in
     let cache_hint = get_cache_hint repo spec in
+    let use_day10 =
+      t.enable_day10 && day10_supported variant
+      && match ty with `Opam (`Build, _, _) -> true | _ -> false
+    in
+    let action =
+      match ty with
+      | `Opam (`Build, selection, _) when use_day10 ->
+          Current.Job.log job
+            "Building with day10 (variant %a, opam-repository %s)" Variant.pp
+            variant selection.Selection.commit;
+          day10_action ~variant ~selection
+            ~dune_args:[ "@install"; "@check"; "@runtest" ]
+      | _ ->
+          let build_spec = Build.make_build_spec ~base ~repo ~variant ~ty in
+          Current.Job.write job
+            (Fmt.str "@[<v>Base: %a@,%a@]@." Image.pp base Spec.pp_summary ty);
+          Current.Job.write job
+            (Fmt.str
+               "@.To reproduce locally:@.@.%a@.cat > Dockerfile \
+                <<'END-OF-DOCKERFILE'@.\o033[34m%s\o033[0m@.END-OF-DOCKERFILE@.docker \
+                build .@.END-REPRO-BLOCK@.@."
+               Current_git.Commit_id.pp_user_clone commit
+               (Obuilder_spec.Docker.dockerfile_of_spec ~buildkit:false
+                  ~os:`Unix build_spec));
+          let spec_str = Fmt.to_to_string Obuilder_spec.pp build_spec in
+          Current.Job.log job "Using OBuilder spec:@.%s@." spec_str;
+          Cluster_api.Submission.obuilder_build spec_str
+    in
     Current.Job.log job "Using cache hint %S" cache_hint;
-    Current.Job.log job "Using OBuilder spec:@.%s@." spec_str;
+    (* day10 jobs go to the dedicated "test" pool (served by carpenter); only
+       that pool understands the "day10" custom job kind. Since [use_day10]
+       implies the RISC-V variant, this just reroutes what would be
+       linux-riscv64, leaving that pool untouched for other clients such as
+       opam-repo-ci. *)
+    let pool_name =
+      if use_day10 then "test" else Platform.Pool_name.to_string pool
+    in
     let build_pool =
-      Current_ocluster.Connection.pool ~job
-        ~pool:(Platform.Pool_name.to_string pool)
-        ~action ~cache_hint ~src t.connection
+      Current_ocluster.Connection.pool ~job ~pool:pool_name ~action ~cache_hint
+        ~src t.connection
     in
     (* HACK: riscv and windows builders are slow;
        triple the per-job timeout there. *)
@@ -137,7 +221,12 @@ module BC = Current_cache.Generic (Op)
 
 let config ?timeout sr =
   let connection = Current_ocluster.Connection.create sr in
-  { connection; timeout; on_cancel = ignore }
+  let enable_day10 =
+    match Sys.getenv_opt "OCAML_CI_USE_DAY10" with
+    | Some ("1" | "true" | "yes" | "on") -> true
+    | _ -> false
+  in
+  { connection; timeout; on_cancel = ignore; enable_day10 }
 
 let build t ~platforms ~spec ~repo commit =
   Current.component "cluster build"
