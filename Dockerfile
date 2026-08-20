@@ -27,6 +27,10 @@ RUN opam pin add -yn current.dev         "https://github.com/mtelvers/ocurrent.g
     opam pin add -yn current_docker.dev  "https://github.com/mtelvers/ocurrent.git#ca5cfef6fcd10aed438f096c448dc2f3747db1f3" && \
     opam pin add -yn current_slack.dev   "https://github.com/mtelvers/ocurrent.git#ca5cfef6fcd10aed438f096c448dc2f3747db1f3" && \
     opam pin add -yn current_rpc.dev     "https://github.com/mtelvers/ocurrent.git#ca5cfef6fcd10aed438f096c448dc2f3747db1f3"
+# Pin ocluster-api to the day10 branch carrying the Day10 custom-job schema
+# (Cluster_api.Raw.Builder.Day10), used by cluster_build.ml. current_ocluster
+# comes from opam-repository (0.3.0, compatible with this api version).
+RUN opam pin add -yn ocluster-api.0.3.0 "https://github.com/mtelvers/ocluster.git#b492b4dcdf79cd45f73a364caf171c2d2d78a59c"
 RUN --mount=type=cache,target=/home/opam/.opam/download-cache,sharing=locked,uid=1000,gid=1000 \
     opam install -y --deps-only .
 ADD --chown=opam . .
