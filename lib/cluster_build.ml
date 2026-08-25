@@ -137,6 +137,11 @@ module Op = struct
       B.os_version_set day10 os_version;
       B.with_test_set day10 true;
       let _ = B.dune_args_set_list day10 dune_args in
+      (* The solver's per-variant compatible subset of the repo's local
+         packages. Empty means all (day10's default); non-empty drops packages
+         gated to a newer compiler (e.g. prometheus-eio on 4.14) instead of
+         failing the whole solve. *)
+      let _ = B.only_packages_set_list day10 selection.Selection.only_packages in
       ()
     in
     Cluster_api.Submission.custom_build
