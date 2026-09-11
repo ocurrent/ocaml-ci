@@ -264,6 +264,12 @@ module Make (M : Git_forge_intf.Forge) = struct
       (fun response_stream ->
         Dream.write response_stream header >>= fun () ->
         Dream.write response_stream (Ansi.process ansi data) >>= fun () ->
+        (* Flush the initial chunk now: the loop below blocks in
+           [Current_rpc.Job.log] waiting for more output, and for a short log
+           (e.g. a queued job with only its header) the buffered header+chunk
+           would otherwise never be flushed until the job produces more, leaving
+           the page blank while queued. *)
+        Dream.flush response_stream >>= fun () ->
         let rec loop next =
           Current_rpc.Job.log job ~start:next >>= function
           | Ok ("", _) ->
@@ -718,6 +724,12 @@ module Make (M : Git_forge_intf.Forge) = struct
         Dream.write response_stream header >>= fun () ->
         let data' = process_logs data in
         Dream.write response_stream data' >>= fun () ->
+        (* Flush the initial chunk now: the loop below blocks in
+           [Current_rpc.Job.log] waiting for more output, and for a short log
+           (e.g. a queued job with only its header) the buffered header+chunk
+           would otherwise never be flushed until the job produces more, leaving
+           the page blank while queued. *)
+        Dream.flush response_stream >>= fun () ->
         let rec loop next =
           Current_rpc.Job.log job ~start:next >>= function
           | Ok ("", _) ->
