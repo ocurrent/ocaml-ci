@@ -33,7 +33,7 @@ depends: [
   "fmt" {>= "0.8.9"}
   "logs" {>= "0.7.0"}
   "mirage-crypto-rng" {>= "0.8.7"}
-  "ocaml-version" {>= "4.1.3"}
+  "ocaml-version" {>= "4.1.4"}
   "opam-0install" {>= "0.4.3"}
   "ppx_deriving" {>= "5.1"}
   "ppx_deriving_yojson" {>= "3.7"}
