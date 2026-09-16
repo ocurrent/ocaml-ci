@@ -86,7 +86,8 @@
   (ppx_deriving (>= 5.1))
   (ppx_deriving_yojson (>= 3.7))
   (ppx_sexp_conv (>= v0.14.1))
-  (prometheus-app (>= 1.2))
+  (prometheus (< 2.0))
+  (prometheus-app (and (>= 1.2) (< 2.0)))
   (timedesc (>= 0.9.0))))
 
 (package
@@ -120,7 +121,8 @@
   (fmt (>= 0.8.9))
   (logs (>= 0.7.0))
   (lwt (>= 5.7.0))
-  (prometheus-app (>= 1.2))
+  (prometheus (< 2.0))
+  (prometheus-app (and (>= 1.2) (< 2.0)))
   (ppx_deriving_yojson (>= 3.7))
   (yojson (>= 2.1))
   (tyxml (>= 4.5))
