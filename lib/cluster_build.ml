@@ -186,13 +186,18 @@ module Op = struct
           Cluster_api.Submission.obuilder_build spec_str
     in
     Current.Job.log job "Using cache hint %S" cache_hint;
-    (* day10 jobs go to the dedicated "test" pool (served by carpenter); only
-       that pool understands the "day10" custom job kind. Since [use_day10]
-       implies the RISC-V variant, this just reroutes what would be
-       linux-riscv64, leaving that pool untouched for other clients such as
-       opam-repo-ci. *)
+    (* day10 jobs go to the arch-specific day10 pool [day10-<os>-<arch>] (opam
+       arch), mirroring opam-repo-ci and the OBuilder pool set — [use_day10]
+       currently implies the RISC-V variant, so this reroutes what would be
+       linux-riscv64 to day10-linux-riscv64 (served by carpenter). *)
     let pool_name =
-      if use_day10 then "test" else Platform.Pool_name.to_string pool
+      if use_day10 then
+        let os = match Variant.os variant with
+          | `linux -> "linux" | `freeBSD -> "freebsd" | `macOS -> "macos"
+          | `windows -> "windows" | `openBSD -> "openbsd"
+        in
+        Fmt.str "day10-%s-%s" os (Ocaml_version.to_opam_arch (Variant.arch variant))
+      else Platform.Pool_name.to_string pool
     in
     let build_pool =
       Current_ocluster.Connection.pool ~job ~pool:pool_name ~action ~cache_hint
