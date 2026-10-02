@@ -14,7 +14,7 @@
  (depends
   (ocaml (>= 4.14))
   dune
-  (current_rpc (>= 0.7.5))
+  (current_rpc (>= 0.8.0))
   (solver-service-api (>= dev))
   (capnp (>= 3.4.0))
   (capnp-rpc-lwt (>= 1.2))
@@ -28,10 +28,10 @@
   (ocaml (>= 4.14))
   dune
   ocaml-ci-api
-  (current (>= 0.7.5))
-  (current_docker (>= 0.7.5))
+  (current (>= 0.8.0))
+  (current_docker (>= 0.8.0))
   current_ocluster
-  (current_rpc (>= 0.7.5))
+  (current_rpc (>= 0.8.0))
   (obuilder-spec (>= 0.7.0))
   ocluster-api
   solver-service
@@ -59,12 +59,12 @@
   (ocaml (>= 4.14))
   dune
   ocaml-ci-api
-  (current (>= 0.7.5))
-  (current_git (>= 0.7.5))
-  (current_github (>= 0.7.5))
-  (current_docker (>= 0.7.5))
-  (current_web (>= 0.7.5))
-  (current_rpc (>= 0.7.5))
+  (current (>= 0.8.0))
+  (current_git (>= 0.8.0))
+  (current_github (>= 0.8.0))
+  (current_docker (>= 0.8.0))
+  (current_web (>= 0.8.0))
+  (current_rpc (>= 0.8.0))
   current_ocluster
   solver-service
   ocluster-api
@@ -86,8 +86,7 @@
   (ppx_deriving (>= 5.1))
   (ppx_deriving_yojson (>= 3.7))
   (ppx_sexp_conv (>= v0.14.1))
-  (prometheus (< 2.0))
-  (prometheus-app (and (>= 1.2) (< 2.0)))
+  (prometheus-app (>= 2.0))
   (timedesc (>= 0.9.0))))
 
 (package
@@ -97,7 +96,7 @@
   (ocaml (>= 4.14))
   dune
   ocaml-ci-api
-  (current_rpc (>= 0.7.5))
+  (current_rpc (>= 0.8.0))
   (capnp-rpc-unix (>= 1.2))
   (dockerfile (>= 8.3.6))
   (fmt (>= 0.8.9))
@@ -121,8 +120,7 @@
   (fmt (>= 0.8.9))
   (logs (>= 0.7.0))
   (lwt (>= 5.7.0))
-  (prometheus (< 2.0))
-  (prometheus-app (and (>= 1.2) (< 2.0)))
+  (prometheus-app (>= 2.0))
   (ppx_deriving_yojson (>= 3.7))
   (yojson (>= 2.1))
   (tyxml (>= 4.5))

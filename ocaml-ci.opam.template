@@ -1,5 +1,5 @@
 pin-depends: [
-  ["solver-service.dev" "git+https://github.com/ocurrent/solver-service.git#ca9ef7e8a4097ed56ef6e2d9befa7ca0dc5997cb"]
-  ["solver-service-api.dev" "git+https://github.com/ocurrent/solver-service.git#ca9ef7e8a4097ed56ef6e2d9befa7ca0dc5997cb"]
-  ["solver-worker.dev" "git+https://github.com/ocurrent/solver-service.git#ca9ef7e8a4097ed56ef6e2d9befa7ca0dc5997cb"]
+  ["solver-service.dev" "git+https://github.com/ocurrent/solver-service.git#fe5ff5a8ec53f82c5827d805061a0c386a2d4acc"]
+  ["solver-service-api.dev" "git+https://github.com/ocurrent/solver-service.git#fe5ff5a8ec53f82c5827d805061a0c386a2d4acc"]
+  ["solver-worker.dev" "git+https://github.com/ocurrent/solver-service.git#fe5ff5a8ec53f82c5827d805061a0c386a2d4acc"]
 ]
