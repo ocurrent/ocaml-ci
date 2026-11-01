@@ -20,13 +20,13 @@ COPY --chown=opam --link ocaml-ci.opam ocaml-ci-service.opam ocaml-ci-api.opam /
 WORKDIR /src
 # Pin current_* to the ocurrent branch carrying the proof-of-work challenge
 # (Current_web.Challenge). All current_* must come from one commit.
-RUN opam pin add -yn current.dev         "https://github.com/mtelvers/ocurrent.git#ca5cfef6fcd10aed438f096c448dc2f3747db1f3" && \
-    opam pin add -yn current_web.dev     "https://github.com/mtelvers/ocurrent.git#ca5cfef6fcd10aed438f096c448dc2f3747db1f3" && \
-    opam pin add -yn current_git.dev     "https://github.com/mtelvers/ocurrent.git#ca5cfef6fcd10aed438f096c448dc2f3747db1f3" && \
-    opam pin add -yn current_github.dev  "https://github.com/mtelvers/ocurrent.git#ca5cfef6fcd10aed438f096c448dc2f3747db1f3" && \
-    opam pin add -yn current_docker.dev  "https://github.com/mtelvers/ocurrent.git#ca5cfef6fcd10aed438f096c448dc2f3747db1f3" && \
-    opam pin add -yn current_slack.dev   "https://github.com/mtelvers/ocurrent.git#ca5cfef6fcd10aed438f096c448dc2f3747db1f3" && \
-    opam pin add -yn current_rpc.dev     "https://github.com/mtelvers/ocurrent.git#ca5cfef6fcd10aed438f096c448dc2f3747db1f3"
+RUN opam pin add -yn current.dev         "https://github.com/mtelvers/ocurrent.git#5d93b7b657369d40df9207f449f2dcd74f3a7900" && \
+    opam pin add -yn current_web.dev     "https://github.com/mtelvers/ocurrent.git#5d93b7b657369d40df9207f449f2dcd74f3a7900" && \
+    opam pin add -yn current_git.dev     "https://github.com/mtelvers/ocurrent.git#5d93b7b657369d40df9207f449f2dcd74f3a7900" && \
+    opam pin add -yn current_github.dev  "https://github.com/mtelvers/ocurrent.git#5d93b7b657369d40df9207f449f2dcd74f3a7900" && \
+    opam pin add -yn current_docker.dev  "https://github.com/mtelvers/ocurrent.git#5d93b7b657369d40df9207f449f2dcd74f3a7900" && \
+    opam pin add -yn current_slack.dev   "https://github.com/mtelvers/ocurrent.git#5d93b7b657369d40df9207f449f2dcd74f3a7900" && \
+    opam pin add -yn current_rpc.dev     "https://github.com/mtelvers/ocurrent.git#5d93b7b657369d40df9207f449f2dcd74f3a7900"
 # Pin ocluster-api to the day10 branch carrying the Day10 custom-job schema
 # (Cluster_api.Raw.Builder.Day10), used by cluster_build.ml. current_ocluster
 # comes from opam-repository (0.3.0, compatible with this api version).
