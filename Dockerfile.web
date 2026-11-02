@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 FROM ocaml/opam:debian-13-ocaml-4.14 AS build
-RUN sudo ln -sf /usr/bin/opam-2.5 /usr/bin/opam && opam init --reinit -ni
+RUN sudo ln -sf /usr/bin/opam-2.6 /usr/bin/opam && opam init --reinit -ni
 RUN sudo rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/keep-cache
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
