@@ -4,7 +4,7 @@ val download_cache : string
 (** Location of the download cache for opam. *)
 
 val install_project_deps :
-  opam_version:Opam_version.t ->
+  opam_version:Dockerfile_opam.Opam_version.t ->
   opam_files:string list ->
   selection:Selection.t ->
   Obuilder_spec.op list
@@ -13,7 +13,7 @@ val install_project_deps :
 
 val spec :
   base:string ->
-  opam_version:Opam_version.t ->
+  opam_version:Dockerfile_opam.Opam_version.t ->
   opam_files:string list ->
   selection:Selection.t ->
   Obuilder_spec.t

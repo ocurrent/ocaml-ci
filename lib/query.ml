@@ -32,7 +32,10 @@ end
 
 (* This is needed iff the opam used isn't the image default opam. *)
 let prepare_image ~variant =
-  let opam = "opam-" ^ Opam_version.to_string (Variant.opam_version variant) in
+  let opam =
+    "opam-"
+    ^ Dockerfile_opam.Opam_version.to_string (Variant.opam_version variant)
+  in
   (* XXX: don't overwrite default config? *)
   let opamrc = "" in
   let open Obuilder_spec in

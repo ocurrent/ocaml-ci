@@ -35,7 +35,7 @@ type t = {
   distro : string;
   ocaml_version : Ocaml_version.t;
   arch : Ocaml_version.arch;
-  opam_version : Opam_version.t;
+  opam_version : Dockerfile_opam.Opam_version.t;
 }
 [@@deriving yojson, ord, eq]
 
@@ -81,7 +81,7 @@ let pp f t =
     (match t.arch with
     | `X86_64 -> ""
     | a -> "_" ^ Ocaml_version.to_opam_arch a)
-    ("_opam-" ^ Opam_version.to_string t.opam_version)
+    ("_opam-" ^ Dockerfile_opam.Opam_version.to_string t.opam_version)
 
 let to_string = Fmt.str "%a" pp
 let err_variant id = failwith ("internal error: unknown variant " ^ id)
@@ -92,7 +92,7 @@ let arch_of_string a =
   match Ocaml_version.of_opam_arch a with Some a -> a | None -> err_arch a
 
 let opam_version_of_string v =
-  match Opam_version.of_string v with
+  match Dockerfile_opam.Opam_version.of_string v with
   | Ok v -> v
   | Error _ -> err_opam_version v
 
