@@ -1,4 +1,5 @@
-type t = [ `V2_1 | `V2_2 | `V2_3 | `V2_4 | `V2_5 | `V2_6 ] [@@deriving ord, yojson, eq]
+type t = [ `V2_1 | `V2_2 | `V2_3 | `V2_4 | `V2_5 | `V2_6 ]
+[@@deriving ord, yojson, eq]
 
 let to_string = function
   | `V2_1 -> "2.1"

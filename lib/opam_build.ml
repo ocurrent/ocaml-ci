@@ -209,8 +209,8 @@ let install_project_deps ~opam_version ~opam_files ~selection =
           compatible_root_pkgs
     | `V2_6 ->
         run ~network ~cache
-          "opam update --depexts && opam install --cli=2.6 --depext-only -y %s \
-           $DEPS"
+          (* --cli=2.6 fails here see ocaml/opam#7229 *)
+          "opam update --depexts && opam install --depext-only -y %s $DEPS"
           compatible_root_pkgs
   in
   (if Variant.arch variant |> Ocaml_version.arch_is_32bit then
