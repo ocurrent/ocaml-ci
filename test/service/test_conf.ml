@@ -65,9 +65,9 @@ let test_macos_platforms () =
   let exists =
     [
       (true, ("macos-homebrew", OVR.v5_5, `Aarch64));
-      (true, ("macos-homebrew", OVR.v5_5, `X86_64));
+      (false, ("macos-homebrew", OVR.v5_5, `X86_64));
       (true, ("macos-homebrew", OVR.v4_14, `Aarch64));
-      (true, ("macos-homebrew", OVR.v4_14, `X86_64));
+      (false, ("macos-homebrew", OVR.v4_14, `X86_64));
     ]
     |> List.map (fun (a, (b, ov, c)) ->
            (a, (b, OV.with_just_major_and_minor ov, c)))

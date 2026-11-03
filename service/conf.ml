@@ -144,27 +144,14 @@ let macos_distros =
       {
         label = "macos-homebrew";
         builder = Builders.local;
-        pool = `Macos_x86_64;
+        pool = `Macos_ARM64;
         distro = "macos-homebrew";
         ocaml_version;
-        arch = `X86_64;
+        arch = `Aarch64;
         opam_version = `V2_6;
         lower_bound = false;
       })
     default_compilers
-  @ List.map
-      (fun ocaml_version ->
-        {
-          label = "macos-homebrew";
-          builder = Builders.local;
-          pool = `Macos_ARM64;
-          distro = "macos-homebrew";
-          ocaml_version;
-          arch = `Aarch64;
-          opam_version = `V2_6;
-          lower_bound = false;
-        })
-      default_compilers
 
 let pool_of_arch = function
   | `X86_64 | `I386 -> `Linux_x86_64
