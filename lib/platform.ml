@@ -10,7 +10,6 @@ module Pool_name = struct
     | `Linux_ppc64
     | `Linux_s390x
     | `Linux_riscv64
-    | `Macos_x86_64
     | `Macos_ARM64
     | `Windows_x86_64
     | `OpenBSD_amd64
@@ -22,7 +21,6 @@ module Pool_name = struct
     | `Linux_ppc64 -> "linux-ppc64"
     | `Linux_s390x -> "linux-s390x"
     | `Linux_riscv64 -> "linux-riscv64"
-    | `Macos_x86_64 -> "macos-x86_64"
     | `Macos_ARM64 -> "macos-arm64"
     | `Windows_x86_64 -> "windows-x86_64"
     | `OpenBSD_amd64 -> "openbsd-amd64"
@@ -34,7 +32,6 @@ module Pool_name = struct
     | "linux-ppc64" -> Ok `Linux_ppc64
     | "linux-s390x" -> Ok `Linux_s390x
     | "linux-riscv64" -> Ok `Linux_riscv64
-    | "macos-x86_64" -> Ok `Macos_x86_64
     | "macos-arm64" -> Ok `Macos_ARM64
     | "windows-x86_64" -> Ok `Windows_x86_64
     | "openbsd-amd64" -> Ok `OpenBSD_amd64

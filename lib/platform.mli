@@ -7,7 +7,6 @@ module Pool_name : sig
     | `Linux_ppc64
     | `Linux_s390x
     | `Linux_riscv64
-    | `Macos_x86_64
     | `Macos_ARM64
     | `Windows_x86_64
     | `OpenBSD_amd64

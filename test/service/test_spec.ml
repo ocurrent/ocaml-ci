@@ -2,7 +2,7 @@
 let expected_macos_spec =
   {|
 ((from macos-homebrew-ocaml-4.14)
- (comment macos-homebrew-4.14.0_opam-2.1)
+ (comment macos-homebrew-4.14.0_arm64_opam-2.1)
  (user (uid 1000) (gid 1000)) (env CLICOLOR_FORCE 1)
  (env OPAMCOLOR always)
  (run (shell "ln -f ~/local/bin/opam-2.1 ~/local/bin/opam"))
@@ -114,7 +114,7 @@ let test_macos_spec () =
   let open Ocaml_ci in
   let expected = Sexplib__Pre_sexp.of_string expected_macos_spec in
   let variant =
-    Variant.v ~arch:`X86_64 ~distro:"macos-homebrew"
+    Variant.v ~arch:`Aarch64 ~distro:"macos-homebrew"
       ~ocaml_version:Ocaml_version.Releases.v4_14_0 ~opam_version:`V2_1
     |> Result.get_ok
   in
