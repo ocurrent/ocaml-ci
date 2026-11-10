@@ -45,8 +45,8 @@ let filter_duplicate_opam_versions ts =
         | None -> (opam_version, t)
         | Some (version, v) ->
             (* keep the oldest supported opam version *)
-            if Opam_version.compare opam_version version < 0 then
-              (opam_version, t)
+            if Dockerfile_opam.Opam_version.compare opam_version version < 0
+            then (opam_version, t)
             else (version, v)
       in
       Hashtbl.replace tbl k v)

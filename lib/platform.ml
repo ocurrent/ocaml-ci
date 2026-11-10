@@ -138,7 +138,7 @@ let pull ~arch ~schedule ~builder ~distro ~ocaml_version ~opam_version =
   | Error (`Msg m) -> Current.fail m
   | Ok variant ->
       let archl = Ocaml_version.to_opam_arch arch in
-      let opam_version = Opam_version.to_string opam_version in
+      let opam_version = Dockerfile_opam.Opam_version.to_string opam_version in
       Current.component "pull@,%s %a %s opam-%s" distro Ocaml_version.pp
         ocaml_version archl opam_version
       |> let> () = Current.return () in
@@ -153,7 +153,7 @@ let peek ~arch ~schedule ~builder ~distro ~ocaml_version ~opam_version =
         match Variant.os variant with `windows -> "windows" | _ -> "linux"
       in
       let archl = Ocaml_version.to_opam_arch arch in
-      let opam_version = Opam_version.to_string opam_version in
+      let opam_version = Dockerfile_opam.Opam_version.to_string opam_version in
       Current.component "peek@,%s %a %s opam-%s" distro Ocaml_version.pp
         ocaml_version archl opam_version
       |> let> () = Current.return () in

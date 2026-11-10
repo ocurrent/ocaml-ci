@@ -85,7 +85,7 @@ type platform = {
   distro : string;
   ocaml_version : OV.t;
   arch : OV.arch;
-  opam_version : Ocaml_ci.Opam_version.t;
+  opam_version : Dockerfile_opam.Opam_version.t;
   lower_bound : bool;
 }
 
@@ -100,7 +100,7 @@ let openbsd_distros =
         distro = "openbsd-79-amd64";
         ocaml_version;
         arch = `X86_64;
-        opam_version = `V2_6;
+        opam_version = Dockerfile_opam.Opam_version.latest;
         lower_bound = false;
       })
     default_compilers
@@ -116,7 +116,7 @@ let windows_distros =
         distro = "windows-server-mingw-ltsc2025";
         ocaml_version;
         arch = `X86_64;
-        opam_version = `V2_6;
+        opam_version = Dockerfile_opam.Opam_version.latest;
         lower_bound = false;
       })
     OV.(List.map with_just_major_and_minor Releases.[ latest ])
@@ -132,7 +132,7 @@ let freebsd_distros =
         distro = "freebsd-15.1";
         ocaml_version;
         arch = `X86_64;
-        opam_version = `V2_6;
+        opam_version = Dockerfile_opam.Opam_version.latest;
         lower_bound = false;
       })
     default_compilers
@@ -148,7 +148,7 @@ let macos_distros =
         distro = "macos-homebrew";
         ocaml_version;
         arch = `Aarch64;
-        opam_version = `V2_6;
+        opam_version = Dockerfile_opam.Opam_version.latest;
         lower_bound = false;
       })
     default_compilers
@@ -260,7 +260,7 @@ let merge_lower_bound_platforms platforms =
     && pool0 = pool1
     && distro0 = distro1
     && OV.equal ocaml_version0 ocaml_version1
-    && Ocaml_ci.Opam_version.equal opam_version0 opam_version1
+    && Dockerfile_opam.Opam_version.equal opam_version0 opam_version1
   in
   let lower_bound, upper_bound =
     List.partition (fun p -> p.lower_bound) platforms
@@ -335,9 +335,9 @@ let fetch_platforms ~query_uri ~include_macos ~include_freebsd ~include_windows
         Platform.get_local ~arch ~label ~builder ~pool ~distro ~ocaml_version
           ~host_base ~opam_version ~lower_bound base
   in
-  let v2_6 =
-    platforms ~profile:platforms_profile `V2_6 ~include_macos ~include_freebsd
-      ~include_windows ~include_openbsd
+  let latest =
+    platforms ~profile:platforms_profile Dockerfile_opam.Opam_version.latest
+      ~include_macos ~include_freebsd ~include_windows ~include_openbsd
     |> merge_lower_bound_platforms
   in
-  Current.list_seq (List.map v v2_6) |> Current.map List.flatten
+  Current.list_seq (List.map v latest) |> Current.map List.flatten

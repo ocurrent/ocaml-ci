@@ -177,41 +177,19 @@ let install_project_deps ~opam_version ~opam_files ~selection =
   in
   (* XXX: don't overwrite default config? *)
   let opamrc = "" in
-  let opam_version_str = Opam_version.to_string opam_version in
+  let opam_version_str = Dockerfile_opam.Opam_version.to_string opam_version in
   let compatible_root_pkgs = String.concat " " compatible_root_pkgs in
   let non_root_pkgs = String.concat " " non_root_pkgs in
+  (* The --cli=X flag dates from the opam 2.0 -> 2.1 transition (d2a9c5f,
+     "Add opam-2.1 builds"), when 2.0 needed [opam depext] and 2.1
+     [opam install --depext-only]. opam 2.0 support was removed in aa2750e,
+     and every remaining version accepts --depext-only under its default CLI
+     version, so the flag is redundant. (opam 2.6 also rejects --cli=2.6, see
+     ocaml/opam#7229.) *)
   let opam_depext =
-    match opam_version with
-    | `V2_1 ->
-        run ~network ~cache
-          "opam update --depexts && opam install --cli=2.1 --depext-only -y %s \
-           $DEPS"
-          compatible_root_pkgs
-    | `V2_2 ->
-        run ~network ~cache
-          "opam update --depexts && opam install --cli=2.2 --depext-only -y %s \
-           $DEPS"
-          compatible_root_pkgs
-    | `V2_3 ->
-        run ~network ~cache
-          "opam update --depexts && opam install --cli=2.3 --depext-only -y %s \
-           $DEPS"
-          compatible_root_pkgs
-    | `V2_4 ->
-        run ~network ~cache
-          "opam update --depexts && opam install --cli=2.4 --depext-only -y %s \
-           $DEPS"
-          compatible_root_pkgs
-    | `V2_5 ->
-        run ~network ~cache
-          "opam update --depexts && opam install --cli=2.5 --depext-only -y %s \
-           $DEPS"
-          compatible_root_pkgs
-    | `V2_6 ->
-        run ~network ~cache
-          (* --cli=2.6 fails here see ocaml/opam#7229 *)
-          "opam update --depexts && opam install --depext-only -y %s $DEPS"
-          compatible_root_pkgs
+    run ~network ~cache
+      "opam update --depexts && opam install --depext-only -y %s $DEPS"
+      compatible_root_pkgs
   in
   (if Variant.arch variant |> Ocaml_version.arch_is_32bit then
      [ shell [ "/usr/bin/linux32"; "/bin/sh"; "-c" ] ]
