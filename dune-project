@@ -38,7 +38,7 @@
   solver-service-api
   solver-worker
   (bos (>= 0.2.1))
-  (dockerfile-opam (= 8.4.6))
+  (dockerfile-opam (= 8.4.7))
   (capnp-rpc-unix (>= 1.2))
   (cohttp-lwt-unix (>= 5.1.0))
   (logs (>= 0.7.0))
@@ -98,7 +98,7 @@
   ocaml-ci-api
   (current_rpc (>= 0.8.0))
   (capnp-rpc-unix (>= 1.2))
-  (dockerfile (= 8.4.6))
+  (dockerfile (= 8.4.7))
   (fmt (>= 0.8.9))
   (logs (>= 0.7.0))
   (timedesc (>= 0.9.0))))
