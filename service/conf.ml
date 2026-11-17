@@ -97,7 +97,7 @@ let openbsd_distros =
         label = "openbsd";
         builder = Builders.local;
         pool = `OpenBSD_amd64;
-        distro = "openbsd-79-amd64";
+        distro = "openbsd-80-amd64";
         ocaml_version;
         arch = `X86_64;
         opam_version = Dockerfile_opam.Opam_version.latest;
@@ -298,7 +298,7 @@ let fetch_platforms ~query_uri ~include_macos ~include_freebsd ~include_windows
       } =
     match (conn, distro) with
     | Some conn, "macos-homebrew"
-    | Some conn, "openbsd-79-amd64"
+    | Some conn, "openbsd-80-amd64"
     | Some conn, "freebsd-15.1" ->
         (* FreeBSD and MacOS uses ZFS snapshots rather than docker images. *)
         let docker_image_name =
